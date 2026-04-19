@@ -182,6 +182,50 @@ textarea:focus,input:focus{border-color:var(--black);}
   .form-box{padding:20px 16px;max-width:100%;}
   .card-grid{grid-template-columns:1fr;}
 }
+  .topbar{
+  overflow:hidden !important;
+  padding:0 12px !important;
+}
+
+.topbar-logo{
+  color:#fff !important;
+  flex:0 0 80px !important;
+  margin-right:8px !important;
+  overflow:hidden !important;
+}
+
+.topbar-logo svg{
+  display:block !important;
+  width:100% !important;
+  height:auto !important;
+}
+
+.topbar-right{
+  display:flex !important;
+  align-items:center !important;
+  gap:6px !important;
+  min-width:0 !important;
+  flex:1 !important;
+  justify-content:flex-end !important;
+  overflow:hidden !important;
+}
+
+.topbar-user{
+  display:block !important;
+  font-size:12px !important;
+  color:rgba(255,255,255,0.6) !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  min-width:0 !important;
+  max-width:100px !important;
+}
+
+@media(max-width:600px){
+  .topbar-user{
+    max-width:90px !important;
+  }
+}
 </style>
 </head>
 <body>
