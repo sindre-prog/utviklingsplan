@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="no">
 <head>
 <meta charset="UTF-8">
@@ -11,8 +10,6 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html{overflow-x:hidden;}
 body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);background:#fff;min-height:100vh;overflow-x:hidden;}
-*{max-width:100%;box-sizing:border-box;}
-img,svg{max-width:100%;height:auto;}
 #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:#fff;}
 .login-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:40px 24px;width:100%;max-width:420px;box-sizing:border-box;}
 .login-logo{margin-bottom:4px;text-align:center;}
@@ -290,10 +287,10 @@ textarea:focus,input:focus{border-color:var(--black);}
 </div>
 <script>
 
-const SUPABASE_URL = ‘https://upuffmfgsxlzybifxveg.supabase.co’;
-const SUPABASE_KEY = ‘sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq’;
-const ADMIN_CODE = ‘raeder-admin-2024’;
-const ADMIN_COACH_ID = ‘e509ce92-827e-4ebe-b4cb-fd240c306aa2’;
+const SUPABASE_URL = 'https://upuffmfgsxlzybifxveg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq';
+const ADMIN_CODE = 'raeder-admin-2024';
+const ADMIN_COACH_ID = 'e509ce92-827e-4ebe-b4cb-fd240c306aa2';
 
 let currentRole = null;
 let currentCoach = null;
@@ -302,618 +299,615 @@ let viewingClientId = null;
 let allCoaches = [];
 
 async function api(method, path, body, prefer) {
-const headers = {
-‘apikey’: SUPABASE_KEY,
-‘Authorization’: ’Bearer ’ + SUPABASE_KEY,
-‘Content-Type’: ‘application/json’
-};
-if (prefer) headers[‘Prefer’] = prefer;
-const res = await fetch(SUPABASE_URL + ‘/rest/v1/’ + path, {
-method: method,
-headers: headers,
-body: body ? JSON.stringify(body) : undefined
-});
-if (!res.ok) throw new Error(await res.text());
-const text = await res.text();
-return text ? JSON.parse(text) : null;
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json'
+  };
+  if (prefer) headers['Prefer'] = prefer;
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    method: method,
+    headers: headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 function updateLoginBtn() {
-const visible = document.getElementById(‘consent-box’).style.display !== ‘none’;
-document.getElementById(‘login-btn’).disabled = visible && !document.getElementById(‘consent-check’).checked;
+  const visible = document.getElementById('consent-box').style.display !== 'none';
+  document.getElementById('login-btn').disabled = visible && !document.getElementById('consent-check').checked;
 }
 
 async function handleLogin() {
-const code = document.getElementById(‘code-input’).value.trim().toLowerCase();
-if (!code) return;
-setLoginState(‘loading’);
-if (code === ADMIN_CODE) {
-currentRole = ‘admin’;
-setLoginState(‘idle’);
-showApp();
-return;
-}
-try {
-const coaches = await api(‘GET’, ‘coaches?code=eq.’ + encodeURIComponent(code) + ‘&select=*’);
-if (coaches && coaches.length > 0) {
-currentRole = ‘coach’;
-currentCoach = coaches[0];
-setLoginState(‘idle’);
-showApp();
-return;
-}
-const clients = await api(‘GET’, ‘clients?code=eq.’ + encodeURIComponent(code) + ’&select=*’);
-if (clients && clients.length > 0) {
-const client = clients[0];
-if (!client.consent_given) {
-document.getElementById(‘consent-box’).style.display = ‘block’;
-document.getElementById(‘login-btn’).disabled = true;
-setLoginState(‘idle’);
-document.getElementById(‘login-btn’).onclick = async function() {
-if (!document.getElementById(‘consent-check’).checked) return;
-await api(‘PATCH’, ‘clients?id=eq.’ + client.id, {consent_given: true, consent_date: new Date().toISOString()}, ‘return=representation’);
-currentRole = ‘client’;
-currentClientId = client.id;
-showApp();
-};
-return;
-}
-currentRole = ‘client’;
-currentClientId = client.id;
-setLoginState(‘idle’);
-showApp();
-return;
-}
-setLoginState(‘error’, ‘Ugyldig kode. Kontakt Ræder& for tilgang.’);
-} catch(e) {
-setLoginState(‘error’, ‘Noe gikk galt. Prøv igjen.’);
-}
+  const code = document.getElementById('code-input').value.trim().toLowerCase();
+  if (!code) return;
+  setLoginState('loading');
+  if (code === ADMIN_CODE) {
+    currentRole = 'admin';
+    setLoginState('idle');
+    showApp();
+    return;
+  }
+  try {
+    const coaches = await api('GET', 'coaches?code=eq.' + encodeURIComponent(code) + '&select=*');
+    if (coaches && coaches.length > 0) {
+      currentRole = 'coach';
+      currentCoach = coaches[0];
+      setLoginState('idle');
+      showApp();
+      return;
+    }
+    const clients = await api('GET', 'clients?code=eq.' + encodeURIComponent(code) + '&select=*');
+    if (clients && clients.length > 0) {
+      const client = clients[0];
+      if (!client.consent_given) {
+        document.getElementById('consent-box').style.display = 'block';
+        document.getElementById('login-btn').disabled = true;
+        setLoginState('idle');
+        document.getElementById('login-btn').onclick = async function() {
+          if (!document.getElementById('consent-check').checked) return;
+          await api('PATCH', 'clients?id=eq.' + client.id, {consent_given: true, consent_date: new Date().toISOString()}, 'return=representation');
+          currentRole = 'client';
+          currentClientId = client.id;
+          showApp();
+        };
+        return;
+      }
+      currentRole = 'client';
+      currentClientId = client.id;
+      setLoginState('idle');
+      showApp();
+      return;
+    }
+    setLoginState('error', 'Ugyldig kode. Kontakt Ræder& for tilgang.');
+  } catch(e) {
+    setLoginState('error', 'Noe gikk galt. Prøv igjen.');
+  }
 }
 
 function setLoginState(state, msg) {
-document.getElementById(‘loading-msg’).style.display = state === ‘loading’ ? ‘block’ : ‘none’;
-document.getElementById(‘login-error’).style.display = state === ‘error’ ? ‘block’ : ‘none’;
-if (msg) document.getElementById(‘login-error’).textContent = msg;
-if (state !== ‘error’) document.getElementById(‘login-btn’).disabled = state === ‘loading’;
+  document.getElementById('loading-msg').style.display = state === 'loading' ? 'block' : 'none';
+  document.getElementById('login-error').style.display = state === 'error' ? 'block' : 'none';
+  if (msg) document.getElementById('login-error').textContent = msg;
+  if (state !== 'error') document.getElementById('login-btn').disabled = state === 'loading';
 }
 
-document.addEventListener(‘DOMContentLoaded’, function() {
-document.getElementById(‘code-input’).addEventListener(‘keydown’, function(e) {
-if (e.key === ‘Enter’) handleLogin();
-});
-document.addEventListener(‘keydown’, function(e) {
-if ((e.metaKey || e.ctrlKey) && e.key === ‘s’) {
-e.preventDefault();
-if (document.getElementById(‘save-bar’).style.display !== ‘none’) savePlan();
-}
-});
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('code-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleLogin();
+  });
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault();
+      if (document.getElementById('save-bar').style.display !== 'none') savePlan();
+    }
+  });
 });
 
 async function showApp() {
-document.getElementById(‘login-screen’).style.display = ‘none’;
-document.getElementById(‘app-screen’).style.display = ‘block’;
-allCoaches = await api(‘GET’, ‘coaches?select=*&order=name.asc’) || [];
-if (currentRole === ‘admin’) {
-document.getElementById(‘topbar-user’).innerHTML = ‘Administrator <span class="topbar-role role-admin">Admin</span>’;
-const adminCoach = allCoaches.find(function(c) { return c.id === ADMIN_COACH_ID; });
-if (adminCoach) currentCoach = adminCoach;
-showAdminPanel();
-} else if (currentRole === ‘coach’) {
-document.getElementById(‘topbar-user’).innerHTML = currentCoach.name + ’ <span class="topbar-role role-coach">Coach</span>’;
-showCoachPanel();
-} else {
-const clients = await api(‘GET’, ‘clients?id=eq.’ + currentClientId + ’&select=*’);
-const client = clients[0];
-document.getElementById(‘topbar-user’).textContent = client.name;
-showPlanView(client, false);
-}
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  allCoaches = await api('GET', 'coaches?select=*&order=name.asc') || [];
+  if (currentRole === 'admin') {
+    document.getElementById('topbar-user').innerHTML = 'Administrator <span class="topbar-role role-admin">Admin</span>';
+    const adminCoach = allCoaches.find(function(c) { return c.id === ADMIN_COACH_ID; });
+    if (adminCoach) currentCoach = adminCoach;
+    showAdminPanel();
+  } else if (currentRole === 'coach') {
+    document.getElementById('topbar-user').innerHTML = currentCoach.name + ' <span class="topbar-role role-coach">Coach</span>';
+    showCoachPanel();
+  } else {
+    const clients = await api('GET', 'clients?id=eq.' + currentClientId + '&select=*');
+    const client = clients[0];
+    document.getElementById('topbar-user').textContent = client.name;
+    showPlanView(client, false);
+  }
 }
 
 function makeCard(cl, onclickFn) {
-const div = document.createElement(‘div’);
-div.className = ‘card’;
-div.onclick = function() { onclickFn(cl.id); };
-const meta = (cl.role || ‘’) + (cl.role && cl.employer ? ’ · ’ : ‘’) + (cl.employer || ‘’);
-const period = (cl.plan && cl.plan.c_start) ? ’Oppstart: ’ + formatDate(cl.plan.c_start) : ‘Periode ikke satt’;
-div.innerHTML = ‘<div class="card-title">’ + cl.name + ‘</div>’ +
-’<div class="card-sub">Kode: ’ + cl.code + ‘</div>’ +
-(meta ? ‘<div class="card-meta">’ + meta + ‘</div>’ : ‘’) +
-‘<div class="card-meta" style="margin-top:4px">’ + period + ‘</div>’ +
-‘<span class="card-badge ' + (cl.consent_given ? 'badge-active' : 'badge-pending') + '">’ + (cl.consent_given ? ‘Aktiv’ : ‘Ikke innlogget’) + ‘</span>’;
-return div;
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.onclick = function() { onclickFn(cl.id); };
+  const meta = (cl.role || '') + (cl.role && cl.employer ? ' · ' : '') + (cl.employer || '');
+  const period = (cl.plan && cl.plan.c_start) ? 'Oppstart: ' + formatDate(cl.plan.c_start) : 'Periode ikke satt';
+  div.innerHTML = '<div class="card-title">' + cl.name + '</div>' +
+    '<div class="card-sub">Kode: ' + cl.code + '</div>' +
+    (meta ? '<div class="card-meta">' + meta + '</div>' : '') +
+    '<div class="card-meta" style="margin-top:4px">' + period + '</div>' +
+    '<span class="card-badge ' + (cl.consent_given ? 'badge-active' : 'badge-pending') + '">' + (cl.consent_given ? 'Aktiv' : 'Ikke innlogget') + '</span>';
+  return div;
 }
 
 async function showAdminPanel() {
-document.getElementById(‘admin-panel’).style.display = ‘block’;
-document.getElementById(‘coach-panel’).style.display = ‘none’;
-document.getElementById(‘plan-view’).style.display = ‘none’;
-document.getElementById(‘save-bar’).style.display = ‘none’;
-window.scrollTo(0, 0);
+  document.getElementById('admin-panel').style.display = 'block';
+  document.getElementById('coach-panel').style.display = 'none';
+  document.getElementById('plan-view').style.display = 'none';
+  document.getElementById('save-bar').style.display = 'none';
+  window.scrollTo(0, 0);
 
-const allClients = await api(‘GET’, ‘clients?select=*’) || [];
+  const allClients = await api('GET', 'clients?select=*') || [];
 
-const myGrid = document.getElementById(‘admin-my-clients’);
-myGrid.innerHTML = ‘’;
-const myClients = allClients.filter(function(cl) { return (cl.coach_ids || []).indexOf(ADMIN_COACH_ID) !== -1; });
-if (myClients.length === 0) {
-myGrid.innerHTML = ‘<p style="color:var(--muted);font-size:14px;margin-bottom:8px">Ingen klienter koblet til deg ennå.</p>’;
-} else {
-myClients.forEach(function(cl) { myGrid.appendChild(makeCard(cl, adminOpenClient)); });
-}
+  const myGrid = document.getElementById('admin-my-clients');
+  myGrid.innerHTML = '';
+  const myClients = allClients.filter(function(cl) { return (cl.coach_ids || []).indexOf(ADMIN_COACH_ID) !== -1; });
+  if (myClients.length === 0) {
+    myGrid.innerHTML = '<p style="color:var(--muted);font-size:14px;margin-bottom:8px">Ingen klienter koblet til deg ennå.</p>';
+  } else {
+    myClients.forEach(function(cl) { myGrid.appendChild(makeCard(cl, adminOpenClient)); });
+  }
 
-const sel = document.getElementById(‘new-client-coach-a’);
-sel.innerHTML = allCoaches.map(function(c) { return ‘<option value="' + c.id + '">’ + c.name + ‘</option>’; }).join(’’);
+  const sel = document.getElementById('new-client-coach-a');
+  sel.innerHTML = allCoaches.map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join('');
 
-const tbody = document.getElementById(‘coaches-tbody’);
-if (allCoaches.length === 0) {
-tbody.innerHTML = ‘<tr><td colspan="5" style="color:var(--muted);padding:16px">Ingen coacher ennå.</td></tr>’;
-} else {
-tbody.innerHTML = ‘’;
-allCoaches.forEach(function(c) {
-const count = allClients.filter(function(cl) { return (cl.coach_ids || []).indexOf(c.id) !== -1; }).length;
-const tr = document.createElement(‘tr’);
-tr.innerHTML = ‘<td>’ + c.name + ‘</td><td style="color:var(--muted);font-size:13px">’ + c.code + ‘</td><td>’ + count + ‘</td><td style="color:var(--muted);font-size:13px">’ + formatDate(c.created_at) + ‘</td><td style="white-space:nowrap"></td>’;
-const btnEdit = document.createElement(‘button’);
-btnEdit.textContent = ‘Rediger’;
-btnEdit.style.cssText = ‘background:none;border:none;color:var(–muted);cursor:pointer;font-size:13px;padding:4px 8px;’;
-btnEdit.onclick = function() { editCoach(c.id, c.name, c.code); };
-const btnDel = document.createElement(‘button’);
-btnDel.textContent = ‘Slett’;
-btnDel.style.cssText = ‘background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:4px 8px;’;
-btnDel.onclick = function() { deleteCoach(c.id, c.name); };
-tr.cells[4].appendChild(btnEdit);
-tr.cells[4].appendChild(btnDel);
-tbody.appendChild(tr);
-});
-}
+  const tbody = document.getElementById('coaches-tbody');
+  if (allCoaches.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--muted);padding:16px">Ingen coacher ennå.</td></tr>';
+  } else {
+    tbody.innerHTML = '';
+    allCoaches.forEach(function(c) {
+      const count = allClients.filter(function(cl) { return (cl.coach_ids || []).indexOf(c.id) !== -1; }).length;
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + c.name + '</td><td style="color:var(--muted);font-size:13px">' + c.code + '</td><td>' + count + '</td><td style="color:var(--muted);font-size:13px">' + formatDate(c.created_at) + '</td><td style="white-space:nowrap"></td>';
+      const btnEdit = document.createElement('button');
+      btnEdit.textContent = 'Rediger';
+      btnEdit.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 8px;';
+      btnEdit.onclick = function() { editCoach(c.id, c.name, c.code); };
+      const btnDel = document.createElement('button');
+      btnDel.textContent = 'Slett';
+      btnDel.style.cssText = 'background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:4px 8px;';
+      btnDel.onclick = function() { deleteCoach(c.id, c.name); };
+      tr.cells[4].appendChild(btnEdit);
+      tr.cells[4].appendChild(btnDel);
+      tbody.appendChild(tr);
+    });
+  }
 
-const ctbody = document.getElementById(‘clients-tbody’);
-if (allClients.length === 0) {
-ctbody.innerHTML = ‘<tr><td colspan="6" style="color:var(--muted);padding:16px">Ingen klienter ennå.</td></tr>’;
-} else {
-ctbody.innerHTML = ‘’;
-allClients.forEach(function(cl) {
-const coachNames = (cl.coach_ids || []).map(function(id) {
-const c = allCoaches.find(function(c) { return c.id === id; });
-return c ? c.name : null;
-}).filter(Boolean).join(’, ’) || ‘–’;
-const tr = document.createElement(‘tr’);
-tr.innerHTML = ‘<td>’ + cl.name + ‘<br><span style="font-size:12px;color:var(--muted)">’ + cl.code + ‘</span></td>’ +
-‘<td style="color:var(--muted);font-size:13px">’ + (cl.role || ‘–’) + ‘</td>’ +
-‘<td style="color:var(--muted);font-size:13px">’ + (cl.employer || ‘–’) + ‘</td>’ +
-‘<td>’ + coachNames + ‘</td>’ +
-‘<td><span class="card-badge ' + (cl.consent_given ? 'badge-active' : 'badge-pending') + '">’ + (cl.consent_given ? ‘Aktiv’ : ‘Ikke innlogget’) + ‘</span></td>’ +
-‘<td style="white-space:nowrap"></td>’;
-const btnEdit = document.createElement(‘button’);
-btnEdit.textContent = ‘Rediger’;
-btnEdit.style.cssText = ‘background:none;border:none;color:var(–muted);cursor:pointer;font-size:13px;padding:4px 8px;’;
-btnEdit.onclick = function() { editClient(cl.id, cl.name, cl.code, cl.coach_ids || [], cl.role || ‘’, cl.employer || ‘’); };
-const btnDel = document.createElement(‘button’);
-btnDel.textContent = ‘Slett’;
-btnDel.style.cssText = ‘background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:4px 8px;’;
-btnDel.onclick = function() { deleteClient(cl.id, cl.name); };
-tr.cells[5].appendChild(btnEdit);
-tr.cells[5].appendChild(btnDel);
-ctbody.appendChild(tr);
-});
-}
+  const ctbody = document.getElementById('clients-tbody');
+  if (allClients.length === 0) {
+    ctbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:16px">Ingen klienter ennå.</td></tr>';
+  } else {
+    ctbody.innerHTML = '';
+    allClients.forEach(function(cl) {
+      const coachNames = (cl.coach_ids || []).map(function(id) {
+        const c = allCoaches.find(function(c) { return c.id === id; });
+        return c ? c.name : null;
+      }).filter(Boolean).join(', ') || '–';
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + cl.name + '<br><span style="font-size:12px;color:var(--muted)">' + cl.code + '</span></td>' +
+        '<td style="color:var(--muted);font-size:13px">' + (cl.role || '–') + '</td>' +
+        '<td style="color:var(--muted);font-size:13px">' + (cl.employer || '–') + '</td>' +
+        '<td>' + coachNames + '</td>' +
+        '<td><span class="card-badge ' + (cl.consent_given ? 'badge-active' : 'badge-pending') + '">' + (cl.consent_given ? 'Aktiv' : 'Ikke innlogget') + '</span></td>' +
+        '<td style="white-space:nowrap"></td>';
+      const btnEdit = document.createElement('button');
+      btnEdit.textContent = 'Rediger';
+      btnEdit.style.cssText = 'background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 8px;';
+      btnEdit.onclick = function() { editClient(cl.id, cl.name, cl.code, cl.coach_ids || [], cl.role || '', cl.employer || ''); };
+      const btnDel = document.createElement('button');
+      btnDel.textContent = 'Slett';
+      btnDel.style.cssText = 'background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:4px 8px;';
+      btnDel.onclick = function() { deleteClient(cl.id, cl.name); };
+      tr.cells[5].appendChild(btnEdit);
+      tr.cells[5].appendChild(btnDel);
+      ctbody.appendChild(tr);
+    });
+  }
 }
 
 async function showCoachPanel() {
-document.getElementById(‘coach-panel’).style.display = ‘block’;
-document.getElementById(‘admin-panel’).style.display = ‘none’;
-document.getElementById(‘plan-view’).style.display = ‘none’;
-document.getElementById(‘save-bar’).style.display = ‘none’;
-document.getElementById(‘coach-greeting’).textContent = ’Hei, ’ + currentCoach.name;
-window.scrollTo(0, 0);
+  document.getElementById('coach-panel').style.display = 'block';
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('plan-view').style.display = 'none';
+  document.getElementById('save-bar').style.display = 'none';
+  document.getElementById('coach-greeting').textContent = 'Hei, ' + currentCoach.name;
+  window.scrollTo(0, 0);
 
-const allClients = await api(‘GET’, ‘clients?select=*’) || [];
-const myClients = allClients.filter(function(cl) { return (cl.coach_ids || []).indexOf(currentCoach.id) !== -1; });
-const grid = document.getElementById(‘coach-client-grid’);
-grid.innerHTML = ‘’;
-if (myClients.length === 0) {
-grid.innerHTML = ‘<p style="color:var(--muted);font-size:14px">Ingen klienter ennå.</p>’;
-} else {
-myClients.forEach(function(cl) { grid.appendChild(makeCard(cl, coachOpenClient)); });
-}
+  const allClients = await api('GET', 'clients?select=*') || [];
+  const myClients = allClients.filter(function(cl) { return (cl.coach_ids || []).indexOf(currentCoach.id) !== -1; });
+  const grid = document.getElementById('coach-client-grid');
+  grid.innerHTML = '';
+  if (myClients.length === 0) {
+    grid.innerHTML = '<p style="color:var(--muted);font-size:14px">Ingen klienter ennå.</p>';
+  } else {
+    myClients.forEach(function(cl) { grid.appendChild(makeCard(cl, coachOpenClient)); });
+  }
 }
 
 async function coachOpenClient(id) {
-viewingClientId = id;
-const clients = await api(‘GET’, ‘clients?id=eq.’ + id + ‘&select=*’);
-showPlanView(clients[0], true);
+  viewingClientId = id;
+  const clients = await api('GET', 'clients?id=eq.' + id + '&select=*');
+  showPlanView(clients[0], true);
 }
 
 async function adminOpenClient(id) {
-viewingClientId = id;
-const clients = await api(‘GET’, ‘clients?id=eq.’ + id + ‘&select=*’);
-showPlanView(clients[0], true);
+  viewingClientId = id;
+  const clients = await api('GET', 'clients?id=eq.' + id + '&select=*');
+  showPlanView(clients[0], true);
 }
 
 function goBack() {
-viewingClientId = null;
-document.getElementById(‘plan-view’).style.display = ‘none’;
-document.getElementById(‘save-bar’).style.display = ‘none’;
-if (currentRole === ‘admin’) showAdminPanel();
-else showCoachPanel();
+  viewingClientId = null;
+  document.getElementById('plan-view').style.display = 'none';
+  document.getElementById('save-bar').style.display = 'none';
+  if (currentRole === 'admin') showAdminPanel();
+  else showCoachPanel();
 }
 
 function showPlanView(client, showBack) {
-document.getElementById(‘admin-panel’).style.display = ‘none’;
-document.getElementById(‘coach-panel’).style.display = ‘none’;
-document.getElementById(‘plan-view’).style.display = ‘block’;
-document.getElementById(‘save-bar’).style.display = ‘flex’;
-document.getElementById(‘back-btn’).style.display = showBack ? ‘flex’ : ‘none’;
-window.scrollTo(0, 0);
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('coach-panel').style.display = 'none';
+  document.getElementById('plan-view').style.display = 'block';
+  document.getElementById('save-bar').style.display = 'flex';
+  document.getElementById('back-btn').style.display = showBack ? 'flex' : 'none';
+  window.scrollTo(0, 0);
 
-const plan = client.plan || {};
-document.getElementById(‘plan-name-display’).textContent = client.name;
-const coachNames = (client.coach_ids || []).map(function(id) {
-const c = allCoaches.find(function(c) { return c.id === id; });
-return c ? c.name : null;
-}).filter(function(n) { return n && n !== client.name; });
-document.getElementById(‘plan-coaches-display’).textContent = coachNames.length ? ‘Coach: ’ + coachNames.join(’ & ’) : ‘’;
+  const plan = client.plan || {};
+  document.getElementById('plan-name-display').textContent = client.name;
+  const coachNames = (client.coach_ids || []).map(function(id) {
+    const c = allCoaches.find(function(c) { return c.id === id; });
+    return c ? c.name : null;
+  }).filter(function(n) { return n && n !== client.name; });
+  document.getElementById('plan-coaches-display').textContent = coachNames.length ? 'Coach: ' + coachNames.join(' & ') : '';
 
-const existing = document.getElementById(‘plan-role-meta’);
-if (existing) existing.remove();
-const roleEmployer = [client.role, client.employer].filter(Boolean).join(’ · ’);
-if (roleEmployer) {
-const meta = document.createElement(‘div’);
-meta.id = ‘plan-role-meta’;
-meta.style.cssText = ‘font-size:13px;color:var(–muted);margin-top:4px’;
-meta.textContent = roleEmployer;
-document.getElementById(‘plan-coaches-display’).after(meta);
-}
+  const existing = document.getElementById('plan-role-meta');
+  if (existing) existing.remove();
+  const roleEmployer = [client.role, client.employer].filter(Boolean).join(' · ');
+  if (roleEmployer) {
+    const meta = document.createElement('div');
+    meta.id = 'plan-role-meta';
+    meta.style.cssText = 'font-size:13px;color:var(--muted);margin-top:4px';
+    meta.textContent = roleEmployer;
+    document.getElementById('plan-coaches-display').after(meta);
+  }
 
-document.getElementById(‘c-purpose’).value = plan.c_purpose || ‘’;
-document.getElementById(‘c-success’).value = plan.c_success || ‘’;
-document.getElementById(‘c-expect-coach’).value = plan.c_expect_coach || ‘’;
-document.getElementById(‘c-expect-client’).value = plan.c_expect_client || ‘’;
-document.getElementById(‘c-confidentiality’).value = plan.c_confidentiality || ‘’;
-document.getElementById(‘c-practical’).value = plan.c_practical || ‘’;
-document.getElementById(‘c-start’).value = plan.c_start || ‘’;
-document.getElementById(‘c-end’).value = plan.c_end || ‘’;
-document.getElementById(‘c-sessions’).value = plan.c_sessions || ‘’;
-document.getElementById(‘c-duration’).value = plan.c_duration || ‘’;
-document.getElementById(‘eval-achieved’).value = plan.eval_achieved || ‘’;
-document.getElementById(‘eval-reflection’).value = plan.eval_reflection || ‘’;
-document.getElementById(‘eval-next’).value = plan.eval_next || ‘’;
+  document.getElementById('c-purpose').value = plan.c_purpose || '';
+  document.getElementById('c-success').value = plan.c_success || '';
+  document.getElementById('c-expect-coach').value = plan.c_expect_coach || '';
+  document.getElementById('c-expect-client').value = plan.c_expect_client || '';
+  document.getElementById('c-confidentiality').value = plan.c_confidentiality || '';
+  document.getElementById('c-practical').value = plan.c_practical || '';
+  document.getElementById('c-start').value = plan.c_start || '';
+  document.getElementById('c-end').value = plan.c_end || '';
+  document.getElementById('c-sessions').value = plan.c_sessions || '';
+  document.getElementById('c-duration').value = plan.c_duration || '';
+  document.getElementById('eval-achieved').value = plan.eval_achieved || '';
+  document.getElementById('eval-reflection').value = plan.eval_reflection || '';
+  document.getElementById('eval-next').value = plan.eval_next || '';
 
-renderAreas(plan.areas || [’’, ‘’]);
-renderSessions(plan.sessions || []);
-setSaveStatus(‘Ikke lagret’, ‘’);
+  renderAreas(plan.areas || ['', '']);
+  renderSessions(plan.sessions || []);
+  setSaveStatus('Ikke lagret', '');
 }
 
 function setSaveStatus(text, cls) {
-const el = document.getElementById(‘save-status’);
-el.textContent = text;
-el.className = ‘save-status’ + (cls ? ’ ’ + cls : ‘’);
+  const el = document.getElementById('save-status');
+  el.textContent = text;
+  el.className = 'save-status' + (cls ? ' ' + cls : '');
 }
 
 function renderAreas(areas) {
-const list = document.getElementById(‘areas-list’);
-list.innerHTML = ‘’;
-areas.forEach(function(a, i) {
-const div = document.createElement(‘div’);
-div.className = ‘area-item’;
-const num = document.createElement(‘div’);
-num.className = ‘area-num’;
-num.textContent = i + 1;
-const ta = document.createElement(‘textarea’);
-ta.rows = 2;
-ta.dataset.area = i;
-ta.placeholder = ’Beskriv utviklingsområde ’ + (i + 1) + ‘…’;
-ta.value = a;
-div.appendChild(num);
-div.appendChild(ta);
-if (areas.length > 1) {
-const btn = document.createElement(‘button’);
-btn.className = ‘btn-remove’;
-btn.textContent = ‘×’;
-btn.onclick = function() { removeArea(i); };
-div.appendChild(btn);
-}
-list.appendChild(div);
-});
+  const list = document.getElementById('areas-list');
+  list.innerHTML = '';
+  areas.forEach(function(a, i) {
+    const div = document.createElement('div');
+    div.className = 'area-item';
+    const num = document.createElement('div');
+    num.className = 'area-num';
+    num.textContent = i + 1;
+    const ta = document.createElement('textarea');
+    ta.rows = 2;
+    ta.dataset.area = i;
+    ta.placeholder = 'Beskriv utviklingsområde ' + (i + 1) + '...';
+    ta.value = a;
+    div.appendChild(num);
+    div.appendChild(ta);
+    if (areas.length > 1) {
+      const btn = document.createElement('button');
+      btn.className = 'btn-remove';
+      btn.textContent = '×';
+      btn.onclick = function() { removeArea(i); };
+      div.appendChild(btn);
+    }
+    list.appendChild(div);
+  });
 }
 
 function addArea() {
-const a = getAreas();
-if (a.length < 5) { a.push(’’); renderAreas(a); }
+  const a = getAreas();
+  if (a.length < 5) { a.push(''); renderAreas(a); }
 }
 
 function removeArea(i) {
-const a = getAreas();
-a.splice(i, 1);
-renderAreas(a);
+  const a = getAreas();
+  a.splice(i, 1);
+  renderAreas(a);
 }
 
 function getAreas() {
-return Array.from(document.querySelectorAll(’[data-area]’)).map(function(el) { return el.value; });
+  return Array.from(document.querySelectorAll('[data-area]')).map(function(el) { return el.value; });
 }
 
 function renderSessions(sessions) {
-const list = document.getElementById(‘sessions-list’);
-list.innerHTML = ‘’;
-if (!sessions || sessions.length === 0) {
-list.innerHTML = ‘<p style="color:var(--muted);font-size:14px;padding:8px 0">Ingen sesjoner ennå. Klikk «Ny sesjon» for å legge til.</p>’;
-return;
-}
-const sorted = sessions.map(function(s, i) {
-return {date: s.date, focus: s.focus, notes: s.notes, actions: s.actions, reflection: s.reflection, origIndex: i};
-}).reverse();
+  const list = document.getElementById('sessions-list');
+  list.innerHTML = '';
+  if (!sessions || sessions.length === 0) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:14px;padding:8px 0">Ingen sesjoner ennå. Klikk «Ny sesjon» for å legge til.</p>';
+    return;
+  }
+  const sorted = sessions.map(function(s, i) {
+    return {date: s.date, focus: s.focus, notes: s.notes, actions: s.actions, reflection: s.reflection, origIndex: i};
+  }).reverse();
 
-sorted.forEach(function(s, displayIdx) {
-const num = sessions.length - displayIdx;
-const isOpen = displayIdx === 0;
+  sorted.forEach(function(s, displayIdx) {
+    const num = sessions.length - displayIdx;
+    const isOpen = displayIdx === 0;
 
-```
-const card = document.createElement('div');
-card.className = 'session-card';
+    const card = document.createElement('div');
+    card.className = 'session-card';
 
-const head = document.createElement('div');
-head.className = 'session-head';
-head.onclick = function() { toggleSession(s.origIndex); };
-head.innerHTML = '<div class="session-head-left">' +
-  '<span class="session-num">Sesjon ' + num + '</span>' +
-  '<span class="session-title-text">' + (s.date ? formatDate(s.date) : 'Dato ikke satt') + '</span>' +
-  '<span class="session-preview">' + (s.focus || 'Fokus ikke satt') + '</span>' +
-  '</div>' +
-  '<span class="session-chevron ' + (isOpen ? 'open' : '') + '" id="chev-' + s.origIndex + '">⌄</span>';
+    const head = document.createElement('div');
+    head.className = 'session-head';
+    head.onclick = function() { toggleSession(s.origIndex); };
+    head.innerHTML = '<div class="session-head-left">' +
+      '<span class="session-num">Sesjon ' + num + '</span>' +
+      '<span class="session-title-text">' + (s.date ? formatDate(s.date) : 'Dato ikke satt') + '</span>' +
+      '<span class="session-preview">' + (s.focus || 'Fokus ikke satt') + '</span>' +
+      '</div>' +
+      '<span class="session-chevron ' + (isOpen ? 'open' : '') + '" id="chev-' + s.origIndex + '">⌄</span>';
 
-const body = document.createElement('div');
-body.className = 'session-body' + (isOpen ? ' open' : '');
-body.id = 'sbody-' + s.origIndex;
+    const body = document.createElement('div');
+    body.className = 'session-body' + (isOpen ? ' open' : '');
+    body.id = 'sbody-' + s.origIndex;
 
-const delBtn = document.createElement('button');
-delBtn.className = 'btn-remove';
-delBtn.style.cssText = 'margin-top:8px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:4px';
-delBtn.textContent = '× Slett sesjon';
-delBtn.onclick = function() { removeSession(s.origIndex); };
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-remove';
+    delBtn.style.cssText = 'margin-top:8px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:4px';
+    delBtn.textContent = '× Slett sesjon';
+    delBtn.onclick = function() { removeSession(s.origIndex); };
 
-body.innerHTML = '<div class="sub-section"><div class="sub-title">Dato</div><input type="date" data-s="' + s.origIndex + '" data-f="date" value="' + (s.date || '') + '"></div>' +
-  '<div class="sub-section"><div class="sub-title">Hva vil du fokusere på i denne sesjonen?</div><textarea rows="3" data-s="' + s.origIndex + '" data-f="focus" placeholder="Skriv her...">' + (s.focus || '') + '</textarea></div>' +
-  '<div class="sub-section"><div class="sub-title">Notater og refleksjoner fra sesjonen</div><textarea rows="5" data-s="' + s.origIndex + '" data-f="notes" placeholder="Skriv her...">' + (s.notes || '') + '</textarea></div>' +
-  '<div class="sub-section"><div class="sub-title">Handlingsplan</div><div class="field-q" style="font-size:13px;color:#555;margin-bottom:8px;font-style:italic">Hva vil du gjøre eller eksperimentere med før neste sesjon?</div><textarea rows="4" data-s="' + s.origIndex + '" data-f="actions" placeholder="Konkrete handlinger og atferdseksperimenter...">' + (s.actions || '') + '</textarea></div>' +
-  '<div class="sub-section"><div class="sub-title">Din refleksjonslogg</div><div class="reflection-hint">Fyll ut dette selv mellom sesjonene: Hva skjedde da du prøvde? Hva observerte du? Hva tar du med inn i neste sesjon?</div><textarea rows="5" data-s="' + s.origIndex + '" data-f="reflection" placeholder="Skriv her...">' + (s.reflection || '') + '</textarea></div>';
-body.appendChild(delBtn);
+    body.innerHTML = '<div class="sub-section"><div class="sub-title">Dato</div><input type="date" data-s="' + s.origIndex + '" data-f="date" value="' + (s.date || '') + '"></div>' +
+      '<div class="sub-section"><div class="sub-title">Hva vil du fokusere på i denne sesjonen?</div><textarea rows="3" data-s="' + s.origIndex + '" data-f="focus" placeholder="Skriv her...">' + (s.focus || '') + '</textarea></div>' +
+      '<div class="sub-section"><div class="sub-title">Notater og refleksjoner fra sesjonen</div><textarea rows="5" data-s="' + s.origIndex + '" data-f="notes" placeholder="Skriv her...">' + (s.notes || '') + '</textarea></div>' +
+      '<div class="sub-section"><div class="sub-title">Handlingsplan</div><div class="field-q" style="font-size:13px;color:#555;margin-bottom:8px;font-style:italic">Hva vil du gjøre eller eksperimentere med før neste sesjon?</div><textarea rows="4" data-s="' + s.origIndex + '" data-f="actions" placeholder="Konkrete handlinger og atferdseksperimenter...">' + (s.actions || '') + '</textarea></div>' +
+      '<div class="sub-section"><div class="sub-title">Din refleksjonslogg</div><div class="reflection-hint">Fyll ut dette selv mellom sesjonene: Hva skjedde da du prøvde? Hva observerte du? Hva tar du med inn i neste sesjon?</div><textarea rows="5" data-s="' + s.origIndex + '" data-f="reflection" placeholder="Skriv her...">' + (s.reflection || '') + '</textarea></div>';
+    body.appendChild(delBtn);
 
-card.appendChild(head);
-card.appendChild(body);
-list.appendChild(card);
-```
-
-});
+    card.appendChild(head);
+    card.appendChild(body);
+    list.appendChild(card);
+  });
 }
 
 function toggleSession(idx) {
-const body = document.getElementById(‘sbody-’ + idx);
-const chev = document.getElementById(‘chev-’ + idx);
-const isOpen = body.classList.contains(‘open’);
-body.classList.toggle(‘open’, !isOpen);
-chev.classList.toggle(‘open’, !isOpen);
+  const body = document.getElementById('sbody-' + idx);
+  const chev = document.getElementById('chev-' + idx);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('open', !isOpen);
 }
 
 function addSession() {
-const sessions = getSessionsFromDOM();
-sessions.push({date: new Date().toISOString().split(‘T’)[0], focus: ‘’, notes: ‘’, actions: ‘’, reflection: ‘’});
-renderSessions(sessions);
+  const sessions = getSessionsFromDOM();
+  sessions.push({date: new Date().toISOString().split('T')[0], focus: '', notes: '', actions: '', reflection: ''});
+  renderSessions(sessions);
 }
 
 function removeSession(i) {
-if (!confirm(‘Slett denne sesjonen?’)) return;
-const sessions = getSessionsFromDOM();
-sessions.splice(i, 1);
-renderSessions(sessions);
+  if (!confirm('Slett denne sesjonen?')) return;
+  const sessions = getSessionsFromDOM();
+  sessions.splice(i, 1);
+  renderSessions(sessions);
 }
 
 function getSessionsFromDOM() {
-const sessions = [];
-document.querySelectorAll(’[data-s]’).forEach(function(el) {
-const idx = parseInt(el.dataset.s);
-const field = el.dataset.f;
-if (!sessions[idx]) sessions[idx] = {};
-sessions[idx][field] = el.value;
-});
-return sessions.filter(function(s) { return s; });
+  const sessions = [];
+  document.querySelectorAll('[data-s]').forEach(function(el) {
+    const idx = parseInt(el.dataset.s);
+    const field = el.dataset.f;
+    if (!sessions[idx]) sessions[idx] = {};
+    sessions[idx][field] = el.value;
+  });
+  return sessions.filter(function(s) { return s; });
 }
 
 async function savePlan() {
-const id = viewingClientId || currentClientId;
-setSaveStatus(‘Lagrer…’, ‘saving’);
-const plan = {
-c_purpose: document.getElementById(‘c-purpose’).value,
-c_success: document.getElementById(‘c-success’).value,
-c_expect_coach: document.getElementById(‘c-expect-coach’).value,
-c_expect_client: document.getElementById(‘c-expect-client’).value,
-c_confidentiality: document.getElementById(‘c-confidentiality’).value,
-c_practical: document.getElementById(‘c-practical’).value,
-c_start: document.getElementById(‘c-start’).value,
-c_end: document.getElementById(‘c-end’).value,
-c_sessions: document.getElementById(‘c-sessions’).value,
-c_duration: document.getElementById(‘c-duration’).value,
-areas: getAreas(),
-sessions: getSessionsFromDOM(),
-eval_achieved: document.getElementById(‘eval-achieved’).value,
-eval_reflection: document.getElementById(‘eval-reflection’).value,
-eval_next: document.getElementById(‘eval-next’).value
-};
-try {
-await api(‘PATCH’, ‘clients?id=eq.’ + id, {plan: plan, last_saved: new Date().toISOString()}, ‘return=representation’);
-setSaveStatus(’Lagret ’ + new Date().toLocaleTimeString(‘no-NO’, {hour: ‘2-digit’, minute: ‘2-digit’}), ‘saved’);
-} catch(e) {
-setSaveStatus(‘Lagring feilet – prøv igjen’, ‘error’);
-}
+  const id = viewingClientId || currentClientId;
+  setSaveStatus('Lagrer...', 'saving');
+  const plan = {
+    c_purpose: document.getElementById('c-purpose').value,
+    c_success: document.getElementById('c-success').value,
+    c_expect_coach: document.getElementById('c-expect-coach').value,
+    c_expect_client: document.getElementById('c-expect-client').value,
+    c_confidentiality: document.getElementById('c-confidentiality').value,
+    c_practical: document.getElementById('c-practical').value,
+    c_start: document.getElementById('c-start').value,
+    c_end: document.getElementById('c-end').value,
+    c_sessions: document.getElementById('c-sessions').value,
+    c_duration: document.getElementById('c-duration').value,
+    areas: getAreas(),
+    sessions: getSessionsFromDOM(),
+    eval_achieved: document.getElementById('eval-achieved').value,
+    eval_reflection: document.getElementById('eval-reflection').value,
+    eval_next: document.getElementById('eval-next').value
+  };
+  try {
+    await api('PATCH', 'clients?id=eq.' + id, {plan: plan, last_saved: new Date().toISOString()}, 'return=representation');
+    setSaveStatus('Lagret ' + new Date().toLocaleTimeString('no-NO', {hour: '2-digit', minute: '2-digit'}), 'saved');
+  } catch(e) {
+    setSaveStatus('Lagring feilet – prøv igjen', 'error');
+  }
 }
 
 async function createCoach() {
-const name = document.getElementById(‘new-coach-name’).value.trim();
-const code = document.getElementById(‘new-coach-code’).value.trim().toLowerCase();
-if (!name || !code) { showMsg(‘coach-msg’, ‘Fyll inn navn og kode.’, ‘error’); return; }
-try {
-const existing = await api(‘GET’, ‘coaches?code=eq.’ + encodeURIComponent(code) + ‘&select=id’);
-if (existing && existing.length > 0) { showMsg(‘coach-msg’, ‘Koden er allerede i bruk.’, ‘error’); return; }
-await api(‘POST’, ‘coaches’, {name: name, code: code}, ‘return=representation’);
-showMsg(‘coach-msg’, ’✓ ’ + name + ’ er opprettet med kode: ’ + code, ‘success’);
-document.getElementById(‘new-coach-name’).value = ‘’;
-document.getElementById(‘new-coach-code’).value = ‘’;
-allCoaches = await api(‘GET’, ‘coaches?select=*&order=name.asc’) || [];
-showAdminPanel();
-} catch(e) {
-showMsg(‘coach-msg’, ‘Kunne ikke opprette coach.’, ‘error’);
-}
+  const name = document.getElementById('new-coach-name').value.trim();
+  const code = document.getElementById('new-coach-code').value.trim().toLowerCase();
+  if (!name || !code) { showMsg('coach-msg', 'Fyll inn navn og kode.', 'error'); return; }
+  try {
+    const existing = await api('GET', 'coaches?code=eq.' + encodeURIComponent(code) + '&select=id');
+    if (existing && existing.length > 0) { showMsg('coach-msg', 'Koden er allerede i bruk.', 'error'); return; }
+    await api('POST', 'coaches', {name: name, code: code}, 'return=representation');
+    showMsg('coach-msg', '✓ ' + name + ' er opprettet med kode: ' + code, 'success');
+    document.getElementById('new-coach-name').value = '';
+    document.getElementById('new-coach-code').value = '';
+    allCoaches = await api('GET', 'coaches?select=*&order=name.asc') || [];
+    showAdminPanel();
+  } catch(e) {
+    showMsg('coach-msg', 'Kunne ikke opprette coach.', 'error');
+  }
 }
 
 async function createClientAdmin() {
-const name = document.getElementById(‘new-client-name-a’).value.trim();
-const code = document.getElementById(‘new-client-code-a’).value.trim().toLowerCase();
-const sel = document.getElementById(‘new-client-coach-a’);
-const coachIds = Array.from(sel.selectedOptions).map(function(o) { return o.value; });
-const role = document.getElementById(‘new-client-role-a’).value.trim();
-const employer = document.getElementById(‘new-client-employer-a’).value.trim();
-if (!name || !code) { showMsg(‘client-msg-a’, ‘Fyll inn navn og kode.’, ‘error’); return; }
-try {
-const existing = await api(‘GET’, ‘clients?code=eq.’ + encodeURIComponent(code) + ‘&select=id’);
-if (existing && existing.length > 0) { showMsg(‘client-msg-a’, ‘Koden er allerede i bruk.’, ‘error’); return; }
-await api(‘POST’, ‘clients’, {name: name, code: code, coach_ids: coachIds, role: role, employer: employer, consent_given: false, plan: {}}, ‘return=representation’);
-showMsg(‘client-msg-a’, ‘✓ ’ + name + ’ er opprettet.’, ‘success’);
-document.getElementById(‘new-client-name-a’).value = ‘’;
-document.getElementById(‘new-client-code-a’).value = ‘’;
-document.getElementById(‘new-client-role-a’).value = ‘’;
-document.getElementById(‘new-client-employer-a’).value = ‘’;
-showAdminPanel();
-} catch(e) {
-showMsg(‘client-msg-a’, ‘Kunne ikke opprette klient.’, ‘error’);
-}
+  const name = document.getElementById('new-client-name-a').value.trim();
+  const code = document.getElementById('new-client-code-a').value.trim().toLowerCase();
+  const sel = document.getElementById('new-client-coach-a');
+  const coachIds = Array.from(sel.selectedOptions).map(function(o) { return o.value; });
+  const role = document.getElementById('new-client-role-a').value.trim();
+  const employer = document.getElementById('new-client-employer-a').value.trim();
+  if (!name || !code) { showMsg('client-msg-a', 'Fyll inn navn og kode.', 'error'); return; }
+  try {
+    const existing = await api('GET', 'clients?code=eq.' + encodeURIComponent(code) + '&select=id');
+    if (existing && existing.length > 0) { showMsg('client-msg-a', 'Koden er allerede i bruk.', 'error'); return; }
+    await api('POST', 'clients', {name: name, code: code, coach_ids: coachIds, role: role, employer: employer, consent_given: false, plan: {}}, 'return=representation');
+    showMsg('client-msg-a', '✓ ' + name + ' er opprettet.', 'success');
+    document.getElementById('new-client-name-a').value = '';
+    document.getElementById('new-client-code-a').value = '';
+    document.getElementById('new-client-role-a').value = '';
+    document.getElementById('new-client-employer-a').value = '';
+    showAdminPanel();
+  } catch(e) {
+    showMsg('client-msg-a', 'Kunne ikke opprette klient.', 'error');
+  }
 }
 
 async function createClientCoach() {
-const name = document.getElementById(‘new-client-name-c’).value.trim();
-const code = document.getElementById(‘new-client-code-c’).value.trim().toLowerCase();
-const role = document.getElementById(‘new-client-role-c’).value.trim();
-const employer = document.getElementById(‘new-client-employer-c’).value.trim();
-if (!name || !code) { showMsg(‘client-msg-c’, ‘Fyll inn navn og kode.’, ‘error’); return; }
-try {
-const existing = await api(‘GET’, ‘clients?code=eq.’ + encodeURIComponent(code) + ‘&select=id’);
-if (existing && existing.length > 0) { showMsg(‘client-msg-c’, ‘Koden er allerede i bruk.’, ‘error’); return; }
-await api(‘POST’, ‘clients’, {name: name, code: code, coach_ids: [currentCoach.id], role: role, employer: employer, consent_given: false, plan: {}}, ‘return=representation’);
-showMsg(‘client-msg-c’, ’✓ ’ + name + ’ er opprettet med kode: ’ + code, ‘success’);
-document.getElementById(‘new-client-name-c’).value = ‘’;
-document.getElementById(‘new-client-code-c’).value = ‘’;
-document.getElementById(‘new-client-role-c’).value = ‘’;
-document.getElementById(‘new-client-employer-c’).value = ‘’;
-showCoachPanel();
-} catch(e) {
-showMsg(‘client-msg-c’, ‘Kunne ikke opprette klient.’, ‘error’);
-}
+  const name = document.getElementById('new-client-name-c').value.trim();
+  const code = document.getElementById('new-client-code-c').value.trim().toLowerCase();
+  const role = document.getElementById('new-client-role-c').value.trim();
+  const employer = document.getElementById('new-client-employer-c').value.trim();
+  if (!name || !code) { showMsg('client-msg-c', 'Fyll inn navn og kode.', 'error'); return; }
+  try {
+    const existing = await api('GET', 'clients?code=eq.' + encodeURIComponent(code) + '&select=id');
+    if (existing && existing.length > 0) { showMsg('client-msg-c', 'Koden er allerede i bruk.', 'error'); return; }
+    await api('POST', 'clients', {name: name, code: code, coach_ids: [currentCoach.id], role: role, employer: employer, consent_given: false, plan: {}}, 'return=representation');
+    showMsg('client-msg-c', '✓ ' + name + ' er opprettet med kode: ' + code, 'success');
+    document.getElementById('new-client-name-c').value = '';
+    document.getElementById('new-client-code-c').value = '';
+    document.getElementById('new-client-role-c').value = '';
+    document.getElementById('new-client-employer-c').value = '';
+    showCoachPanel();
+  } catch(e) {
+    showMsg('client-msg-c', 'Kunne ikke opprette klient.', 'error');
+  }
 }
 
 function showMsg(id, text, type) {
-const el = document.getElementById(id);
-el.textContent = text;
-el.className = ’msg ’ + type;
-el.style.display = ‘block’;
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + type;
+  el.style.display = 'block';
 }
 
 let modalMode = null;
 let modalId = null;
 
 function editCoach(id, name, code) {
-modalMode = ‘coach’;
-modalId = id;
-document.getElementById(‘modal-title’).textContent = ‘Rediger coach’;
-document.getElementById(‘modal-body’).innerHTML =
-‘<div class="field-group"><label class="field-label">Navn</label><input type="text" id="modal-name" class="form-input" value="' + name + '" style="margin-bottom:12px"></div>’ +
-‘<div class="field-group"><label class="field-label">Kode</label><input type="text" id="modal-code" class="form-input" value="' + code + '"></div>’;
-document.getElementById(‘modal-msg’).style.display = ‘none’;
-document.getElementById(‘edit-modal’).style.display = ‘flex’;
+  modalMode = 'coach';
+  modalId = id;
+  document.getElementById('modal-title').textContent = 'Rediger coach';
+  document.getElementById('modal-body').innerHTML =
+    '<div class="field-group"><label class="field-label">Navn</label><input type="text" id="modal-name" class="form-input" value="' + name + '" style="margin-bottom:12px"></div>' +
+    '<div class="field-group"><label class="field-label">Kode</label><input type="text" id="modal-code" class="form-input" value="' + code + '"></div>';
+  document.getElementById('modal-msg').style.display = 'none';
+  document.getElementById('edit-modal').style.display = 'flex';
 }
 
 function editClient(id, name, code, coachIds, role, employer) {
-modalMode = ‘client’;
-modalId = id;
-const coachOptions = allCoaches.map(function(c) {
-const sel = coachIds.indexOf(c.id) !== -1 ? ’ selected’ : ‘’;
-return ‘<option value=”’ + c.id + ‘”’ + sel + ‘>’ + c.name + ‘</option>’;
-}).join(’’);
-document.getElementById(‘modal-title’).textContent = ‘Rediger klient’;
-document.getElementById(‘modal-body’).innerHTML =
-‘<div class="field-group"><label class="field-label">Navn</label><input type="text" id="modal-name" class="form-input" value="' + (name || '') + '" style="margin-bottom:12px"></div>’ +
-‘<div class="field-group"><label class="field-label">Kode</label><input type="text" id="modal-code" class="form-input" value="' + (code || '') + '" style="margin-bottom:12px"></div>’ +
-‘<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">’ +
-‘<div><label class="field-label">Stilling</label><input type="text" id="modal-role" class="form-input" value="' + (role || '') + '"></div>’ +
-‘<div><label class="field-label">Arbeidsgiver</label><input type="text" id="modal-employer" class="form-input" value="' + (employer || '') + '"></div>’ +
-‘</div>’ +
-‘<div class="field-group"><label class="field-label">Coach(er)</label><select id="modal-coaches" class="form-select" multiple style="height:100px">’ + coachOptions + ‘</select><div style="font-size:12px;color:var(--muted);margin-top:4px">Hold Cmd/Ctrl for å velge flere</div></div>’;
-document.getElementById(‘modal-msg’).style.display = ‘none’;
-document.getElementById(‘edit-modal’).style.display = ‘flex’;
+  modalMode = 'client';
+  modalId = id;
+  const coachOptions = allCoaches.map(function(c) {
+    const sel = coachIds.indexOf(c.id) !== -1 ? ' selected' : '';
+    return '<option value="' + c.id + '"' + sel + '>' + c.name + '</option>';
+  }).join('');
+  document.getElementById('modal-title').textContent = 'Rediger klient';
+  document.getElementById('modal-body').innerHTML =
+    '<div class="field-group"><label class="field-label">Navn</label><input type="text" id="modal-name" class="form-input" value="' + (name || '') + '" style="margin-bottom:12px"></div>' +
+    '<div class="field-group"><label class="field-label">Kode</label><input type="text" id="modal-code" class="form-input" value="' + (code || '') + '" style="margin-bottom:12px"></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
+      '<div><label class="field-label">Stilling</label><input type="text" id="modal-role" class="form-input" value="' + (role || '') + '"></div>' +
+      '<div><label class="field-label">Arbeidsgiver</label><input type="text" id="modal-employer" class="form-input" value="' + (employer || '') + '"></div>' +
+    '</div>' +
+    '<div class="field-group"><label class="field-label">Coach(er)</label><select id="modal-coaches" class="form-select" multiple style="height:100px">' + coachOptions + '</select><div style="font-size:12px;color:var(--muted);margin-top:4px">Hold Cmd/Ctrl for å velge flere</div></div>';
+  document.getElementById('modal-msg').style.display = 'none';
+  document.getElementById('edit-modal').style.display = 'flex';
 }
 
 function closeModal() {
-document.getElementById(‘edit-modal’).style.display = ‘none’;
-modalMode = null;
-modalId = null;
+  document.getElementById('edit-modal').style.display = 'none';
+  modalMode = null;
+  modalId = null;
 }
 
 async function saveModal() {
-const name = document.getElementById(‘modal-name’).value.trim();
-const code = document.getElementById(‘modal-code’).value.trim().toLowerCase();
-if (!name || !code) { showMsg(‘modal-msg’, ‘Fyll inn navn og kode.’, ‘error’); return; }
-try {
-if (modalMode === ‘coach’) {
-await api(‘PATCH’, ‘coaches?id=eq.’ + modalId, {name: name, code: code}, ‘return=representation’);
-allCoaches = await api(‘GET’, ‘coaches?select=*&order=name.asc’) || [];
-} else {
-const sel = document.getElementById(‘modal-coaches’);
-const coachIds = Array.from(sel.selectedOptions).map(function(o) { return o.value; });
-const role = document.getElementById(‘modal-role’).value.trim();
-const employer = document.getElementById(‘modal-employer’).value.trim();
-await api(‘PATCH’, ‘clients?id=eq.’ + modalId, {name: name, code: code, coach_ids: coachIds, role: role, employer: employer}, ‘return=representation’);
-}
-closeModal();
-showAdminPanel();
-} catch(e) {
-showMsg(‘modal-msg’, ‘Kunne ikke lagre. Prøv igjen.’, ‘error’);
-}
+  const name = document.getElementById('modal-name').value.trim();
+  const code = document.getElementById('modal-code').value.trim().toLowerCase();
+  if (!name || !code) { showMsg('modal-msg', 'Fyll inn navn og kode.', 'error'); return; }
+  try {
+    if (modalMode === 'coach') {
+      await api('PATCH', 'coaches?id=eq.' + modalId, {name: name, code: code}, 'return=representation');
+      allCoaches = await api('GET', 'coaches?select=*&order=name.asc') || [];
+    } else {
+      const sel = document.getElementById('modal-coaches');
+      const coachIds = Array.from(sel.selectedOptions).map(function(o) { return o.value; });
+      const role = document.getElementById('modal-role').value.trim();
+      const employer = document.getElementById('modal-employer').value.trim();
+      await api('PATCH', 'clients?id=eq.' + modalId, {name: name, code: code, coach_ids: coachIds, role: role, employer: employer}, 'return=representation');
+    }
+    closeModal();
+    showAdminPanel();
+  } catch(e) {
+    showMsg('modal-msg', 'Kunne ikke lagre. Prøv igjen.', 'error');
+  }
 }
 
 async function deleteCoach(id, name) {
-if (!confirm(‘Slett coach «’ + name + ‘»?’)) return;
-try {
-await api(‘DELETE’, ‘coaches?id=eq.’ + id);
-allCoaches = await api(‘GET’, ‘coaches?select=*&order=name.asc’) || [];
-showAdminPanel();
-} catch(e) {
-alert(‘Kunne ikke slette coach. Prøv igjen.’);
-}
+  if (!confirm('Slett coach «' + name + '»?')) return;
+  try {
+    await api('DELETE', 'coaches?id=eq.' + id);
+    allCoaches = await api('GET', 'coaches?select=*&order=name.asc') || [];
+    showAdminPanel();
+  } catch(e) {
+    alert('Kunne ikke slette coach. Prøv igjen.');
+  }
 }
 
 async function deleteClient(id, name) {
-if (!confirm(‘Slett klient «’ + name + ‘»? ALL plandata slettes permanent.’)) return;
-try {
-await api(‘DELETE’, ‘clients?id=eq.’ + id);
-showAdminPanel();
-} catch(e) {
-alert(‘Kunne ikke slette klient. Prøv igjen.’);
-}
+  if (!confirm('Slett klient «' + name + '»? ALL plandata slettes permanent.')) return;
+  try {
+    await api('DELETE', 'clients?id=eq.' + id);
+    showAdminPanel();
+  } catch(e) {
+    alert('Kunne ikke slette klient. Prøv igjen.');
+  }
 }
 
 function logout() {
-currentRole = null; currentCoach = null; currentClientId = null; viewingClientId = null;
-document.getElementById(‘login-screen’).style.display = ‘flex’;
-document.getElementById(‘app-screen’).style.display = ‘none’;
-document.getElementById(‘code-input’).value = ‘’;
-document.getElementById(‘consent-box’).style.display = ‘none’;
-document.getElementById(‘consent-check’).checked = false;
-document.getElementById(‘login-btn’).disabled = false;
-document.getElementById(‘login-btn’).onclick = handleLogin;
-setLoginState(‘idle’);
+  currentRole = null; currentCoach = null; currentClientId = null; viewingClientId = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('code-input').value = '';
+  document.getElementById('consent-box').style.display = 'none';
+  document.getElementById('consent-check').checked = false;
+  document.getElementById('login-btn').disabled = false;
+  document.getElementById('login-btn').onclick = handleLogin;
+  setLoginState('idle');
 }
 
 function formatDate(iso) {
-if (!iso) return ‘’;
-try { return new Date(iso).toLocaleDateString(‘no-NO’, {day: ‘numeric’, month: ‘long’, year: ‘numeric’}); }
-catch(e) { return iso; }
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString('no-NO', {day: 'numeric', month: 'long', year: 'numeric'}); }
+  catch(e) { return iso; }
 }
 
 </script>
