@@ -227,6 +227,10 @@ textarea:focus,input:focus{border-color:var(--black);}
         <div><label class="field-label">Navn</label><input class="form-input" type="text" id="new-client-name-a" placeholder="Fornavn Etternavn"></div>
         <div><label class="field-label">Kode</label><input class="form-input" type="text" id="new-client-code-a" placeholder="f.eks. hansen2024"></div>
       </div>
+      <div class="form-row" style="margin-bottom:12px">
+        <div><label class="field-label">Stilling</label><input class="form-input" type="text" id="new-client-role-a" placeholder="f.eks. Avdelingsleder"></div>
+        <div><label class="field-label">Arbeidsgiver</label><input class="form-input" type="text" id="new-client-employer-a" placeholder="f.eks. Telenor AS"></div>
+      </div>
       <div style="margin-bottom:12px">
         <label class="field-label">Coach(er)</label>
         <select class="form-select" id="new-client-coach-a" multiple style="height:100px">
@@ -240,7 +244,7 @@ textarea:focus,input:focus{border-color:var(--black);}
     <!-- Alle klienter -->
     <div class="panel-sub" style="margin-bottom:12px;font-weight:500;color:var(--black)">Alle klienter</div>
     <table class="data-table" id="clients-table">
-      <thead><tr><th>Navn</th><th>Kode</th><th>Coach(er)</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Navn</th><th>Stilling</th><th>Arbeidsgiver</th><th>Coach(er)</th><th>Status</th><th></th></tr></thead>
       <tbody id="clients-tbody"></tbody>
     </table>
   </div>
@@ -256,6 +260,10 @@ textarea:focus,input:focus{border-color:var(--black);}
       <div class="form-row">
         <div><label class="field-label">Navn</label><input class="form-input" type="text" id="new-client-name-c" placeholder="Fornavn Etternavn"></div>
         <div><label class="field-label">Kode</label><input class="form-input" type="text" id="new-client-code-c" placeholder="f.eks. hansen2024"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:12px">
+        <div><label class="field-label">Stilling</label><input class="form-input" type="text" id="new-client-role-c" placeholder="f.eks. Avdelingsleder"></div>
+        <div><label class="field-label">Arbeidsgiver</label><input class="form-input" type="text" id="new-client-employer-c" placeholder="f.eks. Telenor AS"></div>
       </div>
       <button class="btn-action" onclick="createClientCoach()">Opprett klient</button>
       <div class="msg" id="client-msg-c"></div>
@@ -562,12 +570,13 @@ async function showAdminPanel() {
         const coachNames = (cl.coach_ids || []).map(id => (allCoaches.find(c => c.id === id) || {}).name).filter(Boolean).join(', ') || '–';
         const coachIdsStr = (cl.coach_ids || []).join(',');
         return `<tr>
-          <td>${cl.name}</td>
-          <td style="color:var(--muted);font-size:13px">${cl.code}</td>
+          <td>${cl.name}<br><span style="font-size:12px;color:var(--muted)">${cl.code}</span></td>
+          <td style="color:var(--muted);font-size:13px">${cl.role || '–'}</td>
+          <td style="color:var(--muted);font-size:13px">${cl.employer || '–'}</td>
           <td>${coachNames}</td>
           <td><span class="card-badge ${cl.consent_given ? 'badge-active' : 'badge-pending'}">${cl.consent_given ? 'Aktiv' : 'Ikke innlogget'}</span></td>
           <td style="white-space:nowrap">
-            <button onclick="editClient('${cl.id}','${cl.name}','${cl.code}','${coachIdsStr}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:4px" onmouseover="this.style.color='#111'" onmouseout="this.style.color='var(--muted)'">Rediger</button>
+            <button onclick="editClient('${cl.id}','${cl.name}','${cl.code}','${coachIdsStr}','${cl.role||''}','${cl.employer||''}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:4px" onmouseover="this.style.color='#111'" onmouseout="this.style.color='var(--muted)'">Rediger</button>
             <button onclick="deleteClient('${cl.id}','${cl.name}')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:4px 8px;border-radius:4px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#ccc'">Slett</button>
           </td>
         </tr>`;
@@ -590,7 +599,8 @@ async function showCoachPanel() {
         <div class="card" onclick="coachOpenClient('${cl.id}')">
           <div class="card-title">${cl.name}</div>
           <div class="card-sub">Kode: ${cl.code}</div>
-          <div class="card-meta">${cl.plan?.c_start ? 'Oppstart: ' + formatDate(cl.plan.c_start) : 'Periode ikke satt'}</div>
+          <div class="card-meta">${cl.role ? cl.role : ''}${cl.role && cl.employer ? ' · ' : ''}${cl.employer ? cl.employer : ''}</div>
+          <div class="card-meta" style="margin-top:4px">${cl.plan?.c_start ? 'Oppstart: ' + formatDate(cl.plan.c_start) : 'Periode ikke satt'}</div>
           <span class="card-badge ${cl.consent_given ? 'badge-active' : 'badge-pending'}">${cl.consent_given ? 'Aktiv' : 'Ikke innlogget'}</span>
         </div>`).join('');
 }
@@ -621,6 +631,16 @@ function showPlanView(client, showBack) {
 
   const coachNames = (client.coach_ids || []).map(id => (allCoaches.find(c => c.id === id) || {}).name).filter(Boolean);
   document.getElementById('plan-coaches-display').textContent = coachNames.length ? 'Coach: ' + coachNames.join(' & ') : '';
+  const roleEmployer = [client.role, client.employer].filter(Boolean).join(' · ');
+  const existing_meta = document.getElementById('plan-role-meta');
+  if (existing_meta) existing_meta.remove();
+  if (roleEmployer) {
+    const meta = document.createElement('div');
+    meta.id = 'plan-role-meta';
+    meta.style.cssText = 'font-size:13px;color:var(--muted);margin-top:4px';
+    meta.textContent = roleEmployer;
+    document.getElementById('plan-coaches-display').after(meta);
+  }
 
   document.getElementById('c-purpose').value = plan.c_purpose || '';
   document.getElementById('c-success').value = plan.c_success || '';
@@ -809,10 +829,14 @@ async function createClientAdmin() {
   try {
     const existing = await api('GET', 'clients?code=eq.' + encodeURIComponent(code) + '&select=id');
     if (existing && existing.length > 0) { showMsg('client-msg-a', 'Koden er allerede i bruk.', 'error'); return; }
-    await api('POST', 'clients', { name, code, coach_ids: coachIds, consent_given: false, plan: {} }, 'return=representation');
+    const roleA = document.getElementById('new-client-role-a').value.trim();
+    const employerA = document.getElementById('new-client-employer-a').value.trim();
+    await api('POST', 'clients', { name, code, coach_ids: coachIds, role: roleA, employer: employerA, consent_given: false, plan: {} }, 'return=representation');
     showMsg('client-msg-a', '✓ ' + name + ' er opprettet.', 'success');
     document.getElementById('new-client-name-a').value = '';
     document.getElementById('new-client-code-a').value = '';
+    document.getElementById('new-client-role-a').value = '';
+    document.getElementById('new-client-employer-a').value = '';
     showAdminPanel();
   } catch(e) {
     showMsg('client-msg-a', 'Kunne ikke opprette klient.', 'error');
@@ -826,10 +850,14 @@ async function createClientCoach() {
   try {
     const existing = await api('GET', 'clients?code=eq.' + encodeURIComponent(code) + '&select=id');
     if (existing && existing.length > 0) { showMsg('client-msg-c', 'Koden er allerede i bruk.', 'error'); return; }
-    await api('POST', 'clients', { name, code, coach_ids: [currentCoach.id], consent_given: false, plan: {} }, 'return=representation');
+    const roleC = document.getElementById('new-client-role-c').value.trim();
+    const employerC = document.getElementById('new-client-employer-c').value.trim();
+    await api('POST', 'clients', { name, code, coach_ids: [currentCoach.id], role: roleC, employer: employerC, consent_given: false, plan: {} }, 'return=representation');
     showMsg('client-msg-c', '✓ ' + name + ' er opprettet med kode: ' + code, 'success');
     document.getElementById('new-client-name-c').value = '';
     document.getElementById('new-client-code-c').value = '';
+    document.getElementById('new-client-role-c').value = '';
+    document.getElementById('new-client-employer-c').value = '';
     showCoachPanel();
   } catch(e) {
     showMsg('client-msg-c', 'Kunne ikke opprette klient.', 'error');
@@ -863,9 +891,11 @@ function editCoach(id, name, code) {
   document.getElementById('edit-modal').style.display = 'flex';
 }
 
-function editClient(id, name, code, coachIdsStr) {
+function editClient(id, name, code, coachIdsStr, role, employer) {
   modalMode = 'client';
   modalId = id;
+  role = role || '';
+  employer = employer || '';
   const selectedIds = coachIdsStr ? coachIdsStr.split(',') : [];
   const coachOptions = allCoaches.map(c =>
     `<option value="${c.id}" ${selectedIds.includes(c.id) ? 'selected' : ''}>${c.name}</option>`
@@ -879,6 +909,16 @@ function editClient(id, name, code, coachIdsStr) {
     <div class="field-group">
       <label class="field-label">Kode</label>
       <input type="text" id="modal-code" class="form-input" value="${code}" style="margin-bottom:12px">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <label class="field-label">Stilling</label>
+        <input type="text" id="modal-role" class="form-input" value="${role}">
+      </div>
+      <div>
+        <label class="field-label">Arbeidsgiver</label>
+        <input type="text" id="modal-employer" class="form-input" value="${employer}">
+      </div>
     </div>
     <div class="field-group">
       <label class="field-label">Coach(er)</label>
@@ -907,7 +947,9 @@ async function saveModal() {
     } else {
       const sel = document.getElementById('modal-coaches');
       const coachIds = Array.from(sel.selectedOptions).map(o => o.value);
-      await api('PATCH', 'clients?id=eq.' + modalId, { name, code, coach_ids: coachIds }, 'return=representation');
+      const role = document.getElementById('modal-role').value.trim();
+      const employer = document.getElementById('modal-employer').value.trim();
+      await api('PATCH', 'clients?id=eq.' + modalId, { name, code, coach_ids: coachIds, role, employer }, 'return=representation');
     }
     closeModal();
     showAdminPanel();
