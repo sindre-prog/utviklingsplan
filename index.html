@@ -9,7 +9,7 @@
 :root{--black:#111;--white:#fff;--green:#B6F596;--lavender:#E7E8FF;--blue:#B1B7FF;--border:#e0e0e0;--muted:#888;--bg:#f7f7f7;}
 *{box-sizing:border-box;margin:0;padding:0;}
 html{overflow-x:hidden;overscroll-behavior-x:none;}
-body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);background:#fff;min-height:100vh;overflow-x:hidden;max-width:100vw;overscroll-behavior-x:none;}
+body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);background:#fff;min-height:100vh;overflow-x:hidden;max-width:100%;overscroll-behavior-x:none;}
 
 /* LOGIN */
 #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;background:#fff;width:100%;position:relative;}
@@ -32,7 +32,7 @@ body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);backgrou
 
 /* APP */
 #app-screen{display:none;}
-.topbar{background:var(--black);color:#fff;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;width:100%;overflow:hidden;}
+.topbar{background:var(--black);color:#fff;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;width:100%;box-sizing:border-box;}
 .topbar-logo{color:#fff;flex-shrink:0;}
 .topbar-right{display:flex;align-items:center;gap:12px;flex-shrink:0;}
 .topbar-user{font-size:12px;color:rgba(255,255,255,0.6);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -139,7 +139,7 @@ textarea:focus,input:focus{border-color:var(--black);}
 .eval-section{margin-bottom:20px;}
 
 /* SAVE BAR */
-.save-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:14px 40px;display:flex;align-items:center;justify-content:space-between;z-index:99;}
+.save-bar{position:fixed;bottom:0;left:0;right:0;width:100%;background:#fff;border-top:1px solid var(--border);padding:14px 40px;display:flex;align-items:center;justify-content:space-between;z-index:99;box-sizing:border-box;}
 .save-status{font-size:13px;color:var(--muted);}
 .save-status.saved{color:#27ae60;}
 .save-status.saving{font-style:italic;}
@@ -182,6 +182,7 @@ textarea:focus,input:focus{border-color:var(--black);}
 </style>
 </head>
 <body>
+<div style="width:100%;max-width:100%;overflow-x:hidden;">
 
 <!-- LOGIN -->
 <div id="login-screen">
@@ -1041,5 +1042,6 @@ function findOverflow() {
 ') : 'Ingen overflow funnet');
 }
 </script>
+</div>
 </body>
 </html>
