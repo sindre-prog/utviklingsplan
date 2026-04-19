@@ -539,18 +539,40 @@ async function showAdminPanel() {
   const allClients = await api('GET', 'clients?select=*') || [];
   const tbody = document.getElementById('coaches-tbody');
   tbody.innerHTML = allCoaches.length === 0
-    ? '<tr><td colspan="4" style="color:var(--muted);padding:16px">Ingen coacher ennå.</td></tr>'
+    ? '<tr><td colspan="5" style="color:var(--muted);padding:16px">Ingen coacher ennå.</td></tr>'
     : allCoaches.map(c => {
         const count = allClients.filter(cl => (cl.coach_ids || []).includes(c.id)).length;
-        return `<tr><td>${c.name}</td><td style="color:var(--muted);font-size:13px">${c.code}</td><td>${count}</td><td style="color:var(--muted);font-size:13px">${formatDate(c.created_at)}</td></tr>`;
+        return `<tr>
+          <td>${c.name}</td>
+          <td style="color:var(--muted);font-size:13px">${c.code}</td>
+          <td>${count}</td>
+          <td style="color:var(--muted);font-size:13px">${formatDate(c.created_at)}</td>
+          <td style="white-space:nowrap">
+            <button onclick="editCoach('${c.id}','${c.name}','${c.code}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:4px" onmouseover="this.style.color='#111'" onmouseout="this.style.color='var(--muted)'">Rediger</button>
+            <button onclick="deleteCoach('${c.id}','${c.name}')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:4px 8px;border-radius:4px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#ccc'">Slett</button>
+          </td>
+        </tr>`;
       }).join('');
 
   // Load clients table
   const ctbody = document.getElementById('clients-tbody');
-  ctbody.innerHTML = allClients.length === 0
-    ? '<tr><td colspan="4" style="color:var(--muted);padding:16px">Ingen klienter ennå.</td></tr>'
+    ctbody.innerHTML = allClients.length === 0
+    ? '<tr><td colspan="5" style="color:var(--muted);padding:16px">Ingen klienter ennå.</td></tr>'
     : allClients.map(cl => {
         const coachNames = (cl.coach_ids || []).map(id => (allCoaches.find(c => c.id === id) || {}).name).filter(Boolean).join(', ') || '–';
+        const coachIdsStr = (cl.coach_ids || []).join(',');
+        return `<tr>
+          <td>${cl.name}</td>
+          <td style="color:var(--muted);font-size:13px">${cl.code}</td>
+          <td>${coachNames}</td>
+          <td><span class="card-badge ${cl.consent_given ? 'badge-active' : 'badge-pending'}">${cl.consent_given ? 'Aktiv' : 'Ikke innlogget'}</span></td>
+          <td style="white-space:nowrap">
+            <button onclick="editClient('${cl.id}','${cl.name}','${cl.code}','${coachIdsStr}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 8px;border-radius:4px" onmouseover="this.style.color='#111'" onmouseout="this.style.color='var(--muted)'">Rediger</button>
+            <button onclick="deleteClient('${cl.id}','${cl.name}')" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:4px 8px;border-radius:4px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#ccc'">Slett</button>
+          </td>
+        </tr>`;
+      }).join('');
+) || '–';
         return `<tr><td>${cl.name}</td><td style="color:var(--muted);font-size:13px">${cl.code}</td><td>${coachNames}</td><td><span class="card-badge ${cl.consent_given ? 'badge-active' : 'badge-pending'}">${cl.consent_given ? 'Aktiv' : 'Ikke innlogget'}</span></td></tr>`;
       }).join('');
 }
