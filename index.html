@@ -572,9 +572,6 @@ async function showAdminPanel() {
           </td>
         </tr>`;
       }).join('');
-) || '–';
-        return `<tr><td>${cl.name}</td><td style="color:var(--muted);font-size:13px">${cl.code}</td><td>${coachNames}</td><td><span class="card-badge ${cl.consent_given ? 'badge-active' : 'badge-pending'}">${cl.consent_given ? 'Aktiv' : 'Ikke innlogget'}</span></td></tr>`;
-      }).join('');
 }
 
 async function showCoachPanel() {
