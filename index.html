@@ -10,6 +10,7 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html{overflow-x:hidden;}
 body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);background:#fff;min-height:100vh;overflow-x:hidden;}
+  img,svg{max-width:100%;height:auto;}
 #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:#fff;}
 .login-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:40px 24px;width:100%;max-width:420px;box-sizing:border-box;}
 .login-logo{margin-bottom:4px;text-align:center;}
@@ -45,8 +46,13 @@ body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);backgrou
 .card:hover{border-color:var(--black);transform:translateY(-2px);}
 .card-title{font-family:'Funnel Display',sans-serif;font-size:20px;margin-bottom:6px;}
 .card-sub{font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;}
-.card-meta{font-size:13px;color:var(--muted);}
-.card-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;margin-top:10px;}
+.card-meta{
+  font-size:13px;
+  color:var(--muted);
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+  .card-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;margin-top:10px;}
 .badge-active{background:var(--green);color:var(--black);}
 .badge-pending{background:#f0f0f0;color:#666;}
 .form-box{background:#fff;border:1px solid var(--border);border-radius:12px;padding:28px 32px;max-width:520px;margin-bottom:32px;width:100%;}
