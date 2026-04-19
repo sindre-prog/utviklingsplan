@@ -1038,8 +1038,7 @@ function findOverflow() {
       results.push(el.tagName + ' id=' + el.id + ' w=' + el.offsetWidth);
     }
   });
-  alert(results.length ? results.join('
-') : 'Ingen overflow funnet');
+  alert(results.length ? results.join('\n') : 'Ingen overflow funnet');
 }
 </script>
 </div>
