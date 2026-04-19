@@ -8,7 +8,8 @@
 <style>
 :root{--black:#111;--white:#fff;--green:#B6F596;--lavender:#E7E8FF;--blue:#B1B7FF;--border:#e0e0e0;--muted:#888;--bg:#f7f7f7;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);background:#fff;min-height:100vh;}
+html{overflow-x:hidden;}
+body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);background:#fff;min-height:100vh;overflow-x:hidden;max-width:100vw;}
 
 /* LOGIN */
 #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;background:#fff;}
@@ -31,7 +32,7 @@ body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);backgrou
 
 /* APP */
 #app-screen{display:none;}
-.topbar{background:var(--black);color:#fff;padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar{background:var(--black);color:#fff;padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;max-width:100vw;overflow:hidden;}
 .topbar-logo{color:#fff;}
 .topbar-right{display:flex;align-items:center;gap:20px;}
 .topbar-user{font-size:13px;color:rgba(255,255,255,0.6);}
@@ -77,7 +78,7 @@ body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);backgrou
 /* PLAN VIEW */
 #plan-view{max-width:820px;margin:0 auto;padding:40px 24px 100px;}
 .plan-header{margin-bottom:40px;}
-.plan-eyebrow{font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.plan-eyebrow{font-size:11px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;overflow-wrap:break-word;word-break:break-word;}
 .plan-name{font-family:'DM Serif Display',serif;font-size:40px;line-height:1.1;margin-bottom:6px;}
 .plan-coaches{font-size:13px;color:var(--muted);}
 
@@ -124,7 +125,7 @@ textarea:focus,input:focus{border-color:var(--black);}
 .session-head-left{display:flex;flex-direction:column;gap:3px;}
 .session-num{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
 .session-title-text{font-size:15px;font-weight:500;color:var(--black);}
-.session-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:500px;}
+.session-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 120px);}
 .session-chevron{font-size:20px;color:var(--muted);transition:transform 0.2s;line-height:1;}
 .session-chevron.open{transform:rotate(180deg);}
 .session-body{padding:24px;border-top:1px solid var(--border);display:none;}
