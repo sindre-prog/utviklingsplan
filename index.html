@@ -909,7 +909,6 @@ function formatDate(iso) {
   try { return new Date(iso).toLocaleDateString('no-NO', {day: 'numeric', month: 'long', year: 'numeric'}); }
   catch(e) { return iso; }
 }
-<script>
 window.addEventListener('load', function () {
   setTimeout(function () {
     let offenders = [];
