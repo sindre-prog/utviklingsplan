@@ -198,6 +198,10 @@ textarea:focus,input:focus{border-color:var(--black);}
     <div class="panel-title">Administrasjon</div>
     <div class="panel-sub">Superbruker – full oversikt</div>
 
+    <!-- Mine klienter -->
+    <div class="panel-sub" style="margin-bottom:12px;font-weight:500;color:var(--black)">Dine klienter</div>
+    <div class="card-grid" id="admin-my-clients"></div>
+
     <!-- Opprett coach -->
     <div class="form-box">
       <div class="form-box-title">Opprett coach</div>
@@ -212,7 +216,7 @@ textarea:focus,input:focus{border-color:var(--black);}
     <!-- Coacher -->
     <div class="panel-sub" style="margin-bottom:12px;font-weight:500;color:var(--black)">Coacher</div>
     <table class="data-table" id="coaches-table">
-      <thead><tr><th>Navn</th><th>Kode</th><th>Klienter</th><th>Opprettet</th></tr></thead>
+      <thead><tr><th>Navn</th><th>Kode</th><th>Klienter</th><th>Opprettet</th><th></th></tr></thead>
       <tbody id="coaches-tbody"></tbody>
     </table>
 
@@ -236,7 +240,7 @@ textarea:focus,input:focus{border-color:var(--black);}
     <!-- Alle klienter -->
     <div class="panel-sub" style="margin-bottom:12px;font-weight:500;color:var(--black)">Alle klienter</div>
     <table class="data-table" id="clients-table">
-      <thead><tr><th>Navn</th><th>Kode</th><th>Coach(er)</th><th>Status</th></tr></thead>
+      <thead><tr><th>Navn</th><th>Kode</th><th>Coach(er)</th><th>Status</th><th></th></tr></thead>
       <tbody id="clients-tbody"></tbody>
     </table>
   </div>
@@ -368,7 +372,21 @@ textarea:focus,input:focus{border-color:var(--black);}
     <div style="height:40px"></div>
   </div>
 
-  <!-- SAVE BAR -->
+  <!-- EDIT MODAL -->
+<div id="edit-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:440px;position:relative;">
+    <button onclick="closeModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">×</button>
+    <div id="modal-title" style="font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:20px;"></div>
+    <div id="modal-body"></div>
+    <div style="display:flex;gap:12px;margin-top:20px;">
+      <button class="btn-action" onclick="saveModal()">Lagre</button>
+      <button onclick="closeModal()" style="padding:10px 20px;background:none;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;">Avbryt</button>
+    </div>
+    <div class="msg" id="modal-msg"></div>
+  </div>
+</div>
+
+<!-- SAVE BAR -->
   <div class="save-bar" id="save-bar" style="display:none">
     <span class="save-status" id="save-status">Ikke lagret</span>
     <button class="btn-save" onclick="savePlan()">Lagre</button>
@@ -380,6 +398,7 @@ const SUPABASE_URL = 'https://upuffmfgsxlzybifxveg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq';
 const ADMIN_CODE = 'raeder-admin-2024';
 const COACH_CODE_LEGACY = 'raeder2024';
+const ADMIN_COACH_ID = 'e509ce92-827e-4ebe-b4cb-fd240c306aa2';
 
 let currentRole = null;
 let currentCoach = null;
@@ -476,6 +495,8 @@ async function showApp() {
 
   if (currentRole === 'admin') {
     document.getElementById('topbar-user').innerHTML = 'Administrator <span class="topbar-role role-admin">Admin</span>';
+    const adminCoach = allCoaches.find(c => c.id === ADMIN_COACH_ID);
+    if (adminCoach) currentCoach = adminCoach;
     showAdminPanel();
   } else if (currentRole === 'coach') {
     document.getElementById('topbar-user').innerHTML = currentCoach.name + ' <span class="topbar-role role-coach">Coach</span>';
@@ -718,6 +739,12 @@ async function savePlan() {
   }
 }
 
+async function adminOpenClient(id) {
+  viewingClientId = id;
+  const clients = await api('GET', 'clients?id=eq.' + id + '&select=*');
+  showPlanView(clients[0], true);
+}
+
 async function createCoach() {
   const name = document.getElementById('new-coach-name').value.trim();
   const code = document.getElementById('new-coach-code').value.trim().toLowerCase();
@@ -779,6 +806,100 @@ function showMsg(id, text, type) {
   el.textContent = text;
   el.className = 'msg ' + type;
   el.style.display = 'block';
+}
+
+let modalMode = null;
+let modalId = null;
+
+function editCoach(id, name, code) {
+  modalMode = 'coach';
+  modalId = id;
+  document.getElementById('modal-title').textContent = 'Rediger coach';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-group">
+      <label class="field-label">Navn</label>
+      <input type="text" id="modal-name" class="form-input" value="${name}" style="margin-bottom:12px">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Kode</label>
+      <input type="text" id="modal-code" class="form-input" value="${code}">
+    </div>`;
+  document.getElementById('modal-msg').style.display = 'none';
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+
+function editClient(id, name, code, coachIdsStr) {
+  modalMode = 'client';
+  modalId = id;
+  const selectedIds = coachIdsStr ? coachIdsStr.split(',') : [];
+  const coachOptions = allCoaches.map(c =>
+    `<option value="${c.id}" ${selectedIds.includes(c.id) ? 'selected' : ''}>${c.name}</option>`
+  ).join('');
+  document.getElementById('modal-title').textContent = 'Rediger klient';
+  document.getElementById('modal-body').innerHTML = `
+    <div class="field-group">
+      <label class="field-label">Navn</label>
+      <input type="text" id="modal-name" class="form-input" value="${name}" style="margin-bottom:12px">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Kode</label>
+      <input type="text" id="modal-code" class="form-input" value="${code}" style="margin-bottom:12px">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Coach(er)</label>
+      <select id="modal-coaches" class="form-select" multiple style="height:100px">${coachOptions}</select>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Hold Cmd/Ctrl for å velge flere</div>
+    </div>`;
+  document.getElementById('modal-msg').style.display = 'none';
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('edit-modal').style.display = 'none';
+  modalMode = null;
+  modalId = null;
+}
+
+async function saveModal() {
+  const name = document.getElementById('modal-name').value.trim();
+  const code = document.getElementById('modal-code').value.trim().toLowerCase();
+  if (!name || !code) { showMsg('modal-msg', 'Fyll inn navn og kode.', 'error'); return; }
+
+  try {
+    if (modalMode === 'coach') {
+      await api('PATCH', 'coaches?id=eq.' + modalId, { name, code }, 'return=representation');
+      allCoaches = await api('GET', 'coaches?select=*&order=name.asc') || [];
+    } else {
+      const sel = document.getElementById('modal-coaches');
+      const coachIds = Array.from(sel.selectedOptions).map(o => o.value);
+      await api('PATCH', 'clients?id=eq.' + modalId, { name, code, coach_ids: coachIds }, 'return=representation');
+    }
+    closeModal();
+    showAdminPanel();
+  } catch(e) {
+    showMsg('modal-msg', 'Kunne ikke lagre. Prøv igjen.', 'error');
+  }
+}
+
+async function deleteCoach(id, name) {
+  if (!confirm('Slett coach «' + name + '»?\n\nDette fjerner coach-profilen, men sletter ikke klientenes planer.')) return;
+  try {
+    await api('DELETE', 'coaches?id=eq.' + id);
+    allCoaches = await api('GET', 'coaches?select=*&order=name.asc') || [];
+    showAdminPanel();
+  } catch(e) {
+    alert('Kunne ikke slette coach. Prøv igjen.');
+  }
+}
+
+async function deleteClient(id, name) {
+  if (!confirm('Slett klient «' + name + '»?\n\nALL plandata slettes permanent. Dette kan ikke angres.')) return;
+  try {
+    await api('DELETE', 'clients?id=eq.' + id);
+    showAdminPanel();
+  } catch(e) {
+    alert('Kunne ikke slette klient. Prøv igjen.');
+  }
 }
 
 function logout() {
