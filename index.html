@@ -515,6 +515,22 @@ async function showAdminPanel() {
   document.getElementById('plan-view').style.display = 'none';
   document.getElementById('save-bar').style.display = 'none';
 
+  // Admin's own clients
+  const allClientsForAdmin = await api('GET', 'clients?select=*') || [];
+  const myClientsAsAdmin = allClientsForAdmin.filter(cl => (cl.coach_ids || []).includes(ADMIN_COACH_ID));
+  const myGrid = document.getElementById('admin-my-clients');
+  if (myClientsAsAdmin.length === 0) {
+    myGrid.innerHTML = '<p style="color:var(--muted);font-size:14px;margin-bottom:8px">Ingen klienter koblet til deg ennå.</p>';
+  } else {
+    myGrid.innerHTML = myClientsAsAdmin.map(cl => `
+      <div class="card" onclick="adminOpenClient('${cl.id}')">
+        <div class="card-title">${cl.name}</div>
+        <div class="card-sub">Kode: ${cl.code}</div>
+        <div class="card-meta">${cl.plan?.c_start ? 'Oppstart: ' + formatDate(cl.plan.c_start) : 'Periode ikke satt'}</div>
+        <span class="card-badge ${cl.consent_given ? 'badge-active' : 'badge-pending'}">${cl.consent_given ? 'Aktiv' : 'Ikke innlogget'}</span>
+      </div>`).join('');
+  }
+
   // Populate coach select
   const sel = document.getElementById('new-client-coach-a');
   sel.innerHTML = allCoaches.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
