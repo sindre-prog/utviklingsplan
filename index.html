@@ -1032,13 +1032,13 @@ document.addEventListener('keydown', e => {
 function findOverflow() {
   const docW = document.documentElement.offsetWidth;
   const results = [];
-  document.querySelectorAll('*').forEach(el => {
+  document.querySelectorAll('*').forEach(function(el) {
     if (el.offsetWidth > docW) {
-      const tag = el.tagName + (el.id ? '#'+el.id : '') + (el.className && typeof el.className === 'string' ? '.'+el.className.trim().replace(/\s+/g,'.') : '');
-      results.push(tag + ' w=' + el.offsetWidth + ' (doc=' + docW + ')');
+      results.push(el.tagName + ' id=' + el.id + ' w=' + el.offsetWidth);
     }
   });
-  alert(results.length ? results.join('\n') : 'Ingen overflow funnet');
+  alert(results.length ? results.join('
+') : 'Ingen overflow funnet');
 }
 </script>
 </body>
