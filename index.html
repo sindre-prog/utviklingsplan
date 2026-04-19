@@ -909,38 +909,7 @@ function formatDate(iso) {
   try { return new Date(iso).toLocaleDateString('no-NO', {day: 'numeric', month: 'long', year: 'numeric'}); }
   catch(e) { return iso; }
 }
-window.addEventListener('load', function () {
-  setTimeout(function () {
-    let offenders = [];
-    document.querySelectorAll('*').forEach(function (el) {
-      const r = el.getBoundingClientRect();
-      if (r.right > window.innerWidth + 1) {
-        el.style.outline = '3px solid red';
-        offenders.push({
-          tag: el.tagName,
-          id: el.id || '',
-          cls: el.className || '',
-          right: Math.round(r.right),
-          width: Math.round(r.width),
-          vw: window.innerWidth
-        });
-      }
-    });
 
-    if (offenders.length) {
-      alert(
-        offenders
-          .slice(0, 5)
-          .map(function (o) {
-            return o.tag + (o.id ? '#' + o.id : '') + (o.cls ? '.' + String(o.cls).replace(/\s+/g, '.') : '') + ' | width=' + o.width + ' | right=' + o.right + ' | vw=' + o.vw;
-          })
-          .join('\n')
-      );
-    } else {
-      alert('Ingen overflow-elementer funnet');
-    }
-  }, 300);
-});
 </script>
 </body>
 </html>
