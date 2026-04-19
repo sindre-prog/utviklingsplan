@@ -554,7 +554,7 @@ async function showAdminPanel() {
       <div class="card" onclick="adminOpenClient('${cl.id}')">
         <div class="card-title">${cl.name}</div>
         <div class="card-sub">Kode: ${cl.code}</div>
-        <div class="card-meta">${cl.plan?.c_start ? 'Oppstart: ' + formatDate(cl.plan.c_start) : 'Periode ikke satt'}</div>
+        <div class="card-meta">${(cl.plan && cl.plan.c_start) ? 'Oppstart: ' + formatDate(cl.plan.c_start) : 'Periode ikke satt'}</div>
         <span class="card-badge ${cl.consent_given ? 'badge-active' : 'badge-pending'}">${cl.consent_given ? 'Aktiv' : 'Ikke innlogget'}</span>
       </div>`).join('');
   }
@@ -620,7 +620,7 @@ async function showCoachPanel() {
           <div class="card-title">${cl.name}</div>
           <div class="card-sub">Kode: ${cl.code}</div>
           <div class="card-meta">${cl.role ? cl.role : ''}${cl.role && cl.employer ? ' · ' : ''}${cl.employer ? cl.employer : ''}</div>
-          <div class="card-meta" style="margin-top:4px">${cl.plan?.c_start ? 'Oppstart: ' + formatDate(cl.plan.c_start) : 'Periode ikke satt'}</div>
+          <div class="card-meta" style="margin-top:4px">${(cl.plan && cl.plan.c_start) ? 'Oppstart: ' + formatDate(cl.plan.c_start) : 'Periode ikke satt'}</div>
           <span class="card-badge ${cl.consent_given ? 'badge-active' : 'badge-pending'}">${cl.consent_given ? 'Aktiv' : 'Ikke innlogget'}</span>
         </div>`).join('');
 }
@@ -710,7 +710,7 @@ function renderSessions(sessions) {
     return;
   }
   // Newest first
-  const sorted = [...sessions].map((s, i) => ({...s, origIndex: i})).reverse();
+  const sorted = [...sessions].map((s, i) => { const o = Object.assign({}, s); o.origIndex = i; return o; }).reverse();
   list.innerHTML = sorted.map((s, displayIdx) => {
     const num = sessions.length - displayIdx;
     const isOpen = displayIdx === 0;
