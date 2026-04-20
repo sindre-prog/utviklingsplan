@@ -312,7 +312,7 @@ textarea:focus,input:focus{border-color:var(--black);}
     </div>
     <div style="height:1px;background:var(--border);margin:32px 0;"></div>
     <div class="level-label level-sesjon">Sesjonslogg</div>
-    <div class="section">
+    <div class="section" style="padding:24px;">
       <div class="sessions-topbar">
         <div><div class="section-title" style="font-family:'Funnel Display',sans-serif;font-size:20px">Sesjoner</div><div style="font-size:13px;color:var(--muted);margin-top:2px">Nyeste øverst</div></div>
         <button class="btn-new-session" onclick="addSession()">+ Ny sesjon</button>
@@ -766,13 +766,7 @@ function showPlanView(client, showBack) {
   renderSessions(plan.sessions || []);
   setSaveStatus('Ikke lagret', '');
 
-  // Open contracting and areas by default, close eval
-  ['contracting', 'areas'].forEach(function(id) {
-    document.getElementById('acc-body-' + id).classList.add('open');
-    document.getElementById('acc-chev-' + id).classList.add('open');
-  });
-  document.getElementById('acc-body-eval').classList.remove('open');
-  document.getElementById('acc-chev-eval').classList.remove('open');
+
 }
 
 function toggleSection(id) {
