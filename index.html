@@ -69,7 +69,14 @@ body{font-family:'DM Sans',sans-serif;font-size:15px;color:var(--black);backgrou
 .level-label{display:inline-block;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-bottom:14px;}
 .level-forloep{background:var(--lavender);color:var(--black);}
 .level-sesjon{background:var(--green);color:var(--black);}
-.section{background:#fff;border:1px solid var(--border);border-radius:12px;padding:28px 24px;margin-bottom:20px;}
+.section{background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden;}
+.section-toggle{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;cursor:pointer;user-select:none;}
+.section-toggle:hover{background:var(--bg);}
+.section-toggle-left{display:flex;align-items:center;gap:12px;}
+.section-chevron-acc{font-size:18px;color:var(--muted);transition:transform 0.2s;flex-shrink:0;}
+.section-chevron-acc.open{transform:rotate(180deg);}
+.section-body{padding:0 24px 24px;display:none;}
+.section-body.open{display:block;}
 .section-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
 .section-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
 .icon-a{background:var(--lavender);}
@@ -261,32 +268,47 @@ textarea:focus,input:focus{border-color:var(--black);}
     </div>
     <div class="level-label level-forloep">Coachingforløpet</div>
     <div class="section">
-      <div class="section-header"><div class="section-icon icon-a">◎</div><div><div class="section-title">Contracting</div><div class="section-desc">Avtalen mellom deg og din coach – fylles ut sammen ved oppstart</div></div></div>
-      <div class="field-group"><div class="field-q">Hva ønsker du å oppnå gjennom dette coachingforløpet?</div><textarea id="c-purpose" rows="4" placeholder="Skriv her..."></textarea></div>
-      <div class="field-group"><div class="field-q">Hvordan vil du vite at coachingen har virket? Hva ser du, føler du, gjør du annerledes?</div><textarea id="c-success" rows="3" placeholder="Skriv her..."></textarea></div>
-      <div class="field-group"><div class="field-q">Hva forventer du av meg som coach?</div><textarea id="c-expect-coach" rows="3" placeholder="Skriv her..."></textarea></div>
-      <div class="field-group"><div class="field-q">Hva kan jeg forvente av deg?</div><textarea id="c-expect-client" rows="3" placeholder="Skriv her..."></textarea></div>
-      <div class="field-group"><div class="field-q">Konfidensialitet: hva deles, med hvem og hvordan?</div><textarea id="c-confidentiality" rows="3" placeholder="Skriv her..."></textarea></div>
-      <div class="field-group"><div class="field-q">Praktiske rammer: format, frekvens, avlysning, kommunikasjon mellom sesjoner</div><textarea id="c-practical" rows="3" placeholder="Skriv her..."></textarea></div>
-      <div class="field-row" style="margin-top:8px">
-        <div><label class="field-label">Startdato</label><input type="date" id="c-start"></div>
-        <div><label class="field-label">Sluttdato</label><input type="date" id="c-end"></div>
+      <div class="section-toggle" onclick="toggleSection('contracting')">
+        <div class="section-toggle-left"><div class="section-icon icon-a">◎</div><div><div class="section-title">Contracting</div><div class="section-desc">Avtalen mellom deg og din coach – fylles ut sammen ved oppstart</div></div></div>
+        <span class="section-chevron-acc" id="acc-chev-contracting">⌄</span>
       </div>
-      <div class="field-row">
-        <div><label class="field-label">Antall sesjoner</label><input type="number" id="c-sessions" placeholder="f.eks. 6" min="1" max="50"></div>
-        <div><label class="field-label">Sesjonsvarighet</label><input type="text" id="c-duration" placeholder="f.eks. 60 min"></div>
+      <div class="section-body" id="acc-body-contracting">
+        <div class="field-group"><div class="field-q">Hva ønsker du å oppnå gjennom dette coachingforløpet?</div><textarea id="c-purpose" rows="4" placeholder="Skriv her..."></textarea></div>
+        <div class="field-group"><div class="field-q">Hvordan vil du vite at coachingen har virket? Hva ser du, føler du, gjør du annerledes?</div><textarea id="c-success" rows="3" placeholder="Skriv her..."></textarea></div>
+        <div class="field-group"><div class="field-q">Hva forventer du av meg som coach?</div><textarea id="c-expect-coach" rows="3" placeholder="Skriv her..."></textarea></div>
+        <div class="field-group"><div class="field-q">Hva kan jeg forvente av deg?</div><textarea id="c-expect-client" rows="3" placeholder="Skriv her..."></textarea></div>
+        <div class="field-group"><div class="field-q">Konfidensialitet: hva deles, med hvem og hvordan?</div><textarea id="c-confidentiality" rows="3" placeholder="Skriv her..."></textarea></div>
+        <div class="field-group"><div class="field-q">Praktiske rammer: format, frekvens, avlysning, kommunikasjon mellom sesjoner</div><textarea id="c-practical" rows="3" placeholder="Skriv her..."></textarea></div>
+        <div class="field-row" style="margin-top:8px">
+          <div><label class="field-label">Startdato</label><input type="date" id="c-start"></div>
+          <div><label class="field-label">Sluttdato</label><input type="date" id="c-end"></div>
+        </div>
+        <div class="field-row">
+          <div><label class="field-label">Antall sesjoner</label><input type="number" id="c-sessions" placeholder="f.eks. 6" min="1" max="50"></div>
+          <div><label class="field-label">Sesjonsvarighet</label><input type="text" id="c-duration" placeholder="f.eks. 60 min"></div>
+        </div>
       </div>
     </div>
     <div class="section">
-      <div class="section-header"><div class="section-icon icon-b">▲</div><div><div class="section-title">Dine utviklingsområder</div><div class="section-desc">De 2–4 områdene du vil jobbe med gjennom forløpet</div></div></div>
-      <div class="area-list" id="areas-list"></div>
-      <button class="btn-add" onclick="addArea()">+ Legg til område</button>
+      <div class="section-toggle" onclick="toggleSection('areas')">
+        <div class="section-toggle-left"><div class="section-icon icon-b">▲</div><div><div class="section-title">Dine utviklingsområder</div><div class="section-desc">De 2–4 områdene du vil jobbe med gjennom forløpet</div></div></div>
+        <span class="section-chevron-acc" id="acc-chev-areas">⌄</span>
+      </div>
+      <div class="section-body" id="acc-body-areas">
+        <div class="area-list" id="areas-list"></div>
+        <button class="btn-add" onclick="addArea()">+ Legg til område</button>
+      </div>
     </div>
     <div class="section">
-      <div class="section-header"><div class="section-icon icon-d">★</div><div><div class="section-title">Evaluering ved avslutning</div><div class="section-desc">Fylles ut ved siste sesjon</div></div></div>
-      <div class="field-group"><div class="field-q">Hva har du oppnådd?</div><textarea id="eval-achieved" rows="4" placeholder="Skriv her..."></textarea></div>
-      <div class="field-group"><div class="field-q">Din egen vurdering av forløpet</div><textarea id="eval-reflection" rows="3" placeholder="Skriv her..."></textarea></div>
-      <div class="field-group"><div class="field-q">Hva tar du med deg videre?</div><textarea id="eval-next" rows="3" placeholder="Skriv her..."></textarea></div>
+      <div class="section-toggle" onclick="toggleSection('eval')">
+        <div class="section-toggle-left"><div class="section-icon icon-d">★</div><div><div class="section-title">Evaluering ved avslutning</div><div class="section-desc">Fylles ut ved siste sesjon</div></div></div>
+        <span class="section-chevron-acc" id="acc-chev-eval">⌄</span>
+      </div>
+      <div class="section-body" id="acc-body-eval">
+        <div class="field-group"><div class="field-q">Hva har du oppnådd?</div><textarea id="eval-achieved" rows="4" placeholder="Skriv her..."></textarea></div>
+        <div class="field-group"><div class="field-q">Din egen vurdering av forløpet</div><textarea id="eval-reflection" rows="3" placeholder="Skriv her..."></textarea></div>
+        <div class="field-group"><div class="field-q">Hva tar du med deg videre?</div><textarea id="eval-next" rows="3" placeholder="Skriv her..."></textarea></div>
+      </div>
     </div>
     <div style="height:1px;background:var(--border);margin:32px 0;"></div>
     <div class="level-label level-sesjon">Sesjonslogg</div>
@@ -743,6 +765,22 @@ function showPlanView(client, showBack) {
   renderAreas(plan.areas || ['', '']);
   renderSessions(plan.sessions || []);
   setSaveStatus('Ikke lagret', '');
+
+  // Open contracting and areas by default, close eval
+  ['contracting', 'areas'].forEach(function(id) {
+    document.getElementById('acc-body-' + id).classList.add('open');
+    document.getElementById('acc-chev-' + id).classList.add('open');
+  });
+  document.getElementById('acc-body-eval').classList.remove('open');
+  document.getElementById('acc-chev-eval').classList.remove('open');
+}
+
+function toggleSection(id) {
+  const body = document.getElementById('acc-body-' + id);
+  const chev = document.getElementById('acc-chev-' + id);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('open', !isOpen);
 }
 
 function setSaveStatus(text, cls) {
