@@ -514,10 +514,14 @@ async function inviteCoach() {
   const name = document.getElementById('new-coach-name').value.trim();
   if (!email || !name) { showMsg('coach-msg', 'Fyll inn navn og e-post.', 'error'); return; }
   try {
-    const { data: invited, error } = await sbClient.auth.admin.inviteUserByEmail(email);
-    if (error) throw error;
-    await sbClient.from('profiles').insert({ id: invited.user.id, role: 'coach', name: name });
-    await sbClient.from('coaches').insert({ name: name, email: email, user_id: invited.user.id });
+    const { data: { session } } = await sbClient.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/invite-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ email, name, role: 'coach' })
+    });
+    const result = await res.json();
+    if (result.error) throw new Error(result.error);
     showMsg('coach-msg', '✓ Invitasjon sendt til ' + email, 'success');
     document.getElementById('new-coach-email').value = '';
     document.getElementById('new-coach-name').value = '';
@@ -533,16 +537,20 @@ async function inviteCoach() {
 async function inviteClientAdmin() {
   const email = document.getElementById('new-client-email-a').value.trim();
   const name = document.getElementById('new-client-name-a').value.trim();
-  const role = document.getElementById('new-client-role-a').value.trim();
+  const jobRole = document.getElementById('new-client-role-a').value.trim();
   const employer = document.getElementById('new-client-employer-a').value.trim();
   const sel = document.getElementById('new-client-coach-a');
   const coachIds = Array.from(sel.selectedOptions).map(function(o) { return o.value; });
   if (!email || !name) { showMsg('client-msg-a', 'Fyll inn navn og e-post.', 'error'); return; }
   try {
-    const { data: invited, error } = await sbClient.auth.admin.inviteUserByEmail(email);
-    if (error) throw error;
-    await sbClient.from('profiles').insert({ id: invited.user.id, role: 'client', name: name });
-    await sbClient.from('clients').insert({ name: name, email: email, user_id: invited.user.id, coach_ids: coachIds, role: role, employer: employer, consent_given: false, plan: {} });
+    const { data: { session } } = await sbClient.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/invite-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ email, name, role: 'client', coachIds, jobRole, employer })
+    });
+    const result = await res.json();
+    if (result.error) throw new Error(result.error);
     showMsg('client-msg-a', '✓ Invitasjon sendt til ' + email, 'success');
     document.getElementById('new-client-email-a').value = '';
     document.getElementById('new-client-name-a').value = '';
@@ -573,15 +581,19 @@ async function showCoachPanel() {
 async function inviteClientCoach() {
   const email = document.getElementById('new-client-email-c').value.trim();
   const name = document.getElementById('new-client-name-c').value.trim();
-  const role = document.getElementById('new-client-role-c').value.trim();
+  const jobRole = document.getElementById('new-client-role-c').value.trim();
   const employer = document.getElementById('new-client-employer-c').value.trim();
   if (!email || !name) { showMsg('client-msg-c', 'Fyll inn navn og e-post.', 'error'); return; }
   const myId = currentCoachRow ? currentCoachRow.id : null;
   try {
-    const { data: invited, error } = await sbClient.auth.admin.inviteUserByEmail(email);
-    if (error) throw error;
-    await sbClient.from('profiles').insert({ id: invited.user.id, role: 'client', name: name });
-    await sbClient.from('clients').insert({ name: name, email: email, user_id: invited.user.id, coach_ids: myId ? [myId] : [], role: role, employer: employer, consent_given: false, plan: {} });
+    const { data: { session } } = await sbClient.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/invite-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ email, name, role: 'client', coachIds: myId ? [myId] : [], jobRole, employer })
+    });
+    const result = await res.json();
+    if (result.error) throw new Error(result.error);
     showMsg('client-msg-c', '✓ Invitasjon sendt til ' + email, 'success');
     document.getElementById('new-client-email-c').value = '';
     document.getElementById('new-client-name-c').value = '';
