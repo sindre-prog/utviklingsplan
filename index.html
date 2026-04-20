@@ -157,6 +157,21 @@ textarea:focus,input:focus{border-color:var(--black);}
   </div>
 </div>
 
+<!-- SET PASSWORD -->
+<div id="set-password-screen" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px 16px;background:#fff;flex-direction:column;">
+  <div style="background:#fff;border:1px solid var(--border);border-radius:16px;padding:40px 32px;width:100%;max-width:420px;">
+    <div style="margin-bottom:4px;text-align:center;font-family:'Funnel Display',sans-serif;font-size:28px;">Ræder&</div>
+    <div style="font-size:12px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:32px;text-align:center;">Sett ditt passord</div>
+    <label class="login-label">Velg passord</label>
+    <input class="login-input" type="password" id="new-password" placeholder="Minst 8 tegn">
+    <label class="login-label">Bekreft passord</label>
+    <input class="login-input" type="password" id="confirm-password" placeholder="Gjenta passordet">
+    <button class="btn-primary" onclick="handleSetPassword()">Sett passord og logg inn</button>
+    <div class="login-error" id="set-password-error" style="display:none"></div>
+    <div class="loading-msg" id="set-password-loading" style="display:none">Setter passord...</div>
+  </div>
+</div>
+
 <!-- APP -->
 <div id="app-screen">
   <div class="topbar">
@@ -316,6 +331,18 @@ let allCoaches = [];
 // Init Supabase
 async function initSupabase() {
   sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Check if this is a password recovery or invite link
+  const hash = window.location.hash;
+  if (hash && hash.includes('type=invite') || hash.includes('type=recovery')) {
+    const { data: { session }, error } = await sbClient.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      showScreen('set-password');
+      return;
+    }
+  }
+
   const { data: { session } } = await sbClient.auth.getSession();
   if (session) {
     currentUser = session.user;
@@ -323,6 +350,38 @@ async function initSupabase() {
   } else {
     showScreen('login');
   }
+}
+
+async function handleSetPassword() {
+  const password = document.getElementById('new-password').value;
+  const confirm = document.getElementById('confirm-password').value;
+  const errEl = document.getElementById('set-password-error');
+  errEl.style.display = 'none';
+
+  if (password.length < 8) {
+    errEl.textContent = 'Passordet må være minst 8 tegn.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (password !== confirm) {
+    errEl.textContent = 'Passordene er ikke like.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('set-password-loading').style.display = 'block';
+  const { error } = await sbClient.auth.updateUser({ password: password });
+  document.getElementById('set-password-loading').style.display = 'none';
+
+  if (error) {
+    errEl.textContent = 'Feil: ' + error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // Clear hash from URL
+  window.history.replaceState(null, '', window.location.pathname);
+  await loadProfile();
 }
 
 async function loadProfile() {
@@ -420,6 +479,7 @@ async function logout() {
 function showScreen(name) {
   document.getElementById('login-screen').style.display = name === 'login' ? 'flex' : 'none';
   document.getElementById('app-screen').style.display = name === 'app' ? 'block' : 'none';
+  document.getElementById('set-password-screen').style.display = name === 'set-password' ? 'flex' : 'none';
 }
 
 function showPanel(name) {
