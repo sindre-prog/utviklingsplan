@@ -305,7 +305,7 @@ textarea:focus,input:focus{border-color:var(--black);}
 const SUPABASE_URL = 'https://upuffmfgsxlzybifxveg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq';
 
-let supabase = null;
+let sbClient = null;
 let currentUser = null;
 let currentProfile = null;
 let currentCoachRow = null;
@@ -315,8 +315,8 @@ let allCoaches = [];
 
 // Init Supabase
 async function initSupabase() {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const { data: { session } } = await supabase.auth.getSession();
+  sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data: { session } } = await sbClient.auth.getSession();
   if (session) {
     currentUser = session.user;
     await loadProfile();
@@ -326,17 +326,17 @@ async function initSupabase() {
 }
 
 async function loadProfile() {
-  const { data: profile } = await supabase
+  const { data: profile } = await sbClient
     .from('profiles')
     .select('*')
     .eq('id', currentUser.id)
     .single();
 
-  if (!profile) { await supabase.auth.signOut(); showScreen('login'); return; }
+  if (!profile) { await sbClient.auth.signOut(); showScreen('login'); return; }
   currentProfile = profile;
 
   if (profile.role === 'admin' || profile.role === 'coach') {
-    const { data: coachRow } = await supabase
+    const { data: coachRow } = await sbClient
       .from('coaches')
       .select('*')
       .eq('user_id', currentUser.id)
@@ -345,7 +345,7 @@ async function loadProfile() {
   }
 
   if (profile.role === 'client') {
-    const { data: clientRow } = await supabase
+    const { data: clientRow } = await sbClient
       .from('clients')
       .select('*')
       .eq('user_id', currentUser.id)
@@ -353,7 +353,7 @@ async function loadProfile() {
     currentClientRow = clientRow;
   }
 
-  const { data: coaches } = await supabase.from('coaches').select('*').order('name');
+  const { data: coaches } = await sbClient.from('coaches').select('*').order('name');
   allCoaches = coaches || [];
 
   showScreen('app');
@@ -381,7 +381,7 @@ async function handleLogin() {
   const password = document.getElementById('login-password').value;
   if (!email || !password) return;
   setLoginState('loading');
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
   if (error) { setLoginState('error', 'Feil e-post eller passord.'); return; }
   currentUser = data.user;
   setLoginState('idle');
@@ -391,7 +391,7 @@ async function handleLogin() {
 async function handleForgotPassword() {
   const email = document.getElementById('login-email').value.trim();
   if (!email) { setLoginState('error', 'Skriv inn e-postadressen din først.'); return; }
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  const { error } = await sbClient.auth.resetPasswordForEmail(email, {
     redirectTo: 'https://portal.raederog.no'
   });
   if (error) { setLoginState('error', 'Noe gikk galt. Prøv igjen.'); return; }
@@ -409,7 +409,7 @@ function setLoginState(state, msg) {
 
 // LOGOUT
 async function logout() {
-  await supabase.auth.signOut();
+  await sbClient.auth.signOut();
   currentUser = null; currentProfile = null; currentCoachRow = null;
   currentClientRow = null; viewingClientId = null; allCoaches = [];
   document.getElementById('login-email').value = '';
@@ -433,7 +433,7 @@ function showPanel(name) {
 // ADMIN PANEL
 async function showAdminPanel() {
   showPanel('admin');
-  const { data: allClients } = await supabase.from('clients').select('*');
+  const { data: allClients } = await sbClient.from('clients').select('*');
   const clients = allClients || [];
 
   // Mine klienter
@@ -514,14 +514,14 @@ async function inviteCoach() {
   const name = document.getElementById('new-coach-name').value.trim();
   if (!email || !name) { showMsg('coach-msg', 'Fyll inn navn og e-post.', 'error'); return; }
   try {
-    const { data: invited, error } = await supabase.auth.admin.inviteUserByEmail(email);
+    const { data: invited, error } = await sbClient.auth.admin.inviteUserByEmail(email);
     if (error) throw error;
-    await supabase.from('profiles').insert({ id: invited.user.id, role: 'coach', name: name });
-    await supabase.from('coaches').insert({ name: name, email: email, user_id: invited.user.id });
+    await sbClient.from('profiles').insert({ id: invited.user.id, role: 'coach', name: name });
+    await sbClient.from('coaches').insert({ name: name, email: email, user_id: invited.user.id });
     showMsg('coach-msg', '✓ Invitasjon sendt til ' + email, 'success');
     document.getElementById('new-coach-email').value = '';
     document.getElementById('new-coach-name').value = '';
-    const { data: coaches } = await supabase.from('coaches').select('*').order('name');
+    const { data: coaches } = await sbClient.from('coaches').select('*').order('name');
     allCoaches = coaches || [];
     showAdminPanel();
   } catch(e) {
@@ -539,10 +539,10 @@ async function inviteClientAdmin() {
   const coachIds = Array.from(sel.selectedOptions).map(function(o) { return o.value; });
   if (!email || !name) { showMsg('client-msg-a', 'Fyll inn navn og e-post.', 'error'); return; }
   try {
-    const { data: invited, error } = await supabase.auth.admin.inviteUserByEmail(email);
+    const { data: invited, error } = await sbClient.auth.admin.inviteUserByEmail(email);
     if (error) throw error;
-    await supabase.from('profiles').insert({ id: invited.user.id, role: 'client', name: name });
-    await supabase.from('clients').insert({ name: name, email: email, user_id: invited.user.id, coach_ids: coachIds, role: role, employer: employer, consent_given: false, plan: {} });
+    await sbClient.from('profiles').insert({ id: invited.user.id, role: 'client', name: name });
+    await sbClient.from('clients').insert({ name: name, email: email, user_id: invited.user.id, coach_ids: coachIds, role: role, employer: employer, consent_given: false, plan: {} });
     showMsg('client-msg-a', '✓ Invitasjon sendt til ' + email, 'success');
     document.getElementById('new-client-email-a').value = '';
     document.getElementById('new-client-name-a').value = '';
@@ -559,7 +559,7 @@ async function showCoachPanel() {
   showPanel('coach');
   document.getElementById('coach-greeting').textContent = 'Hei, ' + currentProfile.name;
   const myId = currentCoachRow ? currentCoachRow.id : null;
-  const { data: allClients } = await supabase.from('clients').select('*');
+  const { data: allClients } = await sbClient.from('clients').select('*');
   const myClients = myId ? (allClients || []).filter(function(cl) { return (cl.coach_ids || []).includes(myId); }) : [];
   const grid = document.getElementById('coach-client-grid');
   grid.innerHTML = '';
@@ -578,10 +578,10 @@ async function inviteClientCoach() {
   if (!email || !name) { showMsg('client-msg-c', 'Fyll inn navn og e-post.', 'error'); return; }
   const myId = currentCoachRow ? currentCoachRow.id : null;
   try {
-    const { data: invited, error } = await supabase.auth.admin.inviteUserByEmail(email);
+    const { data: invited, error } = await sbClient.auth.admin.inviteUserByEmail(email);
     if (error) throw error;
-    await supabase.from('profiles').insert({ id: invited.user.id, role: 'client', name: name });
-    await supabase.from('clients').insert({ name: name, email: email, user_id: invited.user.id, coach_ids: myId ? [myId] : [], role: role, employer: employer, consent_given: false, plan: {} });
+    await sbClient.from('profiles').insert({ id: invited.user.id, role: 'client', name: name });
+    await sbClient.from('clients').insert({ name: name, email: email, user_id: invited.user.id, coach_ids: myId ? [myId] : [], role: role, employer: employer, consent_given: false, plan: {} });
     showMsg('client-msg-c', '✓ Invitasjon sendt til ' + email, 'success');
     document.getElementById('new-client-email-c').value = '';
     document.getElementById('new-client-name-c').value = '';
@@ -614,13 +614,13 @@ function makeCard(cl, onclickFn) {
 
 async function coachOpenClient(id) {
   viewingClientId = id;
-  const { data: client } = await supabase.from('clients').select('*').eq('id', id).single();
+  const { data: client } = await sbClient.from('clients').select('*').eq('id', id).single();
   showPlanView(client, true);
 }
 
 async function adminOpenClient(id) {
   viewingClientId = id;
-  const { data: client } = await supabase.from('clients').select('*').eq('id', id).single();
+  const { data: client } = await sbClient.from('clients').select('*').eq('id', id).single();
   showPlanView(client, true);
 }
 
@@ -812,7 +812,7 @@ async function savePlan() {
     eval_reflection: document.getElementById('eval-reflection').value,
     eval_next: document.getElementById('eval-next').value
   };
-  const { error } = await supabase.from('clients').update({ plan: plan, last_saved: new Date().toISOString() }).eq('id', id);
+  const { error } = await sbClient.from('clients').update({ plan: plan, last_saved: new Date().toISOString() }).eq('id', id);
   if (error) { setSaveStatus('Lagring feilet – prøv igjen', 'error'); return; }
   setSaveStatus('Lagret ' + new Date().toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' }), 'saved');
 }
@@ -859,18 +859,18 @@ async function saveModal() {
   if (!name) { showMsg('modal-msg', 'Fyll inn navn.', 'error'); return; }
   try {
     if (modalMode === 'coach') {
-      await supabase.from('coaches').update({ name: name }).eq('id', modalId);
-      await supabase.from('profiles').update({ name: name }).eq('id',
+      await sbClient.from('coaches').update({ name: name }).eq('id', modalId);
+      await sbClient.from('profiles').update({ name: name }).eq('id',
         (allCoaches.find(function(c) { return c.id === modalId; }) || {}).user_id
       );
-      const { data: coaches } = await supabase.from('coaches').select('*').order('name');
+      const { data: coaches } = await sbClient.from('coaches').select('*').order('name');
       allCoaches = coaches || [];
     } else {
       const sel = document.getElementById('modal-coaches');
       const coachIds = Array.from(sel.selectedOptions).map(function(o) { return o.value; });
       const role = document.getElementById('modal-role').value.trim();
       const employer = document.getElementById('modal-employer').value.trim();
-      await supabase.from('clients').update({ name: name, coach_ids: coachIds, role: role, employer: employer }).eq('id', modalId);
+      await sbClient.from('clients').update({ name: name, coach_ids: coachIds, role: role, employer: employer }).eq('id', modalId);
     }
     closeModal();
     showAdminPanel();
@@ -881,22 +881,22 @@ async function saveModal() {
 
 async function deleteCoach(id, name) {
   if (!confirm('Slett coach «' + name + '»?\n\nDette fjerner coach-profilen, men sletter ikke klientenes planer.')) return;
-  await supabase.from('coaches').delete().eq('id', id);
+  await sbClient.from('coaches').delete().eq('id', id);
   const coach = allCoaches.find(function(c) { return c.id === id; });
   if (coach && coach.user_id) {
-    await supabase.from('profiles').delete().eq('id', coach.user_id);
+    await sbClient.from('profiles').delete().eq('id', coach.user_id);
   }
-  const { data: coaches } = await supabase.from('coaches').select('*').order('name');
+  const { data: coaches } = await sbClient.from('coaches').select('*').order('name');
   allCoaches = coaches || [];
   showAdminPanel();
 }
 
 async function deleteClient(id, name) {
   if (!confirm('Slett klient «' + name + '»?\n\nALL plandata slettes permanent. Dette kan ikke angres.')) return;
-  const { data: cl } = await supabase.from('clients').select('user_id').eq('id', id).single();
-  await supabase.from('clients').delete().eq('id', id);
+  const { data: cl } = await sbClient.from('clients').select('user_id').eq('id', id).single();
+  await sbClient.from('clients').delete().eq('id', id);
   if (cl && cl.user_id) {
-    await supabase.from('profiles').delete().eq('id', cl.user_id);
+    await sbClient.from('profiles').delete().eq('id', cl.user_id);
   }
   showAdminPanel();
 }
