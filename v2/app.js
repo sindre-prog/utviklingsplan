@@ -425,27 +425,35 @@ async function renderPlan() {
   }
   const plan = programToFormState(data);
 
-  const form = el("form", { class: "grid", id: "plan-form" }, [
+  const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     clientWorkspaceTabs(data),
-    section("Contracting", "Avtalen og rammene for forløpet", "file-pen-line", [
-      ...planFields.map(([key, label, type]) => field(key, label, plan[key] || "", type)),
-      el("div", { class: "field-pair" }, [
-        field("c_start", "Startdato", plan.c_start || "", "date"),
-        field("c_end", "Sluttdato", plan.c_end || "", "date")
-      ]),
-      el("div", { class: "field-pair" }, [
-        field("c_sessions", "Antall sesjoner", plan.c_sessions || "", "number"),
-        field("c_duration", "Sesjonsvarighet", plan.c_duration || "", "text")
+    el("section", { class: "workspace-pane active", "data-pane": "now" }, [
+      nowWorkspace(client, data, plan)
+    ]),
+    el("section", { class: "workspace-pane", "data-pane": "plan" }, [
+      section("Contracting", "Avtalen og rammene for forløpet", "file-pen-line", [
+        ...planFields.map(([key, label, type]) => field(key, label, plan[key] || "", type)),
+        el("div", { class: "field-pair" }, [
+          field("c_start", "Startdato", plan.c_start || "", "date"),
+          field("c_end", "Sluttdato", plan.c_end || "", "date")
+        ]),
+        el("div", { class: "field-pair" }, [
+          field("c_sessions", "Antall sesjoner", plan.c_sessions || "", "number"),
+          field("c_duration", "Sesjonsvarighet", plan.c_duration || "", "text")
+        ])
+      ], true),
+      section("Utviklingsområder", "Velg 2 til 4 områder som gir retning", "target", [areasEditor(plan.areas)], true)
+    ]),
+    el("section", { class: "workspace-pane", "data-pane": "sessions" }, [
+      section("Sesjoner", "Notater, handlinger og refleksjoner", "calendar-days", [sessionsEditor(plan.sessions)], true),
+      section("Evaluering", "Avslutning og læring videre", "sparkles", [
+        field("eval_achieved", "Hva har du oppnådd?", plan.eval_achieved || "", "textarea"),
+        field("eval_reflection", "Din egen vurdering av forløpet", plan.eval_reflection || "", "textarea"),
+        field("eval_next", "Hva tar du med deg videre?", plan.eval_next || "", "textarea")
       ])
-    ], true),
-    section("Utviklingsområder", "Velg 2 til 4 områder som gir retning", "target", [areasEditor(plan.areas)], true),
-    section("Sesjoner", "Notater, handlinger og refleksjoner", "calendar-days", [sessionsEditor(plan.sessions)], true),
-    section("Handlinger", "Oppgaver som skaper bevegelse mellom samtalene", "list-checks", [actionsPreview(data.actions)]),
-    section("Refleksjoner", "Privat logg eller delt refleksjon med coach", "notebook-pen", [reflectionsPreview(data.reflections)]),
-    section("Evaluering", "Avslutning og læring videre", "sparkles", [
-      field("eval_achieved", "Hva har du oppnådd?", plan.eval_achieved || "", "textarea"),
-      field("eval_reflection", "Din egen vurdering av forløpet", plan.eval_reflection || "", "textarea"),
-      field("eval_next", "Hva tar du med deg videre?", plan.eval_next || "", "textarea")
+    ]),
+    el("section", { class: "workspace-pane", "data-pane": "reflections" }, [
+      reflectionsWorkspace(data)
     ])
   ]);
 
@@ -454,6 +462,7 @@ async function renderPlan() {
   const rail = planRail(client, plan, data);
   $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form, rail]), saveStrip(editable));
   if (!editable) setFormReadonly(form);
+  setupWorkspaceTabs();
   refreshIcons();
 }
 
@@ -512,15 +521,65 @@ function programToFormState(data) {
 
 function clientWorkspaceTabs(data) {
   const items = [
-    ["Nå", data.actions.filter((action) => action.status !== "done").length],
-    ["Plan", data.areas.length],
-    ["Sesjoner", data.sessions.length],
-    ["Refleksjoner", data.reflections.length]
+    ["now", "Nå", data.actions.filter((action) => action.status !== "done").length],
+    ["plan", "Plan", data.areas.length],
+    ["sessions", "Sesjoner", data.sessions.length],
+    ["reflections", "Refleksjoner", data.reflections.length]
   ];
-  return el("div", { class: "workspace-tabs" }, items.map(([label, count], index) => el("span", {
+  return el("div", { class: "workspace-tabs" }, items.map(([pane, label, count], index) => el("button", {
     class: `workspace-tab ${index === 0 ? "active" : ""}`,
-    text: `${label} ${count}`
-  })));
+    type: "button",
+    "data-tab": pane
+  }, [
+    el("span", { text: label }),
+    el("em", { text: String(count) })
+  ])));
+}
+
+function setupWorkspaceTabs() {
+  $$(".workspace-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      $$(".workspace-tab").forEach((item) => item.classList.toggle("active", item === tab));
+      $$(".workspace-pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === tab.dataset.tab));
+    });
+  });
+}
+
+function nowWorkspace(client, data, plan) {
+  const openActions = data.actions.filter((action) => action.status !== "done");
+  const nextSession = [...data.sessions].sort((a, b) => new Date(a.session_date || 0) - new Date(b.session_date || 0)).find((session) => {
+    if (!session.session_date) return false;
+    return new Date(session.session_date) >= new Date(new Date().toDateString());
+  });
+  return el("div", { class: "now-grid" }, [
+    el("section", { class: "panel focus-panel" }, [
+      el("p", { class: "eyebrow", text: "Nå" }),
+      el("h3", { text: plan.c_purpose || "Formuler retningen for forløpet" }),
+      el("p", { class: "muted", text: plan.c_success || "Når målet og suksesskriteriene er tydelige, blir klientflaten mye mer verdifull." })
+    ]),
+    el("section", { class: "panel" }, [
+      el("p", { class: "eyebrow", text: "Neste samtale" }),
+      el("h3", { text: nextSession?.session_date ? formatDate(nextSession.session_date) : "Ikke avtalt" }),
+      el("p", { class: "muted", text: nextSession?.focus || "Bruk sesjonsfanen til å legge inn dato og fokus." })
+    ]),
+    el("section", { class: "panel" }, [
+      el("div", { class: "workspace-head" }, [
+        el("div", {}, [el("p", { class: "eyebrow", text: "Handlinger" }), el("h3", { text: openActions.length ? `${openActions.length} åpne` : "Ingen åpne" })]),
+        canEditProgram(client) ? button("Ny", "plus", () => createAction(data.program.id), "ghost") : null
+      ].filter(Boolean)),
+      actionList(data.actions)
+    ]),
+    el("section", { class: "panel" }, [
+      el("p", { class: "eyebrow", text: "Utviklingsområder" }),
+      areaPills(data.areas)
+    ])
+  ]);
+}
+
+function areaPills(areas) {
+  const items = areas.filter((area) => area.title || area.description);
+  if (!items.length) return el("p", { class: "muted", text: "Ingen områder satt ennå." });
+  return el("div", { class: "area-pills" }, items.map((area, index) => el("span", { text: area.title || `Område ${index + 1}` })));
 }
 
 function section(title, description, iconName, children, open = false) {
@@ -606,12 +665,128 @@ function actionsPreview(actions) {
   ])));
 }
 
+function actionList(actions) {
+  if (!actions.length) return el("p", { class: "muted", text: "Ingen handlinger ennå." });
+  return el("div", { class: "action-list" }, actions.map((action) => el("article", { class: `action-card ${action.status}` }, [
+    el("div", {}, [
+      el("strong", { text: action.title || "Handling uten tittel" }),
+      action.description ? el("p", { class: "muted", text: action.description }) : el("p", { class: "muted", text: action.due_date ? `Frist ${formatDate(action.due_date)}` : "Uten frist" })
+    ]),
+    el("div", { class: "action-status" }, [
+      statusButton(action, "todo", "Ikke startet"),
+      statusButton(action, "doing", "I gang"),
+      statusButton(action, "done", "Ferdig")
+    ])
+  ])));
+}
+
+function statusButton(action, status, label) {
+  return el("button", {
+    class: `status-chip ${action.status === status ? "active" : ""}`,
+    type: "button",
+    onclick: () => updateActionStatus(action, status),
+    text: label
+  });
+}
+
 function reflectionsPreview(reflections) {
   if (!reflections.length) return el("p", { class: "muted", text: "Ingen refleksjoner ennå. Private refleksjoner forblir private i Supabase-policyene." });
   return el("div", { class: "compact-list" }, reflections.slice(0, 5).map((reflection) => el("div", { class: "compact-item" }, [
     el("strong", { text: reflection.prompt || (reflection.visibility === "private" ? "Privat refleksjon" : "Delt refleksjon") }),
     el("span", { text: reflection.visibility === "private" ? "Privat" : "Delt med coach" })
   ])));
+}
+
+function reflectionsWorkspace(data) {
+  const canWriteReflection = state.profile.role === "client";
+  return el("div", { class: "reflection-space" }, [
+    canWriteReflection ? el("section", { class: "panel reflection-composer" }, [
+      el("p", { class: "eyebrow", text: "Ny refleksjon" }),
+      el("textarea", { id: "reflection-body", placeholder: "Hva legger du merke til akkurat nå?" }),
+      el("div", { class: "field-pair" }, [
+        el("label", { text: "Synlighet" }, [
+          el("select", { id: "reflection-visibility" }, [
+            el("option", { value: "private", text: "Privat" }),
+            el("option", { value: "shared_with_coach", text: "Del med coach" })
+          ])
+        ]),
+        el("label", { text: "Knytt til" }, [
+          el("select", { id: "reflection-area" }, [
+            el("option", { value: "", text: "Hele forløpet" }),
+            ...data.areas.map((area) => el("option", { value: area.id, text: area.title || "Utviklingsområde" }))
+          ])
+        ])
+      ]),
+      el("div", { class: "toolbar" }, [
+        el("span", { class: "muted", id: "reflection-status", text: "Ikke lagret" }),
+        button("Lagre refleksjon", "notebook-pen", () => createReflection(data.program.id))
+      ])
+    ]) : null,
+    el("section", { class: "panel" }, [
+      el("p", { class: "eyebrow", text: "Logg" }),
+      reflectionsList(data.reflections)
+    ])
+  ].filter(Boolean));
+}
+
+function reflectionsList(reflections) {
+  if (!reflections.length) return el("p", { class: "muted", text: "Ingen refleksjoner ennå." });
+  return el("div", { class: "reflection-list" }, reflections.map((reflection) => el("article", { class: "reflection-card" }, [
+    el("div", { class: "reflection-meta" }, [
+      el("span", { text: reflection.visibility === "private" ? "Privat" : "Delt med coach" }),
+      el("span", { text: formatDate(reflection.created_at) })
+    ]),
+    el("p", { text: reflection.body || "" })
+  ])));
+}
+
+function createAction(programId) {
+  openEntityModal("Ny handling", "Nå", [
+    inputSpec("title", "Handling"),
+    inputSpec("description", "Beskrivelse"),
+    inputSpec("dueDate", "Frist", "date")
+  ], async (values) => {
+    await state.sb.from("session_actions").insert({
+      program_id: programId,
+      title: values.title,
+      description: values.description || null,
+      due_date: values.dueDate || null,
+      status: "todo"
+    });
+    await reloadProgramAndRender();
+  });
+}
+
+async function updateActionStatus(action, status) {
+  await state.sb.from("session_actions").update({ status }).eq("id", action.id);
+  await reloadProgramAndRender();
+}
+
+async function createReflection(programId) {
+  const body = $("#reflection-body")?.value.trim();
+  const status = $("#reflection-status");
+  if (!body) {
+    if (status) status.textContent = "Skriv en refleksjon først";
+    return;
+  }
+  if (status) status.textContent = "Lagrer...";
+  const { error } = await state.sb.from("client_reflections").insert({
+    program_id: programId,
+    body,
+    visibility: $("#reflection-visibility")?.value || "private",
+    development_area_id: $("#reflection-area")?.value || null
+  });
+  if (error) {
+    if (status) status.textContent = "Kunne ikke lagre";
+    return;
+  }
+  await reloadProgramAndRender();
+}
+
+async function reloadProgramAndRender() {
+  const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
+  if (client) delete state.programCache[client.id];
+  await renderPlan();
 }
 
 function planRail(client, plan, data) {
@@ -649,7 +824,7 @@ function saveStrip(editable = true) {
 }
 
 function setFormReadonly(form) {
-  $$("input, textarea, select", form).forEach((control) => {
+  $$(".section-card input, .section-card textarea, .section-card select", form).forEach((control) => {
     control.disabled = true;
   });
   $$(".section-card button", form).forEach((control) => {
