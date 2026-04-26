@@ -9,6 +9,8 @@ const state = {
   client: null,
   coaches: [],
   clients: [],
+  programSummaries: {},
+  programCache: {},
   view: "clients",
   selectedClientId: null,
   dirty: false,
@@ -162,6 +164,34 @@ async function loadReferenceData() {
     clients = data || [];
   }
   state.clients = clients || [];
+  await loadProgramSummaries();
+}
+
+async function loadProgramSummaries() {
+  state.programSummaries = {};
+  const ids = state.clients.map((client) => client.id);
+  if (!ids.length) return;
+  const { data: programs } = await state.sb
+    .from("coaching_programs")
+    .select("id, client_id, status, start_date, end_date, purpose, success_criteria")
+    .in("client_id", ids);
+  (programs || []).forEach((program) => {
+    state.programSummaries[program.client_id] = { ...program, sessionCount: 0, areaCount: 0 };
+  });
+  const programIds = (programs || []).map((program) => program.id);
+  if (!programIds.length) return;
+  const [{ data: sessions }, { data: areas }] = await Promise.all([
+    state.sb.from("coaching_sessions").select("id, program_id").in("program_id", programIds),
+    state.sb.from("development_areas").select("id, program_id").in("program_id", programIds)
+  ]);
+  (sessions || []).forEach((session) => {
+    const summary = Object.values(state.programSummaries).find((item) => item.id === session.program_id);
+    if (summary) summary.sessionCount += 1;
+  });
+  (areas || []).forEach((area) => {
+    const summary = Object.values(state.programSummaries).find((item) => item.id === area.program_id);
+    if (summary) summary.areaCount += 1;
+  });
 }
 
 function renderShell() {
@@ -235,7 +265,7 @@ function renderClients() {
     el("div", { class: "grid three summary-grid" }, [
       metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Alle forløp i oversikt" : "Dine klientforløp"),
       metric("Aktive", String(active), "activity", "Har logget inn"),
-      metric("Sesjoner", String(visibleClients.reduce((sum, client) => sum + ((client.plan?.sessions || []).length), 0)), "calendar-check", "Registrert i planer")
+      metric("Sesjoner", String(visibleClients.reduce((sum, client) => sum + (state.programSummaries[client.id]?.sessionCount || 0), 0)), "calendar-check", "Registrert i forløp")
     ]),
     el("div", { class: "panel list-panel" }, [
       el("div", { class: "toolbar filters" }, [
@@ -251,8 +281,7 @@ function renderClients() {
 function clientGrid(clients) {
   if (!clients.length) return el("p", { class: "muted", text: "Ingen klienter å vise ennå." });
   return el("div", { class: "grid three" }, clients.map((client) => {
-    const plan = client.plan || {};
-    const sessions = plan.sessions || [];
+    const program = state.programSummaries[client.id];
     const canOpen = canOpenClient(client);
     return el("button", {
       class: `card client-card ${canOpen ? "" : "is-locked"}`,
@@ -266,8 +295,8 @@ function clientGrid(clients) {
       el("div", { class: "meta-row" }, [
         el("span", { class: `badge ${client.consent_given ? "ok" : "warn"}`, text: client.consent_given ? "Aktiv" : "Ikke innlogget" }),
         !canOpen ? el("span", { class: "badge lock", text: "Kun oversikt" }) : el("span", { class: "badge", text: "Åpne plan" }),
-        el("span", { class: "badge", text: sessions.length === 1 ? "1 sesjon" : `${sessions.length} sesjoner` }),
-        el("span", { class: "badge", text: plan.c_start ? formatDate(plan.c_start) : "Uten startdato" })
+        el("span", { class: "badge", text: program?.sessionCount === 1 ? "1 sesjon" : `${program?.sessionCount || 0} sesjoner` }),
+        el("span", { class: "badge", text: program?.start_date ? formatDate(program.start_date) : "Uten startdato" })
       ])
     ]);
   }));
@@ -357,7 +386,7 @@ function actionGroup(actions) {
   }));
 }
 
-function renderPlan() {
+async function renderPlan() {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (!client) {
     setHeader("Plan", "Ingen klient funnet");
@@ -379,11 +408,25 @@ function renderPlan() {
     button("Tilbake", "arrow-left", () => navigate(state.profile.role === "admin" ? "admin" : "clients"), "ghost"),
     button("Book time", "calendar-plus", () => window.open("https://raederog.no/book-time", "_blank"))
   ]);
-  const plan = structuredClone(client.plan || {});
-  plan.areas = Array.isArray(plan.areas) && plan.areas.length ? plan.areas : ["", ""];
-  plan.sessions = Array.isArray(plan.sessions) ? plan.sessions : [];
+  $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
+    el("p", { class: "eyebrow", text: "Laster" }),
+    el("h3", { text: "Henter klientforløp" }),
+    el("p", { class: "muted", text: "Kobler til Supabase-tabellene for program, områder, sesjoner og evaluering." })
+  ]));
+
+  const data = await loadClientProgram(client);
+  if (!data) {
+    $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
+      el("p", { class: "eyebrow", text: "Program" }),
+      el("h3", { text: "Fant ikke klientforløp" }),
+      el("p", { class: "muted", text: "Sjekk at klienten har en rad i coaching_programs." })
+    ]));
+    return;
+  }
+  const plan = programToFormState(data);
 
   const form = el("form", { class: "grid", id: "plan-form" }, [
+    clientWorkspaceTabs(data),
     section("Contracting", "Avtalen og rammene for forløpet", "file-pen-line", [
       ...planFields.map(([key, label, type]) => field(key, label, plan[key] || "", type)),
       el("div", { class: "field-pair" }, [
@@ -397,6 +440,8 @@ function renderPlan() {
     ], true),
     section("Utviklingsområder", "Velg 2 til 4 områder som gir retning", "target", [areasEditor(plan.areas)], true),
     section("Sesjoner", "Notater, handlinger og refleksjoner", "calendar-days", [sessionsEditor(plan.sessions)], true),
+    section("Handlinger", "Oppgaver som skaper bevegelse mellom samtalene", "list-checks", [actionsPreview(data.actions)]),
+    section("Refleksjoner", "Privat logg eller delt refleksjon med coach", "notebook-pen", [reflectionsPreview(data.reflections)]),
     section("Evaluering", "Avslutning og læring videre", "sparkles", [
       field("eval_achieved", "Hva har du oppnådd?", plan.eval_achieved || "", "textarea"),
       field("eval_reflection", "Din egen vurdering av forløpet", plan.eval_reflection || "", "textarea"),
@@ -404,10 +449,78 @@ function renderPlan() {
     ])
   ]);
 
-  form.addEventListener("input", () => markDirty());
-  const rail = planRail(client, plan);
-  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form, rail]), saveStrip());
+  const editable = canEditProgram(client);
+  if (editable) form.addEventListener("input", () => markDirty());
+  const rail = planRail(client, plan, data);
+  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form, rail]), saveStrip(editable));
+  if (!editable) setFormReadonly(form);
   refreshIcons();
+}
+
+async function loadClientProgram(client) {
+  if (state.programCache[client.id]) return state.programCache[client.id];
+  const { data: program, error } = await state.sb
+    .from("coaching_programs")
+    .select("*")
+    .eq("client_id", client.id)
+    .maybeSingle();
+  if (error || !program) return null;
+  const [{ data: areas }, { data: sessions }, { data: actions }, { data: reflections }, { data: evaluations }] = await Promise.all([
+    state.sb.from("development_areas").select("*").eq("program_id", program.id).order("sort_order"),
+    state.sb.from("coaching_sessions").select("*").eq("program_id", program.id).order("session_date", { ascending: false }),
+    state.sb.from("session_actions").select("*").eq("program_id", program.id).order("created_at", { ascending: false }),
+    state.sb.from("client_reflections").select("*").eq("program_id", program.id).order("created_at", { ascending: false }),
+    state.sb.from("program_evaluations").select("*").eq("program_id", program.id).limit(1)
+  ]);
+  const payload = {
+    program,
+    areas: areas || [],
+    sessions: sessions || [],
+    actions: actions || [],
+    reflections: reflections || [],
+    evaluation: evaluations?.[0] || null
+  };
+  state.programCache[client.id] = payload;
+  return payload;
+}
+
+function programToFormState(data) {
+  return {
+    c_purpose: data.program.purpose || "",
+    c_success: data.program.success_criteria || "",
+    c_expect_coach: data.program.expectations_coach || "",
+    c_expect_client: data.program.expectations_client || "",
+    c_confidentiality: data.program.confidentiality || "",
+    c_practical: data.program.practical_frame || "",
+    c_start: data.program.start_date || "",
+    c_end: data.program.end_date || "",
+    c_sessions: data.program.session_count || "",
+    c_duration: data.program.session_duration || "",
+    areas: data.areas.length ? data.areas.map((area) => area.title || area.description || "") : ["", ""],
+    sessions: data.sessions.map((session) => ({
+      date: session.session_date || "",
+      focus: session.focus || "",
+      notes: session.insights || "",
+      actions: session.decisions || "",
+      reflection: session.client_notes || ""
+    })).reverse(),
+    eval_achieved: data.evaluation?.achieved || "",
+    eval_reflection: data.evaluation?.reflection || "",
+    eval_next: data.evaluation?.next_steps || ""
+  };
+}
+
+function clientWorkspaceTabs(data) {
+  const items = [
+    ["Nå", data.actions.filter((action) => action.status !== "done").length],
+    ["Plan", data.areas.length],
+    ["Sesjoner", data.sessions.length],
+    ["Refleksjoner", data.reflections.length]
+  ];
+  return el("div", { class: "workspace-tabs" }, items.map(([label, count], index) => el("span", {
+    class: `workspace-tab ${index === 0 ? "active" : ""}`,
+    text: `${label} ${count}`
+  })));
 }
 
 function section(title, description, iconName, children, open = false) {
@@ -485,7 +598,23 @@ function sessionCard(session, index) {
   ]);
 }
 
-function planRail(client, plan) {
+function actionsPreview(actions) {
+  if (!actions.length) return el("p", { class: "muted", text: "Ingen handlinger registrert ennå. I neste batch gjør vi dette til en egen, mer elegant arbeidsflate." });
+  return el("div", { class: "compact-list" }, actions.slice(0, 5).map((action) => el("div", { class: "compact-item" }, [
+    el("strong", { text: action.title || "Handling uten tittel" }),
+    el("span", { text: action.status || "todo" })
+  ])));
+}
+
+function reflectionsPreview(reflections) {
+  if (!reflections.length) return el("p", { class: "muted", text: "Ingen refleksjoner ennå. Private refleksjoner forblir private i Supabase-policyene." });
+  return el("div", { class: "compact-list" }, reflections.slice(0, 5).map((reflection) => el("div", { class: "compact-item" }, [
+    el("strong", { text: reflection.prompt || (reflection.visibility === "private" ? "Privat refleksjon" : "Delt refleksjon") }),
+    el("span", { text: reflection.visibility === "private" ? "Privat" : "Delt med coach" })
+  ])));
+}
+
+function planRail(client, plan, data) {
   const checks = [
     ["Contracting", Boolean(plan.c_purpose && plan.c_success)],
     ["Utviklingsområder", (plan.areas || []).filter(Boolean).length >= 2],
@@ -504,15 +633,28 @@ function planRail(client, plan) {
         el("span", { text: label }),
         el("span", { class: `progress-dot ${done ? "done" : ""}` })
       ])))
+    ]),
+    el("section", { class: "panel" }, [
+      el("p", { class: "eyebrow", text: "Status" }),
+      el("h3", { text: statusLabel(data.program.status) }),
+      el("p", { class: "muted", text: data.program.updated_at ? `Sist oppdatert ${formatDate(data.program.updated_at)}` : "Ikke oppdatert ennå" })
     ])
   ]);
 }
 
-function saveStrip() {
-  return el("div", { class: "save-strip" }, [
-    el("span", { class: "muted", id: "save-status", text: "Ingen endringer" }),
-    button("Lagre", "save", savePlan)
-  ]);
+function saveStrip(editable = true) {
+  const items = [el("span", { class: "muted", id: "save-status", text: editable ? "Ingen endringer" : "Lesetilgang" })];
+  if (editable) items.push(button("Lagre", "save", savePlan));
+  return el("div", { class: "save-strip" }, items);
+}
+
+function setFormReadonly(form) {
+  $$("input, textarea, select", form).forEach((control) => {
+    control.disabled = true;
+  });
+  $$(".section-card button", form).forEach((control) => {
+    if (!control.classList.contains("section-toggle")) control.disabled = true;
+  });
 }
 
 function markDirty() {
@@ -529,13 +671,34 @@ async function savePlan() {
   if (!canOpenClient(client)) return;
   const status = $("#save-status");
   if (status) status.textContent = "Lagrer...";
+  const current = state.programCache[client.id] || await loadClientProgram(client);
+  if (!current) {
+    if (status) status.textContent = "Mangler programrad";
+    return;
+  }
   const plan = collectPlan();
-  const { error } = await state.sb.from("clients").update({ plan, last_saved: new Date().toISOString() }).eq("id", client.id);
-  if (error) {
+  const { error: programError } = await state.sb.from("coaching_programs").update({
+    purpose: plan.c_purpose,
+    success_criteria: plan.c_success,
+    expectations_coach: plan.c_expect_coach,
+    expectations_client: plan.c_expect_client,
+    confidentiality: plan.c_confidentiality,
+    practical_frame: plan.c_practical,
+    start_date: plan.c_start || null,
+    end_date: plan.c_end || null,
+    session_count: plan.c_sessions ? Number(plan.c_sessions) : null,
+    session_duration: plan.c_duration || null,
+    status: "active"
+  }).eq("id", current.program.id);
+  if (programError) {
     if (status) status.textContent = "Lagring feilet";
     return;
   }
-  client.plan = plan;
+  await replaceAreas(current.program.id, plan.areas);
+  await replaceSessions(current.program.id, plan.sessions);
+  await saveEvaluation(current.program.id, plan);
+  delete state.programCache[client.id];
+  await loadProgramSummaries();
   state.dirty = false;
   if (status) status.textContent = `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`;
 }
@@ -563,6 +726,40 @@ function getSessions() {
     actions: $("[name='session.actions']", card).value,
     reflection: $("[name='session.reflection']", card).value
   })).reverse();
+}
+
+async function replaceAreas(programId, areas) {
+  await state.sb.from("development_areas").delete().eq("program_id", programId);
+  const rows = areas
+    .map((title, index) => ({ program_id: programId, title: title.trim(), sort_order: index }))
+    .filter((row) => row.title);
+  if (rows.length) await state.sb.from("development_areas").insert(rows);
+}
+
+async function replaceSessions(programId, sessions) {
+  await state.sb.from("coaching_sessions").delete().eq("program_id", programId);
+  const rows = sessions.map((session, index) => ({
+    program_id: programId,
+    session_number: index + 1,
+    session_date: session.date || null,
+    focus: session.focus || null,
+    insights: session.notes || null,
+    decisions: session.actions || null,
+    client_notes: session.reflection || null
+  })).filter((session) => session.session_date || session.focus || session.insights || session.decisions || session.client_notes);
+  if (rows.length) await state.sb.from("coaching_sessions").insert(rows);
+}
+
+async function saveEvaluation(programId, plan) {
+  const payload = {
+    program_id: programId,
+    achieved: plan.eval_achieved || null,
+    reflection: plan.eval_reflection || null,
+    next_steps: plan.eval_next || null
+  };
+  const hasEvaluation = payload.achieved || payload.reflection || payload.next_steps;
+  if (!hasEvaluation) return;
+  await state.sb.from("program_evaluations").upsert(payload, { onConflict: "program_id" });
 }
 
 function openClientInvite() {
@@ -660,6 +857,11 @@ async function inviteClient(values) {
   });
   const result = await res.json();
   if (!res.ok || result.error) throw new Error(result.error || "Invitasjonen feilet.");
+  const { data: client } = await state.sb.from("clients").select("id").eq("email", values.email).maybeSingle();
+  if (client?.id) {
+    const { data: existingProgram } = await state.sb.from("coaching_programs").select("id").eq("client_id", client.id).maybeSingle();
+    if (!existingProgram) await state.sb.from("coaching_programs").insert({ client_id: client.id, status: "draft" });
+  }
   await reloadAndRender();
 }
 
@@ -731,30 +933,35 @@ function canOpenClient(client) {
   return (client.coach_ids || []).includes(coachId);
 }
 
+function canEditProgram(client) {
+  if (!client || !state.profile) return false;
+  const coachId = state.coach?.id;
+  return Boolean(coachId && (client.coach_ids || []).includes(coachId));
+}
+
 function filterClients(clients, query, coachId = "all", status = "all") {
   const q = query.trim().toLowerCase();
   return clients.filter((client) => {
-    const plan = client.plan || {};
-    const sessions = plan.sessions || [];
+    const program = state.programSummaries[client.id];
     const matchesQuery = !q || [client.name, client.email, client.role, client.employer, coachNames(client)].filter(Boolean).join(" ").toLowerCase().includes(q);
     const matchesCoach = coachId === "all" || (client.coach_ids || []).includes(coachId);
     const matchesStatus =
       status === "all" ||
       (status === "active" && client.consent_given) ||
       (status === "pending" && !client.consent_given) ||
-      (status === "sessions" && sessions.length > 0) ||
-      (status === "missing-plan" && !hasPlanContent(plan));
+      (status === "sessions" && (program?.sessionCount || 0) > 0) ||
+      (status === "missing-plan" && !hasProgramContent(program));
     return matchesQuery && matchesCoach && matchesStatus;
   });
 }
 
-function hasPlanContent(plan) {
+function hasProgramContent(program) {
   return Boolean(
-    plan.c_purpose ||
-    plan.c_success ||
-    plan.c_start ||
-    (plan.areas || []).some(Boolean) ||
-    (plan.sessions || []).length
+    program?.purpose ||
+    program?.success_criteria ||
+    program?.start_date ||
+    (program?.areaCount || 0) > 0 ||
+    (program?.sessionCount || 0) > 0
   );
 }
 
@@ -778,6 +985,10 @@ function greeting() {
 
 function roleLabel(role) {
   return { admin: "Admin", coach: "Coach", client: "Klient" }[role] || role;
+}
+
+function statusLabel(status) {
+  return { draft: "Utkast", active: "Aktivt forløp", completed: "Fullført", archived: "Arkivert" }[status] || "Utkast";
 }
 
 function formatDate(iso) {
