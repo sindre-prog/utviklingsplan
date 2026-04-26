@@ -9,7 +9,7 @@ const state = {
   client: null,
   coaches: [],
   clients: [],
-  view: "dashboard",
+  view: "clients",
   selectedClientId: null,
   dirty: false,
   saveTimer: null,
@@ -130,7 +130,7 @@ async function bootstrapApp() {
   await loadReferenceData();
   setScreen("app");
   renderShell();
-  navigate("dashboard");
+  navigate(initialView());
 }
 
 async function loadReferenceData() {
@@ -145,13 +145,21 @@ async function loadReferenceData() {
     const { data } = await state.sb.from("clients").select("*").eq("user_id", state.user.id).maybeSingle();
     state.client = data;
   }
-  const [{ data: coaches }, { data: clients }] = await Promise.all([
-    state.sb.from("coaches").select("*").order("name"),
-    state.profile.role === "client"
-      ? Promise.resolve({ data: state.client ? [state.client] : [] })
-      : state.sb.from("clients").select("*").order("name")
-  ]);
+  const { data: coaches } = await state.sb.from("coaches").select("*").order("name");
   state.coaches = coaches || [];
+  let clients = [];
+  if (state.profile.role === "client") {
+    clients = state.client ? [state.client] : [];
+  } else if (state.profile.role === "coach") {
+    const query = state.coach?.id
+      ? state.sb.from("clients").select("*").contains("coach_ids", [state.coach.id]).order("name")
+      : Promise.resolve({ data: [] });
+    const { data } = await query;
+    clients = data || [];
+  } else {
+    const { data } = await state.sb.from("clients").select("*").order("name");
+    clients = data || [];
+  }
   state.clients = clients || [];
 }
 
@@ -159,8 +167,7 @@ function renderShell() {
   $("#user-name").textContent = state.profile.name || state.user.email || "Bruker";
   $("#user-role").textContent = roleLabel(state.profile.role);
   const nav = [
-    ["dashboard", "layout-dashboard", "Dashboard"],
-    ["clients", "users", state.profile.role === "client" ? "Min plan" : "Klienter"],
+    ["clients", state.profile.role === "client" ? "file-text" : "users", state.profile.role === "client" ? "Min plan" : "Klienter"],
     state.profile.role === "admin" && ["admin", "shield-check", "Administrasjon"]
   ].filter(Boolean);
   const navList = $("#nav-list");
@@ -176,46 +183,18 @@ function navigate(view, clientId = null) {
   $(".sidebar").classList.remove("open");
   $$(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view || (view === "plan" && item.dataset.view === "clients")));
   const routes = {
-    dashboard: renderDashboard,
     clients: renderClients,
     plan: renderPlan,
     admin: renderAdmin
   };
-  routes[view]();
+  (routes[view] || renderClients)();
   refreshIcons();
-}
-
-function navText(view) {
-  return { dashboard: "Dashboard", clients: state.profile.role === "client" ? "Min plan" : "Klienter", admin: "Administrasjon" }[view] || "";
 }
 
 function setHeader(kicker, title, actions = []) {
   $("#view-kicker").textContent = kicker;
   $("#view-title").textContent = title;
   $("#topline-actions").replaceChildren(...actions);
-}
-
-function renderDashboard() {
-  const myClients = getVisibleClients();
-  const active = myClients.filter((client) => client.consent_given).length;
-  setHeader("Oversikt", greeting(), [
-    state.profile.role !== "client" ? button("Inviter klient", "user-plus", () => openClientInvite()) : button("Åpne plan", "file-text", () => navigate("plan", state.client?.id))
-  ]);
-  const content = $("#content");
-  content.replaceChildren(
-    el("div", { class: "grid three" }, [
-      metric("Klienter", String(myClients.length), "users", "Synlige klientforløp"),
-      metric("Aktive", String(active), "activity", "Har logget inn"),
-      metric("Sesjoner", String(myClients.reduce((sum, client) => sum + ((client.plan?.sessions || []).length), 0)), "calendar-check", "Registrert i planer")
-    ]),
-    el("div", { class: "panel", style: "margin-top:16px" }, [
-      el("div", { class: "toolbar" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Neste fokus" }), el("h3", { text: "Klienter som trenger oppfølging" })]),
-        button("Se alle", "arrow-right", () => navigate(state.profile.role === "client" ? "plan" : "clients"), "ghost")
-      ]),
-      clientGrid(myClients.slice(0, 6))
-    ])
-  );
 }
 
 function metric(label, value, iconName, help) {
@@ -228,13 +207,45 @@ function metric(label, value, iconName, help) {
 
 function renderClients() {
   if (state.profile.role === "client") return navigate("plan", state.client?.id);
-  setHeader("Arbeidsflate", "Klienter", [button("Inviter klient", "user-plus", () => openClientInvite())]);
+  setHeader("Executive Coaching Studio", "Klienter", [button("Inviter klient", "user-plus", () => openClientInvite())]);
   const content = $("#content");
-  const search = el("input", { class: "search", placeholder: "Søk etter navn, e-post eller arbeidsgiver" });
+  const visibleClients = getVisibleClients();
+  const active = visibleClients.filter((client) => client.consent_given).length;
+  const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
+  const search = el("input", { class: "search", placeholder: "Søk etter navn, e-post, coach eller arbeidsgiver" });
+  const coachFilter = el("select", { class: "filter-select", "aria-label": "Filtrer på coach" }, [
+    el("option", { value: "all", text: "Alle coacher" }),
+    ...filterCoaches.map((coach) => el("option", { value: coach.id, text: coach.name || "Uten navn" }))
+  ]);
+  const statusFilter = el("select", { class: "filter-select", "aria-label": "Filtrer på status" }, [
+    el("option", { value: "all", text: "Alle statuser" }),
+    el("option", { value: "active", text: "Aktive" }),
+    el("option", { value: "pending", text: "Ikke innlogget" }),
+    el("option", { value: "sessions", text: "Har sesjoner" }),
+    el("option", { value: "missing-plan", text: "Mangler plan" })
+  ]);
   const results = el("div");
-  const render = () => results.replaceChildren(clientGrid(filterClients(getVisibleClients(), search.value)));
+  const render = () => {
+    const filtered = filterClients(visibleClients, search.value, coachFilter.value, statusFilter.value);
+    results.replaceChildren(clientGrid(filtered));
+  };
   search.addEventListener("input", render);
-  content.replaceChildren(el("div", { class: "toolbar" }, [search]), results);
+  coachFilter.addEventListener("change", render);
+  statusFilter.addEventListener("change", render);
+  content.replaceChildren(
+    el("div", { class: "grid three summary-grid" }, [
+      metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Alle forløp i oversikt" : "Dine klientforløp"),
+      metric("Aktive", String(active), "activity", "Har logget inn"),
+      metric("Sesjoner", String(visibleClients.reduce((sum, client) => sum + ((client.plan?.sessions || []).length), 0)), "calendar-check", "Registrert i planer")
+    ]),
+    el("div", { class: "panel list-panel" }, [
+      el("div", { class: "toolbar filters" }, [
+        el("div", {}, [el("p", { class: "eyebrow", text: "Arbeidsflate" }), el("h3", { text: "Klientoversikt" })]),
+        el("div", { class: "filter-row" }, [search, coachFilter, statusFilter])
+      ]),
+      results
+    ])
+  );
   render();
 }
 
@@ -243,12 +254,19 @@ function clientGrid(clients) {
   return el("div", { class: "grid three" }, clients.map((client) => {
     const plan = client.plan || {};
     const sessions = plan.sessions || [];
-    return el("button", { class: "card", onclick: () => navigate("plan", client.id) }, [
+    const canOpen = canOpenClient(client);
+    return el("button", {
+      class: `card client-card ${canOpen ? "" : "is-locked"}`,
+      disabled: !canOpen,
+      title: canOpen ? "Åpne utviklingsplan" : "Kun oversikt. Du er ikke coach for denne klienten.",
+      onclick: () => openClientPlan(client)
+    }, [
       el("p", { class: "eyebrow", text: client.employer || "Klient" }),
       el("h3", { text: client.name || "Uten navn" }),
       el("p", { class: "muted", text: [client.role, coachNames(client)].filter(Boolean).join(" · ") || client.email || "" }),
       el("div", { class: "meta-row" }, [
         el("span", { class: `badge ${client.consent_given ? "ok" : "warn"}`, text: client.consent_given ? "Aktiv" : "Ikke innlogget" }),
+        !canOpen ? el("span", { class: "badge lock", text: "Kun oversikt" }) : el("span", { class: "badge", text: "Åpne plan" }),
         el("span", { class: "badge", text: sessions.length === 1 ? "1 sesjon" : `${sessions.length} sesjoner` }),
         el("span", { class: "badge", text: plan.c_start ? formatDate(plan.c_start) : "Uten startdato" })
       ])
@@ -261,38 +279,82 @@ function renderAdmin() {
     button("Inviter coach", "user-round-plus", () => openCoachInvite()),
     button("Inviter klient", "user-plus", () => openClientInvite())
   ]);
-  $("#content").replaceChildren(
-    adminTable("Coacher", ["Navn", "E-post", "Klienter", ""], state.coaches.map((coach) => [
+  const coachSearch = el("input", { class: "search", placeholder: "Søk coach" });
+  const clientSearch = el("input", { class: "search", placeholder: "Søk klient, coach eller arbeidsgiver" });
+  const adminCoachFilter = el("select", { class: "filter-select", "aria-label": "Filtrer klienter på coach" }, [
+    el("option", { value: "all", text: "Alle coacher" }),
+    ...state.coaches.map((coach) => el("option", { value: coach.id, text: coach.name || "Uten navn" }))
+  ]);
+  const adminStatusFilter = el("select", { class: "filter-select", "aria-label": "Filtrer klienter på status" }, [
+    el("option", { value: "all", text: "Alle statuser" }),
+    el("option", { value: "active", text: "Aktive" }),
+    el("option", { value: "pending", text: "Ikke innlogget" }),
+    el("option", { value: "sessions", text: "Har sesjoner" }),
+    el("option", { value: "missing-plan", text: "Mangler plan" })
+  ]);
+  const coachTableSlot = el("div");
+  const clientTableSlot = el("div");
+  const renderCoaches = () => {
+    const q = coachSearch.value.trim().toLowerCase();
+    const coaches = state.coaches.filter((coach) => [coach.name, coach.email].filter(Boolean).join(" ").toLowerCase().includes(q));
+    coachTableSlot.replaceChildren(adminTable("Coacher", ["Navn", "E-post", "Klienter", ""], coaches.map((coach) => [
       coach.name || "-", coach.email || "-", String(state.clients.filter((client) => (client.coach_ids || []).includes(coach.id)).length),
       actionGroup([["Rediger", () => openCoachEdit(coach)], ["Slett", () => deleteCoach(coach)]])
-    ])),
-    adminTable("Alle klienter", ["Navn", "Coach", "Status", ""], state.clients.map((client) => [
+    ])));
+  };
+  const renderClientsTable = () => {
+    const clients = filterClients(state.clients, clientSearch.value, adminCoachFilter.value, adminStatusFilter.value);
+    clientTableSlot.replaceChildren(adminTable("Alle klienter", ["Navn", "Coach", "Status", "Tilgang", ""], clients.map((client) => [
       client.name || "-", coachNames(client) || "-", client.consent_given ? "Aktiv" : "Ikke innlogget",
-      actionGroup([["Åpne", () => navigate("plan", client.id)], ["Rediger", () => openClientEdit(client)], ["Slett", () => deleteClient(client)]])
-    ]))
+      canOpenClient(client) ? "Kan åpnes" : "Kun oversikt",
+      actionGroup([
+        ["Åpne", () => openClientPlan(client), !canOpenClient(client)],
+        ["Rediger", () => openClientEdit(client)],
+        ["Slett", () => deleteClient(client)]
+      ])
+    ])));
+  };
+  coachSearch.addEventListener("input", renderCoaches);
+  clientSearch.addEventListener("input", renderClientsTable);
+  adminCoachFilter.addEventListener("change", renderClientsTable);
+  adminStatusFilter.addEventListener("change", renderClientsTable);
+  $("#content").replaceChildren(
+    el("section", { class: "panel list-panel" }, [
+      el("div", { class: "toolbar filters" }, [
+        el("div", {}, [el("p", { class: "eyebrow", text: "Team" }), el("h3", { text: "Coacher" })]),
+        el("div", { class: "filter-row" }, [coachSearch])
+      ]),
+      coachTableSlot
+    ]),
+    el("section", { class: "panel list-panel" }, [
+      el("div", { class: "toolbar filters" }, [
+        el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })]),
+        el("div", { class: "filter-row" }, [clientSearch, adminCoachFilter, adminStatusFilter])
+      ]),
+      clientTableSlot
+    ])
   );
+  renderCoaches();
+  renderClientsTable();
 }
 
 function adminTable(title, headers, rows) {
-  return el("section", { class: "panel", style: "margin-bottom:18px" }, [
-    el("div", { class: "toolbar" }, [el("h3", { text: title })]),
-    el("div", { class: "table-wrap" }, [
-      el("table", {}, [
-        el("thead", {}, [el("tr", {}, headers.map((head) => el("th", { text: head })))]),
-        el("tbody", {}, rows.length ? rows.map((row) => el("tr", {}, row.map((cell) => {
-          const td = el("td");
-          if (cell instanceof Node) td.append(cell);
-          else td.textContent = cell;
-          return td;
-        }))) : [el("tr", {}, [el("td", { text: "Ingen rader ennå.", colspan: String(headers.length) })])])
-      ])
+  return el("div", { class: "table-wrap", "aria-label": title }, [
+    el("table", {}, [
+      el("thead", {}, [el("tr", {}, headers.map((head) => el("th", { text: head })))]),
+      el("tbody", {}, rows.length ? rows.map((row) => el("tr", {}, row.map((cell) => {
+        const td = el("td");
+        if (cell instanceof Node) td.append(cell);
+        else td.textContent = cell;
+        return td;
+      }))) : [el("tr", {}, [el("td", { text: "Ingen rader ennå.", colspan: String(headers.length) })])])
     ])
   ]);
 }
 
 function actionGroup(actions) {
-  return el("div", { class: "row-actions" }, actions.map(([label, handler]) => {
-    return el("button", { class: "button ghost", onclick: handler, text: label });
+  return el("div", { class: "row-actions" }, actions.map(([label, handler, disabled = false]) => {
+    return el("button", { class: "button ghost", disabled, onclick: disabled ? null : handler, text: label });
   }));
 }
 
@@ -301,6 +363,16 @@ function renderPlan() {
   if (!client) {
     setHeader("Plan", "Ingen klient funnet");
     $("#content").replaceChildren(el("p", { class: "muted", text: "Fant ikke klientdata for denne brukeren." }));
+    return;
+  }
+  if (!canOpenClient(client)) {
+    setHeader("Utviklingsplan", "Kun oversikt");
+    $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
+      el("p", { class: "eyebrow", text: "Tilgang" }),
+      el("h3", { text: "Du kan se klienten i oversikt, men ikke åpne planen." }),
+      el("p", { class: "muted", text: "Adminrollen viser alle klienter, men planinnsyn er begrenset til klienter der du selv er registrert som coach." }),
+      button("Tilbake til klienter", "arrow-left", () => navigate("clients"), "ghost")
+    ]));
     return;
   }
   state.selectedClientId = client.id;
@@ -455,6 +527,7 @@ function markDirty() {
 async function savePlan() {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (!client || !$("#plan-form")) return;
+  if (!canOpenClient(client)) return;
   const status = $("#save-status");
   if (status) status.textContent = "Lagrer...";
   const plan = collectPlan();
@@ -642,10 +715,48 @@ function getVisibleClients() {
   return state.client ? [state.client] : [];
 }
 
-function filterClients(clients, query) {
+function initialView() {
+  return state.profile.role === "client" ? "clients" : "clients";
+}
+
+function openClientPlan(client) {
+  if (!canOpenClient(client)) return;
+  navigate("plan", client.id);
+}
+
+function canOpenClient(client) {
+  if (!client || !state.profile) return false;
+  if (state.profile.role === "client") return client.user_id === state.user?.id;
+  const coachId = state.coach?.id;
+  if (!coachId) return false;
+  return (client.coach_ids || []).includes(coachId);
+}
+
+function filterClients(clients, query, coachId = "all", status = "all") {
   const q = query.trim().toLowerCase();
-  if (!q) return clients;
-  return clients.filter((client) => [client.name, client.email, client.role, client.employer, coachNames(client)].filter(Boolean).join(" ").toLowerCase().includes(q));
+  return clients.filter((client) => {
+    const plan = client.plan || {};
+    const sessions = plan.sessions || [];
+    const matchesQuery = !q || [client.name, client.email, client.role, client.employer, coachNames(client)].filter(Boolean).join(" ").toLowerCase().includes(q);
+    const matchesCoach = coachId === "all" || (client.coach_ids || []).includes(coachId);
+    const matchesStatus =
+      status === "all" ||
+      (status === "active" && client.consent_given) ||
+      (status === "pending" && !client.consent_given) ||
+      (status === "sessions" && sessions.length > 0) ||
+      (status === "missing-plan" && !hasPlanContent(plan));
+    return matchesQuery && matchesCoach && matchesStatus;
+  });
+}
+
+function hasPlanContent(plan) {
+  return Boolean(
+    plan.c_purpose ||
+    plan.c_success ||
+    plan.c_start ||
+    (plan.areas || []).some(Boolean) ||
+    (plan.sessions || []).length
+  );
 }
 
 function coachNames(client) {
