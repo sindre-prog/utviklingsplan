@@ -346,14 +346,6 @@ tr:last-child td { border-bottom: 0; }
   border-bottom: 1px solid var(--line);
 }
 .document-block p { margin: 0; line-height: 1.55; }
-.direction-editor {
-  display: none;
-  gap: 14px;
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
-}
-.direction-editor.open { display: grid; }
 .focus-list { display: grid; border-top: 1px solid var(--line); margin-top: 16px; }
 .focus-row {
   width: 100%;
@@ -474,8 +466,6 @@ tr:last-child td { border-bottom: 0; }
   color: #000;
   font-weight: 800;
 }
-.session-card { display: grid; gap: 14px; padding: 16px; }
-.session-head { justify-content: space-between; }
 .compact-list { display: grid; gap: 8px; }
 .compact-item {
   display: flex;

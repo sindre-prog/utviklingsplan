@@ -425,15 +425,16 @@ async function renderPlan() {
   const plan = programToFormState(data);
 
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
+    hiddenPlanState(plan),
     clientWorkspaceTabs(data),
     el("section", { class: "workspace-pane active", "data-pane": "direction" }, [
-      directionWorkspace(data, plan)
+      directionWorkspace(client, plan)
     ]),
     el("section", { class: "workspace-pane", "data-pane": "work" }, [
       workWorkspace(client, data, plan)
     ]),
     el("section", { class: "workspace-pane", "data-pane": "sessions" }, [
-      sessionsWorkspace(plan)
+      sessionsWorkspace(plan.sessions)
     ]),
     el("section", { class: "workspace-pane", "data-pane": "reflections" }, [
       reflectionsWorkspace(data)
@@ -528,7 +529,16 @@ function setupWorkspaceTabs() {
   });
 }
 
-function directionWorkspace(data, plan) {
+function hiddenPlanState(plan) {
+  return el("div", { class: "hidden-editor", id: "plan-state" }, [
+    ...planFields.map(([key]) => el("textarea", { name: key, text: plan[key] || "" })),
+    ...["c_start", "c_end", "c_sessions", "c_duration", "eval_achieved", "eval_reflection", "eval_next"].map((key) => {
+      return el("input", { name: key, value: plan[key] || "" });
+    })
+  ]);
+}
+
+function directionWorkspace(client, plan) {
   return el("div", { class: "direction-stack" }, [
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
@@ -536,20 +546,35 @@ function directionWorkspace(data, plan) {
           el("p", { class: "eyebrow", text: "Retning" }),
           el("h3", { text: "Hva skal dette forløpet bevege?" })
         ]),
-        button("Rediger retning", "pencil", () => $(".direction-editor")?.classList.toggle("open"), "ghost")
-      ]),
+        canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
+      ].filter(Boolean)),
       el("div", { class: "document-list" }, [
         documentBlock("Arbeidshypotese", plan.c_purpose, "Hva er det viktigste du ønsker å bevege?"),
         documentBlock("Tegn på bevegelse", plan.c_success, "Hvordan merker du at noe faktisk flytter seg?"),
         documentBlock("Samarbeid", plan.c_practical, "Hva gjør samarbeidet med coach nyttig?")
-      ]),
-      el("div", { class: "direction-editor" }, [
-        field("c_purpose", "Arbeidshypotese", plan.c_purpose || "", "textarea"),
-        field("c_success", "Tegn på bevegelse", plan.c_success || "", "textarea"),
-        field("c_practical", "Samarbeid", plan.c_practical || "", "textarea")
       ])
     ])
   ]);
+}
+
+function editDirection(plan) {
+  openEntityModal("Rediger retning", "Retning", [
+    textareaSpec("c_purpose", "Arbeidshypotese", plan.c_purpose || ""),
+    textareaSpec("c_success", "Tegn på bevegelse", plan.c_success || ""),
+    textareaSpec("c_practical", "Samarbeid", plan.c_practical || "")
+  ], async (values) => {
+    setPlanValue("c_purpose", values.c_purpose);
+    setPlanValue("c_success", values.c_success);
+    setPlanValue("c_practical", values.c_practical);
+    markDirty();
+    await savePlan();
+    await reloadProgramAndRender();
+  });
+}
+
+function setPlanValue(name, value) {
+  const control = $(`[name='${name}']`, $("#plan-form"));
+  if (control) control.value = value || "";
 }
 
 function documentBlock(label, value, emptyText) {
@@ -607,15 +632,34 @@ function emptyState(title, text) {
   ]);
 }
 
-function sessionsWorkspace(plan) {
-  return el("div", { class: "grid" }, [
-    el("section", { class: "panel focus-panel" }, [
-      el("p", { class: "eyebrow", text: "Samtaler" }),
-      el("h3", { text: "Samtalen følger det som faktisk er levende." }),
-      el("p", { class: "muted", text: "Den kan kobles til fokusområder, men skal også tåle at virkeligheten endrer seg. Det viktigste er ny innsikt, tydeligere valg og hva som skal testes videre." })
+function sessionsWorkspace(sessions) {
+  return el("section", { class: "panel document-panel" }, [
+    el("div", { class: "workspace-head" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Samtaler" }),
+        el("h3", { text: "Hva ble tydeligere?" }),
+        el("p", { class: "muted", text: "Hver samtale skal fange innsikt, valg og hva som skal prøves videre. Den kan kobles til fokus, men trenger ikke." })
+      ]),
+      button("Ny samtale", "plus", () => addSession(), "ghost")
     ]),
-    section("Samtalelogikk", "Innsikt, valg og neste forsøk", "messages-square", [sessionsEditor(plan.sessions)], true)
+    sessions.length ? sessionList(sessions) : emptyState("Ingen samtaler ennå", "Legg inn en samtale når dere vil samle innsikt og neste bevegelse."),
+    sessionsEditor(sessions)
   ]);
+}
+
+function sessionList(sessions) {
+  return el("div", { class: "focus-list session-list" }, sessions.map((session, index) => el("button", {
+    class: "focus-row",
+    type: "button",
+    onclick: () => editSession(index)
+  }, [
+    el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
+    el("span", { class: "row-main" }, [
+      el("strong", { text: session.focus || "Samtale uten tittel" }),
+      el("small", { text: [session.date && formatDate(session.date), session.notes || session.actions || "Klikk for å legge inn innsikt"].filter(Boolean).join(" · ") })
+    ]),
+    el("span", { class: "row-more", text: "Rediger" })
+  ])));
 }
 
 function areaPills(areas) {
@@ -677,37 +721,59 @@ function setAreas(values) {
 }
 
 function sessionsEditor(sessions) {
-  const wrap = el("div", { class: "grid", id: "sessions-editor" });
+  const wrap = el("div", { class: "hidden-editor", id: "sessions-editor" });
   const render = (items) => {
-    wrap.replaceChildren(
-      el("button", { class: "button ghost", type: "button", onclick: () => {
-        render([...getSessions(), { date: new Date().toISOString().slice(0, 10), focus: "", notes: "", actions: "", reflection: "" }]);
-        markDirty();
-      } }, [icon("plus"), el("span", { text: "Ny sesjon" })]),
-      ...(items.length ? [...items].map((session, index) => sessionCard(session, index)).reverse() : [el("p", { class: "muted", text: "Ingen sesjoner ennå." })])
-    );
-    refreshIcons();
+    wrap.replaceChildren(...items.map((session, index) => sessionHiddenFields(session, index)));
   };
   render(sessions);
   return wrap;
 }
 
-function sessionCard(session, index) {
-  return el("div", { class: "panel session-card", "data-session": String(index) }, [
-    el("div", { class: "session-head" }, [
-      el("div", {}, [el("p", { class: "eyebrow", text: `Sesjon ${index + 1}` }), el("h3", { text: session.date ? formatDate(session.date) : "Dato ikke satt" })]),
-      el("button", { class: "icon-button", type: "button", title: "Slett sesjon", onclick: () => {
-        const next = getSessions().filter((_, sessionIndex) => sessionIndex !== index);
-        $("#sessions-editor").replaceWith(sessionsEditor(next));
-        markDirty();
-      } }, [icon("trash-2")])
-    ]),
-    field("session.date", "Dato", session.date || "", "date"),
-    field("session.focus", "Hva var viktig å utforske i dag?", session.focus || "", "textarea"),
-    field("session.notes", "Ny innsikt eller tydeligere forståelse", session.notes || "", "textarea"),
-    field("session.actions", "Hva skal prøves, observeres eller justeres før neste samtale?", session.actions || "", "textarea"),
-    field("session.reflection", "Din egen take-away", session.reflection || "", "textarea")
+function sessionHiddenFields(session, index) {
+  return el("div", { "data-session": String(index) }, [
+    el("input", { name: "session.date", value: session.date || "" }),
+    el("textarea", { name: "session.focus", text: session.focus || "" }),
+    el("textarea", { name: "session.notes", text: session.notes || "" }),
+    el("textarea", { name: "session.actions", text: session.actions || "" }),
+    el("textarea", { name: "session.reflection", text: session.reflection || "" })
   ]);
+}
+
+function addSession() {
+  const sessions = getSessions();
+  setSessions([...sessions, { date: new Date().toISOString().slice(0, 10), focus: "", notes: "", actions: "", reflection: "" }]);
+  editSession(sessions.length);
+}
+
+function editSession(index) {
+  const sessions = getSessions();
+  const session = sessions[index] || { date: "", focus: "", notes: "", actions: "", reflection: "" };
+  openEntityModal(index >= sessions.length ? "Ny samtale" : "Rediger samtale", "Samtaler", [
+    inputSpec("date", "Dato", "date", session.date || ""),
+    textareaSpec("focus", "Hva var viktig i dag?", session.focus || ""),
+    textareaSpec("notes", "Ny innsikt", session.notes || ""),
+    textareaSpec("actions", "Hva skal prøves videre?", session.actions || ""),
+    textareaSpec("reflection", "Din take-away", session.reflection || "")
+  ], async (values) => {
+    const next = [...sessions];
+    next[index] = {
+      date: values.date || "",
+      focus: values.focus || "",
+      notes: values.notes || "",
+      actions: values.actions || "",
+      reflection: values.reflection || ""
+    };
+    setSessions(next.filter((item) => item.date || item.focus || item.notes || item.actions || item.reflection));
+    markDirty();
+    await savePlan();
+    await reloadProgramAndRender();
+  });
+}
+
+function setSessions(values) {
+  const editor = $("#sessions-editor");
+  if (!editor) return;
+  editor.replaceChildren(...values.map((session, index) => sessionHiddenFields(session, index)));
 }
 
 function actionsPreview(actions) {
@@ -893,7 +959,7 @@ function saveStrip(editable = true) {
 }
 
 function setFormReadonly(form) {
-  $$(".section-card input, .section-card textarea, .section-card select, .direction-editor textarea", form).forEach((control) => {
+  $$(".section-card input, .section-card textarea, .section-card select", form).forEach((control) => {
     control.disabled = true;
   });
   $$(".section-card button, .document-panel button", form).forEach((control) => {
