@@ -530,60 +530,80 @@ function setupWorkspaceTabs() {
 
 function directionWorkspace(data, plan) {
   return el("div", { class: "direction-stack" }, [
-    el("section", { class: "panel focus-panel" }, [
-      el("p", { class: "eyebrow", text: "Retning" }),
-      el("h3", { text: plan.c_purpose || "Hva er det viktigste du ønsker å bevege?" }),
-      el("p", { class: "muted", text: plan.c_success || "Hold det enkelt: én tydelig retning for forløpet, og noen tegn på at bevegelsen faktisk skjer." })
-    ]),
-    el("div", { class: "editable-card-grid direction-cards" }, [
-      editableFieldCard("c_purpose", "1", "Hva er retningen?", plan.c_purpose, "Formuler bevegelsesønsket i én eller to setninger."),
-      editableFieldCard("c_success", "2", "Hvordan merker du bevegelse?", plan.c_success, "Hva vil du, coach eller andre kunne legge merke til?"),
-      editableFieldCard("c_practical", "3", "Hvordan vil dere jobbe?", plan.c_practical, "Enkle rammer: rytme, forventninger og hva som gjør samarbeidet nyttig.")
+    el("section", { class: "panel document-panel" }, [
+      el("div", { class: "workspace-head" }, [
+        el("div", {}, [
+          el("p", { class: "eyebrow", text: "Retning" }),
+          el("h3", { text: "Hva skal dette forløpet bevege?" })
+        ]),
+        button("Rediger retning", "pencil", () => $(".direction-editor")?.classList.toggle("open"), "ghost")
+      ]),
+      el("div", { class: "document-list" }, [
+        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva er det viktigste du ønsker å bevege?"),
+        documentBlock("Tegn på bevegelse", plan.c_success, "Hvordan merker du at noe faktisk flytter seg?"),
+        documentBlock("Samarbeid", plan.c_practical, "Hva gjør samarbeidet med coach nyttig?")
+      ]),
+      el("div", { class: "direction-editor" }, [
+        field("c_purpose", "Arbeidshypotese", plan.c_purpose || "", "textarea"),
+        field("c_success", "Tegn på bevegelse", plan.c_success || "", "textarea"),
+        field("c_practical", "Samarbeid", plan.c_practical || "", "textarea")
+      ])
     ])
   ]);
 }
 
-function editableFieldCard(name, kicker, title, value = "", placeholder = "") {
-  const preview = el("p", { class: `editable-preview ${value ? "" : "empty"}`, text: value || placeholder });
-  const textarea = el("textarea", { name, text: value, placeholder, oninput: () => {
-    preview.textContent = textarea.value || placeholder;
-    preview.classList.toggle("empty", !textarea.value);
-  } });
-  return el("article", { class: "editable-card" }, [
-    el("div", { class: "editable-card-head" }, [
-      el("div", {}, [el("p", { class: "eyebrow", text: kicker }), el("h3", { text: title })]),
-      el("button", { class: "icon-button edit-card-button", type: "button", title: "Rediger", onclick: (event) => {
-        const card = event.currentTarget.closest(".editable-card");
-        card.classList.toggle("editing");
-        textarea.focus();
-      } }, [icon("pencil")])
-    ]),
-    preview,
-    textarea
+function documentBlock(label, value, emptyText) {
+  return el("article", { class: "document-block" }, [
+    el("p", { class: "eyebrow", text: label }),
+    el("p", { class: value ? "" : "muted", text: value || emptyText })
   ]);
 }
 
 function workWorkspace(client, data, plan) {
   const openActions = data.actions.filter((action) => action.status !== "done");
+  const focusItems = plan.areas.map((value, index) => ({ value: value.trim(), index })).filter((item) => item.value);
   return el("div", { class: "work-stack" }, [
-    el("section", { class: "panel work-intro" }, [
-      el("p", { class: "eyebrow", text: "Arbeid" }),
-      el("h3", { text: "Fokus gir retning. Eksperimenter skaper læring." }),
-      el("p", { class: "muted", text: "Fokus er ikke en fasit. Det er et bevegelsesønske dere kan justere når samtalene eller hverdagen viser noe nytt." })
-    ]),
-    el("section", { class: "panel" }, [
+    el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Fokus" }), el("h3", { text: "Hva undersøker du?" })])
+        el("div", {}, [
+          el("p", { class: "eyebrow", text: "Fokus" }),
+          el("h3", { text: "Hva retter dere oppmerksomheten mot?" }),
+          el("p", { class: "muted", text: "Fokus er et bevegelsesønske. Det kan justeres når hverdagen eller samtalene viser noe nytt." })
+        ]),
+        button("Legg til fokus", "plus", () => addFocusArea(), "ghost")
       ]),
+      focusItems.length ? focusList(focusItems) : emptyState("Ingen fokus ennå", "Legg inn ett fokus når dere har en tydelig bevegelse å undersøke."),
       areasEditor(plan.areas)
     ]),
-    el("section", { class: "panel" }, [
+    el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Praksiseksperimenter" }), el("h3", { text: openActions.length ? `${openActions.length} aktive` : "Ingen aktive" })]),
         canEditProgram(client) ? button("Nytt eksperiment", "plus", () => createAction(data), "ghost") : null
       ].filter(Boolean)),
       actionList(data.actions)
     ])
+  ]);
+}
+
+function focusList(items) {
+  return el("div", { class: "focus-list" }, items.map(({ value, index }) => el("button", {
+    class: "focus-row",
+    type: "button",
+    onclick: () => editFocusArea(index)
+  }, [
+    el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
+    el("span", { class: "row-main" }, [
+      el("strong", { text: value }),
+      el("small", { text: "Klikk for å redigere" })
+    ]),
+    el("span", { class: "row-more", text: "Rediger" })
+  ])));
+}
+
+function emptyState(title, text) {
+  return el("div", { class: "empty-inline" }, [
+    el("strong", { text: title }),
+    el("p", { class: "muted", text })
   ]);
 }
 
@@ -623,45 +643,37 @@ function field(name, label, value, type = "text") {
 }
 
 function areasEditor(areas) {
-  const wrap = el("div", { class: "grid", id: "areas-editor" });
+  const wrap = el("div", { class: "hidden-editor", id: "areas-editor" });
   const render = (items) => {
-    wrap.replaceChildren(el("div", { class: "editable-card-grid area-card-grid" }, items.map((value, index) => areaCard(value, index, render))), el("button", { class: "button ghost", type: "button", onclick: () => {
-      const next = getAreas();
-      if (next.length < 5) render([...next, ""]);
-      markDirty();
-      refreshIcons();
-    } }, [icon("plus"), el("span", { text: "Legg til fokusområde" })]));
-    refreshIcons();
+    wrap.replaceChildren(...items.map((value) => el("textarea", { name: "area", text: value })));
   };
   render(areas);
   return wrap;
 }
 
-function areaCard(value, index, render) {
-  const preview = el("p", { class: `editable-preview ${value ? "" : "empty"}`, text: value || "Hva vil du rette oppmerksomheten mot?" });
-  const textarea = el("textarea", { name: "area", text: value, placeholder: `Fokusområde ${index + 1}`, oninput: () => {
-    preview.textContent = textarea.value || "Hva vil du rette oppmerksomheten mot?";
-    preview.classList.toggle("empty", !textarea.value);
-  } });
-  return el("article", { class: "editable-card area-card" }, [
-    el("div", { class: "editable-card-head" }, [
-      el("div", {}, [el("p", { class: "eyebrow", text: `Fokus ${index + 1}` }), el("h3", { text: "Bevegelsesønske" })]),
-      el("div", { class: "mini-actions" }, [
-        el("button", { class: "icon-button edit-card-button", type: "button", title: "Rediger", onclick: (event) => {
-          const card = event.currentTarget.closest(".editable-card");
-          card.classList.toggle("editing");
-          textarea.focus();
-        } }, [icon("pencil")]),
-        el("button", { class: "icon-button", type: "button", title: "Fjern område", onclick: () => {
-          const next = getAreas().filter((_, areaIndex) => areaIndex !== index);
-          render(next.length ? next : [""]);
-          markDirty();
-        } }, [icon("trash-2")])
-      ])
-    ]),
-    preview,
-    textarea
-  ]);
+function addFocusArea() {
+  const next = [...getAreas().filter((value) => value.trim()), ""];
+  setAreas(next);
+  editFocusArea(next.length - 1);
+}
+
+function editFocusArea(index) {
+  const areas = getAreas();
+  openEntityModal(index >= areas.length || !areas[index] ? "Legg til fokus" : "Rediger fokus", "Arbeid", [
+    textareaSpec("focus", "Fokus", areas[index] || "")
+  ], async (values) => {
+    const next = [...areas];
+    next[index] = values.focus || "";
+    setAreas(next.filter((value) => value.trim()));
+    markDirty();
+    await savePlan();
+  });
+}
+
+function setAreas(values) {
+  const editor = $("#areas-editor");
+  if (!editor) return;
+  editor.replaceChildren(...values.map((value) => el("textarea", { name: "area", text: value })));
 }
 
 function sessionsEditor(sessions) {
@@ -881,10 +893,10 @@ function saveStrip(editable = true) {
 }
 
 function setFormReadonly(form) {
-  $$(".section-card input, .section-card textarea, .section-card select, .editable-card textarea", form).forEach((control) => {
+  $$(".section-card input, .section-card textarea, .section-card select, .direction-editor textarea", form).forEach((control) => {
     control.disabled = true;
   });
-  $$(".section-card button, .editable-card button", form).forEach((control) => {
+  $$(".section-card button, .document-panel button", form).forEach((control) => {
     if (!control.classList.contains("section-toggle")) control.disabled = true;
   });
 }
