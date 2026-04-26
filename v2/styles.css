@@ -367,6 +367,7 @@ tr:last-child td { border-bottom: 0; }
 .action-card:last-child, .reflection-card:last-child { border-bottom: 0; }
 .action-card strong { display: block; margin-bottom: 3px; font-size: 14px; }
 .action-card p, .reflection-card p { margin: 0; line-height: 1.5; }
+.action-card .muted { white-space: pre-line; }
 .action-status { display: flex; flex-wrap: wrap; gap: 6px; }
 .status-chip {
   border: 1px solid var(--line);
