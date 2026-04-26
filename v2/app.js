@@ -531,28 +531,14 @@ function setupWorkspaceTabs() {
 function directionWorkspace(data, plan) {
   return el("div", { class: "direction-stack" }, [
     el("section", { class: "panel focus-panel" }, [
-      el("p", { class: "eyebrow", text: "Arbeidshypotese" }),
-      el("h3", { text: plan.c_purpose || "Hva tror vi er den viktigste utviklingsbevegelsen?" }),
-      el("p", { class: "muted", text: plan.c_success || "Beskriv hva som vil være synlig annerledes i rolle, relasjoner, beslutninger eller ledelse når noe faktisk har flyttet seg." })
+      el("p", { class: "eyebrow", text: "Retning" }),
+      el("h3", { text: plan.c_purpose || "Hva er det viktigste du ønsker å bevege?" }),
+      el("p", { class: "muted", text: plan.c_success || "Hold det enkelt: én tydelig retning for forløpet, og noen tegn på at bevegelsen faktisk skjer." })
     ]),
-    el("div", { class: "editable-card-grid" }, [
-      editableFieldCard("c_purpose", "Hypotese", "Hva handler dette egentlig om?", plan.c_purpose, "Skriv én tydelig arbeidshypotese."),
-      editableFieldCard("c_success", "Bevegelse", "Hva vil være annerledes?", plan.c_success, "Beskriv tegn du og coach kan se etter i praksis."),
-      editableFieldCard("c_expect_client", "Din del", "Hva vil du teste?", plan.c_expect_client, "Hva skal du utforske, øve på eller legge merke til mellom samtalene?"),
-      editableFieldCard("c_expect_coach", "Coachens del", "Hva trenger du fra coach?", plan.c_expect_coach, "Hva gjør coachingen trygg, presis og nyttig for deg?"),
-      editableFieldCard("c_confidentiality", "Trygghet", "Hva skal holdes privat?", plan.c_confidentiality, "Avklar hva som kan deles, og hva som blir mellom deg og coach."),
-      editableFieldCard("c_practical", "Rammer", "Hvordan jobber vi?", plan.c_practical, "Skriv korte rammer for samarbeid, rytme og forventninger.")
-    ]),
-    el("section", { class: "panel quiet-settings" }, [
-      el("p", { class: "eyebrow", text: "Ramme" }),
-      el("div", { class: "field-pair" }, [
-        field("c_start", "Start", plan.c_start || "", "date"),
-        field("c_end", "Horisont", plan.c_end || "", "date")
-      ]),
-      el("div", { class: "field-pair" }, [
-        field("c_sessions", "Ca. antall samtaler", plan.c_sessions || "", "number"),
-        field("c_duration", "Varighet", plan.c_duration || "", "text")
-      ])
+    el("div", { class: "editable-card-grid direction-cards" }, [
+      editableFieldCard("c_purpose", "1", "Hva er retningen?", plan.c_purpose, "Formuler bevegelsesønsket i én eller to setninger."),
+      editableFieldCard("c_success", "2", "Hvordan merker du bevegelse?", plan.c_success, "Hva vil du, coach eller andre kunne legge merke til?"),
+      editableFieldCard("c_practical", "3", "Hvordan vil dere jobbe?", plan.c_practical, "Enkle rammer: rytme, forventninger og hva som gjør samarbeidet nyttig.")
     ])
   ]);
 }
@@ -579,12 +565,22 @@ function editableFieldCard(name, kicker, title, value = "", placeholder = "") {
 
 function workWorkspace(client, data, plan) {
   const openActions = data.actions.filter((action) => action.status !== "done");
-  return el("div", { class: "now-grid" }, [
-    section("Fokusområder", "Arbeidshypoteser som kan justeres underveis", "target", [areasEditor(plan.areas)], true),
+  return el("div", { class: "work-stack" }, [
+    el("section", { class: "panel work-intro" }, [
+      el("p", { class: "eyebrow", text: "Arbeid" }),
+      el("h3", { text: "Fokus gir retning. Eksperimenter skaper læring." }),
+      el("p", { class: "muted", text: "Fokus er ikke en fasit. Det er et bevegelsesønske dere kan justere når samtalene eller hverdagen viser noe nytt." })
+    ]),
+    el("section", { class: "panel" }, [
+      el("div", { class: "workspace-head" }, [
+        el("div", {}, [el("p", { class: "eyebrow", text: "Fokus" }), el("h3", { text: "Hva undersøker du?" })])
+      ]),
+      areasEditor(plan.areas)
+    ]),
     el("section", { class: "panel" }, [
       el("div", { class: "workspace-head" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Praksiseksperimenter" }), el("h3", { text: openActions.length ? `${openActions.length} aktive` : "Ingen aktive" })]),
-        canEditProgram(client) ? button("Nytt eksperiment", "plus", () => createAction(data.program.id), "ghost") : null
+        canEditProgram(client) ? button("Nytt eksperiment", "plus", () => createAction(data), "ghost") : null
       ].filter(Boolean)),
       actionList(data.actions)
     ])
@@ -642,14 +638,14 @@ function areasEditor(areas) {
 }
 
 function areaCard(value, index, render) {
-  const preview = el("p", { class: `editable-preview ${value ? "" : "empty"}`, text: value || "Hva er en utviklingsbevegelse du vil jobbe med?" });
+  const preview = el("p", { class: `editable-preview ${value ? "" : "empty"}`, text: value || "Hva vil du rette oppmerksomheten mot?" });
   const textarea = el("textarea", { name: "area", text: value, placeholder: `Fokusområde ${index + 1}`, oninput: () => {
-    preview.textContent = textarea.value || "Hva er en utviklingsbevegelse du vil jobbe med?";
+    preview.textContent = textarea.value || "Hva vil du rette oppmerksomheten mot?";
     preview.classList.toggle("empty", !textarea.value);
   } });
   return el("article", { class: "editable-card area-card" }, [
     el("div", { class: "editable-card-head" }, [
-      el("div", {}, [el("p", { class: "eyebrow", text: `Fokus ${index + 1}` }), el("h3", { text: value || "Nytt fokusområde" })]),
+      el("div", {}, [el("p", { class: "eyebrow", text: `Fokus ${index + 1}` }), el("h3", { text: "Bevegelsesønske" })]),
       el("div", { class: "mini-actions" }, [
         el("button", { class: "icon-button edit-card-button", type: "button", title: "Rediger", onclick: (event) => {
           const card = event.currentTarget.closest(".editable-card");
@@ -766,7 +762,11 @@ function reflectionsWorkspace(data) {
         el("span", { class: "muted", id: "reflection-status", text: "Ikke lagret" }),
         button("Lagre refleksjon", "notebook-pen", () => createReflection(data.program.id))
       ])
-    ]) : null,
+    ]) : el("section", { class: "panel reflection-note" }, [
+      el("p", { class: "eyebrow", text: "Refleksjon" }),
+      el("h3", { text: "Dette er ditt rom når du er klient." }),
+      el("p", { class: "muted", text: "Som coach ser du refleksjoner som er delt med deg. Private refleksjoner blir ikke synlige her." })
+    ]),
     el("section", { class: "panel" }, [
       el("p", { class: "eyebrow", text: "Logg" }),
       reflectionsList(data.reflections)
@@ -785,16 +785,18 @@ function reflectionsList(reflections) {
   ])));
 }
 
-function createAction(programId) {
+function createAction(data) {
   openEntityModal("Nytt eksperiment", "Arbeid", [
     inputSpec("title", "Kort navn"),
+    selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], [], false),
     textareaSpec("situation", "Situasjon: hvor skal dette prøves?"),
     textareaSpec("response", "Hva skal du gjøre annerledes?"),
     textareaSpec("observe", "Hva skal du legge merke til?"),
     inputSpec("dueDate", "Når sjekker vi læringen?", "date")
   ], async (values) => {
     await state.sb.from("session_actions").insert({
-      program_id: programId,
+      program_id: data.program.id,
+      development_area_id: values.areaId || null,
       title: values.title,
       description: actionDescription(values),
       due_date: values.dueDate || null,
@@ -1055,7 +1057,8 @@ function renderSpec(spec) {
   if (spec.kind === "select") {
     const select = el("select", { name: spec.name, multiple: spec.multiple });
     spec.options.forEach(([value, label]) => {
-      select.append(el("option", { value, text: label, selected: spec.value.includes(value) }));
+      const selected = Array.isArray(spec.value) ? spec.value.includes(value) : spec.value === value;
+      select.append(el("option", { value, text: label, selected }));
     });
     return el("label", { text: spec.label }, [select]);
   }
