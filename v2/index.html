@@ -7,14 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=batch1-5">
+  <link rel="stylesheet" href="./styles.css?v=hub-header-6">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <main id="root">
     <section class="auth-screen" data-screen="login">
-      <div class="wordmark auth-wordmark" aria-label="Ræder&">Ræder&</div>
+      <img class="auth-logo" src="./raeder-logo.svg" alt="Ræder&">
       <form class="auth-panel" id="login-form">
         <div>
           <p class="eyebrow">Executive Coaching Studio</p>
@@ -30,7 +30,7 @@
     </section>
 
     <section class="auth-screen hidden" data-screen="password">
-      <div class="wordmark auth-wordmark" aria-label="Ræder&">Ræder&</div>
+      <img class="auth-logo" src="./raeder-logo.svg" alt="Ræder&">
       <form class="auth-panel" id="password-form">
         <div>
           <p class="eyebrow">Invitasjon</p>
@@ -47,22 +47,20 @@
     <section class="app-shell hidden" data-screen="app">
       <aside class="sidebar">
         <div class="sidebar-brand">
-          <div class="wordmark" aria-label="Ræder&">Ræder&</div>
-          <div><strong>Utviklingsplan</strong><span>Executive Coaching Studio</span></div>
+          <img class="raeder-logo" src="./raeder-logo.svg" alt="Ræder&">
+          <span>Utviklingsplan</span>
         </div>
         <nav class="nav-list" id="nav-list" aria-label="Hovednavigasjon"></nav>
         <div class="sidebar-user">
           <div>
             <strong id="user-name">-</strong>
-            <span id="user-role">-</span>
           </div>
-          <button class="icon-button" id="logout-button" title="Logg ut"><i data-lucide="log-out"></i></button>
+          <button class="logout-button" id="logout-button">Logg ut</button>
         </div>
       </aside>
 
       <div class="workspace">
         <header class="topline">
-          <button class="icon-button mobile-only" id="mobile-menu" title="Meny"><i data-lucide="menu"></i></button>
           <div>
             <p class="eyebrow" id="view-kicker">Oversikt</p>
             <h2 id="view-title">Dashboard</h2>

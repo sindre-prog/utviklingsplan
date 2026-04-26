@@ -111,7 +111,6 @@ function bindAuth() {
   });
 
   $("#logout-button").addEventListener("click", logout);
-  $("#mobile-menu").addEventListener("click", () => $(".sidebar").classList.toggle("open"));
   window.addEventListener("beforeunload", (event) => {
     if (!state.dirty) return;
     event.preventDefault();
@@ -164,15 +163,14 @@ async function loadReferenceData() {
 }
 
 function renderShell() {
-  $("#user-name").textContent = state.profile.name || state.user.email || "Bruker";
-  $("#user-role").textContent = roleLabel(state.profile.role);
+  $("#user-name").textContent = state.user.email || state.profile.name || "Bruker";
   const nav = [
     ["clients", state.profile.role === "client" ? "file-text" : "users", state.profile.role === "client" ? "Min plan" : "Klienter"],
     state.profile.role === "admin" && ["admin", "shield-check", "Administrasjon"]
   ].filter(Boolean);
   const navList = $("#nav-list");
   navList.replaceChildren(...nav.map(([view, iconName, label]) => {
-    return el("button", { class: "button nav-item", "data-view": view, onclick: () => navigate(view) }, [icon(iconName), el("span", { text: label })]);
+    return el("button", { class: "nav-item", "data-view": view, onclick: () => navigate(view), text: label });
   }));
   refreshIcons();
 }
@@ -180,7 +178,6 @@ function renderShell() {
 function navigate(view, clientId = null) {
   state.view = view;
   if (clientId) state.selectedClientId = clientId;
-  $(".sidebar").classList.remove("open");
   $$(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view || (view === "plan" && item.dataset.view === "clients")));
   const routes = {
     clients: renderClients,
