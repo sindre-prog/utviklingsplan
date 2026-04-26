@@ -140,34 +140,25 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: 210px minmax(0, 1fr) auto;
   align-items: start;
-  gap: 24px;
-  padding: 28px 40px 0;
+  gap: 20px;
+  padding: 30px 40px 0;
   border-right: 0;
   background: transparent;
   backdrop-filter: none;
 }
 .sidebar-brand {
-  display: grid;
-  gap: 8px;
-  align-items: start;
-  justify-items: start;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 .raeder-logo {
-  width: 134px;
+  width: 116px;
   height: auto;
   display: block;
 }
-.sidebar-brand span {
-  color: rgba(0,0,0,.48);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .12em;
-  line-height: 1;
-  text-transform: uppercase;
-}
-.sidebar-user { display: flex; align-items: center; justify-content: flex-end; gap: 18px; padding-top: 3px; border-top: 0; min-width: 0; }
+.sidebar-user { display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding-top: 1px; border-top: 0; min-width: 0; }
 .sidebar-user > div { min-width: 0; }
 .sidebar-user strong {
   display: block;
@@ -176,29 +167,29 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
   text-overflow: ellipsis;
   white-space: nowrap;
   color: rgba(0,0,0,.48);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 .logout-button {
-  min-height: 38px;
-  padding: 8px 21px;
+  min-height: 34px;
+  padding: 7px 19px;
   border: 2px solid #000;
   border-radius: 999px;
   background: transparent;
   color: #000;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
 }
 .logout-button:hover { background: rgba(255,255,255,.36); transform: translateY(-1px); }
 .nav-list {
   grid-column: 2;
-  justify-self: end;
+  justify-self: center;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
-  padding: 5px;
+  padding: 4px;
   border: 1px solid rgba(0,0,0,.08);
   border-radius: 999px;
   background: rgba(255,255,255,.52);
@@ -206,12 +197,12 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
 }
 .nav-item {
   border: 0;
-  min-height: 38px;
+  min-height: 34px;
   border-radius: 999px;
-  padding: 8px 18px;
+  padding: 7px 17px;
   background: transparent;
   color: rgba(0,0,0,.54);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -223,20 +214,20 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
   top: 0;
   z-index: 1;
   max-width: 1200px;
-  min-height: 282px;
+  min-height: 286px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   justify-content: space-between;
   gap: 24px;
-  padding: 76px 40px 76px;
+  padding: 84px 40px 72px;
   border-bottom: 0;
   background: transparent;
   backdrop-filter: none;
 }
 .topline-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-bottom: 8px; }
-.content { max-width: 1200px; margin: 0 auto; padding: 34px 40px 72px; }
+.content { max-width: 1200px; margin: 0 auto; padding: 42px 40px 72px; }
 .grid { display: grid; gap: 16px; }
 .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -512,7 +503,7 @@ tr:last-child td { border-bottom: 0; }
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 14px;
-    padding: 22px 20px 0;
+    padding: 24px 20px 0;
   }
   .nav-list {
     grid-column: 1 / -1;
@@ -534,13 +525,13 @@ tr:last-child td { border-bottom: 0; }
   .plan-rail { position: static; }
 }
 @media (max-width: 640px) {
-  .raeder-logo { width: 112px; }
+  .raeder-logo { width: 104px; }
   .auth-logo { left: 20px; width: 112px; }
-  .logout-button { min-height: 34px; padding: 7px 14px; font-size: 12px; }
-  .nav-item { min-height: 34px; padding: 7px 13px; font-size: 12px; }
-  .topline { padding: 48px 20px 46px; grid-template-columns: 1fr; align-items: flex-start; min-height: 220px; }
+  .logout-button { min-height: 32px; padding: 6px 13px; font-size: 12px; }
+  .nav-item { min-height: 32px; padding: 6px 12px; font-size: 12px; }
+  .topline { padding: 52px 20px 48px; grid-template-columns: 1fr; align-items: flex-start; min-height: 220px; }
   .topline-actions { justify-content: flex-start; padding-bottom: 0; }
-  .content { padding: 24px 20px 86px; }
+  .content { padding: 34px 20px 86px; }
   .auth-panel { padding: 24px; }
   .field-pair { grid-template-columns: 1fr; }
   .save-strip { left: 12px; right: 12px; bottom: 12px; justify-content: space-between; }

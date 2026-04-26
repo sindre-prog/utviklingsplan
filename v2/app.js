@@ -197,7 +197,7 @@ async function loadProgramSummaries() {
 function renderShell() {
   $("#user-name").textContent = state.user.email || state.profile.name || "Bruker";
   const nav = [
-    ["clients", state.profile.role === "client" ? "file-text" : "users", state.profile.role === "client" ? "Min plan" : "Klienter"],
+    ["clients", state.profile.role === "client" ? "file-text" : "users", "Utviklingsplan"],
     state.profile.role === "admin" && ["admin", "shield-check", "Administrasjon"]
   ].filter(Boolean);
   const navList = $("#nav-list");
