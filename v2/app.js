@@ -165,7 +165,7 @@ function renderShell() {
   ].filter(Boolean);
   const navList = $("#nav-list");
   navList.replaceChildren(...nav.map(([view, iconName, label]) => {
-    return el("button", { class: "button nav-item", onclick: () => navigate(view) }, [icon(iconName), el("span", { text: label })]);
+    return el("button", { class: "button nav-item", "data-view": view, onclick: () => navigate(view) }, [icon(iconName), el("span", { text: label })]);
   }));
   refreshIcons();
 }
@@ -174,7 +174,7 @@ function navigate(view, clientId = null) {
   state.view = view;
   if (clientId) state.selectedClientId = clientId;
   $(".sidebar").classList.remove("open");
-  $$(".nav-item").forEach((item) => item.classList.toggle("active", item.textContent.trim().includes(navText(view))));
+  $$(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view || (view === "plan" && item.dataset.view === "clients")));
   const routes = {
     dashboard: renderDashboard,
     clients: renderClients,
