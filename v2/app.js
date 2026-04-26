@@ -21,8 +21,8 @@ const state = {
 const planFields = [
   ["c_purpose", "Arbeidshypotese: hva tror vi dette forløpet egentlig handler om?", "textarea"],
   ["c_success", "Tegn på bevegelse: hva vil være annerledes i praksis?", "textarea"],
-  ["c_expect_coach", "Hva trenger klienten fra coach for at dette skal bli nyttig?", "textarea"],
-  ["c_expect_client", "Hva forplikter klienten seg til å utforske eller teste?", "textarea"],
+  ["c_expect_coach", "Hva trenger du fra coach for at dette skal bli nyttig?", "textarea"],
+  ["c_expect_client", "Hva vil du utforske eller teste mellom samtalene?", "textarea"],
   ["c_confidentiality", "Hva skal holdes privat, og hva kan deles i samtalene?", "textarea"],
   ["c_practical", "Rammer for samarbeidet", "textarea"]
 ];
@@ -535,17 +535,45 @@ function directionWorkspace(data, plan) {
       el("h3", { text: plan.c_purpose || "Hva tror vi er den viktigste utviklingsbevegelsen?" }),
       el("p", { class: "muted", text: plan.c_success || "Beskriv hva som vil være synlig annerledes i rolle, relasjoner, beslutninger eller ledelse når noe faktisk har flyttet seg." })
     ]),
-    section("Retning", "Felles forståelse mellom klient og coach", "compass", [
-      ...planFields.map(([key, label, type]) => field(key, label, plan[key] || "", type)),
+    el("div", { class: "editable-card-grid" }, [
+      editableFieldCard("c_purpose", "Hypotese", "Hva handler dette egentlig om?", plan.c_purpose, "Skriv én tydelig arbeidshypotese."),
+      editableFieldCard("c_success", "Bevegelse", "Hva vil være annerledes?", plan.c_success, "Beskriv tegn du og coach kan se etter i praksis."),
+      editableFieldCard("c_expect_client", "Din del", "Hva vil du teste?", plan.c_expect_client, "Hva skal du utforske, øve på eller legge merke til mellom samtalene?"),
+      editableFieldCard("c_expect_coach", "Coachens del", "Hva trenger du fra coach?", plan.c_expect_coach, "Hva gjør coachingen trygg, presis og nyttig for deg?"),
+      editableFieldCard("c_confidentiality", "Trygghet", "Hva skal holdes privat?", plan.c_confidentiality, "Avklar hva som kan deles, og hva som blir mellom deg og coach."),
+      editableFieldCard("c_practical", "Rammer", "Hvordan jobber vi?", plan.c_practical, "Skriv korte rammer for samarbeid, rytme og forventninger.")
+    ]),
+    el("section", { class: "panel quiet-settings" }, [
+      el("p", { class: "eyebrow", text: "Ramme" }),
       el("div", { class: "field-pair" }, [
         field("c_start", "Start", plan.c_start || "", "date"),
-        field("c_end", "Foreløpig horisont", plan.c_end || "", "date")
+        field("c_end", "Horisont", plan.c_end || "", "date")
       ]),
       el("div", { class: "field-pair" }, [
-        field("c_sessions", "Omtrentlig antall samtaler", plan.c_sessions || "", "number"),
-        field("c_duration", "Ramme per samtale", plan.c_duration || "", "text")
+        field("c_sessions", "Ca. antall samtaler", plan.c_sessions || "", "number"),
+        field("c_duration", "Varighet", plan.c_duration || "", "text")
       ])
-    ], true)
+    ])
+  ]);
+}
+
+function editableFieldCard(name, kicker, title, value = "", placeholder = "") {
+  const preview = el("p", { class: `editable-preview ${value ? "" : "empty"}`, text: value || placeholder });
+  const textarea = el("textarea", { name, text: value, placeholder, oninput: () => {
+    preview.textContent = textarea.value || placeholder;
+    preview.classList.toggle("empty", !textarea.value);
+  } });
+  return el("article", { class: "editable-card" }, [
+    el("div", { class: "editable-card-head" }, [
+      el("div", {}, [el("p", { class: "eyebrow", text: kicker }), el("h3", { text: title })]),
+      el("button", { class: "icon-button edit-card-button", type: "button", title: "Rediger", onclick: (event) => {
+        const card = event.currentTarget.closest(".editable-card");
+        card.classList.toggle("editing");
+        textarea.focus();
+      } }, [icon("pencil")])
+    ]),
+    preview,
+    textarea
   ]);
 }
 
@@ -585,7 +613,7 @@ function section(title, description, iconName, children, open = false) {
   return el("section", { class: "panel section-card" }, [
     el("button", { class: "section-toggle", type: "button", onclick: () => body.classList.toggle("open") }, [
       el("div", {}, [el("strong", { text: title }), el("span", { text: description })]),
-      icon(iconName)
+      el("span", { class: "section-arrow", text: "⌄" })
     ]),
     body
   ]);
@@ -601,24 +629,43 @@ function field(name, label, value, type = "text") {
 function areasEditor(areas) {
   const wrap = el("div", { class: "grid", id: "areas-editor" });
   const render = (items) => {
-    wrap.replaceChildren(...items.map((value, index) => el("div", { class: "area-row" }, [
-      el("div", { class: "area-number", text: String(index + 1) }),
-      el("textarea", { name: "area", text: value, placeholder: `Utviklingsområde ${index + 1}` }),
-      el("button", { class: "icon-button", type: "button", title: "Fjern område", onclick: () => {
-        const next = getAreas().filter((_, areaIndex) => areaIndex !== index);
-        render(next.length ? next : [""]);
-        markDirty();
-      } }, [icon("trash-2")])
-    ])), el("button", { class: "button ghost", type: "button", onclick: () => {
+    wrap.replaceChildren(el("div", { class: "editable-card-grid area-card-grid" }, items.map((value, index) => areaCard(value, index, render))), el("button", { class: "button ghost", type: "button", onclick: () => {
       const next = getAreas();
       if (next.length < 5) render([...next, ""]);
       markDirty();
       refreshIcons();
-    } }, [icon("plus"), el("span", { text: "Legg til område" })]));
+    } }, [icon("plus"), el("span", { text: "Legg til fokusområde" })]));
     refreshIcons();
   };
   render(areas);
   return wrap;
+}
+
+function areaCard(value, index, render) {
+  const preview = el("p", { class: `editable-preview ${value ? "" : "empty"}`, text: value || "Hva er en utviklingsbevegelse du vil jobbe med?" });
+  const textarea = el("textarea", { name: "area", text: value, placeholder: `Fokusområde ${index + 1}`, oninput: () => {
+    preview.textContent = textarea.value || "Hva er en utviklingsbevegelse du vil jobbe med?";
+    preview.classList.toggle("empty", !textarea.value);
+  } });
+  return el("article", { class: "editable-card area-card" }, [
+    el("div", { class: "editable-card-head" }, [
+      el("div", {}, [el("p", { class: "eyebrow", text: `Fokus ${index + 1}` }), el("h3", { text: value || "Nytt fokusområde" })]),
+      el("div", { class: "mini-actions" }, [
+        el("button", { class: "icon-button edit-card-button", type: "button", title: "Rediger", onclick: (event) => {
+          const card = event.currentTarget.closest(".editable-card");
+          card.classList.toggle("editing");
+          textarea.focus();
+        } }, [icon("pencil")]),
+        el("button", { class: "icon-button", type: "button", title: "Fjern område", onclick: () => {
+          const next = getAreas().filter((_, areaIndex) => areaIndex !== index);
+          render(next.length ? next : [""]);
+          markDirty();
+        } }, [icon("trash-2")])
+      ])
+    ]),
+    preview,
+    textarea
+  ]);
 }
 
 function sessionsEditor(sessions) {
@@ -651,7 +698,7 @@ function sessionCard(session, index) {
     field("session.focus", "Hva var viktig å utforske i dag?", session.focus || "", "textarea"),
     field("session.notes", "Ny innsikt eller tydeligere forståelse", session.notes || "", "textarea"),
     field("session.actions", "Hva skal prøves, observeres eller justeres før neste samtale?", session.actions || "", "textarea"),
-    field("session.reflection", "Klientens egen take-away", session.reflection || "", "textarea")
+    field("session.reflection", "Din egen take-away", session.reflection || "", "textarea")
   ]);
 }
 
@@ -742,8 +789,8 @@ function createAction(programId) {
   openEntityModal("Nytt eksperiment", "Arbeid", [
     inputSpec("title", "Kort navn"),
     textareaSpec("situation", "Situasjon: hvor skal dette prøves?"),
-    textareaSpec("response", "Hva skal klienten gjøre annerledes?"),
-    textareaSpec("observe", "Hva skal klienten legge merke til?"),
+    textareaSpec("response", "Hva skal du gjøre annerledes?"),
+    textareaSpec("observe", "Hva skal du legge merke til?"),
     inputSpec("dueDate", "Når sjekker vi læringen?", "date")
   ], async (values) => {
     await state.sb.from("session_actions").insert({
@@ -832,10 +879,10 @@ function saveStrip(editable = true) {
 }
 
 function setFormReadonly(form) {
-  $$(".section-card input, .section-card textarea, .section-card select", form).forEach((control) => {
+  $$(".section-card input, .section-card textarea, .section-card select, .editable-card textarea", form).forEach((control) => {
     control.disabled = true;
   });
-  $$(".section-card button", form).forEach((control) => {
+  $$(".section-card button, .editable-card button", form).forEach((control) => {
     if (!control.classList.contains("section-toggle")) control.disabled = true;
   });
 }
