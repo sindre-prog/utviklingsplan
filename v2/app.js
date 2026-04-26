@@ -129,6 +129,8 @@ async function bootstrapApp() {
   await loadReferenceData();
   setScreen("app");
   renderShell();
+  $("#view-kicker").textContent = "Executive Coaching Studio";
+  $("#view-title").textContent = "Klienter";
   navigate(initialView());
 }
 
