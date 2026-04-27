@@ -387,7 +387,7 @@ function actionGroup(actions) {
   }));
 }
 
-async function renderPlan() {
+async function renderPlan(activePane = "direction") {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (!client) {
     setHeader("Plan", "Ingen klient funnet");
@@ -405,10 +405,11 @@ async function renderPlan() {
     return;
   }
   state.selectedClientId = client.id;
-  setHeader("Klienter", client.name || "Klient", [
-    button("Tilbake", "arrow-left", () => navigate("clients"), "ghost"),
+  const headerActions = [
+    state.profile.role !== "client" ? button("Tilbake", "arrow-left", () => navigate("clients"), "ghost") : null,
     button("Book coachingtime", "calendar-plus", () => window.open("https://raederog.no/book-time", "_blank"), "ghost")
-  ]);
+  ].filter(Boolean);
+  setHeader("Klienter", client.name || "Klient", headerActions);
   $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
     el("p", { class: "eyebrow", text: "Laster" }),
     el("h3", { text: "Henter klientforløp" }),
@@ -428,17 +429,17 @@ async function renderPlan() {
 
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     hiddenPlanState(plan),
-    clientWorkspaceTabs(data),
-    el("section", { class: "workspace-pane active", "data-pane": "direction" }, [
+    clientWorkspaceTabs(data, activePane),
+    el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, "data-pane": "direction" }, [
       directionWorkspace(client, plan)
     ]),
-    el("section", { class: "workspace-pane", "data-pane": "work" }, [
+    el("section", { class: `workspace-pane ${activePane === "work" ? "active" : ""}`, "data-pane": "work" }, [
       workWorkspace(client, data, plan)
     ]),
-    el("section", { class: "workspace-pane", "data-pane": "sessions" }, [
+    el("section", { class: `workspace-pane ${activePane === "sessions" ? "active" : ""}`, "data-pane": "sessions" }, [
       sessionsWorkspace(plan.sessions)
     ]),
-    el("section", { class: "workspace-pane", "data-pane": "reflections" }, [
+    el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, "data-pane": "reflections" }, [
       reflectionsWorkspace(data)
     ])
   ]);
@@ -505,15 +506,15 @@ function programToFormState(data) {
   };
 }
 
-function clientWorkspaceTabs(data) {
+function clientWorkspaceTabs(data, activePane = "direction") {
   const items = [
     ["direction", "Retning", data.program.purpose || data.program.success_criteria ? 1 : 0],
     ["work", "Arbeid", data.actions.filter((action) => action.status !== "done").length],
     ["sessions", "Samtaler", data.sessions.length],
     ["reflections", "Refleksjon", data.reflections.length]
   ];
-  return el("div", { class: "workspace-tabs" }, items.map(([pane, label, count], index) => el("button", {
-    class: `workspace-tab ${index === 0 ? "active" : ""}`,
+  return el("div", { class: "workspace-tabs" }, items.map(([pane, label, count]) => el("button", {
+    class: `workspace-tab ${pane === activePane ? "active" : ""}`,
     type: "button",
     "data-tab": pane
   }, [
@@ -570,7 +571,7 @@ function editDirection(plan) {
     setPlanValue("c_practical", values.c_practical);
     markDirty();
     await savePlan();
-    await reloadProgramAndRender();
+    await reloadProgramAndRender("direction");
   });
 }
 
@@ -713,6 +714,7 @@ function editFocusArea(index) {
     setAreas(next.filter((value) => value.trim()));
     markDirty();
     await savePlan();
+    await reloadProgramAndRender("work");
   });
 }
 
@@ -768,7 +770,7 @@ function editSession(index) {
     setSessions(next.filter((item) => item.date || item.focus || item.notes || item.actions || item.reflection));
     markDirty();
     await savePlan();
-    await reloadProgramAndRender();
+    await reloadProgramAndRender("sessions");
   });
 }
 
@@ -884,7 +886,7 @@ function createAction(data) {
       due_date: values.dueDate || null,
       status: "todo"
     });
-    await reloadProgramAndRender();
+    await reloadProgramAndRender("work");
   });
 }
 
@@ -898,7 +900,7 @@ function actionDescription(values) {
 
 async function updateActionStatus(action, status) {
   await state.sb.from("session_actions").update({ status }).eq("id", action.id);
-  await reloadProgramAndRender();
+  await reloadProgramAndRender("work");
 }
 
 async function createReflection(programId) {
@@ -919,13 +921,13 @@ async function createReflection(programId) {
     if (status) status.textContent = "Kunne ikke lagre";
     return;
   }
-  await reloadProgramAndRender();
+  await reloadProgramAndRender("reflections");
 }
 
-async function reloadProgramAndRender() {
+async function reloadProgramAndRender(activePane = "direction") {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (client) delete state.programCache[client.id];
-  await renderPlan();
+  await renderPlan(activePane);
 }
 
 function planRail(client, plan, data) {
@@ -1262,6 +1264,7 @@ function canOpenClient(client) {
 
 function canEditProgram(client) {
   if (!client || !state.profile) return false;
+  if (state.profile.role === "client") return client.user_id === state.user?.id;
   const coachId = state.coach?.id;
   return Boolean(coachId && (client.coach_ids || []).includes(coachId));
 }
