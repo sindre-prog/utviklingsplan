@@ -494,7 +494,10 @@ tr:last-child td { border-bottom: 0; }
 .action-card strong { display: block; margin-bottom: 3px; font-size: 14px; }
 .action-card p, .reflection-card p { margin: 0; line-height: 1.5; }
 .action-card .muted { white-space: pre-line; }
+.action-title-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
+.action-date { color: var(--muted); font-size: 12px; font-weight: 800; }
 .action-status { display: flex; flex-wrap: wrap; gap: 6px; }
+.action-tools { margin-top: -2px; }
 .status-chip {
   border: 1px solid var(--line);
   border-radius: 999px;

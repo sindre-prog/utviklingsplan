@@ -647,7 +647,7 @@ function workWorkspace(client, data, plan) {
         el("div", {}, [el("p", { class: "eyebrow", text: "Eksperimenter - hva gjør du anerledes?" }), el("h3", { text: openActions.length ? `${openActions.length} aktive` : "Ingen aktive" })]),
         canEditProgram(client) ? button("Nytt eksperiment", "plus", () => createAction(data), "ghost") : null
       ].filter(Boolean)),
-      actionList(data.actions)
+      actionList(data.actions, data)
     ])
   ]);
 }
@@ -880,19 +880,27 @@ function actionsPreview(actions) {
   ])));
 }
 
-function actionList(actions) {
+function actionList(actions, data) {
   if (!actions.length) return el("p", { class: "muted", text: "Ingen eksperimenter ennå." });
+  const editable = canEditProgram(getCurrentClient());
   return el("div", { class: "action-list" }, actions.map((action) => el("article", { class: `action-card ${action.status}` }, [
-    el("div", {}, [
-      el("strong", { text: action.title || "Handling uten tittel" }),
+    el("div", { class: "action-main" }, [
+      el("div", { class: "action-title-row" }, [
+        el("strong", { text: action.title || "Eksperiment uten tittel" }),
+        action.due_date ? el("span", { class: "action-date", text: formatDate(action.due_date) }) : null
+      ].filter(Boolean)),
       action.description ? el("p", { class: "muted", text: action.description }) : el("p", { class: "muted", text: action.due_date ? `Frist ${formatDate(action.due_date)}` : "Uten frist" })
     ]),
     el("div", { class: "action-status" }, [
       statusButton(action, "todo", "Planlagt"),
       statusButton(action, "doing", "Testes"),
       statusButton(action, "done", "Lært")
-    ])
-  ])));
+    ]),
+    editable ? el("div", { class: "row-actions inline-actions action-tools" }, [
+      el("button", { class: "text-button", type: "button", onclick: () => editAction(action, data), text: "Rediger" }),
+      el("button", { class: "text-button danger-text", type: "button", onclick: () => deleteAction(action.id), text: "Slett" })
+    ]) : null
+  ].filter(Boolean))));
 }
 
 function statusButton(action, status, label) {
@@ -985,6 +993,27 @@ function createAction(data) {
   });
 }
 
+function editAction(action, data) {
+  const parsed = parseActionDescription(action.description || "");
+  openEntityModal("Rediger eksperiment", "Arbeid", [
+    inputSpec("title", "Kort navn", "text", action.title || ""),
+    selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], action.development_area_id || "", false),
+    textareaSpec("situation", "Situasjon: hvor skal dette prøves?", parsed.situation),
+    textareaSpec("response", "Hva skal du gjøre annerledes?", parsed.response),
+    textareaSpec("observe", "Hva skal du legge merke til?", parsed.observe),
+    inputSpec("dueDate", "Når sjekker vi læringen?", "date", action.due_date || "")
+  ], async (values) => {
+    const { error } = await state.sb.from("session_actions").update({
+      development_area_id: values.areaId || null,
+      title: values.title,
+      description: actionDescription(values),
+      due_date: values.dueDate || null
+    }).eq("id", action.id);
+    if (error) throw error;
+    await reloadProgramAndRender("work");
+  });
+}
+
 function actionDescription(values) {
   return [
     values.situation && `Situasjon: ${values.situation}`,
@@ -994,8 +1023,43 @@ function actionDescription(values) {
 }
 
 async function updateActionStatus(action, status) {
-  await state.sb.from("session_actions").update({ status }).eq("id", action.id);
+  const { error } = await state.sb.from("session_actions").update({ status }).eq("id", action.id);
+  if (error) {
+    alert("Kunne ikke oppdatere eksperimentet.");
+    return;
+  }
   await reloadProgramAndRender("work");
+}
+
+async function deleteAction(id) {
+  if (!confirmDelete("Slette dette eksperimentet?")) return;
+  const { error } = await state.sb.from("session_actions").delete().eq("id", id);
+  if (error) {
+    alert("Kunne ikke slette eksperimentet.");
+    return;
+  }
+  await reloadProgramAndRender("work");
+}
+
+function parseActionDescription(description) {
+  const values = { situation: "", response: "", observe: "" };
+  const sections = [
+    ["situation", "Situasjon:"],
+    ["response", "Prøve:"],
+    ["observe", "Observere:"]
+  ];
+  sections.forEach(([key, label]) => {
+    const start = description.indexOf(label);
+    if (start === -1) return;
+    const afterLabel = start + label.length;
+    const nextStarts = sections
+      .map(([, otherLabel]) => description.indexOf(otherLabel, afterLabel))
+      .filter((position) => position > -1);
+    const end = nextStarts.length ? Math.min(...nextStarts) : description.length;
+    values[key] = description.slice(afterLabel, end).trim();
+  });
+  if (!values.situation && !values.response && !values.observe) values.response = description.trim();
+  return values;
 }
 
 async function createReflection(programId) {
