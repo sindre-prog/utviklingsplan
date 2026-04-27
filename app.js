@@ -634,7 +634,7 @@ function workWorkspace(client, data, plan) {
       el("div", { class: "workspace-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fokus" }),
-        el("h3", { text: "Hva ønsker du å rette oppmerksomheten mot?" }),
+        el("h3", { text: "Hva er viktigst for deg å jobbe med nå?" }),
         el("p", { class: "muted", text: "Fokusområder kan være indre eller ytre prosjekter. Det viktigste er at de gir retning, tegn på fremgang og én neste praksis å teste." })
       ]),
         canEditProgram(client) ? button("Nytt fokus", "plus", () => addFocusArea(), "ghost") : null
@@ -683,7 +683,7 @@ function sessionsWorkspace(sessions) {
     el("div", { class: "workspace-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Samtaler" }),
-        el("h3", { text: "Samtaler som skaper ansvarliggjøring og fremdrift" }),
+        el("h3", { text: "Samtalelogg" }),
         el("p", { class: "muted", text: "Hver samtale skal fange innsikt, merforståelse, valg og hva som skal prøves videre. Den kan kobles til fokusområdene dine, men trenger ikke." })
       ]),
       canEditProgram(getCurrentClient()) ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
