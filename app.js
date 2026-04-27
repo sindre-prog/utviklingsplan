@@ -69,11 +69,12 @@ async function init() {
   const authType = urlParams.get("type") || hashParams.get("type");
   const authCode = urlParams.get("code");
   const tokenHash = urlParams.get("token_hash") || hashParams.get("token_hash");
-  const isPasswordFlow = ["invite", "recovery"].includes(authType) || Boolean(authCode) || Boolean(tokenHash);
+  const hasAuthTokens = hashParams.has("access_token") || hashParams.has("refresh_token") || urlParams.has("access_token") || urlParams.has("refresh_token");
+  const isPasswordFlow = ["invite", "recovery"].includes(authType) || Boolean(authCode) || Boolean(tokenHash) || hasAuthTokens;
 
   state.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   state.sb.auth.onAuthStateChange((event, session) => {
-    if (event === "PASSWORD_RECOVERY" && session?.user) {
+    if ((event === "PASSWORD_RECOVERY" || (isPasswordFlow && event === "SIGNED_IN")) && session?.user) {
       state.user = session.user;
       setScreen("password");
       refreshIcons();
