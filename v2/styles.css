@@ -330,6 +330,22 @@ tr:last-child td { border-bottom: 0; }
   border-radius: 999px;
   padding-inline: 14px;
 }
+.admin-filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  justify-content: stretch;
+  margin: 14px 0 18px;
+}
+.admin-filter-row .search,
+.admin-filter-row .filter-select {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 38px;
+  border-radius: 999px;
+  padding-inline: 14px;
+}
 .list-panel { margin-bottom: 16px; }
 
 .plan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }

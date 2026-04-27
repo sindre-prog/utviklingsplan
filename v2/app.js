@@ -349,17 +349,17 @@ function renderAdmin() {
   adminStatusFilter.addEventListener("change", renderClientsTable);
   $("#content").replaceChildren(
     el("section", { class: "panel list-panel" }, [
-      el("div", { class: "toolbar filters" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Team" }), el("h3", { text: "Coacher" })]),
-        el("div", { class: "filter-row" }, [coachSearch])
+      el("div", { class: "toolbar" }, [
+        el("div", {}, [el("p", { class: "eyebrow", text: "Team" }), el("h3", { text: "Coacher" })])
       ]),
+      el("div", { class: "filter-row admin-filter-row" }, [coachSearch]),
       coachTableSlot
     ]),
     el("section", { class: "panel list-panel" }, [
-      el("div", { class: "toolbar filters" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })]),
-        el("div", { class: "filter-row" }, [clientSearch, adminCoachFilter, adminStatusFilter])
+      el("div", { class: "toolbar" }, [
+        el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })])
       ]),
+      el("div", { class: "filter-row admin-filter-row" }, [clientSearch, adminCoachFilter, adminStatusFilter]),
       clientTableSlot
     ])
   );
@@ -492,7 +492,10 @@ function programToFormState(data) {
     c_end: data.program.end_date || "",
     c_sessions: data.program.session_count || "",
     c_duration: data.program.session_duration || "",
-    areas: data.areas.length ? data.areas.map((area) => area.title || area.description || "") : ["", ""],
+    areas: data.areas.length ? data.areas.map((area) => ({
+      title: area.title || "",
+      description: area.description || ""
+    })) : [{ title: "", description: "" }],
     sessions: data.sessions.map((session) => ({
       date: session.session_date || "",
       focus: session.focus || "",
@@ -589,7 +592,9 @@ function documentBlock(label, value, emptyText) {
 
 function workWorkspace(client, data, plan) {
   const openActions = data.actions.filter((action) => action.status !== "done");
-  const focusItems = plan.areas.map((value, index) => ({ value: value.trim(), index })).filter((item) => item.value);
+  const focusItems = plan.areas
+    .map((area, index) => ({ area: normalizeArea(area), index }))
+    .filter((item) => item.area.title || item.area.description);
   return el("div", { class: "work-stack" }, [
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
@@ -614,15 +619,15 @@ function workWorkspace(client, data, plan) {
 }
 
 function focusList(items) {
-  return el("div", { class: "focus-list" }, items.map(({ value, index }) => el("button", {
+  return el("div", { class: "focus-list" }, items.map(({ area, index }) => el("button", {
     class: "focus-row",
     type: "button",
     onclick: () => editFocusArea(index)
   }, [
     el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
     el("span", { class: "row-main" }, [
-      el("strong", { text: value }),
-      el("small", { text: "Klikk for å redigere" })
+      el("strong", { text: area.title || "Fokus uten tittel" }),
+      el("small", { text: area.description || "Klikk for å legge til beskrivelse" })
     ]),
     el("span", { class: "row-more", text: "Rediger" })
   ])));
@@ -666,7 +671,7 @@ function sessionList(sessions) {
 }
 
 function areaPills(areas) {
-  const items = areas.filter((area) => area.title || area.description);
+  const items = areas.map(normalizeArea).filter((area) => area.title || area.description);
   if (!items.length) return el("p", { class: "muted", text: "Ingen områder satt ennå." });
   return el("div", { class: "area-pills" }, items.map((area, index) => el("span", { text: area.title || `Område ${index + 1}` })));
 }
@@ -692,26 +697,34 @@ function field(name, label, value, type = "text") {
 function areasEditor(areas) {
   const wrap = el("div", { class: "hidden-editor", id: "areas-editor" });
   const render = (items) => {
-    wrap.replaceChildren(...items.map((value) => el("textarea", { name: "area", text: value })));
+    wrap.replaceChildren(...items.map((area) => {
+      const item = normalizeArea(area);
+      return el("div", { "data-area": "" }, [
+        el("input", { name: "area.title", value: item.title }),
+        el("textarea", { name: "area.description", text: item.description })
+      ]);
+    }));
   };
   render(areas);
   return wrap;
 }
 
 function addFocusArea() {
-  const next = [...getAreas().filter((value) => value.trim()), ""];
+  const next = [...getAreas().filter((area) => area.title || area.description), { title: "", description: "" }];
   setAreas(next);
   editFocusArea(next.length - 1);
 }
 
 function editFocusArea(index) {
   const areas = getAreas();
-  openEntityModal(index >= areas.length || !areas[index] ? "Legg til fokus" : "Rediger fokus", "Arbeid", [
-    textareaSpec("focus", "Fokus", areas[index] || "")
+  const area = normalizeArea(areas[index]);
+  openEntityModal(index >= areas.length || !(area.title || area.description) ? "Legg til fokus" : "Rediger fokus", "Arbeid", [
+    inputSpec("title", "Kort tittel", "text", area.title, { maxlength: 64, placeholder: "Maks 6-8 ord" }),
+    textareaSpec("description", "Beskrivelse", area.description, { placeholder: "Hva er bevegelsesønsket, og hvorfor er det viktig akkurat nå?" })
   ], async (values) => {
     const next = [...areas];
-    next[index] = values.focus || "";
-    setAreas(next.filter((value) => value.trim()));
+    next[index] = { title: values.title || "", description: values.description || "" };
+    setAreas(next.filter((item) => item.title || item.description));
     markDirty();
     await savePlan();
     await reloadProgramAndRender("work");
@@ -721,7 +734,13 @@ function editFocusArea(index) {
 function setAreas(values) {
   const editor = $("#areas-editor");
   if (!editor) return;
-  editor.replaceChildren(...values.map((value) => el("textarea", { name: "area", text: value })));
+  editor.replaceChildren(...values.map((area) => {
+    const item = normalizeArea(area);
+    return el("div", { "data-area": "" }, [
+      el("input", { name: "area.title", value: item.title }),
+      el("textarea", { name: "area.description", text: item.description })
+    ]);
+  }));
 }
 
 function sessionsEditor(sessions) {
@@ -754,7 +773,7 @@ function editSession(index) {
   const session = sessions[index] || { date: "", focus: "", notes: "", actions: "", reflection: "" };
   openEntityModal(index >= sessions.length ? "Ny samtale" : "Rediger samtale", "Samtaler", [
     inputSpec("date", "Dato", "date", session.date || ""),
-    textareaSpec("focus", "Hva var viktig i dag?", session.focus || ""),
+    inputSpec("focus", "Tittel", "text", session.focus || "", { maxlength: 72, placeholder: "Kort navn på samtalen" }),
     textareaSpec("notes", "Ny innsikt", session.notes || ""),
     textareaSpec("actions", "Hva skal prøves videre?", session.actions || ""),
     textareaSpec("reflection", "Din take-away", session.reflection || "")
@@ -931,9 +950,10 @@ async function reloadProgramAndRender(activePane = "direction") {
 }
 
 function planRail(client, plan, data) {
+  const areaCount = (plan.areas || []).map(normalizeArea).filter((area) => area.title || area.description).length;
   const checks = [
     ["Retning", Boolean(plan.c_purpose && plan.c_success)],
-    ["Fokusområder", (plan.areas || []).filter(Boolean).length >= 2],
+    ["Fokusområder", areaCount >= 2],
     ["Praksiseksperimenter", (data.actions || []).length > 0],
     ["Samtaler", (plan.sessions || []).length > 0]
   ];
@@ -1033,7 +1053,19 @@ function collectPlan() {
 }
 
 function getAreas() {
-  return $$("[name='area']").map((area) => area.value);
+  return $$("#areas-editor [data-area]").map((card) => ({
+    title: $("[name='area.title']", card).value.trim(),
+    description: $("[name='area.description']", card).value.trim()
+  }));
+}
+
+function normalizeArea(area) {
+  if (!area) return { title: "", description: "" };
+  if (typeof area === "string") return { title: area.trim(), description: "" };
+  return {
+    title: (area.title || "").trim(),
+    description: (area.description || "").trim()
+  };
 }
 
 function getSessions() {
@@ -1049,8 +1081,9 @@ function getSessions() {
 async function replaceAreas(programId, areas) {
   await state.sb.from("development_areas").delete().eq("program_id", programId);
   const rows = areas
-    .map((title, index) => ({ program_id: programId, title: title.trim(), sort_order: index }))
-    .filter((row) => row.title);
+    .map((area, index) => ({ ...normalizeArea(area), index }))
+    .map((area) => ({ program_id: programId, title: area.title, description: area.description || null, sort_order: area.index }))
+    .filter((row) => row.title || row.description);
   if (rows.length) await state.sb.from("development_areas").insert(rows);
 }
 
@@ -1130,12 +1163,12 @@ function openEntityModal(title, kicker, specs, onSave) {
   refreshIcons();
 }
 
-function inputSpec(name, label, type = "text", value = "") {
-  return { kind: "input", name, label, type, value };
+function inputSpec(name, label, type = "text", value = "", attrs = {}) {
+  return { kind: "input", name, label, type, value, attrs };
 }
 
-function textareaSpec(name, label, value = "") {
-  return { kind: "textarea", name, label, value };
+function textareaSpec(name, label, value = "", attrs = {}) {
+  return { kind: "textarea", name, label, value, attrs };
 }
 
 function selectSpec(name, label, options, value = [], multiple = false) {
@@ -1152,9 +1185,9 @@ function renderSpec(spec) {
     return el("label", { text: spec.label }, [select]);
   }
   if (spec.kind === "textarea") {
-    return el("label", { text: spec.label }, [el("textarea", { name: spec.name, text: spec.value })]);
+    return el("label", { text: spec.label }, [el("textarea", { name: spec.name, text: spec.value, ...(spec.attrs || {}) })]);
   }
-  return el("label", { text: spec.label }, [el("input", { name: spec.name, type: spec.type, value: spec.value, required: spec.name === "name" || spec.name === "email" })]);
+  return el("label", { text: spec.label }, [el("input", { name: spec.name, type: spec.type, value: spec.value, required: spec.name === "name" || spec.name === "email", ...(spec.attrs || {}) })]);
 }
 
 $("#entity-form").addEventListener("submit", async (event) => {
