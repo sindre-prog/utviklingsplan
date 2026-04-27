@@ -295,8 +295,8 @@ function renderClients() {
   content.replaceChildren(
     el("div", { class: "grid three summary-grid page-summary" }, [
       metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Klienter med utviklingsplaner" : "Dine klientforløp"),
-      metric("Aktive", String(active), "activity", "Er innlogget nå"),
-      metric("Inaktive", String(pending), "mail-warning", "Er invitert, uten å ha aktivert konto")
+      metric("Aktive", String(active), "activity", "Klienter er innlogget nå"),
+      metric("Inaktive", String(pending), "mail-warning", "Klienter er invitert, uten å ha aktivert konto")
     ]),
     el("div", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
