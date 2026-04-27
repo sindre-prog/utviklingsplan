@@ -68,12 +68,26 @@ async function init() {
   const hashParams = new URLSearchParams(initialHash.replace(/^#/, ""));
   const authType = urlParams.get("type") || hashParams.get("type");
   const authCode = urlParams.get("code");
-  const isPasswordFlow = ["invite", "recovery"].includes(authType) || Boolean(authCode);
+  const tokenHash = urlParams.get("token_hash") || hashParams.get("token_hash");
+  const isPasswordFlow = ["invite", "recovery"].includes(authType) || Boolean(authCode) || Boolean(tokenHash);
 
   state.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  state.sb.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY" && session?.user) {
+      state.user = session.user;
+      setScreen("password");
+      refreshIcons();
+    }
+  });
   bindAuth();
-  if (authCode) {
-    await state.sb.auth.exchangeCodeForSession(authCode);
+  let authError = null;
+  if (tokenHash && ["invite", "recovery"].includes(authType)) {
+    const { error } = await state.sb.auth.verifyOtp({ token_hash: tokenHash, type: authType });
+    authError = error;
+    window.history.replaceState(null, "", window.location.pathname);
+  } else if (authCode) {
+    const { error } = await state.sb.auth.exchangeCodeForSession(authCode);
+    authError = error;
     window.history.replaceState(null, "", window.location.pathname);
   }
   const { data: { session } } = await state.sb.auth.getSession();
@@ -85,7 +99,9 @@ async function init() {
     await bootstrapApp();
   } else {
     setScreen("login");
-    if (isPasswordFlow) {
+    if (authError) {
+      setMessage("#login-message", `Aktiveringslenken kunne ikke åpnes: ${authError.message}`);
+    } else if (isPasswordFlow) {
       setMessage("#login-message", "Aktiveringslenken kunne ikke åpnes. Be coachen sende en ny invitasjon.");
     }
   }
