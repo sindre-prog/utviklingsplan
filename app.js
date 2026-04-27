@@ -883,7 +883,7 @@ function actionsPreview(actions) {
 function actionList(actions, data) {
   if (!actions.length) return el("p", { class: "muted", text: "Ingen eksperimenter ennå." });
   const editable = canEditProgram(getCurrentClient());
-  return el("div", { class: "action-list" }, actions.map((action) => el("article", { class: `action-card ${action.status}` }, [
+  return el("div", { class: "action-list" }, actions.map((action) => el("article", { class: "action-card editable-row" }, [
     el("div", { class: "action-main" }, [
       el("div", { class: "action-title-row" }, [
         el("strong", { text: action.title || "Eksperiment uten tittel" }),
@@ -891,25 +891,11 @@ function actionList(actions, data) {
       ].filter(Boolean)),
       action.description ? el("p", { class: "muted", text: action.description }) : el("p", { class: "muted", text: action.due_date ? `Frist ${formatDate(action.due_date)}` : "Uten frist" })
     ]),
-    el("div", { class: "action-status" }, [
-      statusButton(action, "todo", "Planlagt"),
-      statusButton(action, "doing", "Testes"),
-      statusButton(action, "done", "Lært")
-    ]),
     editable ? el("div", { class: "row-actions inline-actions action-tools" }, [
       el("button", { class: "text-button", type: "button", onclick: () => editAction(action, data), text: "Rediger" }),
       el("button", { class: "text-button danger-text", type: "button", onclick: () => deleteAction(action.id), text: "Slett" })
     ]) : null
   ].filter(Boolean))));
-}
-
-function statusButton(action, status, label) {
-  return el("button", {
-    class: `status-chip ${action.status === status ? "active" : ""}`,
-    type: "button",
-    onclick: () => updateActionStatus(action, status),
-    text: label
-  });
 }
 
 function reflectionsPreview(reflections) {
@@ -1020,15 +1006,6 @@ function actionDescription(values) {
     values.response && `Prøve: ${values.response}`,
     values.observe && `Observere: ${values.observe}`
   ].filter(Boolean).join("\n\n") || null;
-}
-
-async function updateActionStatus(action, status) {
-  const { error } = await state.sb.from("session_actions").update({ status }).eq("id", action.id);
-  if (error) {
-    alert("Kunne ikke oppdatere eksperimentet.");
-    return;
-  }
-  await reloadProgramAndRender("work");
 }
 
 async function deleteAction(id) {
