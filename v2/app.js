@@ -131,7 +131,7 @@ async function bootstrapApp() {
   await loadReferenceData();
   setScreen("app");
   renderShell();
-  $("#view-kicker").textContent = "Executive Coaching Studio";
+  $("#view-kicker").textContent = "Utviklingsplaner";
   $("#view-title").textContent = "Klienter";
   navigate(initialView());
 }
@@ -236,10 +236,11 @@ function metric(label, value, iconName, help) {
 
 function renderClients() {
   if (state.profile.role === "client") return navigate("plan", state.client?.id);
-  setHeader("Executive Coaching Studio", "Klienter", [button("Inviter klient", "user-plus", () => openClientInvite())]);
+  setHeader("Utviklingsplaner", "Klienter", [button("Inviter klient", "user-plus", () => openClientInvite())]);
   const content = $("#content");
   const visibleClients = getVisibleClients();
   const active = visibleClients.filter((client) => client.consent_given).length;
+  const focusCount = visibleClients.reduce((sum, client) => sum + (state.programSummaries[client.id]?.areaCount || 0), 0);
   const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
   const search = el("input", { class: "search", placeholder: "Søk etter navn, e-post, coach eller arbeidsgiver" });
   const coachFilter = el("select", { class: "filter-select", "aria-label": "Filtrer på coach" }, [
@@ -265,12 +266,15 @@ function renderClients() {
     el("div", { class: "grid three summary-grid page-summary" }, [
       metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Alle forløp i oversikt" : "Dine klientforløp"),
       metric("Aktive", String(active), "activity", "Har logget inn"),
-      metric("Sesjoner", String(visibleClients.reduce((sum, client) => sum + (state.programSummaries[client.id]?.sessionCount || 0), 0)), "calendar-check", "Registrert i forløp")
+      metric("Fokus", String(focusCount), "target", "Definerte retninger i arbeid")
+    ]),
+    el("div", { class: "filter-panel" }, [
+      el("div", {}, [el("p", { class: "eyebrow", text: "Finn klient" }), el("strong", { text: "Søk og filtrer" })]),
+      el("div", { class: "filter-row" }, [search, coachFilter, statusFilter])
     ]),
     el("div", { class: "panel list-panel" }, [
-      el("div", { class: "toolbar filters" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Arbeidsflate" }), el("h3", { text: "Klientoversikt" })]),
-        el("div", { class: "filter-row" }, [search, coachFilter, statusFilter])
+      el("div", { class: "toolbar" }, [
+        el("div", {}, [el("p", { class: "eyebrow", text: "Arbeidsflate" }), el("h3", { text: "Klientoversikt" })])
       ]),
       results
     ])
@@ -289,12 +293,12 @@ function clientGrid(clients) {
       title: canOpen ? "Åpne utviklingsplan" : "Kun oversikt. Du er ikke coach for denne klienten.",
       onclick: () => openClientPlan(client)
     }, [
-      el("p", { class: "eyebrow", text: client.employer || "Klient" }),
+      el("p", { class: "eyebrow", text: "Klient" }),
       el("h3", { text: client.name || "Uten navn" }),
-      el("p", { class: "muted", text: [client.role, coachNames(client)].filter(Boolean).join(" · ") || client.email || "" }),
+      el("p", { class: "muted", text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" }),
+      el("p", { class: "card-subline", text: coachNames(client) ? `Coach: ${coachNames(client)}` : client.email || "" }),
       el("div", { class: "meta-row" }, [
         el("span", { class: `badge ${client.consent_given ? "ok" : "warn"}`, text: client.consent_given ? "Aktiv" : "Ikke innlogget" }),
-        !canOpen ? el("span", { class: "badge lock", text: "Kun oversikt" }) : el("span", { class: "badge", text: "Åpne plan" }),
         el("span", { class: "badge", text: program?.sessionCount === 1 ? "1 sesjon" : `${program?.sessionCount || 0} sesjoner` }),
         el("span", { class: "badge", text: program?.start_date ? formatDate(program.start_date) : "Uten startdato" })
       ])
@@ -406,7 +410,7 @@ async function renderPlan() {
   state.selectedClientId = client.id;
   setHeader("Klienter", client.name || "Klient", [
     button("Tilbake", "arrow-left", () => navigate("clients"), "ghost"),
-    button("Book time", "calendar-plus", () => window.open("https://raederog.no/book-time", "_blank"), "ghost")
+    button("Book coachingtime", "calendar-plus", () => window.open("https://raederog.no/book-time", "_blank"), "ghost")
   ]);
   $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
     el("p", { class: "eyebrow", text: "Laster" }),
