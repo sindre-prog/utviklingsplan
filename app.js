@@ -584,12 +584,12 @@ function directionWorkspace(client, plan) {
       el("div", { class: "workspace-head" }, [
         el("div", {}, [
           el("p", { class: "eyebrow", text: "Retning" }),
-          el("h3", { text: "Hva skal være annerledes når dette forløpet er ferdig?" })
+          el("h3", { text: "Hvor skal du" })
         ]),
         canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
       el("div", { class: "document-list" }, [
-        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva ønsker du konkret å oppnå – eller forstå bedre?"),
+        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva skal være annerledes når dette forløpet er ferdig? Hva ønsker du konkret å oppnå, eller forstå bedre?"),
         documentBlock("Tegn på bevegelse", plan.c_success, "Hva vil være de første tegnene på fremgang?"),
         documentBlock("Samarbeid", plan.c_practical, "Hva gjør samarbeidet med coach nyttig? Hvordan ønsker du at vi jobber sammen?")
       ])
@@ -633,8 +633,8 @@ function workWorkspace(client, data, plan) {
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
       el("div", {}, [
-        el("p", { class: "eyebrow", text: "Fokus" }),
-        el("h3", { text: "Hva er viktigst for deg å jobbe med nå?" }),
+        el("p", { class: "eyebrow", text: "Fokusområder" }),
+        el("h3", { text: "Hva jobber vi med nå?" }),
         el("p", { class: "muted", text: "Fokusområder kan være indre eller ytre prosjekter. Det viktigste er at de gir retning, tegn på fremgang og én neste praksis å teste." })
       ]),
         canEditProgram(client) ? button("Nytt fokus", "plus", () => addFocusArea(), "ghost") : null
@@ -644,7 +644,7 @@ function workWorkspace(client, data, plan) {
     ]),
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Eksperimenter" }), el("h3", { text: openActions.length ? `${openActions.length} aktive` : "Ingen aktive" })]),
+        el("div", {}, [el("p", { class: "eyebrow", text: "Eksperimenter - hva gjør du anerledes?" }), el("h3", { text: openActions.length ? `${openActions.length} aktive` : "Ingen aktive" })]),
         canEditProgram(client) ? button("Nytt eksperiment", "plus", () => createAction(data), "ghost") : null
       ].filter(Boolean)),
       actionList(data.actions)
