@@ -614,7 +614,8 @@ function editDirection(plan) {
     setPlanValue("c_success", values.c_success);
     setPlanValue("c_practical", values.c_practical);
     markDirty();
-    await savePlan();
+    const saved = await savePlan();
+    if (!saved) throw new Error("Lagring feilet.");
     await reloadProgramAndRender("direction");
   });
 }
@@ -821,7 +822,8 @@ function editFocusArea(index) {
     };
     setAreas(next.filter(hasAreaContent));
     markDirty();
-    await savePlan();
+    const saved = await savePlan();
+    if (!saved) throw new Error("Lagring feilet.");
     await reloadProgramAndRender("work");
   });
 }
@@ -830,7 +832,8 @@ async function deleteFocusArea(index) {
   if (!confirmDelete("Slette dette fokuset?")) return;
   setAreas(getAreas().filter((_, itemIndex) => itemIndex !== index));
   markDirty();
-  await savePlan();
+  const saved = await savePlan();
+  if (!saved) return;
   await reloadProgramAndRender("work");
 }
 
@@ -898,7 +901,8 @@ function editSession(index) {
     };
     setSessions(next.filter((item) => item.date || item.focus || item.goal || item.notes || item.actions || item.reflection));
     markDirty();
-    await savePlan();
+    const saved = await savePlan();
+    if (!saved) throw new Error("Lagring feilet.");
     await reloadProgramAndRender("sessions");
   });
 }
@@ -907,7 +911,8 @@ async function deleteSession(index) {
   if (!confirmDelete("Slette denne samtalen?")) return;
   setSessions(getSessions().filter((_, itemIndex) => itemIndex !== index));
   markDirty();
-  await savePlan();
+  const saved = await savePlan();
+  if (!saved) return;
   await reloadProgramAndRender("sessions");
 }
 
@@ -1188,7 +1193,7 @@ function markDirty() {
   const status = $("#save-status");
   if (status) status.textContent = "Ikke lagret";
   clearTimeout(state.saveTimer);
-  state.saveTimer = setTimeout(savePlan, 1800);
+  state.saveTimer = setTimeout(() => savePlan(), 1800);
 }
 
 async function savePlan() {
@@ -1197,36 +1202,38 @@ async function savePlan() {
   if (!canOpenClient(client)) return;
   const status = $("#save-status");
   if (status) status.textContent = "Lagrer...";
-  const current = state.programCache[client.id] || await loadClientProgram(client);
-  if (!current) {
-    if (status) status.textContent = "Mangler programrad";
-    return;
-  }
-  const plan = collectPlan();
-  const { error: programError } = await state.sb.from("coaching_programs").update({
-    purpose: plan.c_purpose,
-    success_criteria: plan.c_success,
-    expectations_coach: plan.c_expect_coach,
-    expectations_client: plan.c_expect_client,
-    confidentiality: plan.c_confidentiality,
-    practical_frame: plan.c_practical,
-    start_date: plan.c_start || null,
-    end_date: plan.c_end || null,
-    session_count: plan.c_sessions ? Number(plan.c_sessions) : null,
-    session_duration: plan.c_duration || null,
-    status: "active"
-  }).eq("id", current.program.id);
-  if (programError) {
+  try {
+    const current = state.programCache[client.id] || await loadClientProgram(client);
+    if (!current) throw new Error("Mangler programrad.");
+    const plan = collectPlan();
+    const { error: programError } = await state.sb.from("coaching_programs").update({
+      purpose: plan.c_purpose,
+      success_criteria: plan.c_success,
+      expectations_coach: plan.c_expect_coach,
+      expectations_client: plan.c_expect_client,
+      confidentiality: plan.c_confidentiality,
+      practical_frame: plan.c_practical,
+      start_date: plan.c_start || null,
+      end_date: plan.c_end || null,
+      session_count: plan.c_sessions ? Number(plan.c_sessions) : null,
+      session_duration: plan.c_duration || null,
+      status: "active"
+    }).eq("id", current.program.id);
+    if (programError) throw programError;
+    await replaceAreas(current.program.id, plan.areas);
+    await replaceSessions(current.program.id, plan.sessions);
+    await saveEvaluation(current.program.id, plan);
+    delete state.programCache[client.id];
+    await loadProgramSummaries();
+    state.dirty = false;
+    if (status) status.textContent = `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`;
+    return true;
+  } catch (error) {
+    console.error("Kunne ikke lagre utviklingsplan", error);
     if (status) status.textContent = "Lagring feilet";
-    return;
+    alert(`Kunne ikke lagre: ${error.message || "Ukjent feil"}`);
+    return false;
   }
-  await replaceAreas(current.program.id, plan.areas);
-  await replaceSessions(current.program.id, plan.sessions);
-  await saveEvaluation(current.program.id, plan);
-  delete state.programCache[client.id];
-  await loadProgramSummaries();
-  state.dirty = false;
-  if (status) status.textContent = `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 function collectPlan() {
@@ -1282,7 +1289,8 @@ function getSessions() {
 }
 
 async function replaceAreas(programId, areas) {
-  await state.sb.from("development_areas").delete().eq("program_id", programId);
+  const { error: deleteError } = await state.sb.from("development_areas").delete().eq("program_id", programId);
+  if (deleteError) throw deleteError;
   const rows = areas
     .map((area, index) => ({ ...normalizeArea(area), index }))
     .map((area) => ({
@@ -1296,11 +1304,23 @@ async function replaceAreas(programId, areas) {
       sort_order: area.index
     }))
     .filter((row) => row.title || row.description || row.movement || row.progress_signs || row.next_practice);
-  if (rows.length) await state.sb.from("development_areas").insert(rows);
+  if (!rows.length) return;
+  const { error } = await state.sb.from("development_areas").insert(rows);
+  if (!error) return;
+  if (!isMissingColumnError(error)) throw error;
+  const legacyRows = rows.map((row) => ({
+    program_id: row.program_id,
+    title: row.title,
+    description: row.description,
+    sort_order: row.sort_order
+  }));
+  const { error: legacyError } = await state.sb.from("development_areas").insert(legacyRows);
+  if (legacyError) throw legacyError;
 }
 
 async function replaceSessions(programId, sessions) {
-  await state.sb.from("coaching_sessions").delete().eq("program_id", programId);
+  const { error: deleteError } = await state.sb.from("coaching_sessions").delete().eq("program_id", programId);
+  if (deleteError) throw deleteError;
   const rows = sessions.map((session, index) => ({
     program_id: programId,
     session_number: index + 1,
@@ -1311,7 +1331,13 @@ async function replaceSessions(programId, sessions) {
     decisions: session.actions || null,
     client_notes: session.reflection || null
   })).filter((session) => session.session_date || session.focus || session.conversation_goal || session.insights || session.decisions || session.client_notes);
-  if (rows.length) await state.sb.from("coaching_sessions").insert(rows);
+  if (!rows.length) return;
+  const { error } = await state.sb.from("coaching_sessions").insert(rows);
+  if (!error) return;
+  if (!isMissingColumnError(error)) throw error;
+  const legacyRows = rows.map(({ conversation_goal, ...row }) => row);
+  const { error: legacyError } = await state.sb.from("coaching_sessions").insert(legacyRows);
+  if (legacyError) throw legacyError;
 }
 
 async function saveEvaluation(programId, plan) {
@@ -1323,7 +1349,13 @@ async function saveEvaluation(programId, plan) {
   };
   const hasEvaluation = payload.achieved || payload.reflection || payload.next_steps;
   if (!hasEvaluation) return;
-  await state.sb.from("program_evaluations").upsert(payload, { onConflict: "program_id" });
+  const { error } = await state.sb.from("program_evaluations").upsert(payload, { onConflict: "program_id" });
+  if (error) throw error;
+}
+
+function isMissingColumnError(error) {
+  const text = `${error?.code || ""} ${error?.message || ""}`.toLowerCase();
+  return text.includes("pgrst204") || text.includes("column") || text.includes("schema cache");
 }
 
 function openClientInvite() {
