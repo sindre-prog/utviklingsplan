@@ -584,13 +584,13 @@ function directionWorkspace(client, plan) {
       el("div", { class: "workspace-head" }, [
         el("div", {}, [
           el("p", { class: "eyebrow", text: "Retning" }),
-          el("h3", { text: "Hva skal dette coachingforløpet gjøre?" })
+          el("h3", { text: "Hva skal være annerledes når dette forløpet er ferdig?" })
         ]),
         canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
       el("div", { class: "document-list" }, [
-        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva er det viktigste du ønsker å bevege? Hva skal disse samtalene gjøre for deg?"),
-        documentBlock("Tegn på bevegelse", plan.c_success, "Hvordan merker du at noe faktisk flytter seg?"),
+        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva ønsker du konkret å oppnå – eller forstå bedre?"),
+        documentBlock("Tegn på bevegelse", plan.c_success, "Hva vil være de første tegnene på fremgang?"),
         documentBlock("Samarbeid", plan.c_practical, "Hva gjør samarbeidet med coach nyttig? Hvordan ønsker du at vi jobber sammen?")
       ])
     ])
