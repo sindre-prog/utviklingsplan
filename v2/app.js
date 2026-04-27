@@ -268,14 +268,11 @@ function renderClients() {
       metric("Aktive", String(active), "activity", "Har logget inn"),
       metric("Fokus", String(focusCount), "target", "Definerte retninger i arbeid")
     ]),
-    el("div", { class: "filter-panel" }, [
-      el("div", {}, [el("p", { class: "eyebrow", text: "Finn klient" }), el("strong", { text: "Søk og filtrer" })]),
-      el("div", { class: "filter-row" }, [search, coachFilter, statusFilter])
-    ]),
     el("div", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Arbeidsflate" }), el("h3", { text: "Klientoversikt" })])
       ]),
+      el("div", { class: "filter-row client-filter-row" }, [search, coachFilter, statusFilter]),
       results
     ])
   );
@@ -824,7 +821,7 @@ function reflectionsPreview(reflections) {
 function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
   return el("div", { class: "reflection-space" }, [
-    canWriteReflection ? el("section", { class: "panel reflection-composer" }, [
+    canWriteReflection ? el("section", { class: "panel document-panel reflection-composer" }, [
       el("p", { class: "eyebrow", text: "Ny refleksjon" }),
       el("textarea", { id: "reflection-body", placeholder: "Hva legger du merke til akkurat nå?" }),
       el("div", { class: "field-pair" }, [
@@ -845,12 +842,12 @@ function reflectionsWorkspace(data) {
         el("span", { class: "muted", id: "reflection-status", text: "Ikke lagret" }),
         button("Lagre refleksjon", "notebook-pen", () => createReflection(data.program.id))
       ])
-    ]) : el("section", { class: "panel reflection-note" }, [
+    ]) : el("section", { class: "panel document-panel reflection-note" }, [
       el("p", { class: "eyebrow", text: "Refleksjon" }),
       el("h3", { text: "Dette er ditt rom når du er klient." }),
       el("p", { class: "muted", text: "Som coach ser du refleksjoner som er delt med deg. Private refleksjoner blir ikke synlige her." })
     ]),
-    el("section", { class: "panel" }, [
+    el("section", { class: "panel document-panel" }, [
       el("p", { class: "eyebrow", text: "Logg" }),
       reflectionsList(data.reflections)
     ])
