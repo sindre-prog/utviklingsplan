@@ -580,14 +580,14 @@ function directionWorkspace(client, plan) {
       el("div", { class: "workspace-head" }, [
         el("div", {}, [
           el("p", { class: "eyebrow", text: "Retning" }),
-          el("h3", { text: "Hva skal dette forløpet bevege?" })
+          el("h3", { text: "Hva skal dette coachingforløpet gjøre?" })
         ]),
         canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
       el("div", { class: "document-list" }, [
-        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva er det viktigste du ønsker å bevege?"),
+        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva er det viktigste du ønsker å bevege? Hva er ditt utviklingsmål?"),
         documentBlock("Tegn på bevegelse", plan.c_success, "Hvordan merker du at noe faktisk flytter seg?"),
-        documentBlock("Samarbeid", plan.c_practical, "Hva gjør samarbeidet med coach nyttig?")
+        documentBlock("Samarbeid", plan.c_practical, "Hva gjør samarbeidet med coach nyttig? Hvordan ønsker du at vi jobber sammen?")
       ])
     ])
   ]);
@@ -630,8 +630,8 @@ function workWorkspace(client, data, plan) {
       el("div", { class: "workspace-head" }, [
         el("div", {}, [
           el("p", { class: "eyebrow", text: "Fokus" }),
-          el("h3", { text: "Hva retter dere oppmerksomheten mot?" }),
-          el("p", { class: "muted", text: "Fokus er et bevegelsesønske. Det kan justeres når hverdagen eller samtalene viser noe nytt." })
+          el("h3", { text: "Hva ønsker du å rette oppmerksomheten mot?" }),
+          el("p", { class: "muted", text: "Dette er fokusområdene, eller utviklingsmålene, dine. De skal bevege deg i riktig retning, og kan justeres når hverdagen eller samtalene viser noe nytt." })
         ]),
         canEditProgram(client) ? button("Nytt fokus", "plus", () => addFocusArea(), "ghost") : null
       ].filter(Boolean)),
@@ -676,8 +676,8 @@ function sessionsWorkspace(sessions) {
     el("div", { class: "workspace-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Samtaler" }),
-        el("h3", { text: "Hva ble tydeligere?" }),
-        el("p", { class: "muted", text: "Hver samtale skal fange innsikt, valg og hva som skal prøves videre. Den kan kobles til fokus, men trenger ikke." })
+        el("h3", { text: "Motoren i utvikling?" }),
+        el("p", { class: "muted", text: "Hver samtale skal fange innsikt, merforståelse, valg og hva som skal prøves videre. Den kan kobles til fokusområdene dine, men trenger ikke." })
       ]),
       canEditProgram(getCurrentClient()) ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
     ].filter(Boolean)),
