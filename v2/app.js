@@ -597,7 +597,7 @@ function workWorkspace(client, data, plan) {
           el("h3", { text: "Hva retter dere oppmerksomheten mot?" }),
           el("p", { class: "muted", text: "Fokus er et bevegelsesønske. Det kan justeres når hverdagen eller samtalene viser noe nytt." })
         ]),
-        button("Legg til fokus", "plus", () => addFocusArea(), "ghost")
+        button("Nytt fokus", "plus", () => addFocusArea(), "ghost")
       ]),
       focusItems.length ? focusList(focusItems) : emptyState("Ingen fokus ennå", "Legg inn ett fokus når dere har en tydelig bevegelse å undersøke."),
       areasEditor(plan.areas)
