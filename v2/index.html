@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=hub-nav-1">
+  <link rel="stylesheet" href="./styles.css?v=auth-check-1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -75,17 +75,17 @@
     <form method="dialog" class="modal-panel" id="entity-form">
       <div class="modal-head">
         <div><p class="eyebrow" id="modal-kicker">Rediger</p><h3 id="modal-title">Detaljer</h3></div>
-        <button class="icon-button" value="cancel" title="Lukk"><i data-lucide="x"></i></button>
+        <button class="icon-button" value="cancel" title="Lukk" formnovalidate><i data-lucide="x"></i></button>
       </div>
       <div id="modal-fields"></div>
       <p class="form-message" id="modal-message"></p>
       <div class="modal-actions">
-        <button class="button ghost" value="cancel">Avbryt</button>
+        <button class="button ghost" value="cancel" formnovalidate>Avbryt</button>
         <button class="button primary" id="modal-save" value="default"><i data-lucide="save"></i><span>Lagre</span></button>
       </div>
     </form>
   </dialog>
 
-  <script src="./app.js?v=hub-nav-1" defer></script>
+  <script src="./app.js?v=auth-check-1" defer></script>
 </body>
 </html>
