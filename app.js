@@ -589,15 +589,10 @@ function directionWorkspace(client, plan) {
         ]),
         canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
-      el("div", { class: "direction-surface" }, [
-        el("div", { class: "direction-primary" }, [
-          el("p", { class: "direction-label", text: "Mål med coachingen" }),
-          directionValue(plan.c_purpose, "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?", true)
-        ]),
-        el("div", { class: "direction-support" }, [
-          directionCard("Tegn på bevegelse / måloppnåelse", plan.c_success, "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?"),
-          directionCard("Rammer og forventninger", plan.c_practical, "Hva trenger du fra coach, og hva må være tydelig mellom dere, for at samarbeidet skal bli nyttig?")
-        ])
+      el("div", { class: "direction-card-grid" }, [
+        directionCard("Mål med coachingen", plan.c_purpose, "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?"),
+        directionCard("Tegn på bevegelse / måloppnåelse", plan.c_success, "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?"),
+        directionCard("Rammer og forventninger", plan.c_practical, "Hva trenger du fra coach, og hva må være tydelig mellom dere, for at samarbeidet skal bli nyttig?")
       ]),
       coachingFrame()
     ])
@@ -614,8 +609,7 @@ function editDirection(plan) {
     setPlanValue("c_success", values.c_success);
     setPlanValue("c_practical", values.c_practical);
     markDirty();
-    const saved = await savePlan();
-    if (!saved) throw new Error("Lagring feilet.");
+    await savePlan();
     await reloadProgramAndRender("direction");
   });
 }
@@ -628,16 +622,9 @@ function setPlanValue(name, value) {
 function directionCard(label, value, emptyText) {
   return el("article", { class: `direction-card ${value ? "has-value" : "is-empty"}` }, [
     el("p", { class: "direction-label", text: label }),
-    directionValue(value, emptyText)
+    el("p", { class: "direction-value", text: value || emptyText }),
+    !value ? el("p", { class: "direction-helper", text: "Ikke utfylt ennå" }) : null
   ].filter(Boolean));
-}
-
-function directionValue(value, emptyText, large = false) {
-  if (value) return el("p", { class: `direction-value ${large ? "large" : ""}`, text: value });
-  return el("div", { class: `direction-empty ${large ? "large" : ""}` }, [
-    el("strong", { text: "Ikke satt ennå" }),
-    el("p", { text: emptyText })
-  ]);
 }
 
 function documentBlock(label, value, emptyText) {
@@ -822,8 +809,7 @@ function editFocusArea(index) {
     };
     setAreas(next.filter(hasAreaContent));
     markDirty();
-    const saved = await savePlan();
-    if (!saved) throw new Error("Lagring feilet.");
+    await savePlan();
     await reloadProgramAndRender("work");
   });
 }
@@ -832,8 +818,7 @@ async function deleteFocusArea(index) {
   if (!confirmDelete("Slette dette fokuset?")) return;
   setAreas(getAreas().filter((_, itemIndex) => itemIndex !== index));
   markDirty();
-  const saved = await savePlan();
-  if (!saved) return;
+  await savePlan();
   await reloadProgramAndRender("work");
 }
 
@@ -901,8 +886,7 @@ function editSession(index) {
     };
     setSessions(next.filter((item) => item.date || item.focus || item.goal || item.notes || item.actions || item.reflection));
     markDirty();
-    const saved = await savePlan();
-    if (!saved) throw new Error("Lagring feilet.");
+    await savePlan();
     await reloadProgramAndRender("sessions");
   });
 }
@@ -911,8 +895,7 @@ async function deleteSession(index) {
   if (!confirmDelete("Slette denne samtalen?")) return;
   setSessions(getSessions().filter((_, itemIndex) => itemIndex !== index));
   markDirty();
-  const saved = await savePlan();
-  if (!saved) return;
+  await savePlan();
   await reloadProgramAndRender("sessions");
 }
 
@@ -1193,7 +1176,7 @@ function markDirty() {
   const status = $("#save-status");
   if (status) status.textContent = "Ikke lagret";
   clearTimeout(state.saveTimer);
-  state.saveTimer = setTimeout(() => savePlan(), 1800);
+  state.saveTimer = setTimeout(savePlan, 1800);
 }
 
 async function savePlan() {
@@ -1202,38 +1185,36 @@ async function savePlan() {
   if (!canOpenClient(client)) return;
   const status = $("#save-status");
   if (status) status.textContent = "Lagrer...";
-  try {
-    const current = state.programCache[client.id] || await loadClientProgram(client);
-    if (!current) throw new Error("Mangler programrad.");
-    const plan = collectPlan();
-    const { error: programError } = await state.sb.from("coaching_programs").update({
-      purpose: plan.c_purpose,
-      success_criteria: plan.c_success,
-      expectations_coach: plan.c_expect_coach,
-      expectations_client: plan.c_expect_client,
-      confidentiality: plan.c_confidentiality,
-      practical_frame: plan.c_practical,
-      start_date: plan.c_start || null,
-      end_date: plan.c_end || null,
-      session_count: plan.c_sessions ? Number(plan.c_sessions) : null,
-      session_duration: plan.c_duration || null,
-      status: "active"
-    }).eq("id", current.program.id);
-    if (programError) throw programError;
-    await replaceAreas(current.program.id, plan.areas);
-    await replaceSessions(current.program.id, plan.sessions);
-    await saveEvaluation(current.program.id, plan);
-    delete state.programCache[client.id];
-    await loadProgramSummaries();
-    state.dirty = false;
-    if (status) status.textContent = `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`;
-    return true;
-  } catch (error) {
-    console.error("Kunne ikke lagre utviklingsplan", error);
-    if (status) status.textContent = "Lagring feilet";
-    alert(`Kunne ikke lagre: ${error.message || "Ukjent feil"}`);
-    return false;
+  const current = state.programCache[client.id] || await loadClientProgram(client);
+  if (!current) {
+    if (status) status.textContent = "Mangler programrad";
+    return;
   }
+  const plan = collectPlan();
+  const { error: programError } = await state.sb.from("coaching_programs").update({
+    purpose: plan.c_purpose,
+    success_criteria: plan.c_success,
+    expectations_coach: plan.c_expect_coach,
+    expectations_client: plan.c_expect_client,
+    confidentiality: plan.c_confidentiality,
+    practical_frame: plan.c_practical,
+    start_date: plan.c_start || null,
+    end_date: plan.c_end || null,
+    session_count: plan.c_sessions ? Number(plan.c_sessions) : null,
+    session_duration: plan.c_duration || null,
+    status: "active"
+  }).eq("id", current.program.id);
+  if (programError) {
+    if (status) status.textContent = "Lagring feilet";
+    return;
+  }
+  await replaceAreas(current.program.id, plan.areas);
+  await replaceSessions(current.program.id, plan.sessions);
+  await saveEvaluation(current.program.id, plan);
+  delete state.programCache[client.id];
+  await loadProgramSummaries();
+  state.dirty = false;
+  if (status) status.textContent = `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 function collectPlan() {
@@ -1289,8 +1270,7 @@ function getSessions() {
 }
 
 async function replaceAreas(programId, areas) {
-  const { error: deleteError } = await state.sb.from("development_areas").delete().eq("program_id", programId);
-  if (deleteError) throw deleteError;
+  await state.sb.from("development_areas").delete().eq("program_id", programId);
   const rows = areas
     .map((area, index) => ({ ...normalizeArea(area), index }))
     .map((area) => ({
@@ -1304,23 +1284,11 @@ async function replaceAreas(programId, areas) {
       sort_order: area.index
     }))
     .filter((row) => row.title || row.description || row.movement || row.progress_signs || row.next_practice);
-  if (!rows.length) return;
-  const { error } = await state.sb.from("development_areas").insert(rows);
-  if (!error) return;
-  if (!isMissingColumnError(error)) throw error;
-  const legacyRows = rows.map((row) => ({
-    program_id: row.program_id,
-    title: row.title,
-    description: row.description,
-    sort_order: row.sort_order
-  }));
-  const { error: legacyError } = await state.sb.from("development_areas").insert(legacyRows);
-  if (legacyError) throw legacyError;
+  if (rows.length) await state.sb.from("development_areas").insert(rows);
 }
 
 async function replaceSessions(programId, sessions) {
-  const { error: deleteError } = await state.sb.from("coaching_sessions").delete().eq("program_id", programId);
-  if (deleteError) throw deleteError;
+  await state.sb.from("coaching_sessions").delete().eq("program_id", programId);
   const rows = sessions.map((session, index) => ({
     program_id: programId,
     session_number: index + 1,
@@ -1331,13 +1299,7 @@ async function replaceSessions(programId, sessions) {
     decisions: session.actions || null,
     client_notes: session.reflection || null
   })).filter((session) => session.session_date || session.focus || session.conversation_goal || session.insights || session.decisions || session.client_notes);
-  if (!rows.length) return;
-  const { error } = await state.sb.from("coaching_sessions").insert(rows);
-  if (!error) return;
-  if (!isMissingColumnError(error)) throw error;
-  const legacyRows = rows.map(({ conversation_goal, ...row }) => row);
-  const { error: legacyError } = await state.sb.from("coaching_sessions").insert(legacyRows);
-  if (legacyError) throw legacyError;
+  if (rows.length) await state.sb.from("coaching_sessions").insert(rows);
 }
 
 async function saveEvaluation(programId, plan) {
@@ -1349,13 +1311,7 @@ async function saveEvaluation(programId, plan) {
   };
   const hasEvaluation = payload.achieved || payload.reflection || payload.next_steps;
   if (!hasEvaluation) return;
-  const { error } = await state.sb.from("program_evaluations").upsert(payload, { onConflict: "program_id" });
-  if (error) throw error;
-}
-
-function isMissingColumnError(error) {
-  const text = `${error?.code || ""} ${error?.message || ""}`.toLowerCase();
-  return text.includes("pgrst204") || text.includes("column") || text.includes("schema cache");
+  await state.sb.from("program_evaluations").upsert(payload, { onConflict: "program_id" });
 }
 
 function openClientInvite() {
