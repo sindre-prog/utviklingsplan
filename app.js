@@ -294,9 +294,9 @@ function renderClients() {
   statusFilter.addEventListener("change", render);
   content.replaceChildren(
     el("div", { class: "grid three summary-grid page-summary" }, [
-      metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Alle forløp i oversikt" : "Dine klientforløp"),
-      metric("Aktive", String(active), "activity", "Har logget inn"),
-      metric("Ikke innlogget", String(pending), "mail-warning", "Invitert, men ikke aktivert konto")
+      metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Klienter med utviklingsplaner" : "Dine klientforløp"),
+      metric("Aktive", String(active), "activity", "Er innlogget nå"),
+      metric("Inaktive", String(pending), "mail-warning", "Er invitert, uten å ha aktivert konto")
     ]),
     el("div", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
@@ -584,7 +584,7 @@ function directionWorkspace(client, plan) {
       el("div", { class: "workspace-head" }, [
         el("div", {}, [
           el("p", { class: "eyebrow", text: "Retning" }),
-          el("h3", { text: "Hvor skal du" })
+          el("h3", { text: "Hvor skal du?" })
         ]),
         canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
@@ -635,7 +635,7 @@ function workWorkspace(client, data, plan) {
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fokusområder" }),
         el("h3", { text: "Hva jobber vi med nå?" }),
-        el("p", { class: "muted", text: "Fokusområder kan være indre eller ytre prosjekter. Det viktigste er at de gir retning, tegn på fremgang og én neste praksis å teste." })
+        el("p", { class: "muted", text: "Fokusområder, eller utviklingsområder, kan være både indre eller ytre prosjekter. Indre prosjekter handler om deg, ytre handler om virksomheten din." })
       ]),
         canEditProgram(client) ? button("Nytt fokus", "plus", () => addFocusArea(), "ghost") : null
       ].filter(Boolean)),
@@ -683,7 +683,7 @@ function sessionsWorkspace(sessions) {
     el("div", { class: "workspace-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Samtaler" }),
-        el("h3", { text: "Samtalelogg" }),
+        el("h3", { text: "Hva snakker vi om?" }),
         el("p", { class: "muted", text: "Hver samtale skal fange innsikt, merforståelse, valg og hva som skal prøves videre. Den kan kobles til fokusområdene dine, men trenger ikke." })
       ]),
       canEditProgram(getCurrentClient()) ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
@@ -1091,7 +1091,7 @@ function planRail(client, plan, data) {
       el("p", { class: "muted", text: [client.role, client.employer, coachNames(client)].filter(Boolean).join(" · ") })
     ]),
     el("section", { class: "panel" }, [
-      el("p", { class: "eyebrow", text: "Fremdrift" }),
+      el("p", { class: "eyebrow", text: "Aktivitet" }),
       el("div", { class: "progress-list" }, checks.map(([label, done]) => el("div", { class: "progress-item" }, [
         el("span", { text: label }),
         el("span", { class: `progress-dot ${done ? "done" : ""}` })
