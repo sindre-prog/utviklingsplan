@@ -585,7 +585,7 @@ function directionWorkspace(client, plan) {
         canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
       el("div", { class: "document-list" }, [
-        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva er det viktigste du ønsker å bevege? Hva er ditt utviklingsmål?"),
+        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva er det viktigste du ønsker å bevege? Hva skal disse samtalene gjøre for deg?"),
         documentBlock("Tegn på bevegelse", plan.c_success, "Hvordan merker du at noe faktisk flytter seg?"),
         documentBlock("Samarbeid", plan.c_practical, "Hva gjør samarbeidet med coach nyttig? Hvordan ønsker du at vi jobber sammen?")
       ])
