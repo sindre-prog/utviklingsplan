@@ -683,7 +683,7 @@ function sessionsWorkspace(sessions) {
     el("div", { class: "workspace-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Samtaler" }),
-        el("h3", { text: "Motoren i utvikling?" }),
+        el("h3", { text: "Samtaler som skaper ansvarliggjøring og fremdrift" }),
         el("p", { class: "muted", text: "Hver samtale skal fange innsikt, merforståelse, valg og hva som skal prøves videre. Den kan kobles til fokusområdene dine, men trenger ikke." })
       ]),
       canEditProgram(getCurrentClient()) ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
@@ -841,7 +841,7 @@ function editSession(index) {
     inputSpec("focus", "Tittel", "text", session.focus || "", { maxlength: 72, placeholder: "Kort navn på samtalen" }),
     textareaSpec("notes", "Ny innsikt", session.notes || ""),
     textareaSpec("actions", "Hva skal prøves videre?", session.actions || ""),
-    textareaSpec("reflection", "Din take-away", session.reflection || "")
+    textareaSpec("reflection", "Hva tar du med deg videre?", session.reflection || "")
   ], async (values) => {
     const next = [...sessions];
     next[index] = {
@@ -940,7 +940,7 @@ function reflectionsWorkspace(data) {
       ])
     ]) : el("section", { class: "panel document-panel reflection-note" }, [
       el("p", { class: "eyebrow", text: "Refleksjon" }),
-      el("h3", { text: "Dette er ditt rom når du er klient." }),
+      el("h3", { text: "Dette er ditt rom for refleksjon." }),
       el("p", { class: "muted", text: "Som coach ser du refleksjoner som er delt med deg. Private refleksjoner blir ikke synlige her." })
     ]),
     el("section", { class: "panel document-panel" }, [
