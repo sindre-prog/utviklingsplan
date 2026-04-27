@@ -533,6 +533,7 @@ function programToFormState(data) {
     sessions: data.sessions.map((session) => ({
       date: session.session_date || "",
       focus: session.focus || "",
+      goal: session.conversation_goal || "",
       notes: session.insights || "",
       actions: session.decisions || "",
       reflection: session.client_notes || ""
@@ -584,24 +585,25 @@ function directionWorkspace(client, plan) {
       el("div", { class: "workspace-head" }, [
         el("div", {}, [
           el("p", { class: "eyebrow", text: "Retning" }),
-          el("h3", { text: "Hvor skal du?" })
+          el("h3", { text: "Hva skal coachingen bidra til?" })
         ]),
         canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
       el("div", { class: "document-list" }, [
-        documentBlock("Arbeidshypotese", plan.c_purpose, "Hva skal være annerledes når dette forløpet er ferdig? Hva ønsker du konkret å oppnå, eller forstå bedre?"),
-        documentBlock("Tegn på bevegelse", plan.c_success, "Hva vil være de første tegnene på fremgang?"),
-        documentBlock("Samarbeid", plan.c_practical, "Hva gjør samarbeidet med coach nyttig? Hvordan ønsker du at vi jobber sammen?")
-      ])
+        documentBlock("Mål med coachingen", plan.c_purpose, "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?"),
+        documentBlock("Tegn på bevegelse / måloppnåelse", plan.c_success, "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?"),
+        documentBlock("Rammer og forventninger", plan.c_practical, "Hvordan skal samarbeidet fungere for at det skal bli nyttig?")
+      ]),
+      coachingFrame()
     ])
   ]);
 }
 
 function editDirection(plan) {
   openEntityModal("Rediger retning", "Retning", [
-    textareaSpec("c_purpose", "Arbeidshypotese", plan.c_purpose || ""),
-    textareaSpec("c_success", "Tegn på bevegelse", plan.c_success || ""),
-    textareaSpec("c_practical", "Samarbeid", plan.c_practical || "")
+    textareaSpec("c_purpose", "Mål med coachingen", plan.c_purpose || "", { placeholder: "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?" }),
+    textareaSpec("c_success", "Tegn på bevegelse / måloppnåelse", plan.c_success || "", { placeholder: "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?" }),
+    textareaSpec("c_practical", "Rammer og forventninger", plan.c_practical || "", { placeholder: "Hvordan skal samarbeidet fungere for at det skal bli nyttig?" })
   ], async (values) => {
     setPlanValue("c_purpose", values.c_purpose);
     setPlanValue("c_success", values.c_success);
@@ -624,6 +626,21 @@ function documentBlock(label, value, emptyText) {
   ]);
 }
 
+function coachingFrame() {
+  const items = [
+    ["lock-keyhole", "Konfidensialitet", "Det som deles i coachingrommet behandles konfidensielt."],
+    ["heart-handshake", "Rolleavklaring", "Coaching er ikke terapi. Ved psykiske helseutfordringer anbefales kontakt med kvalifisert fagperson."],
+    ["compass", "Ansvar", "Du eier egne mål, valg og handlinger. Coach fasiliterer refleksjon, retning og fremdrift."]
+  ];
+  return el("div", { class: "coaching-frame" }, items.map(([iconName, title, text]) => el("article", {}, [
+    icon(iconName),
+    el("div", {}, [
+      el("strong", { text: title }),
+      el("p", { text })
+    ])
+  ])));
+}
+
 function workWorkspace(client, data, plan) {
   const openActions = data.actions.filter((action) => action.status !== "done");
   const focusItems = plan.areas
@@ -644,7 +661,11 @@ function workWorkspace(client, data, plan) {
     ]),
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Eksperimenter - hva gjør du anerledes?" }), el("h3", { text: openActions.length ? `${openActions.length} aktive` : "Ingen aktive" })]),
+        el("div", {}, [
+          el("p", { class: "eyebrow", text: "Praksiseksperimenter" }),
+          el("h3", { text: openActions.length ? `${openActions.length} aktive` : "Små tester i hverdagen" }),
+          el("p", { class: "muted", text: "Eksperimenter er små forsøk som gir erfaringer og data tilbake til coachingen." })
+        ]),
         canEditProgram(client) ? button("Nytt eksperiment", "plus", () => createAction(data), "ghost") : null
       ].filter(Boolean)),
       actionList(data.actions, data)
@@ -699,6 +720,7 @@ function sessionList(sessions) {
       el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
       el("span", { class: "row-main" }, [
         el("strong", { text: session.focus || "Uten tittel" }),
+        session.goal ? el("small", { text: session.goal }) : null,
         el("small", { text: [session.date && formatDate(session.date), session.notes || session.actions || "Klikk for å legge inn innsikt"].filter(Boolean).join(" · ") })
       ])
     ]),
@@ -821,6 +843,7 @@ function sessionHiddenFields(session, index) {
   return el("div", { "data-session": String(index) }, [
     el("input", { name: "session.date", value: session.date || "" }),
     el("textarea", { name: "session.focus", text: session.focus || "" }),
+    el("textarea", { name: "session.goal", text: session.goal || "" }),
     el("textarea", { name: "session.notes", text: session.notes || "" }),
     el("textarea", { name: "session.actions", text: session.actions || "" }),
     el("textarea", { name: "session.reflection", text: session.reflection || "" })
@@ -829,16 +852,17 @@ function sessionHiddenFields(session, index) {
 
 function addSession() {
   const sessions = getSessions();
-  setSessions([...sessions, { date: new Date().toISOString().slice(0, 10), focus: "", notes: "", actions: "", reflection: "" }]);
+  setSessions([...sessions, { date: new Date().toISOString().slice(0, 10), focus: "", goal: "", notes: "", actions: "", reflection: "" }]);
   editSession(sessions.length);
 }
 
 function editSession(index) {
   const sessions = getSessions();
-  const session = sessions[index] || { date: "", focus: "", notes: "", actions: "", reflection: "" };
+  const session = sessions[index] || { date: "", focus: "", goal: "", notes: "", actions: "", reflection: "" };
   openEntityModal(index >= sessions.length ? "Ny samtale" : "Rediger samtale", "Samtaler", [
     inputSpec("date", "Dato", "date", session.date || ""),
     inputSpec("focus", "Tittel", "text", session.focus || "", { maxlength: 72, placeholder: "Kort navn på samtalen" }),
+    textareaSpec("goal", "Mål med samtalen", session.goal || "", { placeholder: "Hva bør være tydeligere, annerledes eller mer mulig etter denne samtalen?" }),
     textareaSpec("notes", "Ny innsikt", session.notes || ""),
     textareaSpec("actions", "Hva skal prøves videre?", session.actions || ""),
     textareaSpec("reflection", "Hva tar du med deg videre?", session.reflection || "")
@@ -847,11 +871,12 @@ function editSession(index) {
     next[index] = {
       date: values.date || "",
       focus: values.focus || "",
+      goal: values.goal || "",
       notes: values.notes || "",
       actions: values.actions || "",
       reflection: values.reflection || ""
     };
-    setSessions(next.filter((item) => item.date || item.focus || item.notes || item.actions || item.reflection));
+    setSessions(next.filter((item) => item.date || item.focus || item.goal || item.notes || item.actions || item.reflection));
     markDirty();
     await savePlan();
     await reloadProgramAndRender("sessions");
@@ -889,7 +914,7 @@ function actionList(actions, data) {
         el("strong", { text: action.title || "Eksperiment uten tittel" }),
         action.due_date ? el("span", { class: "action-date", text: formatDate(action.due_date) }) : null
       ].filter(Boolean)),
-      action.description ? el("p", { class: "muted", text: action.description }) : el("p", { class: "muted", text: action.due_date ? `Frist ${formatDate(action.due_date)}` : "Uten frist" })
+      actionMeta(action, data)
     ]),
     editable ? el("div", { class: "row-actions inline-actions action-tools" }, [
       el("button", { class: "text-button", type: "button", onclick: () => editAction(action, data), text: "Rediger" }),
@@ -960,12 +985,12 @@ function reflectionsList(reflections) {
 
 function createAction(data) {
   openEntityModal("Nytt eksperiment", "Arbeid", [
-    inputSpec("title", "Kort navn"),
+    inputSpec("title", "Navn på eksperiment"),
     selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], [], false),
-    textareaSpec("situation", "Situasjon: hvor skal dette prøves?"),
+    textareaSpec("situation", "Hvor skal det prøves?"),
     textareaSpec("response", "Hva skal du gjøre annerledes?"),
     textareaSpec("observe", "Hva skal du legge merke til?"),
-    inputSpec("dueDate", "Når sjekker vi læringen?", "date")
+    inputSpec("dueDate", "Når vil du se tilbake på dette?", "date")
   ], async (values) => {
     await state.sb.from("session_actions").insert({
       program_id: data.program.id,
@@ -982,12 +1007,12 @@ function createAction(data) {
 function editAction(action, data) {
   const parsed = parseActionDescription(action.description || "");
   openEntityModal("Rediger eksperiment", "Arbeid", [
-    inputSpec("title", "Kort navn", "text", action.title || ""),
+    inputSpec("title", "Navn på eksperiment", "text", action.title || ""),
     selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], action.development_area_id || "", false),
-    textareaSpec("situation", "Situasjon: hvor skal dette prøves?", parsed.situation),
+    textareaSpec("situation", "Hvor skal det prøves?", parsed.situation),
     textareaSpec("response", "Hva skal du gjøre annerledes?", parsed.response),
     textareaSpec("observe", "Hva skal du legge merke til?", parsed.observe),
-    inputSpec("dueDate", "Når sjekker vi læringen?", "date", action.due_date || "")
+    inputSpec("dueDate", "Når vil du se tilbake på dette?", "date", action.due_date || "")
   ], async (values) => {
     const { error } = await state.sb.from("session_actions").update({
       development_area_id: values.areaId || null,
@@ -1006,6 +1031,22 @@ function actionDescription(values) {
     values.response && `Prøve: ${values.response}`,
     values.observe && `Observere: ${values.observe}`
   ].filter(Boolean).join("\n\n") || null;
+}
+
+function actionMeta(action, data) {
+  const parsed = parseActionDescription(action.description || "");
+  const area = data.areas.find((item) => item.id === action.development_area_id);
+  const rows = [
+    area && ["Fokus", area.title || "Fokusområde"],
+    parsed.situation && ["Prøves i", parsed.situation],
+    parsed.response && ["Gjør annerledes", parsed.response],
+    parsed.observe && ["Se etter", parsed.observe]
+  ].filter(Boolean);
+  if (!rows.length) return el("p", { class: "muted", text: action.due_date ? `Se tilbake ${formatDate(action.due_date)}` : "Legg til hvor, hva og hva du vil legge merke til." });
+  return el("div", { class: "action-meta" }, rows.map(([label, value]) => el("div", {}, [
+    el("span", { text: label }),
+    el("p", { text: value })
+  ])));
 }
 
 async function deleteAction(id) {
@@ -1213,6 +1254,7 @@ function getSessions() {
   return $$("#sessions-editor [data-session]").map((card) => ({
     date: $("[name='session.date']", card).value,
     focus: $("[name='session.focus']", card).value,
+    goal: $("[name='session.goal']", card).value,
     notes: $("[name='session.notes']", card).value,
     actions: $("[name='session.actions']", card).value,
     reflection: $("[name='session.reflection']", card).value
@@ -1244,10 +1286,11 @@ async function replaceSessions(programId, sessions) {
     session_number: index + 1,
     session_date: session.date || null,
     focus: session.focus || null,
+    conversation_goal: session.goal || null,
     insights: session.notes || null,
     decisions: session.actions || null,
     client_notes: session.reflection || null
-  })).filter((session) => session.session_date || session.focus || session.insights || session.decisions || session.client_notes);
+  })).filter((session) => session.session_date || session.focus || session.conversation_goal || session.insights || session.decisions || session.client_notes);
   if (rows.length) await state.sb.from("coaching_sessions").insert(rows);
 }
 
