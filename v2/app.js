@@ -240,7 +240,7 @@ function renderClients() {
   const content = $("#content");
   const visibleClients = getVisibleClients();
   const active = visibleClients.filter((client) => client.consent_given).length;
-  const focusCount = visibleClients.reduce((sum, client) => sum + (state.programSummaries[client.id]?.areaCount || 0), 0);
+  const pending = visibleClients.length - active;
   const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
   const search = el("input", { class: "search", placeholder: "Søk etter navn, e-post, coach eller arbeidsgiver" });
   const coachFilter = el("select", { class: "filter-select", "aria-label": "Filtrer på coach" }, [
@@ -266,7 +266,7 @@ function renderClients() {
     el("div", { class: "grid three summary-grid page-summary" }, [
       metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Alle forløp i oversikt" : "Dine klientforløp"),
       metric("Aktive", String(active), "activity", "Har logget inn"),
-      metric("Fokus", String(focusCount), "target", "Definerte retninger i arbeid")
+      metric("Ikke innlogget", String(pending), "mail-warning", "Invitert, men ikke aktivert konto")
     ]),
     el("div", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
@@ -446,7 +446,7 @@ async function renderPlan() {
   const editable = canEditProgram(client);
   if (editable) form.addEventListener("input", () => markDirty());
   const rail = planRail(client, plan, data);
-  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form, rail]), saveStrip(editable));
+  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form, rail]), ...(editable ? [saveStrip(true)] : []));
   if (!editable) setFormReadonly(form);
   setupWorkspaceTabs();
   refreshIcons();
@@ -597,8 +597,8 @@ function workWorkspace(client, data, plan) {
           el("h3", { text: "Hva retter dere oppmerksomheten mot?" }),
           el("p", { class: "muted", text: "Fokus er et bevegelsesønske. Det kan justeres når hverdagen eller samtalene viser noe nytt." })
         ]),
-        button("Nytt fokus", "plus", () => addFocusArea(), "ghost")
-      ]),
+        canEditProgram(client) ? button("Nytt fokus", "plus", () => addFocusArea(), "ghost") : null
+      ].filter(Boolean)),
       focusItems.length ? focusList(focusItems) : emptyState("Ingen fokus ennå", "Legg inn ett fokus når dere har en tydelig bevegelse å undersøke."),
       areasEditor(plan.areas)
     ]),
@@ -642,8 +642,8 @@ function sessionsWorkspace(sessions) {
         el("h3", { text: "Hva ble tydeligere?" }),
         el("p", { class: "muted", text: "Hver samtale skal fange innsikt, valg og hva som skal prøves videre. Den kan kobles til fokus, men trenger ikke." })
       ]),
-      button("Ny samtale", "plus", () => addSession(), "ghost")
-    ]),
+      canEditProgram(getCurrentClient()) ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
+    ].filter(Boolean)),
     sessions.length ? sessionList(sessions) : emptyState("Ingen samtaler ennå", "Legg inn en samtale når dere vil samle innsikt og neste bevegelse."),
     sessionsEditor(sessions)
   ]);
@@ -823,7 +823,9 @@ function reflectionsWorkspace(data) {
   return el("div", { class: "reflection-space" }, [
     canWriteReflection ? el("section", { class: "panel document-panel reflection-composer" }, [
       el("p", { class: "eyebrow", text: "Ny refleksjon" }),
-      el("textarea", { id: "reflection-body", placeholder: "Hva legger du merke til akkurat nå?" }),
+      el("h3", { text: "Skriv for å forstå mer" }),
+      el("p", { class: "muted reflection-helper", text: "Refleksjoner gjør erfaringer tydeligere. Noter hva du legger merke til, hva som flytter seg, eller hva du vil ta med inn i neste samtale." }),
+      el("textarea", { id: "reflection-body", placeholder: "Skriv en kort refleksjon..." }),
       el("div", { class: "field-pair" }, [
         el("label", { text: "Synlighet" }, [
           el("select", { id: "reflection-visibility" }, [
@@ -961,10 +963,12 @@ function saveStrip(editable = true) {
 }
 
 function setFormReadonly(form) {
-  $$(".section-card input, .section-card textarea, .section-card select", form).forEach((control) => {
+  $$("input, textarea, select", form).forEach((control) => {
+    if (control.closest(".reflection-composer")) return;
     control.disabled = true;
   });
   $$(".section-card button, .document-panel button", form).forEach((control) => {
+    if (control.closest(".reflection-composer")) return;
     if (!control.classList.contains("section-toggle")) control.disabled = true;
   });
 }
@@ -1260,6 +1264,10 @@ function canEditProgram(client) {
   if (!client || !state.profile) return false;
   const coachId = state.coach?.id;
   return Boolean(coachId && (client.coach_ids || []).includes(coachId));
+}
+
+function getCurrentClient() {
+  return state.clients.find((item) => item.id === state.selectedClientId) || state.client;
 }
 
 function filterClients(clients, query, coachId = "all", status = "all") {

@@ -217,7 +217,7 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
 }
 .nav-item {
   border: 0;
-  min-height: 34px;
+  min-height: 0;
   border-radius: 999px;
   padding: 8px 13px;
   background: transparent;
@@ -460,6 +460,8 @@ tr:last-child td { border-bottom: 0; }
 }
 .status-chip.active { border-color: transparent; background: #000; color: #fff; }
 .reflection-composer textarea { min-height: 126px; margin: 8px 0 12px; }
+.reflection-helper { max-width: 720px; margin: 8px 0 12px; line-height: 1.55; }
+.reflection-composer .toolbar { margin: 14px 0 0; align-items: center; }
 .reflection-meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
 .progress-list { display: grid; gap: 9px; }
 .progress-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); }
@@ -579,7 +581,7 @@ tr:last-child td { border-bottom: 0; }
   .raeder-logo { width: 112px; }
   .auth-logo { left: 20px; width: 112px; }
   .logout-button { min-height: 34px; padding: 8px 14px; font-size: 12px; }
-  .nav-item { min-height: 32px; padding: 6px 12px; font-size: 12px; }
+  .nav-item { min-height: 0; padding: 8px 11px; font-size: 12px; }
   #view-title { font-size: 36px; }
   .topline { padding: 40px 20px 46px; grid-template-columns: 1fr; align-items: flex-start; min-height: 0; }
   .topline-actions { justify-content: flex-start; padding-bottom: 0; }
