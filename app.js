@@ -524,8 +524,12 @@ function programToFormState(data) {
     c_duration: data.program.session_duration || "",
     areas: data.areas.length ? data.areas.map((area) => ({
       title: area.title || "",
-      description: area.description || ""
-    })) : [{ title: "", description: "" }],
+      description: area.description || "",
+      projectType: area.project_type || "inner",
+      movement: area.movement || area.description || "",
+      progressSigns: area.progress_signs || "",
+      nextPractice: area.next_practice || ""
+    })) : [{ title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }],
     sessions: data.sessions.map((session) => ({
       date: session.session_date || "",
       focus: session.focus || "",
@@ -624,15 +628,15 @@ function workWorkspace(client, data, plan) {
   const openActions = data.actions.filter((action) => action.status !== "done");
   const focusItems = plan.areas
     .map((area, index) => ({ area: normalizeArea(area), index }))
-    .filter((item) => item.area.title || item.area.description);
+    .filter((item) => hasAreaContent(item.area));
   return el("div", { class: "work-stack" }, [
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
-        el("div", {}, [
-          el("p", { class: "eyebrow", text: "Fokus" }),
-          el("h3", { text: "Hva ønsker du å rette oppmerksomheten mot?" }),
-          el("p", { class: "muted", text: "Dette er fokusområdene, eller utviklingsmålene, dine. De skal bevege deg i riktig retning, og kan justeres når hverdagen eller samtalene viser noe nytt." })
-        ]),
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Fokus" }),
+        el("h3", { text: "Hva ønsker du å rette oppmerksomheten mot?" }),
+        el("p", { class: "muted", text: "Fokusområder kan være indre eller ytre prosjekter. Det viktigste er at de gir retning, tegn på fremgang og én neste praksis å teste." })
+      ]),
         canEditProgram(client) ? button("Nytt fokus", "plus", () => addFocusArea(), "ghost") : null
       ].filter(Boolean)),
       focusItems.length ? focusList(focusItems) : emptyState("Ingen fokus ennå", "Legg inn ett fokus når dere har en tydelig bevegelse å undersøke."),
@@ -653,9 +657,12 @@ function focusList(items) {
     el("button", { class: "row-open", type: "button", onclick: () => editFocusArea(index) }, [
       el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
       el("span", { class: "row-main" }, [
+        el("span", { class: `type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" }),
         el("strong", { text: area.title || "Uten tittel" }),
-        el("small", { text: area.description || "Klikk for å legge til beskrivelse" })
-      ])
+        el("small", { text: area.movement || area.description || "Klikk for å legge til hva du vil bevege" }),
+        area.progressSigns ? el("small", { text: `Tegn: ${area.progressSigns}` }) : null,
+        area.nextPractice ? el("small", { text: `Neste praksis: ${area.nextPractice}` }) : null
+      ].filter(Boolean))
     ]),
     el("span", { class: "row-tools" }, [
       el("button", { class: "text-button", type: "button", onclick: () => editFocusArea(index), text: "Rediger" }),
@@ -703,7 +710,7 @@ function sessionList(sessions) {
 }
 
 function areaPills(areas) {
-  const items = areas.map(normalizeArea).filter((area) => area.title || area.description);
+  const items = areas.map(normalizeArea).filter(hasAreaContent);
   if (!items.length) return el("p", { class: "muted", text: "Ingen områder satt ennå." });
   return el("div", { class: "area-pills" }, items.map((area, index) => el("span", { text: area.title || `Område ${index + 1}` })));
 }
@@ -733,7 +740,11 @@ function areasEditor(areas) {
       const item = normalizeArea(area);
       return el("div", { "data-area": "" }, [
         el("input", { name: "area.title", value: item.title }),
-        el("textarea", { name: "area.description", text: item.description })
+        el("input", { name: "area.projectType", value: item.projectType }),
+        el("textarea", { name: "area.description", text: item.description }),
+        el("textarea", { name: "area.movement", text: item.movement }),
+        el("textarea", { name: "area.progressSigns", text: item.progressSigns }),
+        el("textarea", { name: "area.nextPractice", text: item.nextPractice })
       ]);
     }));
   };
@@ -742,7 +753,7 @@ function areasEditor(areas) {
 }
 
 function addFocusArea() {
-  const next = [...getAreas().filter((area) => area.title || area.description), { title: "", description: "" }];
+  const next = [...getAreas().filter(hasAreaContent), { title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }];
   setAreas(next);
   editFocusArea(next.length - 1);
 }
@@ -750,13 +761,23 @@ function addFocusArea() {
 function editFocusArea(index) {
   const areas = getAreas();
   const area = normalizeArea(areas[index]);
-  openEntityModal(index >= areas.length || !(area.title || area.description) ? "Legg til fokus" : "Rediger fokus", "Arbeid", [
+  openEntityModal(index >= areas.length || !hasAreaContent(area) ? "Legg til fokus" : "Rediger fokus", "Fokus", [
     inputSpec("title", "Kort tittel", "text", area.title, { maxlength: 64, placeholder: "Maks 6-8 ord" }),
-    textareaSpec("description", "Beskrivelse", area.description, { placeholder: "Hva er bevegelsesønsket, og hvorfor er det viktig akkurat nå?" })
+    selectSpec("projectType", "Type", [["inner", "Indre prosjekt"], ["outer", "Ytre prosjekt"]], area.projectType || "inner", false),
+    textareaSpec("movement", "Hva vil du bevege?", area.movement || area.description, { placeholder: "Hva ønsker du å forstå, trene på eller gjøre annerledes?" }),
+    textareaSpec("progressSigns", "Tegn på fremgang", area.progressSigns, { placeholder: "Hva vil du merke i praksis når noe begynner å flytte seg?" }),
+    textareaSpec("nextPractice", "Neste praksis", area.nextPractice, { placeholder: "Hva er én liten ting du vil teste eller legge merke til før neste samtale?" })
   ], async (values) => {
     const next = [...areas];
-    next[index] = { title: values.title || "", description: values.description || "" };
-    setAreas(next.filter((item) => item.title || item.description));
+    next[index] = {
+      title: values.title || "",
+      description: values.movement || "",
+      projectType: values.projectType || "inner",
+      movement: values.movement || "",
+      progressSigns: values.progressSigns || "",
+      nextPractice: values.nextPractice || ""
+    };
+    setAreas(next.filter(hasAreaContent));
     markDirty();
     await savePlan();
     await reloadProgramAndRender("work");
@@ -778,7 +799,11 @@ function setAreas(values) {
     const item = normalizeArea(area);
     return el("div", { "data-area": "" }, [
       el("input", { name: "area.title", value: item.title }),
-      el("textarea", { name: "area.description", text: item.description })
+      el("input", { name: "area.projectType", value: item.projectType }),
+      el("textarea", { name: "area.description", text: item.description }),
+      el("textarea", { name: "area.movement", text: item.movement }),
+      el("textarea", { name: "area.progressSigns", text: item.progressSigns }),
+      el("textarea", { name: "area.nextPractice", text: item.nextPractice })
     ]);
   }));
 }
@@ -1116,17 +1141,31 @@ function collectPlan() {
 function getAreas() {
   return $$("#areas-editor [data-area]").map((card) => ({
     title: $("[name='area.title']", card).value.trim(),
-    description: $("[name='area.description']", card).value.trim()
+    projectType: $("[name='area.projectType']", card).value.trim() || "inner",
+    description: $("[name='area.description']", card).value.trim(),
+    movement: $("[name='area.movement']", card).value.trim(),
+    progressSigns: $("[name='area.progressSigns']", card).value.trim(),
+    nextPractice: $("[name='area.nextPractice']", card).value.trim()
   }));
 }
 
 function normalizeArea(area) {
-  if (!area) return { title: "", description: "" };
-  if (typeof area === "string") return { title: area.trim(), description: "" };
+  if (!area) return { title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
+  if (typeof area === "string") return { title: area.trim(), description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
+  const movement = (area.movement || area.description || "").trim();
   return {
     title: (area.title || "").trim(),
-    description: (area.description || "").trim()
+    description: (area.description || movement).trim(),
+    projectType: area.projectType === "outer" || area.project_type === "outer" ? "outer" : "inner",
+    movement,
+    progressSigns: (area.progressSigns || area.progress_signs || "").trim(),
+    nextPractice: (area.nextPractice || area.next_practice || "").trim()
   };
+}
+
+function hasAreaContent(area) {
+  const item = normalizeArea(area);
+  return Boolean(item.title || item.description || item.movement || item.progressSigns || item.nextPractice);
 }
 
 function getSessions() {
@@ -1143,8 +1182,17 @@ async function replaceAreas(programId, areas) {
   await state.sb.from("development_areas").delete().eq("program_id", programId);
   const rows = areas
     .map((area, index) => ({ ...normalizeArea(area), index }))
-    .map((area) => ({ program_id: programId, title: area.title, description: area.description || null, sort_order: area.index }))
-    .filter((row) => row.title || row.description);
+    .map((area) => ({
+      program_id: programId,
+      title: area.title,
+      description: area.movement || area.description || null,
+      project_type: area.projectType || "inner",
+      movement: area.movement || null,
+      progress_signs: area.progressSigns || null,
+      next_practice: area.nextPractice || null,
+      sort_order: area.index
+    }))
+    .filter((row) => row.title || row.description || row.movement || row.progress_signs || row.next_practice);
   if (rows.length) await state.sb.from("development_areas").insert(rows);
 }
 

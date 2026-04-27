@@ -426,11 +426,24 @@ tr:last-child td { border-bottom: 0; }
 }
 .focus-row:hover .row-more { opacity: 1; }
 .row-index { color: var(--faint); font-size: 12px; font-weight: 800; }
-.row-main { display: grid; gap: 4px; }
+.row-main { display: grid; gap: 6px; }
 .row-main strong { font-size: 15px; line-height: 1.35; }
-.row-main small { color: var(--muted); font-size: 12px; }
+.row-main small { color: var(--muted); font-size: 12px; line-height: 1.45; }
 .row-more { opacity: 0; color: var(--muted); font-size: 12px; font-weight: 800; transition: opacity .15s; }
 .row-tools { display: flex; align-items: center; gap: 10px; }
+.type-chip {
+  width: fit-content;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(0,0,0,.03);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.type-chip.outer { background: var(--accent-soft); color: var(--ink); border-color: rgba(0,0,0,.08); }
 .danger-text { color: var(--danger); }
 .inline-actions { justify-content: flex-start; }
 .empty-inline {
