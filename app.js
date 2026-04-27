@@ -62,10 +62,20 @@ function setMessage(id, text, type = "") {
 }
 
 async function init() {
+  const initialHash = window.location.hash || "";
+  const initialSearch = window.location.search || "";
+  const urlParams = new URLSearchParams(initialSearch);
+  const hashParams = new URLSearchParams(initialHash.replace(/^#/, ""));
+  const authType = urlParams.get("type") || hashParams.get("type");
+  const authCode = urlParams.get("code");
+  const isPasswordFlow = ["invite", "recovery"].includes(authType) || Boolean(authCode);
+
   state.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   bindAuth();
-  const hash = window.location.hash || "";
-  const isPasswordFlow = hash.includes("type=invite") || hash.includes("type=recovery");
+  if (authCode) {
+    await state.sb.auth.exchangeCodeForSession(authCode);
+    window.history.replaceState(null, "", window.location.pathname);
+  }
   const { data: { session } } = await state.sb.auth.getSession();
   if (session && isPasswordFlow) {
     state.user = session.user;
@@ -75,6 +85,9 @@ async function init() {
     await bootstrapApp();
   } else {
     setScreen("login");
+    if (isPasswordFlow) {
+      setMessage("#login-message", "Aktiveringslenken kunne ikke åpnes. Be coachen sende en ny invitasjon.");
+    }
   }
   refreshIcons();
 }
