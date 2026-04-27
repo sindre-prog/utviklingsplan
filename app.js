@@ -546,7 +546,7 @@ function programToFormState(data) {
 function clientWorkspaceTabs(data, activePane = "direction") {
   const items = [
     ["direction", "Retning", data.program.purpose || data.program.success_criteria ? 1 : 0],
-    ["work", "Arbeid", data.actions.filter((action) => action.status !== "done").length],
+    ["work", "Fokusområder", data.actions.filter((action) => action.status !== "done").length],
     ["sessions", "Samtaler", data.sessions.length],
     ["reflections", "Refleksjon", data.reflections.length]
   ];
