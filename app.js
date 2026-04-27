@@ -589,10 +589,15 @@ function directionWorkspace(client, plan) {
         ]),
         canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
-      el("div", { class: "direction-card-grid" }, [
-        directionCard("Mål med coachingen", plan.c_purpose, "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?"),
-        directionCard("Tegn på bevegelse / måloppnåelse", plan.c_success, "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?"),
-        directionCard("Rammer og forventninger", plan.c_practical, "Hva trenger du fra coach, og hva må være tydelig mellom dere, for at samarbeidet skal bli nyttig?")
+      el("div", { class: "direction-surface" }, [
+        el("div", { class: "direction-primary" }, [
+          el("p", { class: "direction-label", text: "Mål med coachingen" }),
+          directionValue(plan.c_purpose, "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?", true)
+        ]),
+        el("div", { class: "direction-support" }, [
+          directionCard("Tegn på bevegelse / måloppnåelse", plan.c_success, "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?"),
+          directionCard("Rammer og forventninger", plan.c_practical, "Hva trenger du fra coach, og hva må være tydelig mellom dere, for at samarbeidet skal bli nyttig?")
+        ])
       ]),
       coachingFrame()
     ])
@@ -622,9 +627,16 @@ function setPlanValue(name, value) {
 function directionCard(label, value, emptyText) {
   return el("article", { class: `direction-card ${value ? "has-value" : "is-empty"}` }, [
     el("p", { class: "direction-label", text: label }),
-    el("p", { class: "direction-value", text: value || emptyText }),
-    !value ? el("p", { class: "direction-helper", text: "Ikke utfylt ennå" }) : null
+    directionValue(value, emptyText)
   ].filter(Boolean));
+}
+
+function directionValue(value, emptyText, large = false) {
+  if (value) return el("p", { class: `direction-value ${large ? "large" : ""}`, text: value });
+  return el("div", { class: `direction-empty ${large ? "large" : ""}` }, [
+    el("strong", { text: "Ikke satt ennå" }),
+    el("p", { text: emptyText })
+  ]);
 }
 
 function documentBlock(label, value, emptyText) {
