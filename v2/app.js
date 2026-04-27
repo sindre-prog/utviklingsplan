@@ -197,7 +197,7 @@ async function loadProgramSummaries() {
 function renderShell() {
   $("#user-name").textContent = state.user.email || state.profile.name || "Bruker";
   const nav = [
-    ["clients", state.profile.role === "client" ? "file-text" : "users", "Utviklingsplan"],
+    ["clients", state.profile.role === "client" ? "file-text" : "users", "Klienter"],
     state.profile.role === "admin" && ["admin", "shield-check", "Administrasjon"]
   ].filter(Boolean);
   const navList = $("#nav-list");
@@ -262,7 +262,7 @@ function renderClients() {
   coachFilter.addEventListener("change", render);
   statusFilter.addEventListener("change", render);
   content.replaceChildren(
-    el("div", { class: "grid three summary-grid" }, [
+    el("div", { class: "grid three summary-grid page-summary" }, [
       metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Alle forløp i oversikt" : "Dine klientforløp"),
       metric("Aktive", String(active), "activity", "Har logget inn"),
       metric("Sesjoner", String(visibleClients.reduce((sum, client) => sum + (state.programSummaries[client.id]?.sessionCount || 0), 0)), "calendar-check", "Registrert i forløp")
@@ -325,8 +325,8 @@ function renderAdmin() {
   const renderCoaches = () => {
     const q = coachSearch.value.trim().toLowerCase();
     const coaches = state.coaches.filter((coach) => [coach.name, coach.email].filter(Boolean).join(" ").toLowerCase().includes(q));
-    coachTableSlot.replaceChildren(adminTable("Coacher", ["Navn", "E-post", "Klienter", ""], coaches.map((coach) => [
-      coach.name || "-", coach.email || "-", String(state.clients.filter((client) => (client.coach_ids || []).includes(coach.id)).length),
+    coachTableSlot.replaceChildren(adminTable("Coacher", ["Navn", "E-post", "Status", "Klienter", ""], coaches.map((coach) => [
+      coach.name || "-", coach.email || "Ikke registrert", coach.user_id ? "Innlogget" : "Ikke innlogget", String(state.clients.filter((client) => (client.coach_ids || []).includes(coach.id)).length),
       actionGroup([["Rediger", () => openCoachEdit(coach)], ["Slett", () => deleteCoach(coach)]])
     ])));
   };
@@ -394,7 +394,7 @@ async function renderPlan() {
     return;
   }
   if (!canOpenClient(client)) {
-    setHeader("Utviklingsplan", "Kun oversikt");
+    setHeader("Klienter", "Kun oversikt");
     $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
       el("p", { class: "eyebrow", text: "Tilgang" }),
       el("h3", { text: "Du kan se klienten i oversikt, men ikke åpne planen." }),
@@ -404,8 +404,9 @@ async function renderPlan() {
     return;
   }
   state.selectedClientId = client.id;
-  setHeader("Utviklingsplan", client.name || "Klient", [
-    button("Tilbake", "arrow-left", () => navigate(state.profile.role === "admin" ? "admin" : "clients"), "ghost")
+  setHeader("Klienter", client.name || "Klient", [
+    button("Tilbake", "arrow-left", () => navigate("clients"), "ghost"),
+    button("Book time", "calendar-plus", () => window.open("https://raederog.no/book-time", "_blank"), "ghost")
   ]);
   $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
     el("p", { class: "eyebrow", text: "Laster" }),
@@ -1090,8 +1091,11 @@ function openCoachInvite() {
 }
 
 function openCoachEdit(coach) {
-  openEntityModal("Rediger coach", "Team", [inputSpec("name", "Navn", "text", coach.name || "")], async (values) => {
-    await state.sb.from("coaches").update({ name: values.name }).eq("id", coach.id);
+  openEntityModal("Rediger coach", "Team", [
+    inputSpec("name", "Navn", "text", coach.name || ""),
+    inputSpec("email", "E-post", "email", coach.email || "")
+  ], async (values) => {
+    await state.sb.from("coaches").update({ name: values.name, email: values.email }).eq("id", coach.id);
     if (coach.user_id) await state.sb.from("profiles").update({ name: values.name }).eq("id", coach.user_id);
     await reloadAndRender();
   });
