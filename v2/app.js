@@ -610,7 +610,7 @@ function workWorkspace(client, data, plan) {
     ]),
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Praksiseksperimenter" }), el("h3", { text: openActions.length ? `${openActions.length} aktive` : "Ingen aktive" })]),
+        el("div", {}, [el("p", { class: "eyebrow", text: "Eksperimenter" }), el("h3", { text: openActions.length ? `${openActions.length} aktive` : "Ingen aktive" })]),
         canEditProgram(client) ? button("Nytt eksperiment", "plus", () => createAction(data), "ghost") : null
       ].filter(Boolean)),
       actionList(data.actions)
@@ -619,17 +619,18 @@ function workWorkspace(client, data, plan) {
 }
 
 function focusList(items) {
-  return el("div", { class: "focus-list" }, items.map(({ area, index }) => el("button", {
-    class: "focus-row",
-    type: "button",
-    onclick: () => editFocusArea(index)
-  }, [
-    el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
-    el("span", { class: "row-main" }, [
-      el("strong", { text: area.title || "Fokus uten tittel" }),
-      el("small", { text: area.description || "Klikk for å legge til beskrivelse" })
+  return el("div", { class: "focus-list" }, items.map(({ area, index }) => el("article", { class: "focus-row editable-row" }, [
+    el("button", { class: "row-open", type: "button", onclick: () => editFocusArea(index) }, [
+      el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
+      el("span", { class: "row-main" }, [
+        el("strong", { text: area.title || "Uten tittel" }),
+        el("small", { text: area.description || "Klikk for å legge til beskrivelse" })
+      ])
     ]),
-    el("span", { class: "row-more", text: "Rediger" })
+    el("span", { class: "row-tools" }, [
+      el("button", { class: "text-button", type: "button", onclick: () => editFocusArea(index), text: "Rediger" }),
+      el("button", { class: "text-button danger-text", type: "button", onclick: () => deleteFocusArea(index), text: "Slett" })
+    ])
   ])));
 }
 
@@ -656,17 +657,18 @@ function sessionsWorkspace(sessions) {
 }
 
 function sessionList(sessions) {
-  return el("div", { class: "focus-list session-list" }, sessions.map((session, index) => el("button", {
-    class: "focus-row",
-    type: "button",
-    onclick: () => editSession(index)
-  }, [
-    el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
-    el("span", { class: "row-main" }, [
-      el("strong", { text: session.focus || "Samtale uten tittel" }),
-      el("small", { text: [session.date && formatDate(session.date), session.notes || session.actions || "Klikk for å legge inn innsikt"].filter(Boolean).join(" · ") })
+  return el("div", { class: "focus-list session-list" }, sessions.map((session, index) => el("article", { class: "focus-row editable-row" }, [
+    el("button", { class: "row-open", type: "button", onclick: () => editSession(index) }, [
+      el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
+      el("span", { class: "row-main" }, [
+        el("strong", { text: session.focus || "Uten tittel" }),
+        el("small", { text: [session.date && formatDate(session.date), session.notes || session.actions || "Klikk for å legge inn innsikt"].filter(Boolean).join(" · ") })
+      ])
     ]),
-    el("span", { class: "row-more", text: "Rediger" })
+    el("span", { class: "row-tools" }, [
+      el("button", { class: "text-button", type: "button", onclick: () => editSession(index), text: "Rediger" }),
+      el("button", { class: "text-button danger-text", type: "button", onclick: () => deleteSession(index), text: "Slett" })
+    ])
   ])));
 }
 
@@ -731,6 +733,14 @@ function editFocusArea(index) {
   });
 }
 
+async function deleteFocusArea(index) {
+  if (!confirmDelete("Slette dette fokuset?")) return;
+  setAreas(getAreas().filter((_, itemIndex) => itemIndex !== index));
+  markDirty();
+  await savePlan();
+  await reloadProgramAndRender("work");
+}
+
 function setAreas(values) {
   const editor = $("#areas-editor");
   if (!editor) return;
@@ -793,6 +803,14 @@ function editSession(index) {
   });
 }
 
+async function deleteSession(index) {
+  if (!confirmDelete("Slette denne samtalen?")) return;
+  setSessions(getSessions().filter((_, itemIndex) => itemIndex !== index));
+  markDirty();
+  await savePlan();
+  await reloadProgramAndRender("sessions");
+}
+
 function setSessions(values) {
   const editor = $("#sessions-editor");
   if (!editor) return;
@@ -808,7 +826,7 @@ function actionsPreview(actions) {
 }
 
 function actionList(actions) {
-  if (!actions.length) return el("p", { class: "muted", text: "Ingen praksiseksperimenter ennå." });
+  if (!actions.length) return el("p", { class: "muted", text: "Ingen eksperimenter ennå." });
   return el("div", { class: "action-list" }, actions.map((action) => el("article", { class: `action-card ${action.status}` }, [
     el("div", {}, [
       el("strong", { text: action.title || "Handling uten tittel" }),
@@ -884,8 +902,11 @@ function reflectionsList(reflections) {
       el("span", { text: reflection.visibility === "private" ? "Privat" : "Delt med coach" }),
       el("span", { text: formatDate(reflection.created_at) })
     ]),
-    el("p", { text: reflection.body || "" })
-  ])));
+    el("p", { text: reflection.body || "" }),
+    reflection.created_by === state.user?.id ? el("div", { class: "row-actions inline-actions" }, [
+      el("button", { class: "text-button danger-text", type: "button", onclick: () => deleteReflection(reflection.id), text: "Slett" })
+    ]) : null
+  ].filter(Boolean))));
 }
 
 function createAction(data) {
@@ -943,6 +964,16 @@ async function createReflection(programId) {
   await reloadProgramAndRender("reflections");
 }
 
+async function deleteReflection(id) {
+  if (!confirmDelete("Slette denne refleksjonen?")) return;
+  const { error } = await state.sb.from("client_reflections").delete().eq("id", id);
+  if (error) {
+    alert("Kunne ikke slette refleksjonen.");
+    return;
+  }
+  await reloadProgramAndRender("reflections");
+}
+
 async function reloadProgramAndRender(activePane = "direction") {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (client) delete state.programCache[client.id];
@@ -954,7 +985,7 @@ function planRail(client, plan, data) {
   const checks = [
     ["Retning", Boolean(plan.c_purpose && plan.c_success)],
     ["Fokusområder", areaCount >= 2],
-    ["Praksiseksperimenter", (data.actions || []).length > 0],
+    ["Eksperimenter", (data.actions || []).length > 0],
     ["Samtaler", (plan.sessions || []).length > 0]
   ];
   return el("aside", { class: "plan-rail" }, [
@@ -1356,6 +1387,10 @@ function roleLabel(role) {
 
 function statusLabel(status) {
   return { draft: "Utkast", active: "Aktivt forløp", completed: "Fullført", archived: "Arkivert" }[status] || "Utkast";
+}
+
+function confirmDelete(message) {
+  return window.confirm(message);
 }
 
 function formatDate(iso) {
