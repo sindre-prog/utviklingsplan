@@ -582,7 +582,7 @@ function directionWorkspace(client, plan) {
       el("div", { class: "workspace-head" }, [
         el("div", {}, [
           el("p", { class: "eyebrow", text: "Retning" }),
-          el("h3", { text: "Retning: Hva jobber vi mot?" }),
+          el("h3", { text: "Hva jobber vi mot?" }),
           el("p", { class: "muted", text: "Utvikling uten retning blir tilfeldig. Her samler dere hva coachingen skal bidra til, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig." })
         ]),
         canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
@@ -668,7 +668,7 @@ function workWorkspace(client, data, plan) {
       el("div", { class: "workspace-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fokusområder" }),
-        el("h3", { text: "Fokusområder: Hva prioriterer vi å jobbe med?" }),
+        el("h3", { text: "Hva prioriterer vi å jobbe med?" }),
         el("p", { class: "muted", text: "Fokusområder, eller utviklingsområder, kan være både indre eller ytre prosjekter. Indre prosjekter handler om deg, ytre handler om virksomheten din." })
       ])
       ]),
