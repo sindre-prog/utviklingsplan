@@ -622,18 +622,19 @@ function setPlanValue(name, value) {
 }
 
 function directionCard(label, value, emptyText, large = false) {
-  return el("article", { class: `direction-card ${large ? "large" : ""} ${value ? "has-value" : "is-empty"}` }, [
-    el("p", { class: "direction-label", text: label }),
-    directionValue(value, emptyText, large)
+  return el("article", { class: `content-card direction-card ${large ? "large" : ""} ${value ? "has-value" : "is-empty"}` }, [
+    el("p", { class: "content-card-label", text: label }),
+    contentPreview(value, emptyText, large ? 6 : 5)
   ].filter(Boolean));
 }
 
-function directionValue(value, emptyText, large = false) {
-  if (value) return el("p", { class: `direction-value ${large ? "large" : ""}`, text: value });
-  return el("div", { class: `direction-empty ${large ? "large" : ""}` }, [
-    el("strong", { text: "Ikke satt ennå" }),
-    el("p", { text: emptyText })
-  ]);
+function contentPreview(value, emptyText, lines = 5) {
+  const text = (value || "").trim();
+  return el("span", {
+    class: `content-card-body ${text ? "" : "is-empty"}`,
+    style: `--preview-lines:${lines}`,
+    text: text || emptyText
+  });
 }
 
 function documentBlock(label, value, emptyText) {
@@ -680,12 +681,12 @@ function workWorkspace(client, data, plan) {
 function focusList(items, client = getCurrentClient()) {
   const editable = canEditProgram(client);
   return el("div", { class: "focus-grid" }, [
-    ...items.map(({ area, index }) => el("article", { class: "focus-card" }, [
+    ...items.map(({ area, index }) => el("article", { class: "content-card focus-card" }, [
       el("button", { class: "focus-card-body", type: "button", onclick: () => editFocusArea(index) }, [
         el("span", { class: `type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" }),
-        el("span", { class: "focus-kicker", text: `Fokus ${index + 1}` }),
-        el("strong", { text: area.title || "Bevegelsesønske" }),
-        el("small", { text: area.movement || area.description || "Hva vil du rette oppmerksomheten mot?" })
+        el("span", { class: "content-card-label", text: `Fokus ${index + 1}` }),
+        el("strong", { class: "content-card-title", text: area.title || "Bevegelsesønske" }),
+        contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 4)
       ]),
       editable ? el("span", { class: "focus-card-tools" }, [
         el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editFocusArea(index) }, [icon("pencil")]),
@@ -727,10 +728,10 @@ function sessionList(sessions) {
     el("button", { class: "row-open", type: "button", onclick: () => editSession(index) }, [
       el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
       el("span", { class: "row-main" }, [
-        el("strong", { text: session.focus || "Uten tittel" }),
-        session.goal ? el("small", { text: session.goal }) : null,
-        el("small", { text: [session.date && formatDate(session.date), session.notes || session.actions || "Klikk for å legge inn innsikt"].filter(Boolean).join(" · ") })
-      ])
+        el("strong", { text: session.focus || "Samtale uten tittel" }),
+        el("small", { class: "content-card-meta", text: [session.date && formatDate(session.date), session.goal && `Mål: ${session.goal}`].filter(Boolean).join(" · ") || "Ingen dato eller samtalemål" }),
+        contentPreview(session.notes || session.actions || session.reflection, "Legg inn innsikt, valg eller hva dere vil utforske videre.", 2)
+      ].filter(Boolean))
     ]),
     el("span", { class: "row-tools" }, [
       el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editSession(index) }, [icon("pencil")]),
@@ -976,19 +977,20 @@ function reflectionsWorkspace(data) {
     ]),
     el("section", { class: "panel document-panel" }, [
       el("p", { class: "eyebrow", text: "Logg" }),
+      el("h3", { class: "section-title", text: "Refleksjoner" }),
       reflectionsList(data.reflections)
     ])
   ].filter(Boolean));
 }
 
 function reflectionsList(reflections) {
-  if (!reflections.length) return el("p", { class: "muted", text: "Ingen refleksjoner ennå." });
+  if (!reflections.length) return emptyState("Ingen refleksjoner ennå", "Skriv korte notater når noe blir tydeligere, flytter seg eller bør tas med videre.");
   return el("div", { class: "reflection-list" }, reflections.map((reflection) => el("article", { class: "reflection-card" }, [
     el("div", { class: "reflection-meta" }, [
       el("span", { text: reflection.visibility === "private" ? "Privat" : "Delt med coach" }),
       el("span", { text: formatDate(reflection.created_at) })
     ]),
-    el("p", { text: reflection.body || "" }),
+    contentPreview(reflection.body, "Tom refleksjon.", 4),
     reflection.created_by === state.user?.id ? el("div", { class: "row-actions inline-actions" }, [
       el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteReflection(reflection.id) }, [icon("trash-2")])
     ]) : null
@@ -1054,10 +1056,10 @@ function actionMeta(action, data) {
     parsed.response && ["Gjør annerledes", parsed.response],
     parsed.observe && ["Se etter", parsed.observe]
   ].filter(Boolean);
-  if (!rows.length) return el("p", { class: "muted", text: action.due_date ? `Se tilbake ${formatDate(action.due_date)}` : "Legg til hvor, hva og hva du vil legge merke til." });
+  if (!rows.length) return contentPreview("", action.due_date ? `Se tilbake ${formatDate(action.due_date)}` : "Legg til hvor, hva og hva du vil legge merke til.", 3);
   return el("div", { class: "action-meta" }, rows.map(([label, value]) => el("div", {}, [
     el("span", { text: label }),
-    el("p", { text: value })
+    contentPreview(value, "", 3)
   ])));
 }
 
@@ -1149,8 +1151,8 @@ function experimentSidebar(client, data) {
 function experimentRow(action, data, editable) {
   const parsed = parseActionDescription(action.description || "");
   const area = data.areas.find((item) => item.id === action.development_area_id);
-  const subtitle = [area?.title, action.due_date && formatDate(action.due_date)].filter(Boolean).join(" · ") ||
-    parsed.response || parsed.situation || "Klikk for å beskrive forsøket";
+  const meta = [area?.title, action.due_date && formatDate(action.due_date)].filter(Boolean).join(" · ");
+  const preview = parsed.response || parsed.situation || parsed.observe || "Hva skal prøves i praksis?";
   return el("article", { class: "experiment-row" }, [
     el("button", {
       class: "experiment-open",
@@ -1160,10 +1162,11 @@ function experimentRow(action, data, editable) {
     }, [
       el("span", {}, [
         el("strong", { text: action.title || "Eksperiment uten tittel" }),
-        el("small", { text: subtitle })
+        meta ? el("small", { class: "content-card-meta", text: meta }) : null,
+        contentPreview(parsed.response || parsed.situation || parsed.observe, preview, 2)
       ]),
       icon("chevron-right")
-    ]),
+    ].filter(Boolean)),
     editable ? el("div", { class: "experiment-tools" }, [
       el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteAction(action.id) }, [icon("trash-2")])
     ]) : null
