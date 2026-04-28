@@ -985,11 +985,9 @@ function reflectionsWorkspace(data) {
 
 function reflectionsList(reflections) {
   if (!reflections.length) return emptyState("Ingen refleksjoner ennå", "Skriv korte notater når noe blir tydeligere, flytter seg eller bør tas med videre.");
-  return el("div", { class: "reflection-list" }, reflections.map((reflection) => el("article", { class: "reflection-card" }, [
-    el("div", { class: "reflection-meta" }, [
-      el("span", { text: reflection.visibility === "private" ? "Privat" : "Delt med coach" }),
-      el("span", { text: formatDate(reflection.created_at) })
-    ]),
+  return el("div", { class: "reflection-list" }, reflections.map((reflection) => el("article", { class: "content-card reflection-card" }, [
+    el("p", { class: "content-card-label", text: reflection.visibility === "private" ? "Privat refleksjon" : "Delt refleksjon" }),
+    el("p", { class: "content-card-meta", text: formatDate(reflection.created_at) }),
     contentPreview(reflection.body, "Tom refleksjon.", 4),
     reflection.created_by === state.user?.id ? el("div", { class: "row-actions inline-actions" }, [
       el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteReflection(reflection.id) }, [icon("trash-2")])
@@ -1154,6 +1152,9 @@ function experimentRow(action, data, editable) {
   const meta = [area?.title, action.due_date && formatDate(action.due_date)].filter(Boolean).join(" · ");
   const preview = parsed.response || parsed.situation || parsed.observe || "Hva skal prøves i praksis?";
   return el("article", { class: "experiment-row" }, [
+    editable ? el("div", { class: "experiment-tools" }, [
+      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteAction(action.id) }, [icon("trash-2")])
+    ]) : null,
     el("button", {
       class: "experiment-open",
       type: "button",
@@ -1166,10 +1167,7 @@ function experimentRow(action, data, editable) {
         contentPreview(parsed.response || parsed.situation || parsed.observe, preview, 2)
       ]),
       icon("chevron-right")
-    ].filter(Boolean)),
-    editable ? el("div", { class: "experiment-tools" }, [
-      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteAction(action.id) }, [icon("trash-2")])
-    ]) : null
+    ].filter(Boolean))
   ].filter(Boolean));
 }
 
