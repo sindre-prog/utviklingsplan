@@ -162,7 +162,7 @@ async function bootstrapApp() {
   setScreen("app");
   renderShell();
   $("#view-kicker").textContent = "Utviklingsplaner";
-  $("#view-title").textContent = "Klienter";
+  $("#view-title").textContent = "Utviklingsplan";
   navigate(initialView());
 }
 
