@@ -1227,8 +1227,9 @@ function markDirty() {
 
 async function savePlan() {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
-  if (!client || !$("#plan-form")) return;
+  if (!client || !$("#plan-form")) return false;
   if (!canOpenClient(client)) return;
+  clearTimeout(state.saveTimer);
   const status = $("#save-status");
   if (status) status.textContent = "Lagrer...";
   try {
@@ -1267,7 +1268,16 @@ async function savePlan() {
 
 function collectPlan() {
   const form = $("#plan-form");
-  const data = Object.fromEntries(new FormData(form).entries());
+  const data = {};
+  $$("input[name], textarea[name], select[name]", form).forEach((control) => {
+    if (control.type === "checkbox") {
+      data[control.name] = control.checked ? control.value : "";
+    } else if (control.multiple) {
+      data[control.name] = Array.from(control.selectedOptions).map((option) => option.value);
+    } else if (!(control.name in data)) {
+      data[control.name] = control.value || "";
+    }
+  });
   const plan = {};
   planFields.forEach(([key]) => plan[key] = data[key] || "");
   ["c_start", "c_end", "c_sessions", "c_duration", "eval_achieved", "eval_reflection", "eval_next"].forEach((key) => plan[key] = data[key] || "");
