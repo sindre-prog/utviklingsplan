@@ -733,8 +733,8 @@ function sessionList(sessions) {
       ])
     ]),
     el("span", { class: "row-tools" }, [
-      el("button", { class: "text-button", type: "button", onclick: () => editSession(index), text: "Rediger" }),
-      el("button", { class: "text-button danger-text", type: "button", onclick: () => deleteSession(index), text: "Slett" })
+      el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editSession(index) }, [icon("pencil")]),
+      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteSession(index) }, [icon("trash-2")])
     ])
   ])));
 }
@@ -929,8 +929,8 @@ function actionList(actions, data) {
       actionMeta(action, data)
     ]),
     editable ? el("div", { class: "row-actions inline-actions action-tools" }, [
-      el("button", { class: "text-button", type: "button", onclick: () => editAction(action, data), text: "Rediger" }),
-      el("button", { class: "text-button danger-text", type: "button", onclick: () => deleteAction(action.id), text: "Slett" })
+      el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editAction(action, data) }, [icon("pencil")]),
+      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteAction(action.id) }, [icon("trash-2")])
     ]) : null
   ].filter(Boolean))));
 }
@@ -990,7 +990,7 @@ function reflectionsList(reflections) {
     ]),
     el("p", { text: reflection.body || "" }),
     reflection.created_by === state.user?.id ? el("div", { class: "row-actions inline-actions" }, [
-      el("button", { class: "text-button danger-text", type: "button", onclick: () => deleteReflection(reflection.id), text: "Slett" })
+      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteReflection(reflection.id) }, [icon("trash-2")])
     ]) : null
   ].filter(Boolean))));
 }
@@ -1165,8 +1165,7 @@ function experimentRow(action, data, editable) {
       icon("chevron-right")
     ]),
     editable ? el("div", { class: "experiment-tools" }, [
-      el("button", { class: "text-button", type: "button", onclick: () => editAction(action, data), text: "Rediger" }),
-      el("button", { class: "text-button danger-text", type: "button", onclick: () => deleteAction(action.id), text: "Slett" })
+      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteAction(action.id) }, [icon("trash-2")])
     ]) : null
   ].filter(Boolean));
 }
