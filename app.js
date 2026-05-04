@@ -295,8 +295,8 @@ function renderClients() {
   content.replaceChildren(
     el("div", { class: "grid three summary-grid page-summary" }, [
       metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Klienter med utviklingsplaner" : "Dine klientforløp"),
-      metric("Aktive", String(active), "activity", "Klienter er innlogget nå"),
-      metric("Inaktive", String(pending), "mail-warning", "Klienter er invitert, uten å ha aktivert konto")
+      metric("Aktive", String(active), "activity", "Klienter som har aktivert kontoen"),
+      metric("Venter", String(pending), "mail-warning", "Invitert, men har ikke aktivert konto")
     ]),
     el("div", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
@@ -439,7 +439,7 @@ async function renderPlan(activePane = "direction") {
     state.profile.role !== "client" ? button("Tilbake", "arrow-left", () => navigate("clients"), "ghost") : null,
     button("Book coachingtime", "calendar-plus", () => window.open("https://raederog.no/book-time", "_blank"), "ghost")
   ].filter(Boolean);
-  setHeader("Klienter", client.name || "Klient", headerActions);
+  setHeader("Utviklingsplan", client.name || "Klient", headerActions);
   $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
     el("p", { class: "eyebrow", text: "Laster" }),
     el("h3", { text: "Henter klientforløp" }),
@@ -699,13 +699,23 @@ function focusWorkbench(items, data, editable) {
     el("div", { class: "focus-master" }, [grid]),
     el("div", { class: "focus-detail-wrap" }, [
       detail,
-      freeActions.length ? el("section", { class: "free-experiments" }, [
-        el("p", { class: "content-card-label", text: "Eksperimenter uten fokusområde" }),
-        el("p", { class: "content-card-body is-empty", text: "Disse er ikke knyttet til et fokusområde ennå. Rediger eksperimentet for å koble det til riktig fokus." }),
-        el("div", { class: "experiment-list" }, freeActions.map((action) => experimentRow(action, data, editable)))
-      ]) : null
+      freeExperimentSection(freeActions, data, editable)
     ].filter(Boolean))
   ]);
+}
+
+function freeExperimentSection(actions, data, editable) {
+  if (!actions.length && !editable) return null;
+  return el("section", { class: "free-experiments" }, [
+    el("div", { class: "detail-head" }, [
+      el("div", {}, [
+        el("p", { class: "content-card-label", text: "Eksperimenter uten fokusområde" }),
+        el("p", { class: "content-card-body is-empty", text: "Brukes når noe skal prøves uten å være knyttet til et bestemt fokusområde." })
+      ]),
+      editable ? el("button", { class: "icon-button", type: "button", title: "Nytt eksperiment uten fokusområde", onclick: () => createAction(data, "") }, [icon("plus")]) : null
+    ].filter(Boolean)),
+    actions.length ? el("div", { class: "experiment-list" }, actions.map((action) => experimentRow(action, data, editable))) : null
+  ].filter(Boolean));
 }
 
 function focusList(items, editable, data, detail) {

@@ -177,7 +177,7 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 24px;
   padding: 18px 40px 0;
   border-right: 0;
   background: transparent;
@@ -193,7 +193,7 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
   height: auto;
   display: block;
 }
-.sidebar-user { display: flex; align-items: center; justify-content: flex-end; gap: 16px; padding-top: 1px; border-top: 0; min-width: 0; }
+.sidebar-user { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 0; border-top: 0; min-width: 0; }
 .sidebar-user > div { min-width: 0; }
 .sidebar-user strong {
   display: block;
@@ -203,7 +203,7 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
   white-space: nowrap;
   color: rgba(0,0,0,.48);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .logout-button {
   min-height: 35px;
@@ -226,7 +226,7 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
   padding: 4px;
   border: 1px solid rgba(0,0,0,.08);
   border-radius: 999px;
-  background: rgba(255,255,255,.52);
+  background: rgba(255,255,255,.54);
   box-shadow: 0 18px 60px rgba(20,20,35,.05);
 }
 .nav-item {
@@ -241,7 +241,7 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
   white-space: nowrap;
 }
 .nav-item:hover { background: rgba(255,255,255,.58); color: #000; }
-.nav-item.active { background: #fff; color: #000; font-weight: 800; box-shadow: var(--shadow-sm); }
+.nav-item.active { background: #fff; color: #000; font-weight: 800; box-shadow: 0 4px 14px rgba(0,0,0,.07); }
 .workspace { position: relative; z-index: 1; min-width: 0; }
 .topline {
   position: relative;
@@ -632,6 +632,7 @@ tr:last-child td { border-bottom: 0; }
   padding: 26px;
   position: sticky;
   top: 24px;
+  background: var(--wash);
 }
 .focus-detail-card h3 {
   font-size: 24px;
@@ -678,12 +679,15 @@ tr:last-child td { border-bottom: 0; }
 }
 .free-experiments {
   display: grid;
-  gap: 8px;
+  gap: 12px;
   padding: 20px 0 0;
   border-top: 1px solid var(--line);
 }
 .free-experiments > .content-card-body {
   max-width: 560px;
+}
+.free-experiments .detail-head {
+  align-items: flex-start;
 }
 .add-orb {
   width: 30px;
@@ -965,11 +969,19 @@ tr:last-child td { border-bottom: 0; }
 .reflection-composer textarea { min-height: 126px; margin: 8px 0 12px; }
 .reflection-helper { max-width: 720px; margin: 8px 0 12px; line-height: 1.55; }
 .reflection-composer .toolbar { margin: 14px 0 0; align-items: center; }
-.reflection-card .content-card-label { font-size: 15px; }
+.reflection-space .document-panel > h3,
+.reflection-space .section-title {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.18;
+  margin: 0 0 14px;
+}
+.reflection-card .content-card-label { font-size: 13px; }
 .reflection-card {
   padding: 20px;
 }
-.reflection-card .content-card-body { max-width: 780px; font-size: 13px; font-weight: 400; }
+.reflection-card .content-card-body { max-width: 780px; font-size: 13px; font-weight: 500; }
 .reflection-card .content-card-body.is-empty { font-size: 12px; }
 .progress-list { display: grid; gap: 9px; }
 .progress-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted); }
@@ -1069,7 +1081,7 @@ tr:last-child td { border-bottom: 0; }
     display: flex;
     margin-left: 0;
     overflow-x: auto;
-    border-radius: 999px;
+    border-radius: 18px;
     background: rgba(255,255,255,.54);
     -webkit-overflow-scrolling: touch;
   }
