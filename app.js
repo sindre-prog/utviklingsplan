@@ -750,8 +750,7 @@ function focusDetail({ area, index }, data, editable) {
     el("div", { class: "focus-detail-titlebar" }, [
       el("h3", { text: area.title || "Bevegelsesønske" }),
       editable ? el("span", { class: "row-tools" }, [
-        el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editFocusArea(index) }, [icon("pencil")]),
-        el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteFocusArea(index) }, [icon("trash-2")])
+        el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editFocusArea(index) }, [icon("pencil")])
       ]) : null
     ].filter(Boolean)),
     focusDetailFields(area),
@@ -820,8 +819,7 @@ function sessionList(sessions) {
       ].filter(Boolean))
     ]),
     el("span", { class: "row-tools" }, [
-      el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editSession(index) }, [icon("pencil")]),
-      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteSession(index) }, [icon("trash-2")])
+      el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editSession(index) }, [icon("pencil")])
     ])
   ])));
 }
@@ -899,16 +897,17 @@ function editFocusArea(index) {
     const saved = await savePlan();
     if (!saved) throw new Error("Lagring feilet.");
     await reloadProgramAndRender("work");
-  });
+  }, hasAreaContent(area) ? { dangerLabel: "Slett fokus", onDanger: () => deleteFocusArea(index) } : {});
 }
 
 async function deleteFocusArea(index) {
-  if (!confirmDelete("Slette dette fokuset?")) return;
+  if (!confirmDelete("Slette dette fokuset?")) return false;
   setAreas(getAreas().filter((_, itemIndex) => itemIndex !== index));
   markDirty();
   const saved = await savePlan();
-  if (!saved) return;
+  if (!saved) return false;
   await reloadProgramAndRender("work");
+  return true;
 }
 
 function setAreas(values) {
@@ -978,16 +977,17 @@ function editSession(index) {
     const saved = await savePlan();
     if (!saved) throw new Error("Lagring feilet.");
     await reloadProgramAndRender("sessions");
-  });
+  }, index < sessions.length ? { dangerLabel: "Slett samtale", onDanger: () => deleteSession(index) } : {});
 }
 
 async function deleteSession(index) {
-  if (!confirmDelete("Slette denne samtalen?")) return;
+  if (!confirmDelete("Slette denne samtalen?")) return false;
   setSessions(getSessions().filter((_, itemIndex) => itemIndex !== index));
   markDirty();
   const saved = await savePlan();
-  if (!saved) return;
+  if (!saved) return false;
   await reloadProgramAndRender("sessions");
+  return true;
 }
 
 function setSessions(values) {
@@ -1016,8 +1016,7 @@ function actionList(actions, data) {
       actionMeta(action, data)
     ]),
     editable ? el("div", { class: "row-actions inline-actions action-tools" }, [
-      el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editAction(action, data) }, [icon("pencil")]),
-      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteAction(action.id) }, [icon("trash-2")])
+      el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editAction(action, data) }, [icon("pencil")])
     ]) : null
   ].filter(Boolean))));
 }
@@ -1064,22 +1063,34 @@ function reflectionsWorkspace(data) {
     el("section", { class: "panel document-panel" }, [
       el("p", { class: "eyebrow", text: "Logg" }),
       el("h3", { class: "section-title", text: "Refleksjoner" }),
-      reflectionsList(data.reflections)
+      reflectionsList(data.reflections, data)
     ])
   ].filter(Boolean));
 }
 
-function reflectionsList(reflections) {
+function reflectionsList(reflections, data) {
   if (!reflections.length) return emptyState("Ingen refleksjoner ennå", "Skriv korte notater når noe blir tydeligere, flytter seg eller bør tas med videre.");
-  return el("div", { class: "reflection-list" }, reflections.map((reflection) => el("article", { class: "content-card reflection-card" }, [
-    cardIcon("notebook-pen"),
-    el("p", { class: "content-card-label", text: reflection.visibility === "private" ? "Privat refleksjon" : "Delt refleksjon" }),
-    el("p", { class: "content-card-meta", text: formatDate(reflection.created_at) }),
-    contentPreview(reflection.body, "Tom refleksjon.", 4),
-    reflection.created_by === state.user?.id ? el("div", { class: "row-actions inline-actions" }, [
-      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteReflection(reflection.id) }, [icon("trash-2")])
-    ]) : null
-  ].filter(Boolean))));
+  return el("div", { class: "reflection-list" }, reflections.map((reflection) => {
+    const editable = reflection.created_by === state.user?.id;
+    return el("article", { class: "content-card reflection-card editable-row" }, [
+      el("button", {
+        class: "row-open",
+        type: "button",
+        onclick: editable ? () => editReflection(reflection, data) : undefined,
+        disabled: editable ? undefined : true
+      }, [
+        cardIcon("notebook-pen"),
+        el("span", { class: "row-main" }, [
+          el("span", { class: "content-card-label", text: reflection.visibility === "private" ? "Privat refleksjon" : "Delt refleksjon" }),
+          el("small", { class: "content-card-meta", text: formatDate(reflection.created_at) }),
+          contentPreview(reflection.body, "Tom refleksjon.", 4)
+        ])
+      ]),
+      editable ? el("span", { class: "row-tools" }, [
+        el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editReflection(reflection, data) }, [icon("pencil")])
+      ]) : null
+    ].filter(Boolean));
+  }));
 }
 
 function createAction(data, presetAreaId = "") {
@@ -1135,7 +1146,7 @@ function editAction(action, data) {
     }).eq("id", action.id);
     if (error) throw error;
     await reloadProgramAndRender("work");
-  });
+  }, { dangerLabel: "Slett eksperiment", onDanger: () => deleteAction(action.id) });
 }
 
 function actionDescription(values) {
@@ -1181,14 +1192,22 @@ function phaseLabel(status, parsed) {
   return "Planlagt";
 }
 
+function experimentStateClass(action, parsed) {
+  if (parsed.effect === "clear" || parsed.effect === "some") return "has-effect";
+  if (parsed.effect || parsed.learning || parsed.nextStep) return "is-reviewed";
+  if (parsed.observation || parsed.action || parsed.signals) return "is-testing";
+  return "is-planned";
+}
+
 async function deleteAction(id) {
-  if (!confirmDelete("Slette dette eksperimentet?")) return;
+  if (!confirmDelete("Slette dette eksperimentet?")) return false;
   const { error } = await state.sb.from("session_actions").delete().eq("id", id);
   if (error) {
     alert("Kunne ikke slette eksperimentet.");
-    return;
+    return false;
   }
   await reloadProgramAndRender("work");
+  return true;
 }
 
 function parseActionDescription(description) {
@@ -1257,14 +1276,31 @@ async function createReflection(programId) {
   await reloadProgramAndRender("reflections");
 }
 
+function editReflection(reflection, data) {
+  openEntityModal("Rediger refleksjon", "Refleksjon", [
+    textareaSpec("body", "Refleksjon", reflection.body || "", { placeholder: "Skriv en kort refleksjon..." }),
+    selectSpec("visibility", "Synlighet", [["private", "Privat"], ["shared_with_coach", "Del med coach"]], reflection.visibility || "private", false),
+    selectSpec("areaId", "Knytt til", [["", "Hele forløpet"], ...data.areas.map((area) => [area.id, area.title || "Utviklingsområde"])], reflection.development_area_id || "", false)
+  ], async (values) => {
+    const { error } = await state.sb.from("client_reflections").update({
+      body: values.body || "",
+      visibility: values.visibility || "private",
+      development_area_id: values.areaId || null
+    }).eq("id", reflection.id);
+    if (error) throw error;
+    await reloadProgramAndRender("reflections");
+  }, { dangerLabel: "Slett refleksjon", onDanger: () => deleteReflection(reflection.id) });
+}
+
 async function deleteReflection(id) {
-  if (!confirmDelete("Slette denne refleksjonen?")) return;
+  if (!confirmDelete("Slette denne refleksjonen?")) return false;
   const { error } = await state.sb.from("client_reflections").delete().eq("id", id);
   if (error) {
     alert("Kunne ikke slette refleksjonen.");
-    return;
+    return false;
   }
   await reloadProgramAndRender("reflections");
+  return true;
 }
 
 async function reloadProgramAndRender(activePane = "direction") {
@@ -1296,10 +1332,7 @@ function experimentRow(action, data, editable) {
   const meta = [area?.title, action.due_date && formatDate(action.due_date)].filter(Boolean).join(" · ");
   const preview = parsed.learning || parsed.observation || parsed.action || parsed.hypothesis || "Hva skal prøves i praksis?";
   const effect = effectLabel(parsed.effect);
-  return el("article", { class: "experiment-row" }, [
-    editable ? el("div", { class: "experiment-tools" }, [
-      el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteAction(action.id) }, [icon("trash-2")])
-    ]) : null,
+  return el("article", { class: `experiment-row ${experimentStateClass(action, parsed)}` }, [
     el("button", {
       class: "experiment-open",
       type: "button",
@@ -1350,8 +1383,13 @@ function planRail(client, plan, data) {
 }
 
 function saveStrip(editable = true) {
-  const items = [el("span", { class: "muted", id: "save-status", text: editable ? "Ingen endringer" : "Lesetilgang" })];
-  if (editable) items.push(button("Lagre", "save", savePlan));
+  const items = [el("span", { class: "save-status", id: "save-status", text: editable ? "Lagret" : "Lesetilgang" })];
+  if (editable) {
+    items.push(el("button", { class: "button primary save-button", id: "save-button", type: "button", disabled: true, onclick: savePlan }, [
+      icon("save"),
+      el("span", { text: "Lagret" })
+    ]));
+  }
   return el("div", { class: "save-strip" }, items);
 }
 
@@ -1368,10 +1406,29 @@ function setFormReadonly(form) {
 
 function markDirty() {
   state.dirty = true;
-  const status = $("#save-status");
-  if (status) status.textContent = "Ikke lagret";
+  setSaveState("dirty");
   clearTimeout(state.saveTimer);
   state.saveTimer = setTimeout(() => savePlan(), 1800);
+}
+
+function setSaveState(mode, text = "") {
+  const status = $("#save-status");
+  const buttonNode = $("#save-button");
+  const label = buttonNode?.querySelector("span");
+  const values = {
+    clean: ["Lagret", true],
+    dirty: ["Lagre", false],
+    saving: ["Lagrer...", true],
+    saved: ["Lagret", true],
+    error: ["Prøv igjen", false]
+  };
+  const [buttonText, disabled] = values[mode] || values.clean;
+  if (status) status.textContent = mode === "dirty" ? "Ikke lagret" : (mode === "saved" && text ? text : buttonText);
+  if (buttonNode) {
+    buttonNode.disabled = disabled;
+    buttonNode.classList.toggle("is-idle", disabled && mode !== "saving");
+  }
+  if (label) label.textContent = buttonText;
 }
 
 async function savePlan() {
@@ -1380,7 +1437,7 @@ async function savePlan() {
   if (!canOpenClient(client)) return;
   clearTimeout(state.saveTimer);
   const status = $("#save-status");
-  if (status) status.textContent = "Lagrer...";
+  setSaveState("saving");
   try {
     const current = state.programCache[client.id] || await loadClientProgram(client);
     if (!current) throw new Error("Mangler programrad.");
@@ -1405,10 +1462,11 @@ async function savePlan() {
     delete state.programCache[client.id];
     await loadProgramSummaries();
     state.dirty = false;
-    if (status) status.textContent = `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`;
+    setSaveState("saved", `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`);
     return true;
   } catch (error) {
     console.error("Kunne ikke lagre utviklingsplan", error);
+    setSaveState("error");
     if (status) status.textContent = "Lagring feilet";
     alert(`Kunne ikke lagre: ${error.message || "Ukjent feil"}`);
     return false;
@@ -1587,12 +1645,23 @@ function openClientEdit(client) {
   });
 }
 
-function openEntityModal(title, kicker, specs, onSave) {
-  state.modal = { specs, onSave };
+function openEntityModal(title, kicker, specs, onSave, options = {}) {
+  state.modal = { specs, onSave, ...options };
   $("#modal-title").textContent = title;
   $("#modal-kicker").textContent = kicker;
   $("#modal-message").textContent = "";
   $("#modal-fields").replaceChildren(...specs.map(renderSpec));
+  const dangerSlot = $("#modal-danger-slot");
+  if (dangerSlot) {
+    if (options.onDanger) {
+      dangerSlot.replaceChildren(el("button", { class: "button modal-danger-button", type: "button", onclick: handleModalDanger }, [
+        icon("trash-2"),
+        el("span", { text: options.dangerLabel || "Slett" })
+      ]));
+    } else {
+      dangerSlot.replaceChildren();
+    }
+  }
   $("#entity-modal").showModal();
   refreshIcons();
 }
@@ -1671,6 +1740,17 @@ $("#entity-form").addEventListener("submit", async (event) => {
     $("#modal-message").textContent = error.message || "Kunne ikke lagre.";
   }
 });
+
+async function handleModalDanger() {
+  if (!state.modal?.onDanger) return;
+  try {
+    $("#modal-message").textContent = "";
+    const deleted = await state.modal.onDanger();
+    if (deleted !== false) $("#entity-modal").close();
+  } catch (error) {
+    $("#modal-message").textContent = error.message || "Kunne ikke slette.";
+  }
+}
 
 async function inviteClient(values) {
   const { data: { session } } = await state.sb.auth.getSession();
