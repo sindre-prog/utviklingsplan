@@ -676,8 +676,8 @@ function workWorkspace(client, data, plan) {
       el("div", { class: "workspace-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fokusområder" }),
-        el("h3", { text: "Hva prioriterer vi å jobbe med?" }),
-        el("p", { class: "muted", text: "Fokusområder, eller utviklingsområder, kan være både indre eller ytre prosjekter. Indre prosjekter handler om deg, ytre handler om virksomheten din." })
+        el("h3", { text: "Hva er viktigst å jobbe med nå?" }),
+        el("p", { class: "muted", text: "Du kan ikke jobbe med alt samtidig. Velg 2–4 områder som faktisk vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Under hvert fokusområde definerer du hva du konkret vil teste ut." })
       ])
       ]),
       focusWorkbench(focusItems, data, editable),
