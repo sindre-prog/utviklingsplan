@@ -706,19 +706,15 @@ function focusWorkbench(items, data, editable) {
 }
 
 function focusList(items, editable, data, detail) {
-  return el("div", { class: "focus-grid" }, [
-    ...items.map(({ area, index }, itemIndex) => el("article", { class: `content-card focus-card ${itemIndex === 0 ? "active" : ""}` }, [
-      el("button", { class: "focus-card-body", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index }, data, editable, detail) }, [
-        cardIcon("crosshair"),
+  return el("div", { class: "focus-picker" }, [
+    ...items.map(({ area, index }, itemIndex) => el("article", { class: `focus-nav-item ${itemIndex === 0 ? "active" : ""}` }, [
+      el("button", { class: "focus-nav-button", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index }, data, editable, detail) }, [
+        el("span", { class: "focus-nav-icon" }, [icon("crosshair")]),
         el("span", { class: `type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" }),
-        el("span", { class: "content-card-label", text: `Fokus ${index + 1}` }),
-        el("strong", { class: "content-card-title", text: area.title || "Bevegelsesønske" }),
-        contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 4)
-      ]),
-      editable ? el("span", { class: "focus-card-tools" }, [
-        el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editFocusArea(index) }, [icon("pencil")]),
-        el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteFocusArea(index) }, [icon("trash-2")])
-      ]) : null
+        el("span", { class: "focus-nav-label", text: `Fokus ${index + 1}` }),
+        el("strong", { class: "focus-nav-title", text: area.title || "Bevegelsesønske" }),
+        contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 3)
+      ])
     ].filter(Boolean))),
     editable ? el("button", { class: "focus-add-card", type: "button", onclick: () => addFocusArea() }, [
       el("span", { class: "add-orb" }, [icon("plus")]),
@@ -729,8 +725,8 @@ function focusList(items, editable, data, detail) {
 }
 
 function selectFocusCard(buttonNode, item, data, editable, detail) {
-  const card = buttonNode.closest(".focus-card");
-  $$(".focus-card", card.parentElement).forEach((node) => node.classList.toggle("active", node === card));
+  const card = buttonNode.closest(".focus-nav-item");
+  $$(".focus-nav-item", card.parentElement).forEach((node) => node.classList.toggle("active", node === card));
   detail.replaceChildren(focusDetail(item, data, editable));
   refreshIcons();
 }
@@ -740,7 +736,13 @@ function focusDetail({ area, index }, data, editable) {
   return el("section", { class: "content-card focus-detail-card" }, [
     cardIcon("crosshair"),
     el("p", { class: "eyebrow", text: `Fokus ${index + 1}` }),
-    el("h3", { text: area.title || "Bevegelsesønske" }),
+    el("div", { class: "focus-detail-titlebar" }, [
+      el("h3", { text: area.title || "Bevegelsesønske" }),
+      editable ? el("span", { class: "row-tools" }, [
+        el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editFocusArea(index) }, [icon("pencil")]),
+        el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteFocusArea(index) }, [icon("trash-2")])
+      ]) : null
+    ].filter(Boolean)),
     contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 5),
     el("div", { class: "detail-divider" }),
     el("div", { class: "detail-head" }, [
