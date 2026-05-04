@@ -653,7 +653,7 @@ function documentBlock(label, value, emptyText) {
 
 function coachingFrame() {
   const items = [
-    ["lock-keyhole", "Konfidensialitet", "Det som deles i coachingrommet behandles konfidensielt."],
+    ["lock-keyhole", "Konfidensialitet", "Det som deles i coachingrommet behandles alltid konfidensielt."],
     ["heart-handshake", "Rolleavklaring", "Coaching er ikke terapi. Ved psykiske helseutfordringer anbefales kontakt med kvalifisert fagperson."],
     ["compass", "Ansvar", "Du eier egne mål, valg og handlinger. Coach fasiliterer refleksjon, retning og fremdrift."]
   ];
@@ -676,8 +676,8 @@ function workWorkspace(client, data, plan) {
       el("div", { class: "workspace-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fokusområder" }),
-        el("h3", { text: "Hva er viktigst å jobbe med nå?" }),
-        el("p", { class: "muted", text: "Du kan ikke jobbe med alt samtidig. Velg 2–4 områder som faktisk vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Under hvert fokusområde definerer du hva du konkret vil teste ut." })
+        el("h3", { text: "Hva er viktigst å jobbe med akkurat nå?" }),
+        el("p", { class: "muted", text: "Du kan ikke jobbe med alt samtidig. Velg 2–4 områder som faktisk vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Under hvert fokusområde definerer du hvilke eksperimenter du vil teste ut." })
       ])
       ]),
       focusWorkbench(focusItems, data, editable),
