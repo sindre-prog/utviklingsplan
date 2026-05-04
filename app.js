@@ -687,9 +687,11 @@ function workWorkspace(client, data, plan) {
 }
 
 function focusWorkbench(items, data, editable) {
+  if (!items.length) return focusEmptyState(editable);
+
   const selected = items[0] || null;
   const detail = el("aside", { class: "focus-detail" }, [
-    selected ? focusDetail(selected, data, editable) : focusDetailEmpty(editable, data)
+    focusDetail(selected, data, editable)
   ]);
   const grid = focusList(items, editable, data, detail);
   const freeActions = data.actions.filter((action) => !action.development_area_id && action.status !== "done");
@@ -698,7 +700,8 @@ function focusWorkbench(items, data, editable) {
     el("div", { class: "focus-detail-wrap" }, [
       detail,
       freeActions.length ? el("section", { class: "free-experiments" }, [
-        el("p", { class: "eyebrow", text: "Frie eksperimenter" }),
+        el("p", { class: "content-card-label", text: "Eksperimenter uten fokusområde" }),
+        el("p", { class: "content-card-body is-empty", text: "Disse er ikke knyttet til et fokusområde ennå. Rediger eksperimentet for å koble det til riktig fokus." }),
         el("div", { class: "experiment-list" }, freeActions.map((action) => experimentRow(action, data, editable)))
       ]) : null
     ].filter(Boolean))
@@ -743,7 +746,7 @@ function focusDetail({ area, index }, data, editable) {
         el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteFocusArea(index) }, [icon("trash-2")])
       ]) : null
     ].filter(Boolean)),
-    contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 5),
+    focusDetailFields(area),
     el("div", { class: "detail-divider" }),
     el("div", { class: "detail-head" }, [
       el("p", { class: "content-card-label", text: "Eksperimenter" }),
@@ -754,11 +757,25 @@ function focusDetail({ area, index }, data, editable) {
   ]);
 }
 
-function focusDetailEmpty(editable, data) {
-  return el("section", { class: "content-card focus-detail-card is-empty" }, [
+function focusDetailFields(area) {
+  const fields = [
+    ["Type", area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt"],
+    ["Hva vil du bevege?", area.movement || area.description],
+    ["Tegn på fremgang", area.progressSigns],
+    ["Neste praksis", area.nextPractice]
+  ];
+  return el("div", { class: "focus-detail-fields" }, fields.map(([label, value]) => el("article", { class: value ? "focus-detail-field" : "focus-detail-field is-empty" }, [
+    el("p", { class: "content-card-label", text: label }),
+    contentPreview(value, "Ikke fylt ut ennå.", 5)
+  ])));
+}
+
+function focusEmptyState(editable) {
+  return el("section", { class: "focus-empty-state" }, [
     cardIcon("crosshair"),
-    el("p", { class: "content-card-label", text: "Fokusområde" }),
-    contentPreview("", "Velg et fokusområde for å se eksperimenter knyttet til det.", 4),
+    el("p", { class: "eyebrow", text: "Fokusområder" }),
+    el("h3", { text: "Legg til første fokusområde" }),
+    el("p", { class: "muted", text: "Start med ett område dere vil undersøke, trene på eller bevege. Eksperimenter kan kobles på etterpå." }),
     editable ? button("Legg til fokusområde", "plus", () => addFocusArea(), "ghost") : null
   ].filter(Boolean));
 }
