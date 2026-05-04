@@ -37,6 +37,7 @@ body {
 a { color: inherit; }
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
+button, a { -webkit-tap-highlight-color: transparent; }
 .hidden { display: none !important; }
 .mobile-only { display: none !important; }
 .eyebrow {
@@ -281,6 +282,14 @@ input:focus, textarea:focus, select:focus { border-color: #000; box-shadow: 0 0 
 .card h3 { font-family: "Inter", system-ui, sans-serif; font-size: 20px; line-height: 1.18; font-weight: 700; margin-bottom: 8px; }
 .card p { margin: 0; }
 .card .muted { font-size: 13px; line-height: 1.48; }
+.client-card,
+.client-card h3,
+.client-card p,
+.client-card span {
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+}
+.client-card h3 { color: #000; }
 .meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .badge {
   display: inline-flex;
@@ -363,15 +372,21 @@ tr:last-child td { border-bottom: 0; }
 .plan-rail, .experiment-sidebar { position: sticky; top: 24px; display: grid; gap: 14px; }
 .workspace-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: #fff;
   width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.workspace-tabs::-webkit-scrollbar { display: none; }
 .workspace-tab {
+  flex: 0 0 auto;
   border: 0;
   display: inline-flex;
   min-height: 30px;
@@ -1083,6 +1098,9 @@ tr:last-child td { border-bottom: 0; }
 .modal::backdrop { background: rgba(23, 32, 27, .42); }
 .modal-panel {
   width: min(560px, calc(100vw - 32px));
+  max-height: min(760px, calc(100dvh - 32px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
   gap: 16px;
   padding: 22px;
@@ -1090,8 +1108,56 @@ tr:last-child td { border-bottom: 0; }
   background: #fff;
   box-shadow: var(--shadow);
 }
+.modal-panel textarea { min-height: 94px; }
 .modal-head, .modal-actions { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.modal-actions { justify-content: flex-end; }
+.modal-actions {
+  position: sticky;
+  bottom: -22px;
+  z-index: 2;
+  justify-content: flex-end;
+  padding-top: 12px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), #fff 28%);
+}
+.choice-field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.choice-field legend {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.choice-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.choice-pill { display: block; }
+.choice-pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.choice-pill span {
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+.choice-pill input:checked + span {
+  border-color: #000;
+  background: var(--hub);
+}
 .modal-section {
   display: grid;
   gap: 3px;
@@ -1157,11 +1223,36 @@ tr:last-child td { border-bottom: 0; }
   .auth-logo { left: 20px; width: 112px; }
   .logout-button { min-height: 34px; padding: 8px 14px; font-size: 12px; }
   .nav-item { min-height: 0; padding: 8px 11px; font-size: 12px; }
+  .workspace-tabs {
+    width: 100%;
+    border-radius: 18px;
+    padding: 4px;
+  }
+  .workspace-tab {
+    min-height: 34px;
+    padding: 8px 13px;
+    font-size: 12px;
+  }
   #view-title { font-size: 36px; }
   .topline { padding: 40px 20px 46px; grid-template-columns: 1fr; align-items: flex-start; min-height: 0; }
   .topline-actions { justify-content: flex-start; padding-bottom: 0; }
   .content { padding: 42px 20px 86px; }
   .auth-panel { padding: 24px; }
   .field-pair { grid-template-columns: 1fr; }
+  .choice-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .modal-panel {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    padding: 18px;
+    border-radius: 12px;
+  }
+  .modal-actions {
+    bottom: -18px;
+    gap: 8px;
+  }
+  .modal-actions .button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
   .save-strip { left: 12px; right: 12px; bottom: 12px; justify-content: space-between; }
 }

@@ -1094,18 +1094,17 @@ function createAction(data, presetAreaId = "") {
     sectionSpec("Under", "Noter raskt hva som faktisk skjedde når du prøvde."),
     textareaSpec("observation", "Hva la du merke til underveis?", "", { placeholder: "Underveis la jeg merke til..." }),
     sectionSpec("Etter", "Fylles ut når forsøket er prøvd."),
-    selectSpec("effect", "I hvilken grad flyttet dette noe?", [["", "Ikke avlest ennå"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], "", false),
+    choiceSpec("effect", "I hvilken grad flyttet dette noe?", [["", "Ikke avlest"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], ""),
     textareaSpec("learning", "Hva lærte du?", "", { placeholder: "Det jeg la merke til var..." }),
     textareaSpec("nextStep", "Hva justerer du neste gang?", "", { placeholder: "Neste gang vil jeg..." })
   ], async (values) => {
-    const phase = actionPhase(values);
     await state.sb.from("session_actions").insert({
       program_id: data.program.id,
       development_area_id: values.areaId || null,
       title: values.title,
       description: actionDescription(values),
       due_date: values.dueDate || null,
-      status: phase
+      status: "todo"
     });
     await reloadProgramAndRender("work");
   });
@@ -1124,17 +1123,15 @@ function editAction(action, data) {
     sectionSpec("Under", "Hva observerte du mens det skjedde?"),
     textareaSpec("observation", "Hva la du merke til underveis?", parsed.observation),
     sectionSpec("Etter", "Hva skjedde, og hva tar du med videre?"),
-    selectSpec("effect", "I hvilken grad flyttet dette noe?", [["", "Ikke avlest ennå"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || "", false),
+    choiceSpec("effect", "I hvilken grad flyttet dette noe?", [["", "Ikke avlest"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || ""),
     textareaSpec("learning", "Hva lærte du?", parsed.learning),
     textareaSpec("nextStep", "Hva justerer du neste gang?", parsed.nextStep)
   ], async (values) => {
-    const phase = actionPhase(values);
     const { error } = await state.sb.from("session_actions").update({
       development_area_id: values.areaId || null,
       title: values.title,
       description: actionDescription(values),
-      due_date: values.dueDate || null,
-      status: phase
+      due_date: values.dueDate || null
     }).eq("id", action.id);
     if (error) throw error;
     await reloadProgramAndRender("work");
@@ -1153,12 +1150,6 @@ function actionDescription(values) {
     nextStep: values.nextStep || ""
   };
   return Object.values(payload).some(Boolean) ? JSON.stringify(payload) : null;
-}
-
-function actionPhase(values) {
-  if (values.effect || values.learning || values.nextStep) return "reviewed";
-  if (values.observation || values.action || values.signals) return "testing";
-  return "planned";
 }
 
 function actionMeta(action, data) {
@@ -1618,6 +1609,10 @@ function selectSpec(name, label, options, value = [], multiple = false) {
   return { kind: "select", name, label, options, value, multiple };
 }
 
+function choiceSpec(name, label, options, value = "") {
+  return { kind: "choice", name, label, options, value };
+}
+
 function sectionSpec(title, text = "") {
   return { kind: "section", title, text };
 }
@@ -1637,6 +1632,15 @@ function renderSpec(spec) {
     });
     return el("label", { text: spec.label }, [select]);
   }
+  if (spec.kind === "choice") {
+    return el("fieldset", { class: "choice-field" }, [
+      el("legend", { text: spec.label }),
+      el("div", { class: "choice-row" }, spec.options.map(([value, label]) => el("label", { class: "choice-pill" }, [
+        el("input", { type: "radio", name: spec.name, value, checked: spec.value === value }),
+        el("span", { text: label })
+      ])))
+    ]);
+  }
   if (spec.kind === "textarea") {
     return el("label", { text: spec.label }, [el("textarea", { name: spec.name, text: spec.value, ...(spec.attrs || {}) })]);
   }
@@ -1653,7 +1657,11 @@ $("#entity-form").addEventListener("submit", async (event) => {
   state.modal.specs.forEach((spec) => {
     if (spec.kind === "section") return;
     const control = $(`[name='${spec.name}']`, $("#entity-form"));
-    values[spec.name] = spec.multiple ? Array.from(control.selectedOptions).map((option) => option.value) : control.value.trim();
+    if (spec.kind === "choice") {
+      values[spec.name] = $(`[name='${spec.name}']:checked`, $("#entity-form"))?.value || "";
+    } else {
+      values[spec.name] = spec.multiple ? Array.from(control.selectedOptions).map((option) => option.value) : control.value.trim();
+    }
   });
   try {
     $("#modal-message").textContent = "Lagrer...";
