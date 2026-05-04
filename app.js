@@ -712,7 +712,6 @@ function focusList(items, editable, data, detail) {
   return el("div", { class: "focus-picker" }, [
     ...items.map(({ area, index }, itemIndex) => el("article", { class: `focus-nav-item ${itemIndex === 0 ? "active" : ""}` }, [
       el("button", { class: "focus-nav-button", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index }, data, editable, detail) }, [
-        el("span", { class: "focus-nav-icon" }, [icon("crosshair")]),
         el("span", { class: `type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" }),
         el("span", { class: "focus-nav-label", text: `Fokus ${index + 1}` }),
         el("strong", { class: "focus-nav-title", text: area.title || "Bevegelsesønske" }),
@@ -737,7 +736,6 @@ function selectFocusCard(buttonNode, item, data, editable, detail) {
 function focusDetail({ area, index }, data, editable) {
   const actions = data.actions.filter((action) => action.development_area_id === area.id && action.status !== "done");
   return el("section", { class: "content-card focus-detail-card" }, [
-    cardIcon("crosshair"),
     el("p", { class: "eyebrow", text: `Fokus ${index + 1}` }),
     el("div", { class: "focus-detail-titlebar" }, [
       el("h3", { text: area.title || "Bevegelsesønske" }),
@@ -772,7 +770,6 @@ function focusDetailFields(area) {
 
 function focusEmptyState(editable) {
   return el("section", { class: "focus-empty-state" }, [
-    cardIcon("crosshair"),
     el("p", { class: "eyebrow", text: "Fokusområder" }),
     el("h3", { text: "Legg til første fokusområde" }),
     el("p", { class: "muted", text: "Start med ett område dere vil undersøke, trene på eller bevege. Eksperimenter kan kobles på etterpå." }),
