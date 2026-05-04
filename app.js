@@ -476,8 +476,7 @@ async function renderPlan(activePane = "direction") {
 
   const editable = canEditProgram(client);
   if (editable) form.addEventListener("input", () => markDirty());
-  const rail = experimentSidebar(client, data);
-  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form, rail]), ...(editable ? [saveStrip(true)] : []));
+  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]), ...(editable ? [saveStrip(true)] : []));
   if (!editable) setFormReadonly(form);
   setupWorkspaceTabs();
   refreshIcons();
@@ -523,13 +522,14 @@ function programToFormState(data) {
     c_sessions: data.program.session_count || "",
     c_duration: data.program.session_duration || "",
     areas: data.areas.length ? data.areas.map((area) => ({
+      id: area.id || "",
       title: area.title || "",
       description: area.description || "",
       projectType: area.project_type || "inner",
       movement: area.movement || area.description || "",
       progressSigns: area.progress_signs || "",
       nextPractice: area.next_practice || ""
-    })) : [{ title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }],
+    })) : [{ id: "", title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }],
     sessions: data.sessions.map((session) => ({
       date: session.session_date || "",
       focus: session.focus || "",
@@ -577,6 +577,7 @@ function hiddenPlanState(plan) {
 }
 
 function directionWorkspace(client, plan) {
+  const editable = canEditProgram(client);
   return el("div", { class: "direction-stack" }, [
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
@@ -585,13 +586,13 @@ function directionWorkspace(client, plan) {
           el("h3", { text: "Hva jobber vi mot?" }),
           el("p", { class: "muted", text: "Utvikling uten retning blir tilfeldig. Her samler dere hva coachingen skal bidra til, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig." })
         ]),
-        canEditProgram(client) ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
+        editable ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
       el("div", { class: "direction-grid" }, [
-        directionCard("Mål med coachingen", plan.c_purpose, "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?", true),
-        directionCard("Tegn på måloppnåelse", plan.c_success, "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?"),
-        directionCard("Prosess og samarbeid", plan.c_practical, "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?"),
-        directionCard("Rammer og forventninger", plan.c_confidentiality, "Hva skal være avklart om konfidensialitet, ansvar og grensesetting?")
+        directionCard("Mål med coachingen", plan.c_purpose, "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?", "target", "wide", editable ? () => editDirection(plan) : null),
+        directionCard("Tegn på måloppnåelse", plan.c_success, "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?", "route", "wide", editable ? () => editDirection(plan) : null),
+        directionCard("Prosess og samarbeid", plan.c_practical, "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?", "handshake", "", editable ? () => editDirection(plan) : null),
+        directionCard("Rammer og forventninger", plan.c_confidentiality, "Hva skal være avklart om konfidensialitet, ansvar og grensesetting?", "shield-check", "", editable ? () => editDirection(plan) : null)
       ]),
       coachingFrame()
     ])
@@ -621,11 +622,17 @@ function setPlanValue(name, value) {
   if (control) control.value = value || "";
 }
 
-function directionCard(label, value, emptyText, large = false) {
-  return el("article", { class: `content-card direction-card ${large ? "large" : ""} ${value ? "has-value" : "is-empty"}` }, [
+function directionCard(label, value, emptyText, iconName, layout = "", onOpen = null) {
+  return el("article", { class: `content-card direction-card ${layout} ${value ? "has-value" : "is-empty"}` }, [
+    cardIcon(iconName),
     el("p", { class: "content-card-label", text: label }),
-    contentPreview(value, emptyText, large ? 6 : 5)
+    contentPreview(value, emptyText, layout === "wide" ? 6 : 5),
+    onOpen ? el("button", { class: "card-hit", type: "button", title: "Rediger", onclick: onOpen }) : null
   ].filter(Boolean));
+}
+
+function cardIcon(name) {
+  return el("span", { class: "card-icon" }, [icon(name)]);
 }
 
 function contentPreview(value, emptyText, lines = 5) {
@@ -663,6 +670,7 @@ function workWorkspace(client, data, plan) {
   const focusItems = plan.areas
     .map((area, index) => ({ area: normalizeArea(area), index }))
     .filter((item) => hasAreaContent(item.area));
+  const editable = canEditProgram(client);
   return el("div", { class: "work-stack" }, [
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
@@ -672,17 +680,36 @@ function workWorkspace(client, data, plan) {
         el("p", { class: "muted", text: "Fokusområder, eller utviklingsområder, kan være både indre eller ytre prosjekter. Indre prosjekter handler om deg, ytre handler om virksomheten din." })
       ])
       ]),
-      focusList(focusItems, client),
+      focusWorkbench(focusItems, data, editable),
       areasEditor(plan.areas)
     ])
   ]);
 }
 
-function focusList(items, client = getCurrentClient()) {
-  const editable = canEditProgram(client);
+function focusWorkbench(items, data, editable) {
+  const selected = items[0] || null;
+  const detail = el("aside", { class: "focus-detail" }, [
+    selected ? focusDetail(selected, data, editable) : focusDetailEmpty(editable, data)
+  ]);
+  const grid = focusList(items, editable, data, detail);
+  const freeActions = data.actions.filter((action) => !action.development_area_id && action.status !== "done");
+  return el("div", { class: "focus-workbench" }, [
+    el("div", { class: "focus-master" }, [grid]),
+    el("div", { class: "focus-detail-wrap" }, [
+      detail,
+      freeActions.length ? el("section", { class: "free-experiments" }, [
+        el("p", { class: "eyebrow", text: "Frie eksperimenter" }),
+        el("div", { class: "experiment-list" }, freeActions.map((action) => experimentRow(action, data, editable)))
+      ]) : null
+    ].filter(Boolean))
+  ]);
+}
+
+function focusList(items, editable, data, detail) {
   return el("div", { class: "focus-grid" }, [
-    ...items.map(({ area, index }) => el("article", { class: "content-card focus-card" }, [
-      el("button", { class: "focus-card-body", type: "button", onclick: () => editFocusArea(index) }, [
+    ...items.map(({ area, index }, itemIndex) => el("article", { class: `content-card focus-card ${itemIndex === 0 ? "active" : ""}` }, [
+      el("button", { class: "focus-card-body", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index }, data, editable, detail) }, [
+        cardIcon("crosshair"),
         el("span", { class: `type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" }),
         el("span", { class: "content-card-label", text: `Fokus ${index + 1}` }),
         el("strong", { class: "content-card-title", text: area.title || "Bevegelsesønske" }),
@@ -698,6 +725,39 @@ function focusList(items, client = getCurrentClient()) {
       el("strong", { text: "Legg til fokusområde" })
     ]) : null,
     !items.length && !editable ? emptyState("Ingen fokus ennå", "Fokusområder blir synlige her når de er lagt inn.") : null
+  ].filter(Boolean));
+}
+
+function selectFocusCard(buttonNode, item, data, editable, detail) {
+  const card = buttonNode.closest(".focus-card");
+  $$(".focus-card", card.parentElement).forEach((node) => node.classList.toggle("active", node === card));
+  detail.replaceChildren(focusDetail(item, data, editable));
+  refreshIcons();
+}
+
+function focusDetail({ area, index }, data, editable) {
+  const actions = data.actions.filter((action) => action.development_area_id === area.id && action.status !== "done");
+  return el("section", { class: "content-card focus-detail-card" }, [
+    cardIcon("crosshair"),
+    el("p", { class: "eyebrow", text: `Fokus ${index + 1}` }),
+    el("h3", { text: area.title || "Bevegelsesønske" }),
+    contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 5),
+    el("div", { class: "detail-divider" }),
+    el("div", { class: "detail-head" }, [
+      el("p", { class: "content-card-label", text: "Eksperimenter" }),
+      editable ? el("button", { class: "icon-button", type: "button", title: "Nytt eksperiment", onclick: () => createAction(data, area.id) }, [icon("plus")]) : null
+    ].filter(Boolean)),
+    actions.length ? el("div", { class: "experiment-list" }, actions.map((action) => experimentRow(action, data, editable))) :
+      el("p", { class: "content-card-body is-empty", text: "Ingen eksperimenter knyttet til dette fokuset ennå." })
+  ]);
+}
+
+function focusDetailEmpty(editable, data) {
+  return el("section", { class: "content-card focus-detail-card is-empty" }, [
+    cardIcon("crosshair"),
+    el("p", { class: "content-card-label", text: "Fokusområde" }),
+    contentPreview("", "Velg et fokusområde for å se eksperimenter knyttet til det.", 4),
+    editable ? button("Legg til fokusområde", "plus", () => addFocusArea(), "ghost") : null
   ].filter(Boolean));
 }
 
@@ -724,9 +784,9 @@ function sessionsWorkspace(sessions) {
 }
 
 function sessionList(sessions) {
-  return el("div", { class: "focus-list session-list" }, sessions.map((session, index) => el("article", { class: "focus-row editable-row" }, [
+  return el("div", { class: "session-list" }, sessions.map((session, index) => el("article", { class: "content-card session-card editable-row" }, [
     el("button", { class: "row-open", type: "button", onclick: () => editSession(index) }, [
-      el("span", { class: "row-index", text: String(index + 1).padStart(2, "0") }),
+      cardIcon("messages-square"),
       el("span", { class: "row-main" }, [
         el("strong", { text: session.focus || "Samtale uten tittel" }),
         el("small", { class: "content-card-meta", text: [session.date && formatDate(session.date), session.goal && `Mål: ${session.goal}`].filter(Boolean).join(" · ") || "Ingen dato eller samtalemål" }),
@@ -986,6 +1046,7 @@ function reflectionsWorkspace(data) {
 function reflectionsList(reflections) {
   if (!reflections.length) return emptyState("Ingen refleksjoner ennå", "Skriv korte notater når noe blir tydeligere, flytter seg eller bør tas med videre.");
   return el("div", { class: "reflection-list" }, reflections.map((reflection) => el("article", { class: "content-card reflection-card" }, [
+    cardIcon("notebook-pen"),
     el("p", { class: "content-card-label", text: reflection.visibility === "private" ? "Privat refleksjon" : "Delt refleksjon" }),
     el("p", { class: "content-card-meta", text: formatDate(reflection.created_at) }),
     contentPreview(reflection.body, "Tom refleksjon.", 4),
@@ -995,10 +1056,10 @@ function reflectionsList(reflections) {
   ].filter(Boolean))));
 }
 
-function createAction(data) {
+function createAction(data, presetAreaId = "") {
   openEntityModal("Nytt eksperiment", "Arbeid", [
     inputSpec("title", "Navn på eksperiment"),
-    selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], [], false),
+    selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], presetAreaId || "", false),
     textareaSpec("situation", "Hvor skal det prøves?"),
     textareaSpec("response", "Hva skal du gjøre annerledes?"),
     textareaSpec("observe", "Hva skal du legge merke til?"),
@@ -1298,10 +1359,11 @@ function getAreas() {
 }
 
 function normalizeArea(area) {
-  if (!area) return { title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
-  if (typeof area === "string") return { title: area.trim(), description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
+  if (!area) return { id: "", title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
+  if (typeof area === "string") return { id: "", title: area.trim(), description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
   const movement = (area.movement || area.description || "").trim();
   return {
+    id: area.id || "",
     title: (area.title || "").trim(),
     description: (area.description || movement).trim(),
     projectType: area.projectType === "outer" || area.project_type === "outer" ? "outer" : "inner",
