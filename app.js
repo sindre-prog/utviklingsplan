@@ -1086,18 +1086,26 @@ function createAction(data, presetAreaId = "") {
   openEntityModal("Nytt eksperiment", "Arbeid", [
     inputSpec("title", "Navn på eksperiment"),
     selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], presetAreaId || "", false),
-    textareaSpec("situation", "Hvor skal det prøves?"),
-    textareaSpec("response", "Hva skal du gjøre annerledes?"),
-    textareaSpec("observe", "Hva skal du legge merke til?"),
-    inputSpec("dueDate", "Når vil du se tilbake på dette?", "date")
+    sectionSpec("Før", "Gjør forsøket tydelig før du går ut og tester."),
+    textareaSpec("hypothesis", "Hva vil du undersøke?", "", { placeholder: "Jeg vil teste om..." }),
+    textareaSpec("action", "Hva skal du gjøre i praksis?", "", { placeholder: "I neste relevante situasjon skal jeg..." }),
+    textareaSpec("signals", "Hva vil være tegn på at det virker?", "", { placeholder: "Jeg vil se etter..." }),
+    inputSpec("dueDate", "Når vil du se tilbake?", "date"),
+    sectionSpec("Under", "Noter raskt hva som faktisk skjedde når du prøvde."),
+    textareaSpec("observation", "Hva la du merke til underveis?", "", { placeholder: "Underveis la jeg merke til..." }),
+    sectionSpec("Etter", "Fylles ut når forsøket er prøvd."),
+    selectSpec("effect", "I hvilken grad flyttet dette noe?", [["", "Ikke avlest ennå"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], "", false),
+    textareaSpec("learning", "Hva lærte du?", "", { placeholder: "Det jeg la merke til var..." }),
+    textareaSpec("nextStep", "Hva justerer du neste gang?", "", { placeholder: "Neste gang vil jeg..." })
   ], async (values) => {
+    const phase = actionPhase(values);
     await state.sb.from("session_actions").insert({
       program_id: data.program.id,
       development_area_id: values.areaId || null,
       title: values.title,
       description: actionDescription(values),
       due_date: values.dueDate || null,
-      status: "todo"
+      status: phase
     });
     await reloadProgramAndRender("work");
   });
@@ -1108,16 +1116,25 @@ function editAction(action, data) {
   openEntityModal("Rediger eksperiment", "Arbeid", [
     inputSpec("title", "Navn på eksperiment", "text", action.title || ""),
     selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], action.development_area_id || "", false),
-    textareaSpec("situation", "Hvor skal det prøves?", parsed.situation),
-    textareaSpec("response", "Hva skal du gjøre annerledes?", parsed.response),
-    textareaSpec("observe", "Hva skal du legge merke til?", parsed.observe),
-    inputSpec("dueDate", "Når vil du se tilbake på dette?", "date", action.due_date || "")
+    sectionSpec("Før", "Hva var planen og antakelsen?"),
+    textareaSpec("hypothesis", "Hva vil du undersøke?", parsed.hypothesis),
+    textareaSpec("action", "Hva skal du gjøre i praksis?", parsed.action),
+    textareaSpec("signals", "Hva vil være tegn på at det virker?", parsed.signals),
+    inputSpec("dueDate", "Når vil du se tilbake?", "date", action.due_date || ""),
+    sectionSpec("Under", "Hva observerte du mens det skjedde?"),
+    textareaSpec("observation", "Hva la du merke til underveis?", parsed.observation),
+    sectionSpec("Etter", "Hva skjedde, og hva tar du med videre?"),
+    selectSpec("effect", "I hvilken grad flyttet dette noe?", [["", "Ikke avlest ennå"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || "", false),
+    textareaSpec("learning", "Hva lærte du?", parsed.learning),
+    textareaSpec("nextStep", "Hva justerer du neste gang?", parsed.nextStep)
   ], async (values) => {
+    const phase = actionPhase(values);
     const { error } = await state.sb.from("session_actions").update({
       development_area_id: values.areaId || null,
       title: values.title,
       description: actionDescription(values),
-      due_date: values.dueDate || null
+      due_date: values.dueDate || null,
+      status: phase
     }).eq("id", action.id);
     if (error) throw error;
     await reloadProgramAndRender("work");
@@ -1125,11 +1142,23 @@ function editAction(action, data) {
 }
 
 function actionDescription(values) {
-  return [
-    values.situation && `Situasjon: ${values.situation}`,
-    values.response && `Prøve: ${values.response}`,
-    values.observe && `Observere: ${values.observe}`
-  ].filter(Boolean).join("\n\n") || null;
+  const payload = {
+    version: 2,
+    hypothesis: values.hypothesis || "",
+    action: values.action || "",
+    signals: values.signals || "",
+    observation: values.observation || "",
+    effect: values.effect || "",
+    learning: values.learning || "",
+    nextStep: values.nextStep || ""
+  };
+  return Object.values(payload).some(Boolean) ? JSON.stringify(payload) : null;
+}
+
+function actionPhase(values) {
+  if (values.effect || values.learning || values.nextStep) return "reviewed";
+  if (values.observation || values.action || values.signals) return "testing";
+  return "planned";
 }
 
 function actionMeta(action, data) {
@@ -1137,15 +1166,28 @@ function actionMeta(action, data) {
   const area = data.areas.find((item) => item.id === action.development_area_id);
   const rows = [
     area && ["Fokus", area.title || "Fokusområde"],
-    parsed.situation && ["Prøves i", parsed.situation],
-    parsed.response && ["Gjør annerledes", parsed.response],
-    parsed.observe && ["Se etter", parsed.observe]
+    parsed.hypothesis && ["Hypotese", parsed.hypothesis],
+    parsed.action && ["Handling", parsed.action],
+    parsed.signals && ["Tegn", parsed.signals],
+    parsed.observation && ["Underveis", parsed.observation],
+    parsed.learning && ["Læring", parsed.learning],
+    parsed.nextStep && ["Neste justering", parsed.nextStep]
   ].filter(Boolean);
-  if (!rows.length) return contentPreview("", action.due_date ? `Se tilbake ${formatDate(action.due_date)}` : "Legg til hvor, hva og hva du vil legge merke til.", 3);
+  if (!rows.length) return contentPreview("", action.due_date ? `Se tilbake ${formatDate(action.due_date)}` : "Legg til hypotese, handling og hva du vil avlese.", 3);
   return el("div", { class: "action-meta" }, rows.map(([label, value]) => el("div", {}, [
     el("span", { text: label }),
     contentPreview(value, "", 3)
   ])));
+}
+
+function effectLabel(value) {
+  return { low: "Lite effekt", some: "Noe effekt", clear: "Tydelig effekt" }[value] || "";
+}
+
+function phaseLabel(status, parsed) {
+  if (status === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep) return "Avlest";
+  if (status === "testing" || parsed.action || parsed.signals) return "Prøves ut";
+  return "Planlagt";
 }
 
 async function deleteAction(id) {
@@ -1159,7 +1201,25 @@ async function deleteAction(id) {
 }
 
 function parseActionDescription(description) {
-  const values = { situation: "", response: "", observe: "" };
+  const values = { hypothesis: "", action: "", signals: "", observation: "", effect: "", learning: "", nextStep: "", situation: "", response: "", observe: "" };
+  if (!description) return values;
+  try {
+    const parsed = JSON.parse(description);
+    if (parsed && typeof parsed === "object") {
+      return {
+        ...values,
+        hypothesis: parsed.hypothesis || "",
+        action: parsed.action || "",
+        signals: parsed.signals || "",
+        observation: parsed.observation || "",
+        effect: parsed.effect || "",
+        learning: parsed.learning || "",
+        nextStep: parsed.nextStep || ""
+      };
+    }
+  } catch (_) {
+    // Older experiments used labelled plain text.
+  }
   const sections = [
     ["situation", "Situasjon:"],
     ["response", "Prøve:"],
@@ -1175,7 +1235,13 @@ function parseActionDescription(description) {
     const end = nextStarts.length ? Math.min(...nextStarts) : description.length;
     values[key] = description.slice(afterLabel, end).trim();
   });
-  if (!values.situation && !values.response && !values.observe) values.response = description.trim();
+  values.hypothesis = values.situation;
+  values.action = values.response;
+  values.signals = values.observe;
+  if (!values.situation && !values.response && !values.observe) {
+    values.action = description.trim();
+    values.response = description.trim();
+  }
   return values;
 }
 
@@ -1237,7 +1303,8 @@ function experimentRow(action, data, editable) {
   const parsed = parseActionDescription(action.description || "");
   const area = data.areas.find((item) => item.id === action.development_area_id);
   const meta = [area?.title, action.due_date && formatDate(action.due_date)].filter(Boolean).join(" · ");
-  const preview = parsed.response || parsed.situation || parsed.observe || "Hva skal prøves i praksis?";
+  const preview = parsed.learning || parsed.observation || parsed.action || parsed.hypothesis || "Hva skal prøves i praksis?";
+  const effect = effectLabel(parsed.effect);
   return el("article", { class: "experiment-row" }, [
     editable ? el("div", { class: "experiment-tools" }, [
       el("button", { class: "icon-button danger-icon", type: "button", title: "Slett", onclick: () => deleteAction(action.id) }, [icon("trash-2")])
@@ -1249,9 +1316,13 @@ function experimentRow(action, data, editable) {
       disabled: editable ? undefined : true
     }, [
       el("span", {}, [
+        el("span", { class: "experiment-stage-row" }, [
+          el("small", { class: "phase-chip", text: phaseLabel(action.status, parsed) }),
+          effect ? el("small", { class: "effect-chip", text: effect }) : null
+        ].filter(Boolean)),
         el("strong", { text: action.title || "Eksperiment uten tittel" }),
         meta ? el("small", { class: "content-card-meta", text: meta }) : null,
-        contentPreview(parsed.response || parsed.situation || parsed.observe, preview, 2)
+        contentPreview(preview, "Legg til hypotese, handling og avlesning.", 2)
       ]),
       icon("chevron-right")
     ].filter(Boolean))
@@ -1547,7 +1618,17 @@ function selectSpec(name, label, options, value = [], multiple = false) {
   return { kind: "select", name, label, options, value, multiple };
 }
 
+function sectionSpec(title, text = "") {
+  return { kind: "section", title, text };
+}
+
 function renderSpec(spec) {
+  if (spec.kind === "section") {
+    return el("div", { class: "modal-section" }, [
+      el("strong", { text: spec.title }),
+      spec.text ? el("p", { text: spec.text }) : null
+    ].filter(Boolean));
+  }
   if (spec.kind === "select") {
     const select = el("select", { name: spec.name, multiple: spec.multiple });
     spec.options.forEach(([value, label]) => {
@@ -1570,6 +1651,7 @@ $("#entity-form").addEventListener("submit", async (event) => {
   }
   const values = {};
   state.modal.specs.forEach((spec) => {
+    if (spec.kind === "section") return;
     const control = $(`[name='${spec.name}']`, $("#entity-form"));
     values[spec.name] = spec.multiple ? Array.from(control.selectedOptions).map((option) => option.value) : control.value.trim();
   });
