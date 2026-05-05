@@ -590,7 +590,7 @@ function directionWorkspace(client, plan) {
       ].filter(Boolean)),
       el("div", { class: "direction-grid" }, [
         directionCard("Mål med coachingen", plan.c_purpose, "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?", "target", "wide", editable ? () => editDirection(plan) : null),
-        directionCard("Tegn på måloppnåelse", plan.c_success, "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?", "route", "wide", editable ? () => editDirection(plan) : null),
+        directionCard("Tegn på bevegelse", plan.c_success, "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?", "route", "wide", editable ? () => editDirection(plan) : null),
         directionCard("Prosess og samarbeid", plan.c_practical, "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?", "handshake", "", editable ? () => editDirection(plan) : null),
         directionCard("Rammer og forventninger", plan.c_confidentiality, "Hva skal være avklart om konfidensialitet, ansvar og grensesetting?", "shield-check", "", editable ? () => editDirection(plan) : null)
       ]),
@@ -601,10 +601,10 @@ function directionWorkspace(client, plan) {
 
 function editDirection(plan) {
   openEntityModal("Rediger retning", "Retning", [
-    textareaSpec("c_purpose", "Mål med coachingen", plan.c_purpose || "", { placeholder: "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?" }),
-    textareaSpec("c_success", "Tegn på måloppnåelse", plan.c_success || "", { placeholder: "Hva vil du, coach eller andre kunne merke hvis dette begynner å virke?" }),
-    textareaSpec("c_practical", "Prosess og samarbeid", plan.c_practical || "", { placeholder: "Hvordan skal samarbeidet fungere for at det skal bli nyttig?" }),
-    textareaSpec("c_confidentiality", "Rammer og forventninger", plan.c_confidentiality || "", { placeholder: "Hva må være avklart om konfidensialitet, ansvar og grensesetting?" })
+    textareaSpec("c_purpose", "Mål med coachingen", plan.c_purpose || "", { placeholder: "Hva ønsker du at coachingforløpet skal bidra til å bevege, avklare eller utvikle?" }),
+    textareaSpec("c_success", "Tegn på bevegelse", plan.c_success || "", { placeholder: "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?" }),
+    textareaSpec("c_practical", "Prosess og samarbeid", plan.c_practical || "", { placeholder: "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?" }),
+    textareaSpec("c_confidentiality", "Rammer og forventninger", plan.c_confidentiality || "", { placeholder: "Hva bør være avklart om konfidensialitet, ansvar, grenser og praktiske forventninger?" })
   ], async (values) => {
     setPlanValue("c_purpose", values.c_purpose);
     setPlanValue("c_success", values.c_success);
@@ -768,8 +768,7 @@ function focusDetailFields(area) {
   const fields = [
     ["Type", area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt"],
     ["Hva vil du bevege?", area.movement || area.description],
-    ["Tegn på fremgang", area.progressSigns],
-    ["Neste praksis", area.nextPractice]
+    ["Hvordan vil du merke fremgang?", area.progressSigns]
   ];
   return el("div", { class: "focus-detail-fields" }, fields.map(([label, value]) => el("article", { class: value ? "focus-detail-field" : "focus-detail-field is-empty" }, [
     el("p", { class: "content-card-label", text: label }),
@@ -781,7 +780,7 @@ function focusEmptyState(editable) {
   return el("section", { class: "focus-empty-state" }, [
     el("p", { class: "eyebrow", text: "Fokusområder" }),
     el("h3", { text: "Legg til første fokusområde" }),
-    el("p", { class: "muted", text: "Start med ett område dere vil undersøke, trene på eller bevege. Eksperimenter kan kobles på etterpå." }),
+    el("p", { class: "muted", text: "Start med ett område dere vil undersøke, forstå bedre eller bevege. Eksperimenter kan kobles på etterpå." }),
     editable ? button("Legg til fokusområde", "plus", () => addFocusArea(), "ghost") : null
   ].filter(Boolean));
 }
@@ -879,9 +878,8 @@ function editFocusArea(index) {
   openEntityModal(index >= areas.length || !hasAreaContent(area) ? "Legg til fokus" : "Rediger fokus", "Fokus", [
     inputSpec("title", "Kort tittel", "text", area.title, { maxlength: 64, placeholder: "Maks 6-8 ord" }),
     selectSpec("projectType", "Type", [["inner", "Indre prosjekt"], ["outer", "Ytre prosjekt"]], area.projectType || "inner", false),
-    textareaSpec("movement", "Hva vil du bevege?", area.movement || area.description, { placeholder: "Hva ønsker du å forstå, trene på eller gjøre annerledes?" }),
-    textareaSpec("progressSigns", "Tegn på fremgang", area.progressSigns, { placeholder: "Hva vil du merke i praksis når noe begynner å flytte seg?" }),
-    textareaSpec("nextPractice", "Neste praksis", area.nextPractice, { placeholder: "Hva er én liten ting du vil teste eller legge merke til før neste samtale?" })
+    textareaSpec("movement", "Hva vil du bevege?", area.movement || area.description, { placeholder: "Hva ønsker du å utvikle, forstå bedre eller gjøre annerledes innenfor dette fokuset?" }),
+    textareaSpec("progressSigns", "Hvordan vil du merke fremgang?", area.progressSigns, { placeholder: "Hva vil være små eller tydelige tegn på at du er i bevegelse?" })
   ], async (values) => {
     const next = [...areas];
     next[index] = {
@@ -890,7 +888,7 @@ function editFocusArea(index) {
       projectType: values.projectType || "inner",
       movement: values.movement || "",
       progressSigns: values.progressSigns || "",
-      nextPractice: values.nextPractice || ""
+      nextPractice: area.nextPractice || ""
     };
     setAreas(next.filter(hasAreaContent));
     markDirty();
@@ -956,12 +954,14 @@ function editSession(index) {
   const sessions = getSessions();
   const session = sessions[index] || { date: "", focus: "", goal: "", notes: "", actions: "", reflection: "" };
   openEntityModal(index >= sessions.length ? "Ny samtale" : "Rediger samtale", "Samtaler", [
+    sectionSpec("Før samtalen", "Hva ønsker du at samtalen skal hjelpe deg å avklare, forstå eller bevege?"),
     inputSpec("date", "Dato", "date", session.date || ""),
     inputSpec("focus", "Tittel", "text", session.focus || "", { maxlength: 72, placeholder: "Kort navn på samtalen" }),
-    textareaSpec("goal", "Mål med samtalen", session.goal || "", { placeholder: "Hva bør være tydeligere, annerledes eller mer mulig etter denne samtalen?" }),
-    textareaSpec("notes", "Ny innsikt", session.notes || ""),
-    textareaSpec("actions", "Hva skal prøves videre?", session.actions || ""),
-    textareaSpec("reflection", "Hva tar du med deg videre?", session.reflection || "")
+    textareaSpec("goal", "Mål med samtalen", session.goal || "", { placeholder: "Hva ønsker du at denne samtalen skal hjelpe deg å avklare, forstå eller bevege?" }),
+    sectionSpec("Etter samtalen", "Hva ble tydelig, og hva tar du med deg videre?"),
+    textareaSpec("notes", "Viktig innsikt", session.notes || "", { placeholder: "Hva ble tydeligere, viktigere eller annerledes etter samtalen?" }),
+    textareaSpec("actions", "Mulig neste steg", session.actions || "", { placeholder: "Er det noe du vil prøve, undersøke eller følge opp videre?" }),
+    textareaSpec("reflection", "Hva tar du med deg videre?", session.reflection || "", { placeholder: "Hva vil du huske, bruke eller komme tilbake til?" })
   ], async (values) => {
     const next = [...sessions];
     next[index] = {
