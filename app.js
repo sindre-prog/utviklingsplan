@@ -584,7 +584,7 @@ function directionWorkspace(client, plan) {
         el("div", {}, [
           el("p", { class: "eyebrow", text: "Retning" }),
           el("h3", { text: "Hva jobber vi mot?" }),
-          el("p", { class: "muted", text: "Utvikling uten retning blir tilfeldig. Her samler dere hva coachingen skal bidra til, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig." })
+          el("p", { class: "muted", text: "Utvikling uten retning blir tilfeldig. Her samler du hva coachingen skal bidra til, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig." })
         ]),
         editable ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
       ].filter(Boolean)),
@@ -677,7 +677,7 @@ function workWorkspace(client, data, plan) {
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fokusområder" }),
         el("h3", { text: "Hva er viktigst å jobbe med akkurat nå?" }),
-        el("p", { class: "muted", text: "Du kan ikke jobbe med alt samtidig. Velg 2–4 områder som faktisk vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Under hvert fokusområde definerer du hvilke eksperimenter du vil teste ut." })
+        el("p", { class: "muted", text: "Selv om retningen er tydelig, kan du ikke jobbe med alt samtidig. Velg 2–4 områder som vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Under hvert fokusområde definerer du hvilke eksperimenter du skal teste ut." })
       ])
       ]),
       focusWorkbench(focusItems, data, editable),
@@ -799,7 +799,7 @@ function sessionsWorkspace(sessions) {
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Samtaler" }),
         el("h3", { text: "Hva snakker vi om?" }),
-        el("p", { class: "muted", text: "Hver samtale skal fange innsikt, merforståelse, valg og hva som skal prøves videre. Den kan kobles til fokusområdene dine, men trenger ikke." })
+        el("p", { class: "muted", text: "Coachingsamtalene er dine. De skal fange innsikt, skape merforståelse, tydeliggjøre valg og definere hva som skal prøves videre. De kan kobles til fokusområdene dine, men trenger ikke." })
       ]),
       canEditProgram(getCurrentClient()) ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
     ].filter(Boolean)),
