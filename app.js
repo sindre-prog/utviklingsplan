@@ -680,13 +680,17 @@ function workWorkspace(client, data, plan) {
 }
 
 function focusWorkbench(items, data, editable) {
+  const freeActions = data.actions.filter((action) => !action.development_area_id && action.status !== "done");
   if (!items.length) {
-    return el("div", { class: "focus-workbench focus-workbench-empty" }, [
-      el("div", { class: "focus-master" }, [
-        focusIntro(),
-        focusEmptyState(editable)
-      ])
-    ]);
+    return el("div", { class: "focus-workspace-stack" }, [
+      el("div", { class: "focus-workbench focus-workbench-empty" }, [
+        el("div", { class: "focus-master" }, [
+          focusIntro(),
+          focusEmptyState(editable)
+        ])
+      ]),
+      freeExperimentSection(freeActions, data, editable)
+    ].filter(Boolean));
   }
 
   const selected = items[0] || null;
@@ -694,17 +698,16 @@ function focusWorkbench(items, data, editable) {
     focusDetail(selected, data, editable)
   ]);
   const grid = focusList(items, editable, data, detail);
-  const freeActions = data.actions.filter((action) => !action.development_area_id && action.status !== "done");
-  return el("div", { class: "focus-workbench" }, [
-    el("div", { class: "focus-master" }, [
-      focusIntro(),
-      grid
+  return el("div", { class: "focus-workspace-stack" }, [
+    el("div", { class: "focus-workbench" }, [
+      el("div", { class: "focus-master" }, [
+        focusIntro(),
+        grid
+      ]),
+      el("div", { class: "focus-detail-wrap" }, [detail])
     ]),
-    el("div", { class: "focus-detail-wrap" }, [
-      detail,
-      freeExperimentSection(freeActions, data, editable)
-    ].filter(Boolean))
-  ]);
+    freeExperimentSection(freeActions, data, editable)
+  ].filter(Boolean));
 }
 
 function focusIntro() {
@@ -718,10 +721,10 @@ function focusIntro() {
 function freeExperimentSection(actions, data, editable) {
   if (!actions.length && !editable) return null;
   return el("section", { class: "free-experiments" }, [
-    el("div", { class: "detail-head" }, [
+    el("div", { class: "experiment-section-head" }, [
       el("div", {}, [
-        el("p", { class: "content-card-label", text: "Eksperimenter uten fokusområde" }),
-        el("p", { class: "content-card-body is-empty", text: "Brukes når noe skal prøves uten å være knyttet til et bestemt fokusområde." })
+        el("h4", { text: "Frie eksperimenter" }),
+        el("p", { text: "Brukes når noe skal testes uten å knyttes til et bestemt fokusområde." })
       ]),
       editable ? el("button", { class: "icon-button", type: "button", title: "Nytt eksperiment uten fokusområde", onclick: () => createAction(data, "") }, [icon("plus")]) : null
     ].filter(Boolean)),
@@ -766,8 +769,11 @@ function focusDetail({ area, index }, data, editable) {
     ].filter(Boolean)),
     focusDetailFields(area),
     el("div", { class: "detail-divider" }),
-    el("div", { class: "detail-head" }, [
-      el("p", { class: "content-card-label", text: "Eksperimenter for dette fokuset" }),
+    el("div", { class: "experiment-section-head" }, [
+      el("div", {}, [
+        el("h4", { text: "Eksperimenter for dette fokuset" }),
+        el("p", { text: "Konkrete ting du vil teste, observere og lære av i praksis." })
+      ]),
       editable ? el("button", { class: "icon-button", type: "button", title: "Nytt eksperiment", onclick: () => createAction(data, area.id) }, [icon("plus")]) : null
     ].filter(Boolean)),
     actions.length ? el("div", { class: "experiment-list" }, actions.map((action) => experimentRow(action, data, editable))) :
