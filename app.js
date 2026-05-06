@@ -581,7 +581,7 @@ function directionWorkspace(client, plan) {
   const directionSpecs = getDirectionSpecs(plan);
   return el("div", { class: "direction-stack" }, [
     el("section", { class: "panel document-panel" }, [
-      workspaceIntro("Retning", "Hva jobber vi mot?", "Utvikling uten retning blir tilfeldig. Her samler du hva coachingen skal bidra til, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig."),
+      workspaceIntro("Retning", "Hva jobber vi mot?", "Utvikling uten retning blir tilfeldig. Her samler du hva coachingen skal bidra til på overordnet nivå, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig."),
       el("div", { class: "direction-grid" }, directionSpecs.map((spec) => (
         directionCard(spec.label, spec.value, spec.emptyText, spec.icon, spec.layout, editable ? () => editDirectionField(spec) : null)
       ))),
@@ -747,7 +747,7 @@ function focusWorkbench(items, data, editable) {
 }
 
 function focusIntro() {
-  return workspaceIntro("Fokusområder", "Hva er viktigst å jobbe med akkurat nå?", "Selv om retningen er tydelig, kan du ikke jobbe med alt samtidig. Velg 2-4 områder som vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Når et fokus er valgt, kan du koble på eksperimenter som skal testes i praksis.");
+  return workspaceIntro("Fokusområder", "Hva er viktigst å jobbe med akkurat nå?", "Selv med tydelig retning kan du ikke jobbe med alt samtidig. Velg 2–4 områder som flytter deg mot målet. Indre prosjekter handler om deg, ytre om virksomheten. Koble på eksperimenter som testes i praksis.");
 }
 
 function freeExperimentSection(actions, data, editable) {
@@ -816,7 +816,7 @@ function focusDetail({ area, index }, data, editable) {
 function focusDetailFields(area) {
   const fields = [
     ["Type", area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt"],
-    ["Hva vil du bevege?", area.movement || area.description],
+    ["Hva vil du bevege, endre på eller oppnå?", area.movement || area.description],
     ["Hvordan vil du merke fremgang?", area.progressSigns]
   ];
   return el("div", { class: "focus-detail-fields" }, fields.map(([label, value]) => el("article", { class: value ? "focus-detail-field" : "focus-detail-field is-empty" }, [
@@ -922,7 +922,7 @@ function editFocusArea(index) {
   openEntityModal(index >= areas.length || !hasAreaContent(area) ? "Legg til fokus" : "Rediger fokus", "Fokus", [
     inputSpec("title", "Kort tittel", "text", area.title, { maxlength: 64, placeholder: "Maks 6-8 ord" }),
     selectSpec("projectType", "Type", [["inner", "Indre prosjekt"], ["outer", "Ytre prosjekt"]], area.projectType || "inner", false),
-    textareaSpec("movement", "Hva vil du bevege?", area.movement || area.description, { placeholder: "Hva ønsker du å utvikle, forstå bedre eller gjøre annerledes innenfor dette fokuset?" }),
+    textareaSpec("movement", "Hva vil du bevege, endre på eller oppnå?", area.movement || area.description, { placeholder: "Hva ønsker du å utvikle, forstå bedre eller gjøre annerledes innenfor dette fokuset?" }),
     textareaSpec("progressSigns", "Hvordan vil du merke fremgang?", area.progressSigns, { placeholder: "Hva vil være små eller tydelige tegn på at du er i bevegelse?" })
   ], async (values) => {
     const next = [...areas];
