@@ -673,13 +673,6 @@ function workWorkspace(client, data, plan) {
   const editable = canEditProgram(client);
   return el("div", { class: "work-stack" }, [
     el("section", { class: "panel document-panel" }, [
-      el("div", { class: "workspace-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Fokusområder" }),
-        el("h3", { text: "Hva er viktigst å jobbe med akkurat nå?" }),
-        el("p", { class: "muted", text: "Selv om retningen er tydelig, kan du ikke jobbe med alt samtidig. Velg 2–4 områder som vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Under hvert fokusområde definerer du hvilke eksperimenter du skal teste ut." })
-      ])
-      ]),
       focusWorkbench(focusItems, data, editable),
       areasEditor(plan.areas)
     ])
@@ -687,7 +680,14 @@ function workWorkspace(client, data, plan) {
 }
 
 function focusWorkbench(items, data, editable) {
-  if (!items.length) return focusEmptyState(editable);
+  if (!items.length) {
+    return el("div", { class: "focus-workbench focus-workbench-empty" }, [
+      el("div", { class: "focus-master" }, [
+        focusIntro(),
+        focusEmptyState(editable)
+      ])
+    ]);
+  }
 
   const selected = items[0] || null;
   const detail = el("aside", { class: "focus-detail" }, [
@@ -696,11 +696,22 @@ function focusWorkbench(items, data, editable) {
   const grid = focusList(items, editable, data, detail);
   const freeActions = data.actions.filter((action) => !action.development_area_id && action.status !== "done");
   return el("div", { class: "focus-workbench" }, [
-    el("div", { class: "focus-master" }, [grid]),
+    el("div", { class: "focus-master" }, [
+      focusIntro(),
+      grid
+    ]),
     el("div", { class: "focus-detail-wrap" }, [
       detail,
       freeExperimentSection(freeActions, data, editable)
     ].filter(Boolean))
+  ]);
+}
+
+function focusIntro() {
+  return el("header", { class: "focus-intro" }, [
+    el("p", { class: "eyebrow", text: "Fokusområder" }),
+    el("h3", { text: "Hva er viktigst å jobbe med akkurat nå?" }),
+    el("p", { class: "muted", text: "Selv om retningen er tydelig, kan du ikke jobbe med alt samtidig. Velg 2-4 områder som vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Når et fokus er valgt, kan du koble på eksperimenter som skal testes i praksis." })
   ]);
 }
 
@@ -756,7 +767,7 @@ function focusDetail({ area, index }, data, editable) {
     focusDetailFields(area),
     el("div", { class: "detail-divider" }),
     el("div", { class: "detail-head" }, [
-      el("p", { class: "content-card-label", text: "Eksperimenter" }),
+      el("p", { class: "content-card-label", text: "Eksperimenter for dette fokuset" }),
       editable ? el("button", { class: "icon-button", type: "button", title: "Nytt eksperiment", onclick: () => createAction(data, area.id) }, [icon("plus")]) : null
     ].filter(Boolean)),
     actions.length ? el("div", { class: "experiment-list" }, actions.map((action) => experimentRow(action, data, editable))) :
