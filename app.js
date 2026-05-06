@@ -705,6 +705,7 @@ function workWorkspace(client, data, plan) {
   const editable = canEditProgram(client);
   return el("div", { class: "work-stack" }, [
     el("section", { class: "panel document-panel" }, [
+      focusIntro(),
       focusWorkbench(focusItems, data, editable),
       areasEditor(plan.areas)
     ])
@@ -717,7 +718,6 @@ function focusWorkbench(items, data, editable) {
     return el("div", { class: "focus-workspace-stack" }, [
       el("div", { class: "focus-workbench focus-workbench-empty" }, [
         el("div", { class: "focus-master" }, [
-          focusIntro(),
           focusEmptyState(editable)
         ])
       ]),
@@ -733,7 +733,6 @@ function focusWorkbench(items, data, editable) {
   return el("div", { class: "focus-workspace-stack" }, [
     el("div", { class: "focus-workbench" }, [
       el("div", { class: "focus-master" }, [
-        focusIntro(),
         grid
       ]),
       el("div", { class: "focus-detail-wrap" }, [detail])

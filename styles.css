@@ -375,7 +375,7 @@ tr:last-child td { border-bottom: 0; }
 .list-panel { margin-bottom: 16px; }
 
 .plan-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 48px; align-items: start; }
-.client-workspace { display: grid; gap: 26px; }
+.client-workspace { display: grid; gap: 30px; }
 .plan-rail, .experiment-sidebar { position: sticky; top: 24px; display: grid; gap: 14px; }
 .workspace-tabs {
   display: flex;
@@ -408,10 +408,17 @@ tr:last-child td { border-bottom: 0; }
 }
 .workspace-tab.active { background: var(--hub); color: #000; }
 .workspace-pane { display: none; }
-.workspace-pane.active { display: grid; gap: 22px; }
+.workspace-pane.active { display: grid; gap: 30px; }
 .direction-stack { display: grid; gap: 16px; }
 .work-stack { display: grid; gap: 16px; }
-.document-panel { padding: 0; border: 0; background: transparent; box-shadow: none; }
+.document-panel {
+  display: grid;
+  gap: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
 .document-list { display: grid; gap: 0; border-top: 1px solid var(--line); margin-top: 18px; }
 .document-block {
   display: grid;
@@ -430,8 +437,8 @@ tr:last-child td { border-bottom: 0; }
 }
 .content-card {
   position: relative;
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
   background: #fff;
   box-shadow: none;
 }
@@ -505,7 +512,6 @@ tr:last-child td { border-bottom: 0; }
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  margin-top: 20px;
 }
 .direction-card {
   min-height: 176px;
@@ -549,7 +555,7 @@ tr:last-child td { border-bottom: 0; }
 }
 .focus-workspace-stack {
   display: grid;
-  gap: 42px;
+  gap: 44px;
 }
 .focus-workbench {
   display: grid;
@@ -563,21 +569,36 @@ tr:last-child td { border-bottom: 0; }
 .focus-intro {
   display: grid;
   gap: 12px;
-  margin-bottom: 28px;
+  width: 100%;
+  padding-bottom: 30px;
+  border-bottom: 1px solid var(--line);
 }
+.workspace-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid var(--line);
+}
+.workspace-head > div { min-width: 0; }
+.workspace-head h3,
 .focus-intro h3 {
-  max-width: 560px;
+  max-width: 760px;
   font-size: 24px;
   font-weight: 700;
   line-height: 1.18;
 }
+.workspace-head .muted,
 .focus-intro .muted {
-  max-width: 620px;
+  max-width: 780px;
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   line-height: 1.55;
 }
+.workspace-head .muted { margin-top: 16px; }
+.workspace-head .button { flex: 0 0 auto; }
 .focus-master,
 .focus-detail-wrap {
   min-width: 0;
@@ -694,11 +715,11 @@ tr:last-child td { border-bottom: 0; }
   min-height: 420px;
   display: grid;
   align-content: start;
-  gap: 18px;
-  padding: 26px;
+  gap: 20px;
+  padding: 28px;
   position: sticky;
   top: 24px;
-  background: var(--wash);
+  background: #fff;
 }
 .focus-detail-card h3 {
   font-size: 24px;
@@ -891,21 +912,6 @@ tr:last-child td { border-bottom: 0; }
 .focus-panel .muted { max-width: 760px; font-size: 14px; line-height: 1.55; }
 .work-intro h3 { font-size: 24px; font-weight: 700; line-height: 1.18; }
 .work-intro .muted { max-width: 760px; line-height: 1.55; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-.workspace-head > div { min-width: 0; }
-.workspace-head h3 {
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.18;
-}
-.workspace-head .muted {
-  max-width: 780px;
-  margin: 16px 0 0;
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.55;
-}
-.workspace-head .button { flex: 0 0 auto; }
 .quiet-settings { display: grid; gap: 14px; }
 .area-pills { display: flex; flex-wrap: wrap; gap: 8px; }
 .area-pills span {
@@ -1432,15 +1438,18 @@ tr:last-child td { border-bottom: 0; }
   }
   .modal-actions {
     bottom: 0;
-    align-items: stretch;
+    min-height: calc(70px + env(safe-area-inset-bottom));
+    align-items: center;
     gap: 10px;
     margin-inline: -18px;
     padding: 14px 18px max(14px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--line);
     background: #fff;
+    flex: 0 0 auto;
   }
   .modal-primary-actions {
     flex: 1 1 auto;
+    align-items: center;
     gap: 8px;
   }
   #modal-danger-slot {
@@ -1453,9 +1462,12 @@ tr:last-child td { border-bottom: 0; }
   .modal-actions .button {
     flex: 1 1 0;
     min-width: 0;
+    height: 42px;
     min-height: 42px;
+    max-height: 42px;
     padding: 9px 14px;
     font-size: 13px;
+    line-height: 1;
   }
   .modal-actions .modal-danger-button {
     flex: 0 0 auto;
