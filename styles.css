@@ -566,12 +566,20 @@ tr:last-child td { border-bottom: 0; }
 .focus-workbench-empty {
   grid-template-columns: minmax(0, 680px);
 }
+.workspace-intro,
 .focus-intro {
   display: grid;
   gap: 12px;
   width: 100%;
   padding-bottom: 30px;
   border-bottom: 1px solid var(--line);
+}
+.workspace-intro-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-top: 2px;
 }
 .workspace-head {
   display: flex;
@@ -583,6 +591,7 @@ tr:last-child td { border-bottom: 0; }
 }
 .workspace-head > div { min-width: 0; }
 .workspace-head h3,
+.workspace-intro h3,
 .focus-intro h3 {
   max-width: 760px;
   font-size: 24px;
@@ -590,6 +599,7 @@ tr:last-child td { border-bottom: 0; }
   line-height: 1.18;
 }
 .workspace-head .muted,
+.workspace-intro .muted,
 .focus-intro .muted {
   max-width: 780px;
   margin: 0;
@@ -599,6 +609,7 @@ tr:last-child td { border-bottom: 0; }
 }
 .workspace-head .muted { margin-top: 16px; }
 .workspace-head .button { flex: 0 0 auto; }
+.workspace-intro .button { width: fit-content; }
 .focus-master,
 .focus-detail-wrap {
   min-width: 0;
@@ -808,7 +819,7 @@ tr:last-child td { border-bottom: 0; }
 .session-list {
   display: grid;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 0;
 }
 .focus-row {
   width: 100%;
@@ -1086,7 +1097,7 @@ tr:last-child td { border-bottom: 0; }
   color: var(--muted);
   font-size: 12px;
 }
-.reflection-composer textarea { min-height: 126px; margin: 8px 0 12px; }
+.reflection-composer textarea { min-height: 126px; margin: 0 0 12px; }
 .reflection-helper { max-width: 720px; margin: 8px 0 12px; line-height: 1.55; }
 .reflection-composer .toolbar { margin: 14px 0 0; align-items: center; }
 .reflection-space .document-panel > h3,
@@ -1340,6 +1351,7 @@ tr:last-child td { border-bottom: 0; }
   .client-filter-row { grid-template-columns: 1fr; }
   .workspace-head { flex-direction: column; align-items: stretch; gap: 14px; }
   .workspace-head .button { width: 100%; min-height: 38px; }
+  .workspace-intro-actions .button { width: fit-content; min-height: 38px; }
   .document-block, .focus-row, .editable-row, .row-open { grid-template-columns: 1fr; gap: 8px; }
   .direction-grid, .coaching-frame { grid-template-columns: 1fr; }
   .direction-card.wide { min-height: 160px; }

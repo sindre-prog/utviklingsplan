@@ -581,13 +581,7 @@ function directionWorkspace(client, plan) {
   const directionSpecs = getDirectionSpecs(plan);
   return el("div", { class: "direction-stack" }, [
     el("section", { class: "panel document-panel" }, [
-      el("div", { class: "workspace-head" }, [
-        el("div", {}, [
-          el("p", { class: "eyebrow", text: "Retning" }),
-          el("h3", { text: "Hva jobber vi mot?" }),
-          el("p", { class: "muted", text: "Utvikling uten retning blir tilfeldig. Her samler du hva coachingen skal bidra til, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig." })
-        ])
-      ].filter(Boolean)),
+      workspaceIntro("Retning", "Hva jobber vi mot?", "Utvikling uten retning blir tilfeldig. Her samler du hva coachingen skal bidra til, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig."),
       el("div", { class: "direction-grid" }, directionSpecs.map((spec) => (
         directionCard(spec.label, spec.value, spec.emptyText, spec.icon, spec.layout, editable ? () => editDirectionField(spec) : null)
       ))),
@@ -712,6 +706,17 @@ function workWorkspace(client, data, plan) {
   ]);
 }
 
+function workspaceIntro(kicker, title, text, actions = []) {
+  return el("header", { class: "workspace-intro" }, [
+    el("div", {}, [
+      el("p", { class: "eyebrow", text: kicker }),
+      el("h3", { text: title }),
+      el("p", { class: "muted", text })
+    ]),
+    actions.length ? el("div", { class: "workspace-intro-actions" }, actions) : null
+  ].filter(Boolean));
+}
+
 function focusWorkbench(items, data, editable) {
   const freeActions = data.actions.filter((action) => !action.development_area_id && action.status !== "done");
   if (!items.length) {
@@ -742,11 +747,7 @@ function focusWorkbench(items, data, editable) {
 }
 
 function focusIntro() {
-  return el("header", { class: "focus-intro" }, [
-    el("p", { class: "eyebrow", text: "Fokusområder" }),
-    el("h3", { text: "Hva er viktigst å jobbe med akkurat nå?" }),
-    el("p", { class: "muted", text: "Selv om retningen er tydelig, kan du ikke jobbe med alt samtidig. Velg 2-4 områder som vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Når et fokus er valgt, kan du koble på eksperimenter som skal testes i praksis." })
-  ]);
+  return workspaceIntro("Fokusområder", "Hva er viktigst å jobbe med akkurat nå?", "Selv om retningen er tydelig, kan du ikke jobbe med alt samtidig. Velg 2-4 områder som vil flytte deg mot målet ditt. Indre prosjekter handler om deg, ytre handler om virksomheten din. Når et fokus er valgt, kan du koble på eksperimenter som skal testes i praksis.");
 }
 
 function freeExperimentSection(actions, data, editable) {
@@ -842,12 +843,7 @@ function emptyState(title, text) {
 
 function sessionsWorkspace(sessions) {
   return el("section", { class: "panel document-panel" }, [
-    el("div", { class: "workspace-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Samtaler" }),
-        el("h3", { text: "Hva snakker vi om?" }),
-        el("p", { class: "muted", text: "Coachingsamtalene er dine. De skal fange innsikt, skape merforståelse, tydeliggjøre valg og definere hva som skal prøves videre. De kan kobles til fokusområdene dine, men trenger ikke." })
-      ]),
+    workspaceIntro("Samtaler", "Hva snakker vi om?", "Coachingsamtalene er dine. De skal fange innsikt, skape merforståelse, tydeliggjøre valg og definere hva som skal prøves videre. De kan kobles til fokusområdene dine, men trenger ikke.", [
       canEditProgram(getCurrentClient()) ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
     ].filter(Boolean)),
     sessions.length ? sessionList(sessions) : emptyState("Ingen samtaler ennå", "Legg inn en samtale når dere vil samle innsikt og neste bevegelse."),
@@ -1081,9 +1077,7 @@ function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
   return el("div", { class: "reflection-space" }, [
     canWriteReflection ? el("section", { class: "panel document-panel reflection-composer" }, [
-      el("p", { class: "eyebrow", text: "Ny refleksjon" }),
-      el("h3", { text: "Skriv for å forstå mer" }),
-      el("p", { class: "muted reflection-helper", text: "Refleksjoner gjør erfaringer tydeligere. Noter hva du legger merke til, hva som flytter seg, eller hva du vil ta med inn i neste samtale." }),
+      workspaceIntro("Ny refleksjon", "Skriv for å forstå mer", "Refleksjoner gjør erfaringer tydeligere. Noter hva du legger merke til, hva som flytter seg, eller hva du vil ta med inn i neste samtale."),
       el("textarea", { id: "reflection-body", placeholder: "Skriv en kort refleksjon..." }),
       el("div", { class: "field-pair" }, [
         el("label", { text: "Synlighet" }, [
@@ -1104,9 +1098,7 @@ function reflectionsWorkspace(data) {
         button("Lagre refleksjon", "notebook-pen", () => createReflection(data.program.id))
       ])
     ]) : el("section", { class: "panel document-panel reflection-note" }, [
-      el("p", { class: "eyebrow", text: "Refleksjon" }),
-      el("h3", { text: "Dette er ditt rom for refleksjon." }),
-      el("p", { class: "muted", text: "Som coach ser du refleksjoner som er delt med deg. Private refleksjoner blir ikke synlige her." })
+      workspaceIntro("Refleksjon", "Dette er ditt rom for refleksjon.", "Som coach ser du refleksjoner som er delt med deg. Private refleksjoner blir ikke synlige her.")
     ]),
     el("section", { class: "panel document-panel" }, [
       el("p", { class: "eyebrow", text: "Logg" }),
