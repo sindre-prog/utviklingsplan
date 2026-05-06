@@ -578,6 +578,7 @@ function hiddenPlanState(plan) {
 
 function directionWorkspace(client, plan) {
   const editable = canEditProgram(client);
+  const directionSpecs = getDirectionSpecs(plan);
   return el("div", { class: "direction-stack" }, [
     el("section", { class: "panel document-panel" }, [
       el("div", { class: "workspace-head" }, [
@@ -585,31 +586,62 @@ function directionWorkspace(client, plan) {
           el("p", { class: "eyebrow", text: "Retning" }),
           el("h3", { text: "Hva jobber vi mot?" }),
           el("p", { class: "muted", text: "Utvikling uten retning blir tilfeldig. Her samler du hva coachingen skal bidra til, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig." })
-        ]),
-        editable ? button("Rediger retning", "pencil", () => editDirection(plan), "ghost") : null
+        ])
       ].filter(Boolean)),
-      el("div", { class: "direction-grid" }, [
-        directionCard("Mål med coachingen", plan.c_purpose, "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?", "target", "wide", editable ? () => editDirection(plan) : null),
-        directionCard("Tegn på bevegelse", plan.c_success, "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?", "route", "wide", editable ? () => editDirection(plan) : null),
-        directionCard("Prosess og samarbeid", plan.c_practical, "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?", "handshake", "", editable ? () => editDirection(plan) : null),
-        directionCard("Rammer og forventninger", plan.c_confidentiality, "Hva skal være avklart om konfidensialitet, ansvar og grensesetting?", "shield-check", "", editable ? () => editDirection(plan) : null)
-      ]),
+      el("div", { class: "direction-grid" }, directionSpecs.map((spec) => (
+        directionCard(spec.label, spec.value, spec.emptyText, spec.icon, spec.layout, editable ? () => editDirectionField(spec) : null)
+      ))),
       coachingFrame()
     ])
   ]);
 }
 
-function editDirection(plan) {
-  openEntityModal("Rediger retning", "Retning", [
-    textareaSpec("c_purpose", "Mål med coachingen", plan.c_purpose || "", { placeholder: "Hva ønsker du at coachingforløpet skal bidra til å bevege, avklare eller utvikle?" }),
-    textareaSpec("c_success", "Tegn på bevegelse", plan.c_success || "", { placeholder: "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?" }),
-    textareaSpec("c_practical", "Prosess og samarbeid", plan.c_practical || "", { placeholder: "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?" }),
-    textareaSpec("c_confidentiality", "Rammer og forventninger", plan.c_confidentiality || "", { placeholder: "Hva bør være avklart om konfidensialitet, ansvar, grenser og praktiske forventninger?" })
+function getDirectionSpecs(plan) {
+  return [
+    {
+      key: "c_purpose",
+      label: "Mål med coachingen",
+      value: plan.c_purpose,
+      emptyText: "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?",
+      placeholder: "Hva ønsker du at coachingforløpet skal bidra til å bevege, avklare eller utvikle?",
+      icon: "target",
+      layout: "wide"
+    },
+    {
+      key: "c_success",
+      label: "Tegn på bevegelse",
+      value: plan.c_success,
+      emptyText: "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?",
+      placeholder: "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?",
+      icon: "route",
+      layout: "wide"
+    },
+    {
+      key: "c_practical",
+      label: "Prosess og samarbeid",
+      value: plan.c_practical,
+      emptyText: "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?",
+      placeholder: "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?",
+      icon: "handshake",
+      layout: ""
+    },
+    {
+      key: "c_confidentiality",
+      label: "Rammer og forventninger",
+      value: plan.c_confidentiality,
+      emptyText: "Hva skal være avklart om konfidensialitet, ansvar og grensesetting?",
+      placeholder: "Hva bør være avklart om konfidensialitet, ansvar, grenser og praktiske forventninger?",
+      icon: "shield-check",
+      layout: ""
+    }
+  ];
+}
+
+function editDirectionField(spec) {
+  openEntityModal(`Rediger ${spec.label.toLowerCase()}`, "Retning", [
+    textareaSpec(spec.key, spec.label, spec.value || "", { placeholder: spec.placeholder })
   ], async (values) => {
-    setPlanValue("c_purpose", values.c_purpose);
-    setPlanValue("c_success", values.c_success);
-    setPlanValue("c_practical", values.c_practical);
-    setPlanValue("c_confidentiality", values.c_confidentiality);
+    setPlanValue(spec.key, values[spec.key]);
     markDirty();
     const saved = await savePlan();
     if (!saved) throw new Error("Lagring feilet.");
@@ -1400,14 +1432,9 @@ function planRail(client, plan, data) {
 }
 
 function saveStrip(editable = true) {
-  const items = [el("span", { class: "save-status", id: "save-status", text: editable ? "Lagret" : "Lesetilgang" })];
-  if (editable) {
-    items.push(el("button", { class: "button primary save-button", id: "save-button", type: "button", disabled: true, onclick: savePlan }, [
-      icon("save"),
-      el("span", { text: "Lagret" })
-    ]));
-  }
-  return el("div", { class: "save-strip" }, items);
+  return el("div", { class: "save-strip" }, [
+    el("span", { class: "save-status", id: "save-status", text: editable ? "Lagret" : "Lesetilgang" })
+  ]);
 }
 
 function setFormReadonly(form) {
@@ -1430,22 +1457,15 @@ function markDirty() {
 
 function setSaveState(mode, text = "") {
   const status = $("#save-status");
-  const buttonNode = $("#save-button");
-  const label = buttonNode?.querySelector("span");
   const values = {
-    clean: ["Lagret", true],
-    dirty: ["Lagre", false],
-    saving: ["Lagrer...", true],
-    saved: ["Lagret", true],
-    error: ["Prøv igjen", false]
+    clean: "Lagret",
+    dirty: "Endringer lagres...",
+    saving: "Lagrer...",
+    saved: "Lagret",
+    error: "Lagring feilet"
   };
-  const [buttonText, disabled] = values[mode] || values.clean;
-  if (status) status.textContent = mode === "dirty" ? "Ikke lagret" : (mode === "saved" && text ? text : buttonText);
-  if (buttonNode) {
-    buttonNode.disabled = disabled;
-    buttonNode.classList.toggle("is-idle", disabled && mode !== "saving");
-  }
-  if (label) label.textContent = buttonText;
+  const statusText = values[mode] || values.clean;
+  if (status) status.textContent = mode === "saved" && text ? text : statusText;
 }
 
 async function savePlan() {
