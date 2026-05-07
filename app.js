@@ -399,6 +399,7 @@ function clientGrid(clients) {
   return el("div", { class: "grid three" }, clients.map((client) => {
     const program = state.programSummaries[client.id];
     const canOpen = canOpenClient(client);
+    const activated = isClientActivated(client);
     return el("button", {
       class: `card client-card ${canOpen ? "" : "is-locked"}`,
       disabled: !canOpen,
@@ -410,7 +411,7 @@ function clientGrid(clients) {
       el("p", { class: "muted", text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" }),
       el("p", { class: "card-subline", text: coachNames(client) ? `Coach: ${coachNames(client)}` : client.email || "" }),
       el("div", { class: "meta-row" }, [
-        el("span", { class: `badge ${client.consent_given ? "ok" : "warn"}`, text: client.consent_given ? "Aktivert" : "Ikke aktivert" }),
+        el("span", { class: `badge ${activated ? "ok" : "warn"}`, text: activated ? "Aktivert" : "Ikke aktivert" }),
         el("span", { class: "badge", text: program?.sessionCount === 1 ? "1 samtale" : `${program?.sessionCount || 0} samtaler` })
       ])
     ]);
@@ -437,7 +438,7 @@ function renderAdmin() {
   const renderClientsTable = () => {
     const clients = sortClients(filterClients(state.clients, clientSearch.value, adminCoachFilter.value), adminSortFilter.value);
     clientTableSlot.replaceChildren(adminTable("Alle klienter", ["Navn", "Coach", "Status", "Tilgang", ""], clients.map((client) => [
-      client.name || "-", coachNames(client) || "-", client.consent_given ? "Aktivert" : "Ikke aktivert",
+      client.name || "-", coachNames(client) || "-", isClientActivated(client) ? "Aktivert" : "Ikke aktivert",
       canOpenClient(client) ? "Kan åpnes" : "Kun oversikt",
       actionGroup([
         ["Åpne", () => openClientPlan(client), !canOpenClient(client)],
@@ -1957,6 +1958,10 @@ function getCurrentClient() {
   return state.clients.find((item) => item.id === state.selectedClientId) || state.client;
 }
 
+function isClientActivated(client) {
+  return Boolean(client?.consent_given || client?.consent_date || client?.user_id);
+}
+
 function filterClients(clients, query, coachId = "all", status = "all") {
   const q = query.trim().toLowerCase();
   return clients.filter((client) => {
@@ -1965,8 +1970,8 @@ function filterClients(clients, query, coachId = "all", status = "all") {
     const matchesCoach = coachId === "all" || (client.coach_ids || []).includes(coachId);
     const matchesStatus =
       status === "all" ||
-      (status === "active" && client.consent_given) ||
-      (status === "pending" && !client.consent_given) ||
+      (status === "active" && isClientActivated(client)) ||
+      (status === "pending" && !isClientActivated(client)) ||
       (status === "sessions" && (program?.sessionCount || 0) > 0) ||
       (status === "missing-plan" && !hasProgramContent(program));
     return matchesQuery && matchesCoach && matchesStatus;
