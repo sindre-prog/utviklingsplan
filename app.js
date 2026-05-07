@@ -421,16 +421,6 @@ function renderAdmin() {
   ]);
   const coachSearch = el("input", { class: "search", placeholder: "Søk coach" });
   const clientSearch = el("input", { class: "search", placeholder: "Søk klient, coach eller arbeidsgiver" });
-  const adminCoachFilter = el("select", { class: "filter-select", "aria-label": "Filtrer klienter på coach" }, [
-    el("option", { value: "all", text: "Alle coacher" }),
-    ...state.coaches.map((coach) => el("option", { value: coach.id, text: coach.name || "Uten navn" }))
-  ]);
-  const adminSortFilter = el("select", { class: "filter-select", "aria-label": "Sorter klienter" }, [
-    el("option", { value: "name", text: "Navn A-Å" }),
-    el("option", { value: "next-session", text: "Neste samtale" }),
-    el("option", { value: "created-desc", text: "Opprettet nyest" }),
-    el("option", { value: "created-asc", text: "Opprettet eldst" })
-  ]);
   const coachTableSlot = el("div");
   const clientTableSlot = el("div");
   const renderCoaches = () => {
@@ -453,10 +443,18 @@ function renderAdmin() {
       ])
     ])));
   };
+  const adminCoachFilter = filterMenu([
+    { value: "all", label: "Alle coacher" },
+    ...state.coaches.map((coach) => ({ value: coach.id, label: coach.name || "Uten navn" }))
+  ], "all", "Filtrer klienter på coach", renderClientsTable);
+  const adminSortFilter = filterMenu([
+    { value: "name", label: "Navn A-Å" },
+    { value: "next-session", label: "Neste samtale" },
+    { value: "created-desc", label: "Opprettet nyest" },
+    { value: "created-asc", label: "Opprettet eldst" }
+  ], "name", "Sorter klienter", renderClientsTable);
   coachSearch.addEventListener("input", renderCoaches);
   clientSearch.addEventListener("input", renderClientsTable);
-  adminCoachFilter.addEventListener("change", renderClientsTable);
-  adminSortFilter.addEventListener("change", renderClientsTable);
   $("#content").replaceChildren(
     el("section", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
@@ -469,7 +467,7 @@ function renderAdmin() {
       el("div", { class: "toolbar" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })])
       ]),
-      el("div", { class: "filter-row admin-filter-row" }, [clientSearch, selectWrap(adminCoachFilter), selectWrap(adminSortFilter)]),
+      el("div", { class: "filter-row admin-filter-row" }, [clientSearch, adminCoachFilter, adminSortFilter]),
       clientTableSlot
     ])
   );

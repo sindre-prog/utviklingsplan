@@ -379,6 +379,90 @@ tr:last-child td { border-bottom: 0; }
   border-color: var(--ink);
   box-shadow: 0 0 0 3px rgba(0,0,0,.06);
 }
+.filter-menu {
+  position: relative;
+  width: auto;
+  min-width: 0;
+}
+.filter-menu-button {
+  width: 100%;
+  min-width: 180px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 10px 16px;
+  text-align: left;
+  box-shadow: 0 1px 0 rgba(0,0,0,.02);
+}
+.filter-menu-button i {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  stroke-width: 2.4;
+}
+.filter-menu.open .filter-menu-button,
+.filter-menu-button:focus-visible {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+  outline: none;
+}
+.filter-menu-list {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 2px;
+  min-width: max(100%, 230px);
+  padding: 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: 0 18px 46px rgba(0,0,0,.12), 0 3px 12px rgba(0,0,0,.06);
+}
+.filter-menu-list[hidden] {
+  display: none;
+}
+.filter-menu-option {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 8px 10px;
+  text-align: left;
+}
+.filter-menu-option:hover,
+.filter-menu-option:focus-visible {
+  background: rgba(0,0,0,.045);
+  outline: none;
+}
+.filter-menu-check {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+}
 .client-filter-row {
   display: grid;
   grid-template-columns: minmax(260px, 1.4fr) minmax(160px, .8fr) minmax(160px, .8fr);
@@ -388,7 +472,8 @@ tr:last-child td { border-bottom: 0; }
 }
 .client-filter-row .search,
 .client-filter-row .filter-select,
-.client-filter-row .filter-select-wrap {
+.client-filter-row .filter-select-wrap,
+.client-filter-row .filter-menu {
   width: 100%;
   max-width: none;
   min-width: 0;
@@ -407,7 +492,8 @@ tr:last-child td { border-bottom: 0; }
 }
 .admin-filter-row .search,
 .admin-filter-row .filter-select,
-.admin-filter-row .filter-select-wrap {
+.admin-filter-row .filter-select-wrap,
+.admin-filter-row .filter-menu {
   width: 100%;
   max-width: none;
   min-width: 0;
