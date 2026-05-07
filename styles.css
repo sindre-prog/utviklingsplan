@@ -339,7 +339,46 @@ tr:last-child td { border-bottom: 0; }
 .search { max-width: 340px; }
 .filter-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .filter-row .search { min-width: min(320px, 100%); }
-.filter-select { width: auto; min-width: 160px; font-size: 13px; }
+.filter-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+.filter-select-wrap::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  border-right: 1.7px solid var(--ink);
+  border-bottom: 1.7px solid var(--ink);
+  transform: rotate(45deg) translateY(-2px);
+  pointer-events: none;
+}
+.filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: auto;
+  min-width: 180px;
+  height: 44px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  outline: none;
+  padding: 10px 42px 10px 16px;
+  box-shadow: 0 1px 0 rgba(0,0,0,.02);
+}
+.filter-select:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+}
 .client-filter-row {
   display: grid;
   grid-template-columns: minmax(260px, 1.4fr) minmax(160px, .8fr) minmax(160px, .8fr);
@@ -348,13 +387,16 @@ tr:last-child td { border-bottom: 0; }
   margin: 14px 0 18px;
 }
 .client-filter-row .search,
-.client-filter-row .filter-select {
+.client-filter-row .filter-select,
+.client-filter-row .filter-select-wrap {
   width: 100%;
   max-width: none;
   min-width: 0;
+}
+.client-filter-row .search,
+.client-filter-row .filter-select {
   min-height: 38px;
   border-radius: 999px;
-  padding-inline: 14px;
 }
 .admin-filter-row {
   display: grid;
@@ -364,13 +406,16 @@ tr:last-child td { border-bottom: 0; }
   margin: 14px 0 18px;
 }
 .admin-filter-row .search,
-.admin-filter-row .filter-select {
+.admin-filter-row .filter-select,
+.admin-filter-row .filter-select-wrap {
   width: 100%;
   max-width: none;
   min-width: 0;
+}
+.admin-filter-row .search,
+.admin-filter-row .filter-select {
   min-height: 38px;
   border-radius: 999px;
-  padding-inline: 14px;
 }
 .list-panel { margin-bottom: 16px; }
 

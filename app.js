@@ -206,17 +206,28 @@ async function loadProgramSummaries() {
     .select("id, client_id, status, start_date, end_date, purpose, success_criteria")
     .in("client_id", ids);
   (programs || []).forEach((program) => {
-    state.programSummaries[program.client_id] = { ...program, sessionCount: 0, areaCount: 0 };
+    state.programSummaries[program.client_id] = { ...program, sessionCount: 0, areaCount: 0, nextSessionDate: null };
   });
   const programIds = (programs || []).map((program) => program.id);
   if (!programIds.length) return;
   const [{ data: sessions }, { data: areas }] = await Promise.all([
-    state.sb.from("coaching_sessions").select("id, program_id").in("program_id", programIds),
+    state.sb.from("coaching_sessions").select("id, program_id, session_date").in("program_id", programIds),
     state.sb.from("development_areas").select("id, program_id").in("program_id", programIds)
   ]);
   (sessions || []).forEach((session) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === session.program_id);
-    if (summary) summary.sessionCount += 1;
+    if (summary) {
+      summary.sessionCount += 1;
+      if (session.session_date) {
+        const sessionTime = new Date(session.session_date).getTime();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (sessionTime >= today.getTime()) {
+          const currentTime = summary.nextSessionDate ? new Date(summary.nextSessionDate).getTime() : Number.POSITIVE_INFINITY;
+          if (sessionTime < currentTime) summary.nextSessionDate = session.session_date;
+        }
+      }
+    }
   });
   (areas || []).forEach((area) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === area.program_id);
@@ -264,45 +275,49 @@ function metric(label, value, iconName, help) {
   ]);
 }
 
+function selectWrap(select) {
+  return el("span", { class: "filter-select-wrap" }, [select]);
+}
+
 function renderClients() {
   if (state.profile.role === "client") return navigate("plan", state.client?.id);
   setHeader("Utviklingsplaner", "Klienter", [button("Inviter klient", "user-plus", () => openClientInvite())]);
   const content = $("#content");
   const visibleClients = getVisibleClients();
-  const active = visibleClients.filter((client) => client.consent_given).length;
-  const pending = visibleClients.length - active;
   const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
+  const companyCount = new Set(visibleClients
+    .map((client) => (client.employer || "").trim().toLowerCase())
+    .filter(Boolean)).size;
   const search = el("input", { class: "search", placeholder: "Søk etter navn, e-post, coach eller arbeidsgiver" });
   const coachFilter = el("select", { class: "filter-select", "aria-label": "Filtrer på coach" }, [
     el("option", { value: "all", text: "Alle coacher" }),
     ...filterCoaches.map((coach) => el("option", { value: coach.id, text: coach.name || "Uten navn" }))
   ]);
-  const statusFilter = el("select", { class: "filter-select", "aria-label": "Filtrer på status" }, [
-    el("option", { value: "all", text: "Alle statuser" }),
-    el("option", { value: "active", text: "Aktive" }),
-    el("option", { value: "pending", text: "Ikke innlogget" }),
-    el("option", { value: "sessions", text: "Har sesjoner" }),
-    el("option", { value: "missing-plan", text: "Mangler plan" })
+  const sortFilter = el("select", { class: "filter-select", "aria-label": "Sorter klienter" }, [
+    el("option", { value: "name", text: "Navn A-Å" }),
+    el("option", { value: "next-session", text: "Neste samtale" }),
+    el("option", { value: "created-desc", text: "Opprettet nyest" }),
+    el("option", { value: "created-asc", text: "Opprettet eldst" })
   ]);
   const results = el("div");
   const render = () => {
-    const filtered = filterClients(visibleClients, search.value, coachFilter.value, statusFilter.value);
+    const filtered = sortClients(filterClients(visibleClients, search.value, coachFilter.value), sortFilter.value);
     results.replaceChildren(clientGrid(filtered));
   };
   search.addEventListener("input", render);
   coachFilter.addEventListener("change", render);
-  statusFilter.addEventListener("change", render);
+  sortFilter.addEventListener("change", render);
   content.replaceChildren(
     el("div", { class: "grid three summary-grid page-summary" }, [
       metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Klienter med utviklingsplaner" : "Dine klientforløp"),
-      metric("Aktive", String(active), "activity", "Klienter som har aktivert kontoen"),
-      metric("Venter", String(pending), "mail-warning", "Invitert, men har ikke aktivert konto")
+      metric("Coacher", String(filterCoaches.length), "user-round-check", state.profile.role === "admin" ? "Coacher med tilgang til klientforløp" : "Coach knyttet til dine klienter"),
+      metric("Selskaper", String(companyCount), "building-2", "Arbeidsgivere registrert på klienter")
     ]),
     el("div", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Arbeidsflate" }), el("h3", { text: "Klientoversikt" })])
       ]),
-      el("div", { class: "filter-row client-filter-row" }, [search, coachFilter, statusFilter]),
+      el("div", { class: "filter-row client-filter-row" }, [search, selectWrap(coachFilter), selectWrap(sortFilter)]),
       results
     ])
   );
@@ -344,12 +359,11 @@ function renderAdmin() {
     el("option", { value: "all", text: "Alle coacher" }),
     ...state.coaches.map((coach) => el("option", { value: coach.id, text: coach.name || "Uten navn" }))
   ]);
-  const adminStatusFilter = el("select", { class: "filter-select", "aria-label": "Filtrer klienter på status" }, [
-    el("option", { value: "all", text: "Alle statuser" }),
-    el("option", { value: "active", text: "Aktive" }),
-    el("option", { value: "pending", text: "Ikke innlogget" }),
-    el("option", { value: "sessions", text: "Har sesjoner" }),
-    el("option", { value: "missing-plan", text: "Mangler plan" })
+  const adminSortFilter = el("select", { class: "filter-select", "aria-label": "Sorter klienter" }, [
+    el("option", { value: "name", text: "Navn A-Å" }),
+    el("option", { value: "next-session", text: "Neste samtale" }),
+    el("option", { value: "created-desc", text: "Opprettet nyest" }),
+    el("option", { value: "created-asc", text: "Opprettet eldst" })
   ]);
   const coachTableSlot = el("div");
   const clientTableSlot = el("div");
@@ -362,7 +376,7 @@ function renderAdmin() {
     ])));
   };
   const renderClientsTable = () => {
-    const clients = filterClients(state.clients, clientSearch.value, adminCoachFilter.value, adminStatusFilter.value);
+    const clients = sortClients(filterClients(state.clients, clientSearch.value, adminCoachFilter.value), adminSortFilter.value);
     clientTableSlot.replaceChildren(adminTable("Alle klienter", ["Navn", "Coach", "Status", "Tilgang", ""], clients.map((client) => [
       client.name || "-", coachNames(client) || "-", client.consent_given ? "Aktiv" : "Ikke innlogget",
       canOpenClient(client) ? "Kan åpnes" : "Kun oversikt",
@@ -376,7 +390,7 @@ function renderAdmin() {
   coachSearch.addEventListener("input", renderCoaches);
   clientSearch.addEventListener("input", renderClientsTable);
   adminCoachFilter.addEventListener("change", renderClientsTable);
-  adminStatusFilter.addEventListener("change", renderClientsTable);
+  adminSortFilter.addEventListener("change", renderClientsTable);
   $("#content").replaceChildren(
     el("section", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
@@ -389,7 +403,7 @@ function renderAdmin() {
       el("div", { class: "toolbar" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })])
       ]),
-      el("div", { class: "filter-row admin-filter-row" }, [clientSearch, adminCoachFilter, adminStatusFilter]),
+      el("div", { class: "filter-row admin-filter-row" }, [clientSearch, selectWrap(adminCoachFilter), selectWrap(adminSortFilter)]),
       clientTableSlot
     ])
   );
@@ -1889,6 +1903,21 @@ function filterClients(clients, query, coachId = "all", status = "all") {
       (status === "sessions" && (program?.sessionCount || 0) > 0) ||
       (status === "missing-plan" && !hasProgramContent(program));
     return matchesQuery && matchesCoach && matchesStatus;
+  });
+}
+
+function sortClients(clients, sortBy = "name") {
+  const byName = (a, b) => (a.name || "").localeCompare(b.name || "", "nb", { sensitivity: "base" });
+  const createdTime = (client) => client.created_at ? new Date(client.created_at).getTime() : 0;
+  const nextSessionTime = (client) => {
+    const date = state.programSummaries[client.id]?.nextSessionDate;
+    return date ? new Date(date).getTime() : Number.POSITIVE_INFINITY;
+  };
+  return [...clients].sort((a, b) => {
+    if (sortBy === "created-desc") return createdTime(b) - createdTime(a) || byName(a, b);
+    if (sortBy === "created-asc") return createdTime(a) - createdTime(b) || byName(a, b);
+    if (sortBy === "next-session") return nextSessionTime(a) - nextSessionTime(b) || byName(a, b);
+    return byName(a, b);
   });
 }
 
