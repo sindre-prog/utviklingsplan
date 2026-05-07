@@ -138,6 +138,10 @@ function bindAuth() {
     setMessage("#password-message", "Setter passord...");
     const { error } = await state.sb.auth.updateUser({ password });
     if (error) return setMessage("#password-message", `Feil: ${error.message}`);
+    await state.sb
+      .from("clients")
+      .update({ consent_given: true, consent_date: new Date().toISOString() })
+      .eq("user_id", state.user.id);
     window.history.replaceState(null, "", window.location.pathname);
     await bootstrapApp();
   });
@@ -406,9 +410,8 @@ function clientGrid(clients) {
       el("p", { class: "muted", text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" }),
       el("p", { class: "card-subline", text: coachNames(client) ? `Coach: ${coachNames(client)}` : client.email || "" }),
       el("div", { class: "meta-row" }, [
-        el("span", { class: `badge ${client.consent_given ? "ok" : "warn"}`, text: client.consent_given ? "Aktiv" : "Ikke innlogget" }),
-        el("span", { class: "badge", text: program?.sessionCount === 1 ? "1 sesjon" : `${program?.sessionCount || 0} sesjoner` }),
-        el("span", { class: "badge", text: program?.start_date ? formatDate(program.start_date) : "Uten startdato" })
+        el("span", { class: `badge ${client.consent_given ? "ok" : "warn"}`, text: client.consent_given ? "Aktivert" : "Ikke aktivert" }),
+        el("span", { class: "badge", text: program?.sessionCount === 1 ? "1 samtale" : `${program?.sessionCount || 0} samtaler` })
       ])
     ]);
   }));
@@ -434,7 +437,7 @@ function renderAdmin() {
   const renderClientsTable = () => {
     const clients = sortClients(filterClients(state.clients, clientSearch.value, adminCoachFilter.value), adminSortFilter.value);
     clientTableSlot.replaceChildren(adminTable("Alle klienter", ["Navn", "Coach", "Status", "Tilgang", ""], clients.map((client) => [
-      client.name || "-", coachNames(client) || "-", client.consent_given ? "Aktiv" : "Ikke innlogget",
+      client.name || "-", coachNames(client) || "-", client.consent_given ? "Aktivert" : "Ikke aktivert",
       canOpenClient(client) ? "Kan åpnes" : "Kun oversikt",
       actionGroup([
         ["Åpne", () => openClientPlan(client), !canOpenClient(client)],
