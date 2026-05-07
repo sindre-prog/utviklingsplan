@@ -275,8 +275,76 @@ function metric(label, value, iconName, help) {
   ]);
 }
 
-function selectWrap(select) {
-  return el("span", { class: "filter-select-wrap" }, [select]);
+function filterMenu(options, initialValue, ariaLabel, onChange) {
+  const current = el("span", { class: "filter-menu-current" });
+  const menu = el("div", { class: "filter-menu-list", role: "listbox", hidden: true });
+  const trigger = el("button", {
+    class: "filter-menu-button",
+    type: "button",
+    "aria-haspopup": "listbox",
+    "aria-expanded": "false",
+    "aria-label": ariaLabel
+  }, [current, icon("chevron-down")]);
+  const root = el("div", { class: "filter-menu" }, [trigger, menu]);
+  root.value = initialValue;
+
+  const close = () => {
+    root.classList.remove("open");
+    menu.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  };
+  const open = () => {
+    $$(".filter-menu.open").forEach((item) => {
+      if (item !== root) item.querySelector(".filter-menu-button")?.click();
+    });
+    root.classList.add("open");
+    menu.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+  };
+  const sync = () => {
+    const selected = options.find((option) => option.value === root.value) || options[0];
+    root.value = selected.value;
+    current.textContent = selected.label;
+    menu.replaceChildren(...options.map((option) => {
+      const active = option.value === root.value;
+      return el("button", {
+        class: `filter-menu-option ${active ? "active" : ""}`,
+        type: "button",
+        role: "option",
+        "aria-selected": active ? "true" : "false",
+        onclick: (event) => {
+          event.stopPropagation();
+          root.value = option.value;
+          sync();
+          close();
+          onChange?.(root.value);
+        }
+      }, [
+        el("span", { class: "filter-menu-check", text: active ? "✓" : "" }),
+        el("span", { text: option.label })
+      ]);
+    }));
+    refreshIcons();
+  };
+
+  trigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (root.classList.contains("open")) close();
+    else open();
+  });
+  trigger.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") close();
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      open();
+      menu.querySelector(".filter-menu-option")?.focus();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (!root.contains(event.target)) close();
+  });
+  sync();
+  return root;
 }
 
 function renderClients() {
@@ -289,24 +357,22 @@ function renderClients() {
     .map((client) => (client.employer || "").trim().toLowerCase())
     .filter(Boolean)).size;
   const search = el("input", { class: "search", placeholder: "Søk etter navn, e-post, coach eller arbeidsgiver" });
-  const coachFilter = el("select", { class: "filter-select", "aria-label": "Filtrer på coach" }, [
-    el("option", { value: "all", text: "Alle coacher" }),
-    ...filterCoaches.map((coach) => el("option", { value: coach.id, text: coach.name || "Uten navn" }))
-  ]);
-  const sortFilter = el("select", { class: "filter-select", "aria-label": "Sorter klienter" }, [
-    el("option", { value: "name", text: "Navn A-Å" }),
-    el("option", { value: "next-session", text: "Neste samtale" }),
-    el("option", { value: "created-desc", text: "Opprettet nyest" }),
-    el("option", { value: "created-asc", text: "Opprettet eldst" })
-  ]);
   const results = el("div");
   const render = () => {
     const filtered = sortClients(filterClients(visibleClients, search.value, coachFilter.value), sortFilter.value);
     results.replaceChildren(clientGrid(filtered));
   };
+  const coachFilter = filterMenu([
+    { value: "all", label: "Alle coacher" },
+    ...filterCoaches.map((coach) => ({ value: coach.id, label: coach.name || "Uten navn" }))
+  ], "all", "Filtrer på coach", render);
+  const sortFilter = filterMenu([
+    { value: "name", label: "Navn A-Å" },
+    { value: "next-session", label: "Neste samtale" },
+    { value: "created-desc", label: "Opprettet nyest" },
+    { value: "created-asc", label: "Opprettet eldst" }
+  ], "name", "Sorter klienter", render);
   search.addEventListener("input", render);
-  coachFilter.addEventListener("change", render);
-  sortFilter.addEventListener("change", render);
   content.replaceChildren(
     el("div", { class: "grid three summary-grid page-summary" }, [
       metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Klienter med utviklingsplaner" : "Dine klientforløp"),
@@ -317,7 +383,7 @@ function renderClients() {
       el("div", { class: "toolbar" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Arbeidsflate" }), el("h3", { text: "Klientoversikt" })])
       ]),
-      el("div", { class: "filter-row client-filter-row" }, [search, selectWrap(coachFilter), selectWrap(sortFilter)]),
+      el("div", { class: "filter-row client-filter-row" }, [search, coachFilter, sortFilter]),
       results
     ])
   );
