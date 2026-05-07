@@ -181,6 +181,14 @@ async function loadReferenceData() {
   if (role === "client") {
     const { data } = await state.sb.from("clients").select("*").eq("user_id", state.user.id).maybeSingle();
     state.client = data;
+    if (state.client && !isClientActivated(state.client)) {
+      const activatedAt = new Date().toISOString();
+      await state.sb
+        .from("clients")
+        .update({ consent_given: true, consent_date: activatedAt })
+        .eq("id", state.client.id);
+      state.client = { ...state.client, consent_given: true, consent_date: activatedAt };
+    }
   }
   const { data: coaches } = await state.sb.from("coaches").select("*").order("name");
   state.coaches = coaches || [];
@@ -1959,7 +1967,7 @@ function getCurrentClient() {
 }
 
 function isClientActivated(client) {
-  return Boolean(client?.consent_given || client?.consent_date || client?.user_id);
+  return Boolean(client?.consent_given || client?.consent_date);
 }
 
 function filterClients(clients, query, coachId = "all", status = "all") {
