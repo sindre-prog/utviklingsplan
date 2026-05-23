@@ -1,5 +1,6 @@
 const SUPABASE_URL = "https://upuffmfgsxlzybifxveg.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq";
+const CONSENT_VERSION = "coaching-portal-v1";
 
 const state = {
   sb: null,
@@ -140,7 +141,7 @@ function bindAuth() {
     if (error) return setMessage("#password-message", `Feil: ${error.message}`);
     await state.sb
       .from("clients")
-      .update({ consent_given: true, consent_date: new Date().toISOString() })
+      .update({ account_activated_at: new Date().toISOString() })
       .eq("user_id", state.user.id);
     window.history.replaceState(null, "", window.location.pathname);
     await bootstrapApp();
@@ -185,9 +186,9 @@ async function loadReferenceData() {
       const activatedAt = new Date().toISOString();
       await state.sb
         .from("clients")
-        .update({ consent_given: true, consent_date: activatedAt })
+        .update({ account_activated_at: activatedAt })
         .eq("id", state.client.id);
-      state.client = { ...state.client, consent_given: true, consent_date: activatedAt };
+      state.client = { ...state.client, account_activated_at: activatedAt };
     }
   }
   const { data: coaches } = await state.sb.from("coaches").select("*").order("name");
@@ -408,6 +409,7 @@ function clientGrid(clients) {
     const program = state.programSummaries[client.id];
     const canOpen = canOpenClient(client);
     const activated = isClientActivated(client);
+    const hasConsent = hasClientConsent(client);
     return el("button", {
       class: `card client-card ${canOpen ? "" : "is-locked"}`,
       disabled: !canOpen,
@@ -420,6 +422,7 @@ function clientGrid(clients) {
       el("p", { class: "card-subline", text: coachNames(client) ? `Coach: ${coachNames(client)}` : client.email || "" }),
       el("div", { class: "meta-row" }, [
         el("span", { class: `badge ${activated ? "ok" : "warn"}`, text: activated ? "Aktivert" : "Ikke aktivert" }),
+        el("span", { class: `badge ${hasConsent ? "ok" : "warn"}`, text: hasConsent ? "Samtykke gitt" : "Mangler samtykke" }),
         el("span", { class: "badge", text: program?.sessionCount === 1 ? "1 samtale" : `${program?.sessionCount || 0} samtaler` })
       ])
     ]);
@@ -446,7 +449,7 @@ function renderAdmin() {
   const renderClientsTable = () => {
     const clients = sortClients(filterClients(state.clients, clientSearch.value, adminCoachFilter.value), adminSortFilter.value);
     clientTableSlot.replaceChildren(adminTable("Alle klienter", ["Navn", "Coach", "Status", "Tilgang", ""], clients.map((client) => [
-      client.name || "-", coachNames(client) || "-", isClientActivated(client) ? "Aktivert" : "Ikke aktivert",
+      client.name || "-", coachNames(client) || "-", clientStatusLabel(client),
       canOpenClient(client) ? "Kan åpnes" : "Kun oversikt",
       actionGroup([
         ["Åpne", () => openClientPlan(client), !canOpenClient(client)],
@@ -524,6 +527,10 @@ async function renderPlan(activePane = "direction") {
     ]));
     return;
   }
+  if (state.profile.role === "client" && !hasClientConsent(client)) {
+    renderConsentGate(client);
+    return;
+  }
   state.selectedClientId = client.id;
   const headerActions = [
     state.profile.role !== "client" ? button("Tilbake", "arrow-left", () => navigate("clients"), "ghost") : null,
@@ -570,6 +577,67 @@ async function renderPlan(activePane = "direction") {
   if (!editable) setFormReadonly(form);
   setupWorkspaceTabs();
   refreshIcons();
+}
+
+function renderConsentGate(client) {
+  state.selectedClientId = client.id;
+  setHeader("Velkommen", "Før vi starter", []);
+  const accepted = el("input", { type: "checkbox", id: "consent-accepted" });
+  const message = el("p", { class: "form-message", role: "status" });
+  const startButton = button("Jeg samtykker og vil starte", "check", async () => {
+    if (!accepted.checked) {
+      message.textContent = "Du må bekrefte punktene før du kan starte.";
+      return;
+    }
+    startButton.disabled = true;
+    message.textContent = "Lagrer samtykke...";
+    const consentDate = new Date().toISOString();
+    const payload = {
+      consent_given: true,
+      consent_date: consentDate,
+      consent_version: CONSENT_VERSION,
+      account_activated_at: client.account_activated_at || consentDate
+    };
+    const { error } = await state.sb.from("clients").update(payload).eq("id", client.id).eq("user_id", state.user.id);
+    if (error) {
+      startButton.disabled = false;
+      message.textContent = "Kunne ikke lagre samtykket. Prøv igjen.";
+      return;
+    }
+    const updatedClient = { ...client, ...payload };
+    state.client = updatedClient;
+    state.clients = state.clients.map((item) => item.id === client.id ? updatedClient : item);
+    await renderPlan("direction");
+  }, "primary");
+
+  $("#content").replaceChildren(el("section", { class: "consent-panel" }, [
+    el("div", { class: "consent-copy" }, [
+      el("p", { class: "eyebrow", text: "Samtykke" }),
+      el("h3", { text: "Din utviklingsplan er privat arbeidsmateriale" }),
+      el("p", { class: "muted", text: "Før portalen åpnes bekrefter du hvordan innholdet brukes. Dette gjør rammene tydelige før du skriver noe personlig." })
+    ]),
+    el("div", { class: "consent-grid" }, [
+      consentPoint("lock-keyhole", "Konfidensielt", "Plan, samtaler, fokusområder og refleksjoner brukes til å støtte ditt coachingforløp."),
+      consentPoint("users", "Delt med coach", "Tildelt coach kan lese og jobbe med innholdet i planen. Private refleksjoner deles bare når du velger det."),
+      consentPoint("database", "Lagret trygt", "Data lagres i Supabase. Du kan be coachen om innsyn, retting eller sletting.")
+    ]),
+    el("label", { class: "consent-check" }, [
+      accepted,
+      el("span", { text: "Jeg forstår rammene og samtykker til at portalen brukes som arbeidsflate i coachingforløpet." })
+    ]),
+    el("div", { class: "consent-actions" }, [startButton, message])
+  ]));
+  refreshIcons();
+}
+
+function consentPoint(iconName, title, text) {
+  return el("article", { class: "consent-point" }, [
+    icon(iconName),
+    el("div", {}, [
+      el("strong", { text: title }),
+      el("p", { text })
+    ])
+  ]);
 }
 
 async function loadClientProgram(client) {
@@ -2016,7 +2084,7 @@ function canOpenClient(client) {
 
 function canEditProgram(client) {
   if (!client || !state.profile) return false;
-  if (state.profile.role === "client") return client.user_id === state.user?.id;
+  if (state.profile.role === "client") return client.user_id === state.user?.id && hasClientConsent(client);
   const coachId = state.coach?.id;
   return Boolean(coachId && (client.coach_ids || []).includes(coachId));
 }
@@ -2026,7 +2094,16 @@ function getCurrentClient() {
 }
 
 function isClientActivated(client) {
-  return Boolean(client?.consent_given || client?.consent_date);
+  return Boolean(client?.account_activated_at || client?.user_id || client?.consent_date);
+}
+
+function hasClientConsent(client) {
+  return Boolean(client?.consent_given && client?.consent_date);
+}
+
+function clientStatusLabel(client) {
+  if (!isClientActivated(client)) return "Ikke aktivert";
+  return hasClientConsent(client) ? "Aktivert · samtykke gitt" : "Aktivert · mangler samtykke";
 }
 
 function filterClients(clients, query, coachId = "all", status = "all") {
