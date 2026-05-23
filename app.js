@@ -1224,29 +1224,151 @@ function emptyState(title, text) {
 }
 
 function sessionsWorkspace(sessions) {
-  return el("section", { class: "panel document-panel" }, [
-    workspaceIntro("Samtaler", "Hva snakker vi om?", "Coachingsamtalene er dine. De skal fange innsikt, skape merforståelse, tydeliggjøre valg og definere hva som skal prøves videre. De kan kobles til fokusområdene dine, men trenger ikke.", [
+  const editable = canEditProgram(getCurrentClient());
+  return el("section", { class: "panel document-panel sessions-stack" }, [
+    sessionsOverview(sessions, editable),
+    workspaceIntro("Samtaler", "Hva trenger neste coachingtime å avklare?", "Samtalene skal gjøre utviklingen operasjonell: forbered temaet, fang innsikt, tydeliggjør beslutninger og avtal hva som skal prøves videre.", [
       canEditProgram(getCurrentClient()) ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
     ].filter(Boolean)),
-    sessions.length ? sessionList(sessions) : emptyState("Ingen samtaler ennå", "Legg inn en samtale når dere vil samle innsikt og neste bevegelse."),
+    sessions.length ? sessionsWorkbench(sessions, editable) : sessionEmptyState(editable),
     sessionsEditor(sessions)
   ]);
 }
 
-function sessionList(sessions) {
-  return el("div", { class: "session-list" }, sessions.map((session, index) => el("article", { class: "content-card session-card editable-row" }, [
-    el("button", { class: "row-open", type: "button", onclick: () => editSession(index) }, [
-      cardIcon("messages-square"),
-      el("span", { class: "row-main" }, [
-        el("strong", { text: session.focus || "Samtale uten tittel" }),
-        el("small", { class: "content-card-meta", text: [session.date && formatDate(session.date), session.goal && `Mål: ${session.goal}`].filter(Boolean).join(" · ") || "Ingen dato eller samtalemål" }),
-        contentPreview(session.notes || session.actions || session.reflection, "Legg inn innsikt, valg eller hva dere vil utforske videre.", 2)
+function sessionsOverview(sessions, editable) {
+  const next = sessionNextStep(sessions);
+  return el("section", { class: "start-overview sessions-overview" }, [
+    el("div", { class: "start-hero sessions-hero" }, [
+      el("div", { class: "start-hero-copy" }, [
+        el("p", { class: "eyebrow", text: "Samtalemodus" }),
+        el("h3", { text: "Bruk samtalen til å gjøre utvikling konkret." }),
+        el("p", { class: "muted", text: "Start med et tydelig samtalemål, fang hva som blir klart underveis, og lukk med en praksis som kan testes før neste møte." })
+      ]),
+      el("div", { class: "start-next-card" }, [
+        el("span", { class: "card-icon" }, [icon(next.icon)]),
+        el("div", {}, [
+          el("p", { class: "eyebrow", text: "Neste beste steg" }),
+          el("strong", { text: next.title }),
+          el("p", { text: next.text })
+        ]),
+        editable ? button(next.action, "arrow-right", next.handler, "primary") : null
       ].filter(Boolean))
     ]),
-    el("span", { class: "row-tools" }, [
-      el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editSession(index) }, [icon("pencil")])
+    sessionProgress(sessions, editable)
+  ]);
+}
+
+function sessionProgress(sessions, editable) {
+  const latest = sessions[0] || {};
+  const steps = [
+    ["Forbered", "Samtalemål", Boolean(latest.goal)],
+    ["Gjennomfør", "Innsikt er fanget", Boolean(latest.notes)],
+    ["Beslutninger", "Valg er tydeliggjort", Boolean(latest.actions)],
+    ["Neste praksis", "Læring tas videre", Boolean(latest.reflection)]
+  ];
+  const doneCount = steps.filter(([, , done]) => done).length;
+  return el("div", { class: "start-progress sessions-progress" }, [
+    el("div", { class: "start-progress-head" }, [
+      el("span", { class: "badge ok", text: `${doneCount} av ${steps.length} på plass` }),
+      el("span", { class: "muted", text: "En god samtale starter før møtet og slutter med noe som kan prøves." })
+    ]),
+    el("div", { class: "start-checklist" }, steps.map(([title, text, done], index) =>
+      el("button", { class: `start-check ${done ? "done" : ""}`, type: "button", onclick: editable ? () => sessions.length ? editSession(0) : addSession() : null }, [
+        el("span", { class: `start-check-icon ${done ? "done" : ""}` }, [
+          done ? icon("check") : el("span", { text: String(index + 1) })
+        ]),
+        el("span", {}, [
+          el("strong", { text: title }),
+          el("small", { text })
+        ])
+      ])
+    ))
+  ]);
+}
+
+function sessionNextStep(sessions) {
+  const latest = sessions[0];
+  if (!latest) {
+    return { icon: "calendar-plus", title: "Planlegg første samtale", text: "Opprett en samtale med tydelig mål før dere møtes.", action: "Ny samtale", handler: () => addSession() };
+  }
+  if (!latest.goal) {
+    return { icon: "target", title: "Sett samtalemål", text: "Avklar hva denne samtalen skal hjelpe dere å forstå eller bevege.", action: "Sett mål", handler: () => editSession(0) };
+  }
+  if (!latest.notes || !latest.actions) {
+    return { icon: "message-square-text", title: "Fang innsikt og beslutninger", text: "Skriv ned hva som ble tydelig, og hva dere velger å gjøre videre.", action: "Oppsummer samtale", handler: () => editSession(0) };
+  }
+  return { icon: "check-circle-2", title: "Lukk med neste praksis", text: "Gjør det lett å ta med læringen inn i hverdagen før neste møte.", action: "Ta videre", handler: () => editSession(0) };
+}
+
+function sessionsWorkbench(sessions, editable) {
+  const detail = el("aside", { class: "session-detail" }, [
+    sessionDetail(sessions[0], 0, editable)
+  ]);
+  return el("section", { class: "sessions-workbench" }, [
+    sessionRail(sessions, detail, editable),
+    el("div", { class: "session-detail-wrap" }, [detail])
+  ]);
+}
+
+function sessionRail(sessions, detail, editable) {
+  return el("div", { class: "session-rail" }, sessions.map((session, index) =>
+    el("article", { class: `session-nav-item ${index === 0 ? "active" : ""}` }, [
+      el("button", { class: "session-nav-button", type: "button", onclick: () => selectSessionCard(session, index, detail, editable) }, [
+        el("span", { class: "session-nav-date", text: session.date ? formatDate(session.date) : `Samtale ${index + 1}` }),
+        el("strong", { class: "session-nav-title", text: session.focus || "Samtale uten tittel" }),
+        el("small", { text: session.goal || "Mål ikke satt ennå" })
+      ])
     ])
-  ])));
+  ));
+}
+
+function selectSessionCard(session, index, detail, editable) {
+  const cards = $$(".session-nav-item", detail.closest(".sessions-workbench"));
+  cards.forEach((node, itemIndex) => node.classList.toggle("active", itemIndex === index));
+  detail.replaceChildren(sessionDetail(session, index, editable));
+  refreshIcons();
+}
+
+function sessionDetail(session, index, editable) {
+  return el("section", { class: "content-card session-detail-card" }, [
+    el("div", { class: "session-detail-titlebar" }, [
+      el("div", { class: "session-detail-heading" }, [
+        el("span", { class: "session-detail-meta" }, [
+          el("span", { class: "eyebrow", text: `Samtale ${index + 1}` }),
+          session.date ? el("span", { class: "ui-meta", text: formatDate(session.date) }) : null
+        ].filter(Boolean)),
+        el("h3", { text: session.focus || "Samtale uten tittel" })
+      ]),
+      editable ? el("span", { class: "row-tools" }, [
+        el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editSession(index) }, [icon("pencil")])
+      ]) : null
+    ].filter(Boolean)),
+    el("div", { class: "session-detail-workspace" }, [
+      sessionDetailBlock("Samtalemål", session.goal, "Hva skal denne samtalen hjelpe dere å avklare, forstå eller bevege?", "primary"),
+      el("div", { class: "session-detail-grid" }, [
+        sessionDetailBlock("Innsikt", session.notes, "Hva ble tydeligere, viktigere eller annerledes?"),
+        sessionDetailBlock("Beslutninger", session.actions, "Hva velger dere å prøve, undersøke eller følge opp?")
+      ]),
+      sessionDetailBlock("Tas videre", session.reflection, "Hva skal klienten huske, bruke eller komme tilbake til?")
+    ])
+  ]);
+}
+
+function sessionDetailBlock(label, value, emptyText, variant = "") {
+  const text = (value || "").trim();
+  return el("article", { class: `session-detail-block ${variant} ${text ? "" : "is-empty"}` }, [
+    el("p", { class: "session-detail-label", text: label }),
+    el("p", { class: "session-detail-text", text: text || emptyText })
+  ]);
+}
+
+function sessionEmptyState(editable) {
+  return el("section", { class: "focus-empty-state session-empty-state" }, [
+    el("p", { class: "eyebrow", text: "Samtaler" }),
+    el("h3", { text: "Planlegg første coachingtime" }),
+    el("p", { class: "muted", text: "Start med et samtalemål. Etterpå kan dere samle innsikt, beslutninger og hva klienten tar med seg videre." }),
+    editable ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
+  ].filter(Boolean));
 }
 
 function areaPills(areas) {
