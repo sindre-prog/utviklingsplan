@@ -957,7 +957,7 @@ function workWorkspace(client, data, plan) {
   return el("div", { class: "work-stack" }, [
     el("section", { class: "panel document-panel" }, [
       workOverview(client, focusItems, data, editable),
-      focusIntro(),
+      focusIntro(editable),
       focusWorkbench(focusItems, data, editable),
       areasEditor(plan.areas)
     ])
@@ -1004,8 +1004,10 @@ function focusWorkbench(items, data, editable) {
   ].filter(Boolean));
 }
 
-function focusIntro() {
-  return workspaceIntro("Fokusområder", "Hva er viktigst å jobbe med akkurat nå?", "Selv med tydelig retning kan du ikke jobbe med alt samtidig. Velg 2–4 områder som flytter deg mot målet. Indre prosjekter handler om deg, ytre om virksomheten. Koble på eksperimenter som testes i praksis.");
+function focusIntro(editable = false) {
+  return workspaceIntro("Fokusområder", "Hva er viktigst å jobbe med akkurat nå?", "Selv med tydelig retning kan du ikke jobbe med alt samtidig. Velg 2–4 områder som flytter deg mot målet. Indre prosjekter handler om deg, ytre om virksomheten. Koble på eksperimenter som testes i praksis.", [
+    editable ? iconAction("Legg til fokusområde", "plus", () => addFocusArea()) : null
+  ].filter(Boolean));
 }
 
 function workOverview(client, focusItems, data, editable) {
@@ -1172,7 +1174,8 @@ function focusDetail({ area, index }, data, editable) {
         el("h3", { text: area.title || "Bevegelsesønske" })
       ]),
       editable ? el("span", { class: "row-tools" }, [
-        el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editFocusArea(index) }, [icon("pencil")])
+        iconAction("Rediger fokus", "pencil", () => editFocusArea(index)),
+        iconAction("Slett fokus", "trash-2", () => deleteFocusArea(index), "danger")
       ]) : null
     ].filter(Boolean)),
     focusDetailWorkspace(area),
@@ -1228,7 +1231,7 @@ function sessionsWorkspace(sessions) {
   return el("section", { class: "panel document-panel sessions-stack" }, [
     sessionsOverview(sessions, editable),
     workspaceIntro("Samtaler", "Hva trenger neste coachingtime å avklare?", "Samtalene skal gjøre utviklingen operasjonell: forbered temaet, fang innsikt, tydeliggjør beslutninger og avtal hva som skal prøves videre.", [
-      canEditProgram(getCurrentClient()) ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
+      editable ? iconAction("Ny samtale", "plus", () => addSession()) : null
     ].filter(Boolean)),
     sessions.length ? sessionsWorkbench(sessions, editable) : sessionEmptyState(editable),
     sessionsEditor(sessions)
@@ -1340,7 +1343,8 @@ function sessionDetail(session, index, editable) {
         el("h3", { text: session.focus || "Samtale uten tittel" })
       ]),
       editable ? el("span", { class: "row-tools" }, [
-        el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editSession(index) }, [icon("pencil")])
+        iconAction("Rediger samtale", "pencil", () => editSession(index)),
+        iconAction("Slett samtale", "trash-2", () => deleteSession(index), "danger")
       ]) : null
     ].filter(Boolean)),
     el("div", { class: "session-detail-workspace" }, [
@@ -1711,7 +1715,8 @@ function reflectionsList(reflections, data) {
         ])
       ]),
       editable ? el("span", { class: "row-tools" }, [
-        el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editReflection(reflection, data) }, [icon("pencil")])
+        iconAction("Rediger refleksjon", "pencil", () => editReflection(reflection, data)),
+        iconAction("Slett refleksjon", "trash-2", () => deleteReflection(reflection.id), "danger")
       ]) : null
     ].filter(Boolean));
   }));
@@ -2564,6 +2569,16 @@ function coachNames(client) {
 
 function button(label, iconName, handler, variant = "primary") {
   return el("button", { class: `button ${variant}`, type: "button", onclick: handler }, [icon(iconName), el("span", { text: label })]);
+}
+
+function iconAction(label, iconName, handler, tone = "") {
+  return el("button", {
+    class: `icon-button action-icon ${tone ? `is-${tone}` : ""}`,
+    type: "button",
+    title: label,
+    "aria-label": label,
+    onclick: handler
+  }, [icon(iconName)]);
 }
 
 function greeting() {

@@ -232,6 +232,21 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent-line); bo
   color: var(--ink);
 }
 .icon-button:hover { border-color: var(--line-strong); background: var(--wash); }
+.action-icon {
+  width: 34px;
+  min-height: 34px;
+  color: rgba(0,0,0,.58);
+  opacity: .72;
+}
+.action-icon:hover {
+  color: #000;
+  opacity: 1;
+}
+.action-icon.is-danger:hover {
+  border-color: rgba(186,63,54,.24);
+  background: rgba(186,63,54,.06);
+  color: var(--danger);
+}
 .form-message { min-height: 20px; margin: 0; color: var(--danger); font-size: 12px; }
 .form-message.success { color: var(--ok); }
 
@@ -2045,6 +2060,19 @@ tr:last-child td { border-bottom: 0; }
   .nav-item { flex: 0 0 auto; }
   .sidebar-user { grid-column: 2; grid-row: 1; gap: 10px; }
   .sidebar-user strong { display: none; }
+  .workspace-tabs {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 5px;
+    border-radius: 18px;
+    scroll-snap-type: x mandatory;
+  }
+  .workspace-tab {
+    scroll-snap-align: start;
+    min-width: max-content;
+    min-height: 34px;
+    padding-inline: 14px;
+  }
   .plan-layout, .focus-workbench, .focus-detail-support, .sessions-workbench, .session-detail-grid, .reflection-metrics, .now-grid, .grid.three, .grid.two, .consent-grid, .start-hero, .start-checklist { grid-template-columns: 1fr; }
   .focus-workbench { gap: 28px; }
   .consent-panel { max-width: none; padding: 24px; }
