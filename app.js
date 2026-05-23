@@ -1597,31 +1597,10 @@ function reflectionsPreview(reflections) {
 function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
   return el("div", { class: "reflection-space" }, [
-    canWriteReflection ? el("section", { class: "panel document-panel reflection-composer" }, [
-      workspaceIntro("Ny refleksjon", "Skriv for å forstå mer", "Refleksjoner gjør erfaringer tydeligere. Noter hva du legger merke til, hva som flytter seg, eller hva du vil ta med inn i neste samtale."),
-      el("textarea", { id: "reflection-body", placeholder: "Skriv en kort refleksjon..." }),
-      el("div", { class: "field-pair" }, [
-        el("label", { text: "Synlighet" }, [
-          el("select", { id: "reflection-visibility" }, [
-            el("option", { value: "private", text: "Privat" }),
-            el("option", { value: "shared_with_coach", text: "Del med coach" })
-          ])
-        ]),
-        el("label", { text: "Knytt til" }, [
-          el("select", { id: "reflection-area" }, [
-            el("option", { value: "", text: "Hele forløpet" }),
-            ...data.areas.map((area) => el("option", { value: area.id, text: area.title || "Utviklingsområde" }))
-          ])
-        ])
-      ]),
-      el("div", { class: "toolbar" }, [
-        el("span", { class: "muted", id: "reflection-status", text: "Ikke lagret" }),
-        button("Lagre refleksjon", "notebook-pen", () => createReflection(data.program.id))
-      ])
-    ]) : el("section", { class: "panel document-panel reflection-note" }, [
-      workspaceIntro("Refleksjon", "Dette er ditt rom for refleksjon.", "Som coach ser du refleksjoner som er delt med deg. Private refleksjoner blir ikke synlige her.")
-    ]),
-    el("section", { class: "panel document-panel" }, [
+    reflectionsOverview(data, canWriteReflection),
+    workspaceIntro("Refleksjon", "Hva lærer du av det som faktisk skjer?", "Bruk refleksjoner til å fange observasjoner mens de er ferske. Noe kan være privat, noe kan deles med coach når det hjelper samtalen videre."),
+    canWriteReflection ? reflectionComposer(data) : reflectionCoachNote(),
+    el("section", { class: "panel document-panel reflection-log-section" }, [
       el("p", { class: "eyebrow", text: "Logg" }),
       el("h3", { class: "section-title", text: "Refleksjoner" }),
       reflectionsList(data.reflections, data)
@@ -1629,10 +1608,91 @@ function reflectionsWorkspace(data) {
   ].filter(Boolean));
 }
 
+function reflectionsOverview(data, canWriteReflection) {
+  const privateCount = (data.reflections || []).filter((item) => item.visibility === "private").length;
+  const sharedCount = (data.reflections || []).filter((item) => item.visibility === "shared_with_coach").length;
+  const hasRecent = (data.reflections || []).length > 0;
+  return el("section", { class: "start-overview reflections-overview" }, [
+    el("div", { class: "start-hero reflections-hero" }, [
+      el("div", { class: "start-hero-copy" }, [
+        el("p", { class: "eyebrow", text: "Læringsmodus" }),
+        el("h3", { text: canWriteReflection ? "Fang læringen mens den fortsatt er konkret." : "Se det klienten har valgt å dele." }),
+        el("p", { class: "muted", text: canWriteReflection ? "Skriv kort om hva du prøvde, hva du la merke til, og hva du vil ta med inn i neste samtale." : "Private refleksjoner forblir private. Her ser coach bare det klienten aktivt har delt." })
+      ]),
+      el("div", { class: "start-next-card" }, [
+        el("span", { class: "card-icon" }, [icon(hasRecent ? "message-square-text" : "notebook-pen")]),
+        el("div", {}, [
+          el("p", { class: "eyebrow", text: "Neste beste steg" }),
+          el("strong", { text: hasRecent ? "Bruk læringen videre" : "Skriv første refleksjon" }),
+          el("p", { text: hasRecent ? "Velg hva som skal deles med coach, og hva som bare skal hjelpe deg å tenke." : "Start med noen få linjer om hva som ble tydelig sist." })
+        ]),
+        canWriteReflection ? button(hasRecent ? "Skriv ny refleksjon" : "Start refleksjon", "arrow-right", () => $("#reflection-body")?.focus(), "primary") : null
+      ].filter(Boolean))
+    ]),
+    el("div", { class: "start-progress reflections-progress" }, [
+      el("div", { class: "start-progress-head" }, [
+        el("span", { class: "badge ok", text: `${data.reflections?.length || 0} refleksjoner` }),
+        el("span", { class: "muted", text: `${privateCount} private · ${sharedCount} delt med coach` })
+      ]),
+      el("div", { class: "reflection-metrics" }, [
+        reflectionMetric("Privat rom", String(privateCount), "Bare synlig for deg"),
+        reflectionMetric("Delt læring", String(sharedCount), "Synlig for coach"),
+        reflectionMetric("Knyttet til fokus", String((data.reflections || []).filter((item) => item.development_area_id).length), "Gir samtalen kontekst")
+      ])
+    ])
+  ]);
+}
+
+function reflectionMetric(label, value, help) {
+  return el("article", { class: "reflection-metric" }, [
+    el("span", { text: label }),
+    el("strong", { text: value }),
+    el("small", { text: help })
+  ]);
+}
+
+function reflectionComposer(data) {
+  return el("section", { class: "panel document-panel reflection-composer" }, [
+    el("div", { class: "reflection-composer-head" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Ny refleksjon" }),
+        el("h3", { text: "Skriv for å forstå mer" }),
+        el("p", { class: "muted", text: "Hold det kort. Én observasjon er nok hvis den gjør neste handling tydeligere." })
+      ])
+    ]),
+    el("textarea", { id: "reflection-body", placeholder: "Hva la du merke til, hva flyttet seg, eller hva vil du ta med videre?" }),
+    el("div", { class: "field-pair" }, [
+      el("label", { text: "Synlighet" }, [
+        el("select", { id: "reflection-visibility" }, [
+          el("option", { value: "private", text: "Privat" }),
+          el("option", { value: "shared_with_coach", text: "Del med coach" })
+        ])
+      ]),
+      el("label", { text: "Knytt til" }, [
+        el("select", { id: "reflection-area" }, [
+          el("option", { value: "", text: "Hele forløpet" }),
+          ...data.areas.map((area) => el("option", { value: area.id, text: area.title || "Utviklingsområde" }))
+        ])
+      ])
+    ]),
+    el("div", { class: "toolbar" }, [
+      el("span", { class: "muted", id: "reflection-status", text: "Ikke lagret" }),
+      button("Lagre refleksjon", "notebook-pen", () => createReflection(data.program.id))
+    ])
+  ]);
+}
+
+function reflectionCoachNote() {
+  return el("section", { class: "panel document-panel reflection-note" }, [
+    workspaceIntro("Refleksjon", "Dette er klientens rom for refleksjon.", "Som coach ser du refleksjoner som er delt med deg. Private refleksjoner blir ikke synlige her.")
+  ]);
+}
+
 function reflectionsList(reflections, data) {
   if (!reflections.length) return emptyState("Ingen refleksjoner ennå", "Skriv korte notater når noe blir tydeligere, flytter seg eller bør tas med videre.");
   return el("div", { class: "reflection-list" }, reflections.map((reflection) => {
     const editable = reflection.created_by === state.user?.id;
+    const area = (data.areas || []).find((item) => item.id === reflection.development_area_id);
     return el("article", { class: "content-card reflection-card editable-row" }, [
       el("button", {
         class: "row-open",
@@ -1642,8 +1702,11 @@ function reflectionsList(reflections, data) {
       }, [
         cardIcon("notebook-pen"),
         el("span", { class: "row-main" }, [
-          el("span", { class: "content-card-label", text: reflection.visibility === "private" ? "Privat refleksjon" : "Delt refleksjon" }),
-          el("small", { class: "content-card-meta", text: formatDate(reflection.created_at) }),
+          el("span", { class: "reflection-card-meta" }, [
+            el("span", { class: `ui-meta ${reflection.visibility === "private" ? "private" : ""}`, text: reflection.visibility === "private" ? "Privat" : "Delt med coach" }),
+            area ? el("span", { class: "ui-meta", text: area.title || "Fokus" }) : null,
+            el("small", { class: "content-card-meta", text: formatDate(reflection.created_at) })
+          ].filter(Boolean)),
           contentPreview(reflection.body, "Tom refleksjon.", 4)
         ])
       ]),
