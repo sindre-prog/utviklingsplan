@@ -1092,10 +1092,12 @@ function focusList(items, editable, data, detail) {
   return el("div", { class: "focus-picker" }, [
     ...items.map(({ area, index }, itemIndex) => el("article", { class: `focus-nav-item ${itemIndex === 0 ? "active" : ""}` }, [
       el("button", { class: "focus-nav-button", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index }, data, editable, detail) }, [
-        el("span", { class: `type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" }),
-        el("span", { class: "focus-nav-label", text: `Fokus ${index + 1}` }),
-        el("strong", { class: "focus-nav-title", text: area.title || "Bevegelsesønske" }),
-        contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 3)
+        el("span", { class: `ui-meta type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" }),
+        el("span", { class: "ui-stack-sm focus-nav-copy" }, [
+          el("span", { class: "focus-nav-label", text: `Fokus ${index + 1}` }),
+          el("strong", { class: "focus-nav-title", text: area.title || "Bevegelsesønske" }),
+          contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 3)
+        ])
       ])
     ].filter(Boolean))),
     editable ? el("button", { class: "focus-add-card", type: "button", onclick: () => addFocusArea() }, [
@@ -1143,8 +1145,8 @@ function focusDetailFields(area) {
     ["Hva vil du bevege, endre på eller oppnå?", area.movement || area.description],
     ["Hvordan vil du merke fremgang?", area.progressSigns]
   ];
-  return el("div", { class: "focus-detail-fields" }, fields.map(([label, value]) => el("article", { class: value ? "focus-detail-field" : "focus-detail-field is-empty" }, [
-    el("p", { class: "content-card-label", text: label }),
+  return el("div", { class: "focus-detail-fields" }, fields.map(([label, value]) => el("article", { class: value ? "ui-card ui-stack-sm focus-detail-field" : "ui-card ui-stack-sm focus-detail-field is-empty" }, [
+    el("p", { class: "focus-detail-label", text: label }),
     contentPreview(value, "Ikke fylt ut ennå.", 5)
   ])));
 }
