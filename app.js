@@ -1118,14 +1118,19 @@ function selectFocusCard(buttonNode, item, data, editable, detail) {
 function focusDetail({ area, index }, data, editable) {
   const actions = data.actions.filter((action) => action.development_area_id === area.id && action.status !== "done");
   return el("section", { class: "content-card focus-detail-card" }, [
-    el("p", { class: "eyebrow", text: `Fokus ${index + 1}` }),
     el("div", { class: "focus-detail-titlebar" }, [
-      el("h3", { text: area.title || "Bevegelsesønske" }),
+      el("div", { class: "focus-detail-heading" }, [
+        el("span", { class: "focus-detail-meta" }, [
+          el("span", { class: "eyebrow", text: `Fokus ${index + 1}` }),
+          el("span", { class: `ui-meta type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" })
+        ]),
+        el("h3", { text: area.title || "Bevegelsesønske" })
+      ]),
       editable ? el("span", { class: "row-tools" }, [
         el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editFocusArea(index) }, [icon("pencil")])
       ]) : null
     ].filter(Boolean)),
-    focusDetailFields(area),
+    focusDetailWorkspace(area),
     el("div", { class: "detail-divider" }),
     el("div", { class: "experiment-section-head" }, [
       el("div", {}, [
@@ -1139,16 +1144,22 @@ function focusDetail({ area, index }, data, editable) {
   ]);
 }
 
-function focusDetailFields(area) {
-  const fields = [
-    ["Type", area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt"],
-    ["Hva vil du bevege, endre på eller oppnå?", area.movement || area.description],
-    ["Hvordan vil du merke fremgang?", area.progressSigns]
-  ];
-  return el("div", { class: "focus-detail-fields" }, fields.map(([label, value]) => el("article", { class: value ? "ui-card ui-stack-sm focus-detail-field" : "ui-card ui-stack-sm focus-detail-field is-empty" }, [
+function focusDetailWorkspace(area) {
+  return el("div", { class: "focus-detail-workspace" }, [
+    focusDetailBlock("Kjernebevegelse", area.movement || area.description, "Hva skal dette fokuset hjelpe deg å bevege, endre eller oppnå?", "primary"),
+    el("div", { class: "focus-detail-support" }, [
+      focusDetailBlock("Tegn på fremgang", area.progressSigns, "Hvordan vil du merke at noe faktisk er i bevegelse?"),
+      focusDetailBlock("Neste praksis", area.nextPractice, "Hva er den minste konkrete praksisen du kan teste nå?")
+    ])
+  ]);
+}
+
+function focusDetailBlock(label, value, emptyText, variant = "") {
+  const text = (value || "").trim();
+  return el("article", { class: `focus-detail-block ${variant} ${text ? "" : "is-empty"}` }, [
     el("p", { class: "focus-detail-label", text: label }),
-    contentPreview(value, "Ikke fylt ut ennå.", 5)
-  ])));
+    el("p", { class: "focus-detail-text", text: text || emptyText })
+  ]);
 }
 
 function focusEmptyState(editable) {
