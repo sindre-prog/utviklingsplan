@@ -957,6 +957,7 @@ function workWorkspace(client, data, plan) {
   return el("div", { class: "work-stack" }, [
     el("section", { class: "panel document-panel" }, [
       focusIntro(),
+      workOverview(client, focusItems, data, editable),
       focusWorkbench(focusItems, data, editable),
       areasEditor(plan.areas)
     ])
@@ -1005,6 +1006,72 @@ function focusWorkbench(items, data, editable) {
 
 function focusIntro() {
   return workspaceIntro("Fokusområder", "Hva er viktigst å jobbe med akkurat nå?", "Selv med tydelig retning kan du ikke jobbe med alt samtidig. Velg 2–4 områder som flytter deg mot målet. Indre prosjekter handler om deg, ytre om virksomheten. Koble på eksperimenter som testes i praksis.");
+}
+
+function workOverview(client, focusItems, data, editable) {
+  const activeActions = (data.actions || []).filter((action) => !["done", "reviewed"].includes(action.status));
+  const reviewedActions = (data.actions || []).filter((action) => {
+    const parsed = parseActionDescription(action.description || "");
+    return action.status === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep;
+  });
+  const next = workNextStep(focusItems, activeActions, data);
+  return el("section", { class: "work-overview" }, [
+    el("div", { class: "work-overview-copy" }, [
+      el("p", { class: "eyebrow", text: "Arbeidsmodus" }),
+      el("h3", { text: `${client.name?.split(" ")[0] || "Du"} jobber best med få, konkrete spor av gangen.` }),
+      el("p", { class: "muted", text: "Velg et fokus, gjør det testbart, og bruk observasjonene som råstoff i neste samtale. Dette er stedet der utvikling blir praksis." })
+    ]),
+    el("div", { class: "work-metrics" }, [
+      workMetric("Fokus", String(focusItems.length), focusItems.length ? "Prioritert nå" : "Velg første spor"),
+      workMetric("Eksperimenter", String(activeActions.length), activeActions.length ? "I spill" : "Ingen aktive"),
+      workMetric("Læring", String(reviewedActions.length), reviewedActions.length ? "Avlest" : "Ikke fanget ennå")
+    ]),
+    el("div", { class: "work-next" }, [
+      el("span", { class: "card-icon" }, [icon(next.icon)]),
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Neste handling" }),
+        el("strong", { text: next.title }),
+        el("p", { text: next.text })
+      ]),
+      editable ? button(next.action, "arrow-right", next.handler, "primary") : null
+    ].filter(Boolean))
+  ]);
+}
+
+function workMetric(label, value, help) {
+  return el("article", { class: "work-metric" }, [
+    el("span", { text: label }),
+    el("strong", { text: value }),
+    el("small", { text: help })
+  ]);
+}
+
+function workNextStep(focusItems, activeActions, data) {
+  if (!focusItems.length) {
+    return {
+      icon: "layers-3",
+      title: "Velg første fokusområde",
+      text: "Start med ett område som betyr nok til at det fortjener oppmerksomhet de neste ukene.",
+      action: "Legg til fokus",
+      handler: () => addFocusArea()
+    };
+  }
+  if (!activeActions.length) {
+    return {
+      icon: "flask-conical",
+      title: "Gjør fokuset testbart",
+      text: "Lag ett lite eksperiment du kan prøve i en konkret situasjon før neste samtale.",
+      action: "Nytt eksperiment",
+      handler: () => createAction(data, focusItems[0]?.area?.id || "")
+    };
+  }
+  return {
+    icon: "message-square-text",
+    title: "Fang hva du lærer",
+    text: "Når noe er prøvd, skriv ned hva du la merke til. Det gjør neste samtale skarpere.",
+    action: "Skriv refleksjon",
+    handler: () => activateWorkspacePane("reflections")
+  };
 }
 
 function freeExperimentSection(actions, data, editable) {
