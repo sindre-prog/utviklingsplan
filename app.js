@@ -956,8 +956,8 @@ function workWorkspace(client, data, plan) {
   const editable = canEditProgram(client);
   return el("div", { class: "work-stack" }, [
     el("section", { class: "panel document-panel" }, [
-      focusIntro(),
       workOverview(client, focusItems, data, editable),
+      focusIntro(),
       focusWorkbench(focusItems, data, editable),
       areasEditor(plan.areas)
     ])
@@ -1015,34 +1015,79 @@ function workOverview(client, focusItems, data, editable) {
     return action.status === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep;
   });
   const next = workNextStep(focusItems, activeActions, data);
-  return el("section", { class: "work-overview" }, [
-    el("div", { class: "work-overview-copy" }, [
-      el("p", { class: "eyebrow", text: "Arbeidsmodus" }),
-      el("h3", { text: `${client.name?.split(" ")[0] || "Du"} jobber best med få, konkrete spor av gangen.` }),
-      el("p", { class: "muted", text: "Velg et fokus, gjør det testbart, og bruk observasjonene som råstoff i neste samtale. Dette er stedet der utvikling blir praksis." })
-    ]),
-    el("div", { class: "work-metrics" }, [
-      workMetric("Fokus", String(focusItems.length), focusItems.length ? "Prioritert nå" : "Velg første spor"),
-      workMetric("Eksperimenter", String(activeActions.length), activeActions.length ? "I spill" : "Ingen aktive"),
-      workMetric("Læring", String(reviewedActions.length), reviewedActions.length ? "Avlest" : "Ikke fanget ennå")
-    ]),
-    el("div", { class: "work-next" }, [
-      el("span", { class: "card-icon" }, [icon(next.icon)]),
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Neste handling" }),
-        el("strong", { text: next.title }),
-        el("p", { text: next.text })
+  return el("section", { class: "start-overview focus-overview" }, [
+    el("div", { class: "start-hero focus-hero" }, [
+      el("div", { class: "start-hero-copy" }, [
+        el("p", { class: "eyebrow", text: "Arbeidsmodus" }),
+        el("h3", { text: `Hei ${client.name?.split(" ")[0] || "du"}, la oss gjøre fokuset konkret.` }),
+        el("p", { class: "muted", text: "Velg få spor, gjør dem testbare i hverdagen, og bruk det du lærer som råstoff i neste samtale." })
       ]),
-      editable ? button(next.action, "arrow-right", next.handler, "primary") : null
-    ].filter(Boolean))
+      el("div", { class: "start-next-card" }, [
+        el("span", { class: "card-icon" }, [icon(next.icon)]),
+        el("div", {}, [
+          el("p", { class: "eyebrow", text: "Neste beste steg" }),
+          el("strong", { text: next.title }),
+          el("p", { text: next.text })
+        ]),
+        editable ? button(next.action, "arrow-right", next.handler, "primary") : null
+      ].filter(Boolean))
+    ]),
+    focusProgress(focusItems, activeActions, reviewedActions, data, editable)
   ]);
 }
 
-function workMetric(label, value, help) {
-  return el("article", { class: "work-metric" }, [
-    el("span", { text: label }),
-    el("strong", { text: value }),
-    el("small", { text: help })
+function focusProgress(focusItems, activeActions, reviewedActions, data, editable) {
+  const steps = [
+    {
+      title: "Velg fokus",
+      text: focusItems.length ? `${focusItems.length} fokusområder er valgt.` : "Start med ett konkret spor.",
+      done: focusItems.length > 0,
+      action: () => addFocusArea()
+    },
+    {
+      title: "Gjør det testbart",
+      text: activeActions.length ? `${activeActions.length} eksperimenter er i spill.` : "Lag ett lite eksperiment.",
+      done: activeActions.length > 0,
+      action: () => createAction(data, focusItems[0]?.area?.id || "")
+    },
+    {
+      title: "Fang læring",
+      text: reviewedActions.length ? `${reviewedActions.length} læringer er fanget.` : "Skriv ned hva som faktisk skjer.",
+      done: reviewedActions.length > 0,
+      action: () => activateWorkspacePane("reflections")
+    },
+    {
+      title: "Bruk i samtale",
+      text: "Ta observasjonene med inn i neste coachingtime.",
+      done: false,
+      action: () => activateWorkspacePane("sessions")
+    }
+  ];
+  const doneCount = steps.filter((step) => step.done).length;
+  return el("div", { class: "start-progress focus-progress" }, [
+    el("div", { class: "start-progress-head" }, [
+      el("span", { class: "badge ok", text: `${doneCount} av ${steps.length} på plass` }),
+      el("span", { class: "muted", text: "Forløpet blir bedre jo mer konkret dette blir." })
+    ]),
+    el("div", { class: "start-checklist" }, steps.map((step, index) =>
+      focusProgressCheck(step, index, editable)
+    ))
+  ]);
+}
+
+function focusProgressCheck(step, index, editable) {
+  return el("button", {
+    class: `start-check ${step.done ? "done" : ""}`,
+    type: "button",
+    onclick: editable ? step.action : null
+  }, [
+    el("span", { class: `start-check-icon ${step.done ? "done" : ""}` }, [
+      step.done ? icon("check") : el("span", { text: String(index + 1) })
+    ]),
+    el("span", {}, [
+      el("strong", { text: step.title }),
+      el("small", { text: step.text })
+    ])
   ]);
 }
 
