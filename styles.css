@@ -712,6 +712,135 @@ tr:last-child td { border-bottom: 0; }
   font-weight: 700;
   line-height: 1.18;
 }
+.start-overview {
+  display: grid;
+  gap: 16px;
+}
+.start-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 24px;
+  border: 1.5px solid #000;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(0,0,0,.08);
+}
+.start-hero-copy {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  min-height: 200px;
+}
+.start-hero-copy h3 {
+  max-width: 650px;
+  font-family: "Funnel Display", system-ui, sans-serif;
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.02;
+}
+.start-hero-copy p { margin: 0; }
+.start-hero-copy .muted {
+  max-width: 620px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.start-next-card {
+  display: grid;
+  align-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  border-radius: 10px;
+  background: var(--accent);
+}
+.start-next-card .eyebrow { margin-bottom: 8px; color: rgba(0,0,0,.52); }
+.start-next-card strong {
+  display: block;
+  color: #000;
+  font-size: 18px;
+  line-height: 1.2;
+}
+.start-next-card p {
+  margin: 8px 0 0;
+  color: rgba(0,0,0,.68);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.start-next-card .button {
+  width: fit-content;
+  background: #000;
+}
+.start-progress {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--wash);
+}
+.start-progress-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.start-progress-head .muted {
+  font-size: 12px;
+  font-weight: 700;
+}
+.start-checklist {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.start-check {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 14px;
+  background: #fff;
+  color: #000;
+  text-align: left;
+}
+.start-check:hover { border-color: var(--line-strong); }
+.start-check.done { background: var(--accent-soft); border-color: var(--accent-line); }
+.start-check-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--wash-strong);
+}
+.start-check-icon.done {
+  background: #000;
+  color: #fff;
+}
+.start-check-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.start-check strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+.start-check small {
+  display: block;
+  color: rgba(0,0,0,.58);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.35;
+}
 .direction-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1550,10 +1679,12 @@ tr:last-child td { border-bottom: 0; }
   .nav-item { flex: 0 0 auto; }
   .sidebar-user { grid-column: 2; grid-row: 1; gap: 10px; }
   .sidebar-user strong { display: none; }
-  .plan-layout, .focus-workbench, .now-grid, .grid.three, .grid.two, .consent-grid { grid-template-columns: 1fr; }
+  .plan-layout, .focus-workbench, .now-grid, .grid.three, .grid.two, .consent-grid, .start-hero, .start-checklist { grid-template-columns: 1fr; }
   .focus-workbench { gap: 28px; }
   .consent-panel { max-width: none; padding: 24px; }
   .consent-point { min-height: 0; }
+  .start-hero { padding: 24px; }
+  .start-hero-copy { min-height: 0; }
   .client-filter-row { grid-template-columns: 1fr; }
   .workspace-head { flex-direction: column; align-items: stretch; gap: 14px; }
   .workspace-head .button { width: 100%; min-height: 38px; }
@@ -1601,6 +1732,8 @@ tr:last-child td { border-bottom: 0; }
   .topline { padding: 40px 20px 46px; grid-template-columns: 1fr; align-items: flex-start; min-height: 0; }
   .topline-actions { justify-content: flex-start; padding-bottom: 0; }
   .content { padding: 42px 20px 86px; }
+  .start-hero-copy h3 { font-size: 31px; }
+  .start-progress { padding: 14px; }
   .auth-panel { padding: 24px; }
   input,
   textarea,

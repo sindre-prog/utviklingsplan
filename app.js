@@ -558,7 +558,7 @@ async function renderPlan(activePane = "direction") {
     hiddenPlanState(plan),
     clientWorkspaceTabs(data, activePane),
     el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, "data-pane": "direction" }, [
-      directionWorkspace(client, plan)
+      directionWorkspace(client, plan, data)
     ]),
     el("section", { class: `workspace-pane ${activePane === "work" ? "active" : ""}`, "data-pane": "work" }, [
       workWorkspace(client, data, plan)
@@ -735,10 +735,11 @@ function hiddenPlanState(plan) {
   ]);
 }
 
-function directionWorkspace(client, plan) {
+function directionWorkspace(client, plan, data) {
   const editable = canEditProgram(client);
   const directionSpecs = getDirectionSpecs(plan);
   return el("div", { class: "direction-stack" }, [
+    startOverview(client, plan, data, editable),
     el("section", { class: "panel document-panel" }, [
       workspaceIntro("Retning", "Hva jobber vi mot?", "Utvikling uten retning blir tilfeldig. Her samler du hva coachingen skal bidra til på overordnet nivå, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig."),
       el("div", { class: "direction-grid" }, directionSpecs.map((spec) => (
@@ -747,6 +748,103 @@ function directionWorkspace(client, plan) {
       coachingFrame()
     ])
   ]);
+}
+
+function startOverview(client, plan, data, editable) {
+  const items = startChecklist(plan, data);
+  const completed = items.filter((item) => item.done).length;
+  const next = items.find((item) => !item.done) || {
+    label: "Hold planen levende",
+    text: "Bruk refleksjoner og eksperimenter mellom samtalene, og juster retningen når noe blir tydeligere.",
+    action: "Skriv refleksjon",
+    pane: "reflections",
+    icon: "sparkles"
+  };
+  const progressText = `${completed} av ${items.length} på plass`;
+  const firstName = (client.name || "du").split(" ")[0];
+  return el("section", { class: "start-overview" }, [
+    el("div", { class: "start-hero" }, [
+      el("div", { class: "start-hero-copy" }, [
+        el("p", { class: "eyebrow", text: "Start her" }),
+        el("h3", { text: `Hei ${firstName}, la oss gjøre dette konkret.` }),
+        el("p", { class: "muted", text: "Utviklingsplanen skal hjelpe deg å holde fast i retning, gjøre små eksperimenter i praksis og få mer ut av hver coachingtime." })
+      ]),
+      el("div", { class: "start-next-card" }, [
+        el("span", { class: "card-icon" }, [icon(next.icon)]),
+        el("div", {}, [
+          el("p", { class: "eyebrow", text: "Neste beste steg" }),
+          el("strong", { text: next.label }),
+          el("p", { text: next.text })
+        ]),
+        editable ? button(next.action, "arrow-right", () => activateWorkspacePane(next.pane), "primary") : null
+      ].filter(Boolean))
+    ]),
+    el("div", { class: "start-progress" }, [
+      el("div", { class: "start-progress-head" }, [
+        el("span", { class: "badge ok", text: progressText }),
+        el("span", { class: "muted", text: "Forløpet blir bedre jo mer konkret dette blir." })
+      ]),
+      el("div", { class: "start-checklist" }, items.map((item) => el("button", {
+        class: `start-check ${item.done ? "done" : ""}`,
+        type: "button",
+        onclick: () => activateWorkspacePane(item.pane)
+      }, [
+        el("span", { class: `start-check-icon ${item.done ? "done" : ""}` }, [icon(item.done ? "check" : item.icon)]),
+        el("span", {}, [
+          el("strong", { text: item.label }),
+          el("small", { text: item.done ? item.doneText : item.text })
+        ])
+      ])))
+    ])
+  ]);
+}
+
+function startChecklist(plan, data) {
+  const areas = (plan.areas || []).map(normalizeArea).filter(hasAreaContent);
+  const sessions = (plan.sessions || []).filter((session) => session.date || session.focus || session.goal || session.notes);
+  return [
+    {
+      label: "Sett retning",
+      text: "Skriv hva coachingforløpet skal hjelpe deg å bevege.",
+      doneText: "Retningen er formulert.",
+      done: Boolean(plan.c_purpose && plan.c_success),
+      pane: "direction",
+      action: "Sett retning",
+      icon: "target"
+    },
+    {
+      label: "Velg første fokus",
+      text: "Finn ett område som er viktig nok til å jobbe med nå.",
+      doneText: `${areas.length} fokusområde${areas.length === 1 ? "" : "r"} er valgt.`,
+      done: areas.length > 0,
+      pane: "work",
+      action: "Velg fokus",
+      icon: "layers-3"
+    },
+    {
+      label: "Gjør det testbart",
+      text: "Lag et lite eksperiment som kan prøves i arbeidshverdagen.",
+      doneText: `${(data.actions || []).length} eksperiment${(data.actions || []).length === 1 ? "" : "er"} er lagt inn.`,
+      done: (data.actions || []).length > 0,
+      pane: "work",
+      action: "Lag eksperiment",
+      icon: "flask-conical"
+    },
+    {
+      label: "Ta med læring videre",
+      text: "Bruk samtaler eller refleksjoner til å fange hva som faktisk skjer.",
+      doneText: "Det finnes læring fra samtale eller refleksjon.",
+      done: sessions.length > 0 || (data.reflections || []).length > 0,
+      pane: sessions.length > 0 ? "sessions" : "reflections",
+      action: "Fang læring",
+      icon: "message-square-text"
+    }
+  ];
+}
+
+function activateWorkspacePane(paneName) {
+  const tab = $(`.workspace-tab[data-tab='${paneName}']`);
+  if (tab) tab.click();
 }
 
 function getDirectionSpecs(plan) {
