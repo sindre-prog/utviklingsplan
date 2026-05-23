@@ -5,9 +5,11 @@
   --line: #eeeee8;
   --line-strong: #d8d8d0;
   --paper: #ffffff;
-  --cream: #f7f7f4;
-  --wash: #f8f8f6;
-  --wash-strong: #f2f2f2;
+  --app-bg: #ffffff;
+  --surface-subtle: #f7f7f6;
+  --cream: var(--app-bg);
+  --wash: var(--surface-subtle);
+  --wash-strong: #f1f1ef;
   --panel: #ffffff;
   --hero: #f2f2f2;
   --accent: #dbfacb;
@@ -52,7 +54,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  background: var(--cream);
+  background: var(--app-bg);
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.5;
@@ -149,7 +151,7 @@ h3 {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: var(--cream);
+  background: var(--app-bg);
 }
 .auth-logo {
   position: fixed;
