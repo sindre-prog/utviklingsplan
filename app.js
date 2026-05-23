@@ -621,6 +621,7 @@ function programToFormState(data) {
       nextPractice: area.next_practice || ""
     })) : [{ id: "", title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }],
     sessions: data.sessions.map((session) => ({
+      id: session.id || "",
       date: session.session_date || "",
       focus: session.focus || "",
       goal: session.conversation_goal || "",
@@ -987,6 +988,7 @@ function areasEditor(areas) {
     wrap.replaceChildren(...items.map((area) => {
       const item = normalizeArea(area);
       return el("div", { "data-area": "" }, [
+        el("input", { name: "area.id", value: item.id }),
         el("input", { name: "area.title", value: item.title }),
         el("input", { name: "area.projectType", value: item.projectType }),
         el("textarea", { name: "area.description", text: item.description }),
@@ -1017,6 +1019,7 @@ function editFocusArea(index) {
   ], async (values) => {
     const next = [...areas];
     next[index] = {
+      id: area.id || "",
       title: values.title || "",
       description: values.movement || "",
       projectType: values.projectType || "inner",
@@ -1034,7 +1037,13 @@ function editFocusArea(index) {
 
 async function deleteFocusArea(index) {
   if (!confirmDelete("Slette dette fokuset?")) return false;
-  setAreas(getAreas().filter((_, itemIndex) => itemIndex !== index));
+  const areas = getAreas();
+  const area = areas[index];
+  if (area?.id) {
+    const { error } = await state.sb.from("development_areas").delete().eq("id", area.id);
+    if (error) throw error;
+  }
+  setAreas(areas.filter((_, itemIndex) => itemIndex !== index));
   markDirty();
   const saved = await savePlan();
   if (!saved) return false;
@@ -1048,6 +1057,7 @@ function setAreas(values) {
   editor.replaceChildren(...values.map((area) => {
     const item = normalizeArea(area);
     return el("div", { "data-area": "" }, [
+      el("input", { name: "area.id", value: item.id }),
       el("input", { name: "area.title", value: item.title }),
       el("input", { name: "area.projectType", value: item.projectType }),
       el("textarea", { name: "area.description", text: item.description }),
@@ -1069,6 +1079,7 @@ function sessionsEditor(sessions) {
 
 function sessionHiddenFields(session, index) {
   return el("div", { "data-session": String(index) }, [
+    el("input", { name: "session.id", value: session.id || "" }),
     el("input", { name: "session.date", value: session.date || "" }),
     el("textarea", { name: "session.focus", text: session.focus || "" }),
     el("textarea", { name: "session.goal", text: session.goal || "" }),
@@ -1099,6 +1110,7 @@ function editSession(index) {
   ], async (values) => {
     const next = [...sessions];
     next[index] = {
+      id: session.id || "",
       date: values.date || "",
       focus: values.focus || "",
       goal: values.goal || "",
@@ -1116,7 +1128,13 @@ function editSession(index) {
 
 async function deleteSession(index) {
   if (!confirmDelete("Slette denne samtalen?")) return false;
-  setSessions(getSessions().filter((_, itemIndex) => itemIndex !== index));
+  const sessions = getSessions();
+  const session = sessions[index];
+  if (session?.id) {
+    const { error } = await state.sb.from("coaching_sessions").delete().eq("id", session.id);
+    if (error) throw error;
+  }
+  setSessions(sessions.filter((_, itemIndex) => itemIndex !== index));
   markDirty();
   const saved = await savePlan();
   if (!saved) return false;
@@ -1574,8 +1592,8 @@ async function savePlan() {
       status: "active"
     }).eq("id", current.program.id);
     if (programError) throw programError;
-    await replaceAreas(current.program.id, plan.areas);
-    await replaceSessions(current.program.id, plan.sessions);
+    await saveAreas(current.program.id, plan.areas);
+    await saveSessions(current.program.id, plan.sessions);
     await saveEvaluation(current.program.id, plan);
     delete state.programCache[client.id];
     await loadProgramSummaries();
@@ -1613,6 +1631,7 @@ function collectPlan() {
 
 function getAreas() {
   return $$("#areas-editor [data-area]").map((card) => ({
+    id: $("[name='area.id']", card).value.trim(),
     title: $("[name='area.title']", card).value.trim(),
     projectType: $("[name='area.projectType']", card).value.trim() || "inner",
     description: $("[name='area.description']", card).value.trim(),
@@ -1644,21 +1663,21 @@ function hasAreaContent(area) {
 
 function getSessions() {
   return $$("#sessions-editor [data-session]").map((card) => ({
+    id: $("[name='session.id']", card).value,
     date: $("[name='session.date']", card).value,
     focus: $("[name='session.focus']", card).value,
     goal: $("[name='session.goal']", card).value,
     notes: $("[name='session.notes']", card).value,
     actions: $("[name='session.actions']", card).value,
     reflection: $("[name='session.reflection']", card).value
-  })).reverse();
+  }));
 }
 
-async function replaceAreas(programId, areas) {
-  const { error: deleteError } = await state.sb.from("development_areas").delete().eq("program_id", programId);
-  if (deleteError) throw deleteError;
+async function saveAreas(programId, areas) {
   const rows = areas
     .map((area, index) => ({ ...normalizeArea(area), index }))
     .map((area) => ({
+      id: area.id || "",
       program_id: programId,
       title: area.title,
       description: area.movement || area.description || null,
@@ -1669,24 +1688,43 @@ async function replaceAreas(programId, areas) {
       sort_order: area.index
     }))
     .filter((row) => row.title || row.description || row.movement || row.progress_signs || row.next_practice);
-  if (!rows.length) return;
-  const { error } = await state.sb.from("development_areas").insert(rows);
+  for (const row of rows) {
+    if (row.id) await updateArea(row);
+    else await insertArea(row);
+  }
+}
+
+async function insertArea(row) {
+  const { id, ...insertRow } = row;
+  const { error } = await state.sb.from("development_areas").insert(insertRow);
   if (!error) return;
   if (!isMissingColumnError(error)) throw error;
-  const legacyRows = rows.map((row) => ({
+  const { error: legacyError } = await state.sb.from("development_areas").insert(legacyAreaRow(row));
+  if (legacyError) throw legacyError;
+}
+
+async function updateArea(row) {
+  const { id, program_id, ...values } = row;
+  const { error } = await state.sb.from("development_areas").update(values).eq("id", id).eq("program_id", program_id);
+  if (!error) return;
+  if (!isMissingColumnError(error)) throw error;
+  const { program_id: _programId, ...legacyValues } = legacyAreaRow(row);
+  const { error: legacyError } = await state.sb.from("development_areas").update(legacyValues).eq("id", id).eq("program_id", program_id);
+  if (legacyError) throw legacyError;
+}
+
+function legacyAreaRow(row) {
+  return {
     program_id: row.program_id,
     title: row.title,
     description: row.description,
     sort_order: row.sort_order
-  }));
-  const { error: legacyError } = await state.sb.from("development_areas").insert(legacyRows);
-  if (legacyError) throw legacyError;
+  };
 }
 
-async function replaceSessions(programId, sessions) {
-  const { error: deleteError } = await state.sb.from("coaching_sessions").delete().eq("program_id", programId);
-  if (deleteError) throw deleteError;
+async function saveSessions(programId, sessions) {
   const rows = sessions.map((session, index) => ({
+    id: session.id || "",
     program_id: programId,
     session_number: index + 1,
     session_date: session.date || null,
@@ -1696,13 +1734,34 @@ async function replaceSessions(programId, sessions) {
     decisions: session.actions || null,
     client_notes: session.reflection || null
   })).filter((session) => session.session_date || session.focus || session.conversation_goal || session.insights || session.decisions || session.client_notes);
-  if (!rows.length) return;
-  const { error } = await state.sb.from("coaching_sessions").insert(rows);
+  for (const row of rows) {
+    if (row.id) await updateSession(row);
+    else await insertSession(row);
+  }
+}
+
+async function insertSession(row) {
+  const { id, ...insertRow } = row;
+  const { error } = await state.sb.from("coaching_sessions").insert(insertRow);
   if (!error) return;
   if (!isMissingColumnError(error)) throw error;
-  const legacyRows = rows.map(({ conversation_goal, ...row }) => row);
-  const { error: legacyError } = await state.sb.from("coaching_sessions").insert(legacyRows);
+  const { error: legacyError } = await state.sb.from("coaching_sessions").insert(legacySessionRow(insertRow));
   if (legacyError) throw legacyError;
+}
+
+async function updateSession(row) {
+  const { id, program_id, ...values } = row;
+  const { error } = await state.sb.from("coaching_sessions").update(values).eq("id", id).eq("program_id", program_id);
+  if (!error) return;
+  if (!isMissingColumnError(error)) throw error;
+  const { program_id: _programId, ...legacyValues } = legacySessionRow(row);
+  const { error: legacyError } = await state.sb.from("coaching_sessions").update(legacyValues).eq("id", id).eq("program_id", program_id);
+  if (legacyError) throw legacyError;
+}
+
+function legacySessionRow(row) {
+  const { id, conversation_goal, ...legacyRow } = row;
+  return legacyRow;
 }
 
 async function saveEvaluation(programId, plan) {
