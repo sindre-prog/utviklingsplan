@@ -2,6 +2,22 @@ const SUPABASE_URL = "https://upuffmfgsxlzybifxveg.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq";
 const CONSENT_VERSION = "coaching-portal-v1";
 
+const EXPERIMENT_STATUS = {
+  planned: "Planlagt",
+  active: "Prøves ut",
+  reviewed: "Avlest",
+  continued: "Videreført",
+  closed: "Avsluttet"
+};
+
+const EXPERIMENT_STATUS_LEGACY_MAP = {
+  todo: "planned",
+  doing: "active",
+  testing: "active",
+  done: "reviewed",
+  dropped: "closed"
+};
+
 const state = {
   sb: null,
   user: null,
@@ -16,20 +32,45 @@ const state = {
   selectedClientId: null,
   dirty: false,
   saveTimer: null,
-  modal: null
+  modal: null,
+  drawer: null,
+  confirmResolve: null,
+  messageResolve: null,
+  directionEditKey: null,
+  inlineEditKey: null,
+  selectedFocusIndex: 0,
+  selectedSessionIndex: 0
 };
 
 const planFields = [
-  ["c_purpose", "Arbeidshypotese: hva tror vi dette forløpet egentlig handler om?", "textarea"],
-  ["c_success", "Tegn på bevegelse: hva vil være annerledes i praksis?", "textarea"],
-  ["c_expect_coach", "Hva trenger du fra coach for at dette skal bli nyttig?", "textarea"],
-  ["c_expect_client", "Hva vil du utforske eller teste mellom samtalene?", "textarea"],
-  ["c_confidentiality", "Hva skal holdes privat, og hva kan deles i samtalene?", "textarea"],
-  ["c_practical", "Rammer for samarbeidet", "textarea"]
+  ["c_purpose", "Mål", "textarea"],
+  ["c_success", "Tegn på bevegelse", "textarea"],
+  ["c_expect_client", "Forventninger til klient", "textarea"],
+  ["c_expect_coach", "Forventninger til coach", "textarea"],
+  ["c_practical", "Praktiske rammer", "textarea"],
+  ["c_confidentiality", "Konfidensialitet", "textarea"],
+  ["c_context", "Interessenter og kontekst", "textarea"]
 ];
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+function normalizeExperimentStatus(status) {
+  const value = status || "planned";
+  return EXPERIMENT_STATUS[value] ? value : EXPERIMENT_STATUS_LEGACY_MAP[value] || "planned";
+}
+
+function experimentStatusLabel(status) {
+  return EXPERIMENT_STATUS[normalizeExperimentStatus(status)];
+}
+
+function isExperimentClosed(status) {
+  return normalizeExperimentStatus(status) === "closed";
+}
+
+function isExperimentReviewed(status) {
+  return ["reviewed", "continued", "closed"].includes(normalizeExperimentStatus(status));
+}
 
 function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
@@ -564,7 +605,7 @@ async function renderPlan(activePane = "direction") {
       workWorkspace(client, data, plan)
     ]),
     el("section", { class: `workspace-pane ${activePane === "sessions" ? "active" : ""}`, "data-pane": "sessions" }, [
-      sessionsWorkspace(plan.sessions)
+      sessionsWorkspace(plan.sessions, data)
     ]),
     el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, "data-pane": "reflections" }, [
       reflectionsWorkspace(data)
@@ -675,6 +716,7 @@ function programToFormState(data) {
     c_expect_client: data.program.expectations_client || "",
     c_confidentiality: data.program.confidentiality || "",
     c_practical: data.program.practical_frame || "",
+    c_context: data.program.context || "",
     c_start: data.program.start_date || "",
     c_end: data.program.end_date || "",
     c_sessions: data.program.session_count || "",
@@ -685,9 +727,10 @@ function programToFormState(data) {
       description: area.description || "",
       projectType: area.project_type || "inner",
       movement: area.movement || area.description || "",
+      typicalSituations: area.typical_situations || "",
       progressSigns: area.progress_signs || "",
       nextPractice: area.next_practice || ""
-    })) : [{ id: "", title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }],
+    })) : [{ id: "", title: "", description: "", projectType: "inner", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" }],
     sessions: data.sessions.map((session) => ({
       id: session.id || "",
       date: session.session_date || "",
@@ -719,7 +762,15 @@ function clientWorkspaceTabs(_data, activePane = "direction") {
 
 function setupWorkspaceTabs() {
   $$(".workspace-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
+    tab.addEventListener("click", async () => {
+      if (state.directionEditKey) {
+        await showAppMessage("Lagre eller avbryt først", "Du har et åpent Retning-felt. Lagre eller avbryt før du går videre.");
+        return;
+      }
+      if (state.inlineEditKey) {
+        await showAppMessage("Lagre eller avbryt først", "Du har et åpent felt. Lagre eller avbryt før du går videre.");
+        return;
+      }
       $$(".workspace-tab").forEach((item) => item.classList.toggle("active", item === tab));
       $$(".workspace-pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === tab.dataset.tab));
     });
@@ -735,111 +786,48 @@ function hiddenPlanState(plan) {
   ]);
 }
 
-function directionWorkspace(client, plan, data) {
+function directionWorkspace(client, plan) {
   const editable = canEditProgram(client);
   const directionSpecs = getDirectionSpecs(plan);
-  return el("div", { class: "direction-stack" }, [
-    startOverview(client, plan, data, editable),
-    el("section", { class: "panel document-panel" }, [
-      workspaceIntro("Retning", "Hva jobber vi mot?", "Utvikling uten retning blir tilfeldig. Her samler du hva coachingen skal bidra til på overordnet nivå, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig."),
-      el("div", { class: "direction-grid" }, directionSpecs.map((spec) => (
-        directionCard(spec.label, spec.value, spec.emptyText, spec.icon, spec.layout, editable ? () => editDirectionField(spec) : null)
-      ))),
-      coachingFrame()
-    ])
-  ]);
-}
-
-function startOverview(client, plan, data, editable) {
-  const items = startChecklist(plan, data);
-  const completed = items.filter((item) => item.done).length;
-  const next = items.find((item) => !item.done) || {
-    label: "Hold planen levende",
-    text: "Bruk refleksjoner og eksperimenter mellom samtalene, og juster retningen når noe blir tydeligere.",
-    action: "Skriv refleksjon",
-    pane: "reflections",
-    icon: "sparkles"
-  };
-  const progressText = `${completed} av ${items.length} på plass`;
   const firstName = (client.name || "du").split(" ")[0];
-  return el("section", { class: "start-overview" }, [
-    el("div", { class: "start-hero" }, [
-      el("div", { class: "start-hero-copy" }, [
-        el("p", { class: "eyebrow", text: "Start her" }),
+  const status = directionStatus(plan);
+  return el("section", { class: "direction-simple" }, [
+    el("div", { class: "direction-simple-head" }, [
+      el("div", { class: "direction-simple-copy" }, [
+        el("p", { class: "eyebrow", text: "Retning" }),
         el("h3", { text: `Hei ${firstName}, la oss gjøre dette konkret.` }),
-        el("p", { class: "muted", text: "Utviklingsplanen skal hjelpe deg å holde fast i retning, gjøre små eksperimenter i praksis og få mer ut av hver coachingtime." })
+        el("p", { class: "muted", text: "Avklar hva dere jobber mot, hva som skal merkes i praksis, og hvilke rammer som gjør samarbeidet nyttig." })
       ]),
-      el("div", { class: "start-next-card" }, [
-        el("span", { class: "card-icon" }, [icon(next.icon)]),
-        el("div", {}, [
-          el("p", { class: "eyebrow", text: "Neste beste steg" }),
-          el("strong", { text: next.label }),
-          el("p", { text: next.text })
-        ]),
-        editable ? button(next.action, "arrow-right", () => activateWorkspacePane(next.pane), "primary") : null
+      el("div", { class: "workspace-inline-actions" }, [
+        el("span", { class: `direction-status ${status.tone}`, text: status.label }),
+        editable ? button(status.action || "Rediger retning", "pencil", () => activateFirstMissingDirectionField(directionSpecs), "ghost") : null
       ].filter(Boolean))
     ]),
-    el("div", { class: "start-progress" }, [
-      el("div", { class: "start-progress-head" }, [
-        el("span", { class: "badge ok", text: progressText }),
-        el("span", { class: "muted", text: "Forløpet blir bedre jo mer konkret dette blir." })
-      ]),
-      el("div", { class: "start-checklist" }, items.map((item) => el("button", {
-        class: `start-check ${item.done ? "done" : ""}`,
-        type: "button",
-        onclick: () => activateWorkspacePane(item.pane)
-      }, [
-        el("span", { class: `start-check-icon ${item.done ? "done" : ""}` }, [icon(item.done ? "check" : item.icon)]),
-        el("span", {}, [
-          el("strong", { text: item.label }),
-          el("small", { text: item.done ? item.doneText : item.text })
-        ])
-      ])))
+    el("div", { class: "direction-card-grid" }, [
+      directionCard("Mål og bevegelse", "Hva forløpet skal hjelpe frem, og hvordan dere ser at noe faktisk flytter seg.", directionSpecs.slice(0, 2), editable, client),
+      directionCard("Samarbeid", "Hva klient og coach kan forvente av hverandre mellom og i samtalene.", directionSpecs.slice(2, 4), editable, client),
+      directionCard("Rammer", "Praktiske grenser, konfidensialitet og konteksten coachingarbeidet skjer i.", directionSpecs.slice(4), editable, client, "wide")
     ])
   ]);
 }
 
-function startChecklist(plan, data) {
-  const areas = (plan.areas || []).map(normalizeArea).filter(hasAreaContent);
-  const sessions = (plan.sessions || []).filter((session) => session.date || session.focus || session.goal || session.notes);
-  return [
-    {
-      label: "Sett retning",
-      text: "Skriv hva coachingforløpet skal hjelpe deg å bevege.",
-      doneText: "Retningen er formulert.",
-      done: Boolean(plan.c_purpose && plan.c_success),
-      pane: "direction",
-      action: "Sett retning",
-      icon: "target"
-    },
-    {
-      label: "Velg første fokus",
-      text: "Finn ett område som er viktig nok til å jobbe med nå.",
-      doneText: `${areas.length} fokusområde${areas.length === 1 ? "" : "r"} er valgt.`,
-      done: areas.length > 0,
-      pane: "work",
-      action: "Velg fokus",
-      icon: "layers-3"
-    },
-    {
-      label: "Gjør det testbart",
-      text: "Lag et lite eksperiment som kan prøves i arbeidshverdagen.",
-      doneText: `${(data.actions || []).length} eksperiment${(data.actions || []).length === 1 ? "" : "er"} er lagt inn.`,
-      done: (data.actions || []).length > 0,
-      pane: "work",
-      action: "Lag eksperiment",
-      icon: "flask-conical"
-    },
-    {
-      label: "Ta med læring videre",
-      text: "Bruk samtaler eller refleksjoner til å fange hva som faktisk skjer.",
-      doneText: "Det finnes læring fra samtale eller refleksjon.",
-      done: sessions.length > 0 || (data.reflections || []).length > 0,
-      pane: sessions.length > 0 ? "sessions" : "reflections",
-      action: "Fang læring",
-      icon: "message-square-text"
-    }
-  ];
+function directionCard(title, text, specs, editable, client, variant = "") {
+  return el("article", { class: `workspace-card direction-workspace-card ${variant}` }, [
+    el("div", { class: "workspace-card-head" }, [
+      el("div", {}, [
+        el("h3", { text: title }),
+        el("p", { text })
+      ])
+    ]),
+    el("div", { class: "direction-list" }, [
+      ...specs.map((spec) => directionInlineField(spec, editable, client))
+    ])
+  ]);
+}
+
+function activateFirstMissingDirectionField(specs) {
+  const target = specs.find((spec) => !directionSpecHasValue(spec)) || specs[0];
+  if (target) activateDirectionEdit(target);
 }
 
 function activateWorkspacePane(paneName) {
@@ -851,67 +839,185 @@ function getDirectionSpecs(plan) {
   return [
     {
       key: "c_purpose",
-      label: "Mål med coachingen",
+      label: "Mål",
       value: plan.c_purpose,
-      emptyText: "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?",
-      placeholder: "Hva ønsker du at coachingforløpet skal bidra til å bevege, avklare eller utvikle?",
-      icon: "target",
-      layout: "wide"
+      helper: "Hva skal dette coachingforløpet hjelpe deg å bevege, avklare eller utvikle?",
+      placeholder: "Eksempel: Bli tryggere i prioritering og tydeligere i lederrollen når presset øker."
     },
     {
       key: "c_success",
       label: "Tegn på bevegelse",
       value: plan.c_success,
-      emptyText: "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?",
-      placeholder: "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?",
-      icon: "route",
-      layout: "wide"
+      helper: "Hva vil du, coach eller andre kunne legge merke til hvis arbeidet begynner å virke?",
+      placeholder: "Eksempel: Færre omstarter, raskere beslutninger og tydeligere forventningsavklaringer."
     },
     {
-      key: "c_practical",
-      label: "Prosess og samarbeid",
-      value: plan.c_practical,
-      emptyText: "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?",
-      placeholder: "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?",
-      icon: "handshake",
-      layout: ""
+      key: "c_expect_client",
+      label: "Forventninger til klient",
+      value: plan.c_expect_client,
+      helper: "Hva tar klienten ansvar for å prøve, observere eller forberede mellom samtalene?",
+      placeholder: "Eksempel: Teste små grep i arbeidshverdagen og notere korte observasjoner mens de er ferske."
     },
     {
-      key: "c_confidentiality",
-      label: "Rammer og forventninger",
-      value: plan.c_confidentiality,
-      emptyText: "Hva skal være avklart om konfidensialitet, ansvar og grensesetting?",
-      placeholder: "Hva bør være avklart om konfidensialitet, ansvar, grenser og praktiske forventninger?",
-      icon: "shield-check",
-      layout: ""
+      key: "c_expect_coach",
+      label: "Forventninger til coach",
+      value: plan.c_expect_coach,
+      helper: "Hva skal coach bidra med, utfordre, holde fast i eller følge opp?",
+      placeholder: "Eksempel: Hjelpe med presisering, utfordre antakelser og holde tråden fra samtale til praksis."
+    },
+    {
+      key: "frame",
+      label: "Rammer og konfidensialitet",
+      helper: "Hva er den praktiske rammen, og hva skal være privat, delt eller utenfor coachingens mandat?",
+      fields: [
+        {
+          key: "c_practical",
+          label: "Praktiske rammer",
+          value: plan.c_practical,
+          placeholder: "Eksempel: Seks samtaler annenhver uke. Mellom samtalene testes små praksiseksperimenter."
+        },
+        {
+          key: "c_confidentiality",
+          label: "Konfidensialitet",
+          value: plan.c_confidentiality,
+          placeholder: "Eksempel: Refleksjoner er private med mindre klient velger å dele. Coaching erstatter ikke helsehjelp."
+        }
+      ]
+    },
+    {
+      key: "c_context",
+      label: "Interessenter og kontekst",
+      value: plan.c_context,
+      helper: "Hvilke personer, team, roller eller organisatoriske forventninger påvirker arbeidet?",
+      placeholder: "Eksempel: Ledergruppen, nærmeste leder og teamet som trenger tydeligere prioriteringer."
     }
   ];
 }
 
-function editDirectionField(spec) {
-  openEntityModal(`Rediger ${spec.label.toLowerCase()}`, "Retning", [
-    textareaSpec(spec.key, spec.label, spec.value || "", { placeholder: spec.placeholder })
-  ], async (values) => {
-    setPlanValue(spec.key, values[spec.key]);
-    markDirty();
-    const saved = await savePlan();
-    if (!saved) throw new Error("Lagring feilet.");
-    await reloadProgramAndRender("direction");
-  });
+function directionStatus(plan) {
+  if (!plan.c_purpose || !plan.c_success) {
+    return {
+      tone: "missing",
+      label: "Mangler retning",
+      text: "Start med mål og tegn på bevegelse før dere velger fokusområder.",
+      action: "Sett retning"
+    };
+  }
+  if (!plan.c_expect_client || !plan.c_expect_coach) {
+    return {
+      tone: "partial",
+      label: "Mangler avtale",
+      text: "Gjør forventningene tydelige, så klient og coach vet hva de skal holde fast i.",
+      action: "Avklar forventninger"
+    };
+  }
+  return {
+    tone: "ready",
+    label: "Retning satt",
+    text: "Kontrakten er tydelig nok til å velge fokusområder og starte praksisarbeidet.",
+    action: "Gå videre"
+  };
+}
+
+function directionSpecHasValue(spec) {
+  if (spec.fields) return spec.fields.every((field) => (field.value || "").trim());
+  return Boolean((spec.value || "").trim());
+}
+
+function directionSpecPreview(spec) {
+  if (spec.fields) {
+    const values = spec.fields.filter((field) => (field.value || "").trim());
+    if (!values.length) return "";
+    return values.map((field) => `${field.label}: ${field.value}`).join("\n\n");
+  }
+  return spec.value || "";
+}
+
+function directionInlineField(spec, editable, client) {
+  const value = directionSpecPreview(spec);
+  return el("article", { class: `direction-field ${value ? "has-value" : "is-empty"}`, "data-direction-key": spec.key }, [
+    el("div", { class: "direction-field-main" }, [
+      el("div", { class: "direction-field-label" }, [
+        el("h4", { text: spec.label }),
+        el("p", { text: spec.helper })
+      ]),
+      el("div", { class: "direction-field-value" }, [
+        value ? directionValueContent(spec) : el("p", { class: "direction-empty", text: spec.placeholder || spec.helper })
+      ])
+    ]),
+    editable ? el("button", {
+      class: "direction-edit-trigger",
+      type: "button",
+      title: `Rediger ${spec.label}`,
+      text: value ? "Rediger" : "Legg til",
+      onclick: () => activateDirectionEdit(spec)
+    }) : null
+  ].filter(Boolean));
+}
+
+function directionValueContent(spec) {
+  if (spec.fields) {
+    return el("div", { class: "direction-subvalues" }, spec.fields.map((field) => (
+      el("div", {}, [
+        el("strong", { text: field.label }),
+        el("p", { text: field.value || "Ikke satt ennå." })
+      ])
+    )));
+  }
+  return el("p", { text: spec.value });
+}
+
+async function activateDirectionEdit(spec) {
+  if (state.directionEditKey && state.directionEditKey !== spec.key) {
+    await showAppMessage("Lagre eller avbryt først", "Bare ett Retning-felt kan redigeres om gangen.");
+    return;
+  }
+  const field = $(`[data-direction-key='${spec.key}']`);
+  if (!field) return;
+  state.directionEditKey = spec.key;
+  field.classList.add("is-editing");
+  field.replaceChildren(directionEditContent(spec));
+  refreshIcons();
+}
+
+function directionEditContent(spec) {
+  const fields = spec.fields || [spec];
+  return el("div", { class: "direction-edit" }, [
+    el("div", { class: "direction-field-label" }, [
+      el("h4", { text: spec.label }),
+      el("p", { text: spec.helper })
+    ]),
+    el("div", { class: "direction-edit-fields" }, fields.map((field) => (
+      el("label", { text: field.label || spec.label }, [
+        el("textarea", {
+          name: `inline-${field.key}`,
+          text: field.value || "",
+          placeholder: field.placeholder || spec.placeholder || spec.helper
+        })
+      ])
+    ))),
+    el("div", { class: "direction-edit-actions" }, [
+      button("Avbryt", "x", async () => {
+        state.directionEditKey = null;
+        await reloadProgramAndRender("direction");
+      }, "ghost"),
+      button("Lagre", "save", async () => {
+        fields.forEach((field) => {
+          setPlanValue(field.key, $(`[name='inline-${field.key}']`)?.value || "");
+        });
+        state.directionEditKey = null;
+        markDirty();
+        const saved = await savePlan();
+        if (!saved) return;
+        await reloadProgramAndRender("direction");
+      }, "primary")
+    ])
+  ]);
 }
 
 function setPlanValue(name, value) {
   const control = $(`[name='${name}']`, $("#plan-form"));
   if (control) control.value = value || "";
-}
-
-function directionCard(label, value, emptyText, iconName, layout = "", onOpen = null) {
-  return el("article", { class: `content-card direction-card ${layout} ${value ? "has-value" : "is-empty"}` }, [
-    cardIcon(iconName),
-    el("p", { class: "content-card-label", text: label }),
-    contentPreview(value, emptyText, layout === "wide" ? 6 : 5),
-    onOpen ? el("button", { class: "card-hit", type: "button", title: "Rediger", onclick: onOpen }) : null
-  ].filter(Boolean));
 }
 
 function cardIcon(name) {
@@ -927,28 +1033,6 @@ function contentPreview(value, emptyText, lines = 5) {
   });
 }
 
-function documentBlock(label, value, emptyText) {
-  return el("article", { class: "document-block" }, [
-    el("p", { class: "eyebrow", text: label }),
-    el("p", { class: value ? "" : "muted", text: value || emptyText })
-  ]);
-}
-
-function coachingFrame() {
-  const items = [
-    ["lock-keyhole", "Konfidensialitet", "Det som deles i coachingrommet behandles alltid konfidensielt."],
-    ["heart-handshake", "Rolleavklaring", "Coaching er ikke terapi. Ved psykiske helseutfordringer anbefales kontakt med kvalifisert fagperson."],
-    ["compass", "Ansvar", "Du eier egne mål, valg og handlinger. Coach fasiliterer refleksjon, retning og fremdrift."]
-  ];
-  return el("div", { class: "coaching-frame" }, items.map(([iconName, title, text]) => el("article", {}, [
-    icon(iconName),
-    el("div", {}, [
-      el("strong", { text: title }),
-      el("p", { text })
-    ])
-  ])));
-}
-
 function workWorkspace(client, data, plan) {
   const focusItems = plan.areas
     .map((area, index) => ({ area: normalizeArea(area), index }))
@@ -956,7 +1040,6 @@ function workWorkspace(client, data, plan) {
   const editable = canEditProgram(client);
   return el("div", { class: "work-stack" }, [
     el("section", { class: "panel document-panel" }, [
-      workOverview(client, focusItems, data, editable),
       focusIntro(editable),
       focusWorkbench(focusItems, data, editable),
       areasEditor(plan.areas)
@@ -976,7 +1059,7 @@ function workspaceIntro(kicker, title, text, actions = []) {
 }
 
 function focusWorkbench(items, data, editable) {
-  const freeActions = data.actions.filter((action) => !action.development_area_id && action.status !== "done");
+  const freeActions = data.actions.filter((action) => !action.development_area_id && !isExperimentClosed(action.status));
   if (!items.length) {
     return el("div", { class: "focus-workspace-stack" }, [
       el("div", { class: "focus-workbench focus-workbench-empty" }, [
@@ -988,7 +1071,8 @@ function focusWorkbench(items, data, editable) {
     ].filter(Boolean));
   }
 
-  const selected = items[0] || null;
+  const selectedItemIndex = Math.max(0, Math.min(state.selectedFocusIndex || 0, items.length - 1));
+  const selected = items[selectedItemIndex] || items[0] || null;
   const detail = el("aside", { class: "focus-detail" }, [
     focusDetail(selected, data, editable)
   ]);
@@ -1005,120 +1089,9 @@ function focusWorkbench(items, data, editable) {
 }
 
 function focusIntro(editable = false) {
-  return workspaceIntro("Fokusområder", "Hva er viktigst å jobbe med akkurat nå?", "Selv med tydelig retning kan du ikke jobbe med alt samtidig. Velg 2–4 områder som flytter deg mot målet. Indre prosjekter handler om deg, ytre om virksomheten. Koble på eksperimenter som testes i praksis.", [
+  return workspaceIntro("Fokusområder", "Prioriter utviklingssporene.", "Velg få fokusområder og gjør dem tydelige nok til at de kan øves på i konkrete situasjoner.", [
     editable ? iconAction("Legg til fokusområde", "plus", () => addFocusArea()) : null
   ].filter(Boolean));
-}
-
-function workOverview(client, focusItems, data, editable) {
-  const activeActions = (data.actions || []).filter((action) => !["done", "reviewed"].includes(action.status));
-  const reviewedActions = (data.actions || []).filter((action) => {
-    const parsed = parseActionDescription(action.description || "");
-    return action.status === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep;
-  });
-  const next = workNextStep(focusItems, activeActions, data);
-  return el("section", { class: "start-overview focus-overview" }, [
-    el("div", { class: "start-hero focus-hero" }, [
-      el("div", { class: "start-hero-copy" }, [
-        el("p", { class: "eyebrow", text: "Arbeidsmodus" }),
-        el("h3", { text: `Hei ${client.name?.split(" ")[0] || "du"}, la oss gjøre fokuset konkret.` }),
-        el("p", { class: "muted", text: "Velg få spor, gjør dem testbare i hverdagen, og bruk det du lærer som råstoff i neste samtale." })
-      ]),
-      el("div", { class: "start-next-card" }, [
-        el("span", { class: "card-icon" }, [icon(next.icon)]),
-        el("div", {}, [
-          el("p", { class: "eyebrow", text: "Neste beste steg" }),
-          el("strong", { text: next.title }),
-          el("p", { text: next.text })
-        ]),
-        editable ? button(next.action, "arrow-right", next.handler, "primary") : null
-      ].filter(Boolean))
-    ]),
-    focusProgress(focusItems, activeActions, reviewedActions, data, editable)
-  ]);
-}
-
-function focusProgress(focusItems, activeActions, reviewedActions, data, editable) {
-  const steps = [
-    {
-      title: "Velg fokus",
-      text: focusItems.length ? `${focusItems.length} fokusområder er valgt.` : "Start med ett konkret spor.",
-      done: focusItems.length > 0,
-      action: () => addFocusArea()
-    },
-    {
-      title: "Gjør det testbart",
-      text: activeActions.length ? `${activeActions.length} eksperimenter er i spill.` : "Lag ett lite eksperiment.",
-      done: activeActions.length > 0,
-      action: () => createAction(data, focusItems[0]?.area?.id || "")
-    },
-    {
-      title: "Fang læring",
-      text: reviewedActions.length ? `${reviewedActions.length} læringer er fanget.` : "Skriv ned hva som faktisk skjer.",
-      done: reviewedActions.length > 0,
-      action: () => activateWorkspacePane("reflections")
-    },
-    {
-      title: "Bruk i samtale",
-      text: "Ta observasjonene med inn i neste coachingtime.",
-      done: false,
-      action: () => activateWorkspacePane("sessions")
-    }
-  ];
-  const doneCount = steps.filter((step) => step.done).length;
-  return el("div", { class: "start-progress focus-progress" }, [
-    el("div", { class: "start-progress-head" }, [
-      el("span", { class: "badge ok", text: `${doneCount} av ${steps.length} på plass` }),
-      el("span", { class: "muted", text: "Forløpet blir bedre jo mer konkret dette blir." })
-    ]),
-    el("div", { class: "start-checklist" }, steps.map((step, index) =>
-      focusProgressCheck(step, index, editable)
-    ))
-  ]);
-}
-
-function focusProgressCheck(step, index, editable) {
-  return el("button", {
-    class: `start-check ${step.done ? "done" : ""}`,
-    type: "button",
-    onclick: editable ? step.action : null
-  }, [
-    el("span", { class: `start-check-icon ${step.done ? "done" : ""}` }, [
-      step.done ? icon("check") : el("span", { text: String(index + 1) })
-    ]),
-    el("span", {}, [
-      el("strong", { text: step.title }),
-      el("small", { text: step.text })
-    ])
-  ]);
-}
-
-function workNextStep(focusItems, activeActions, data) {
-  if (!focusItems.length) {
-    return {
-      icon: "layers-3",
-      title: "Velg første fokusområde",
-      text: "Start med ett område som betyr nok til at det fortjener oppmerksomhet de neste ukene.",
-      action: "Legg til fokus",
-      handler: () => addFocusArea()
-    };
-  }
-  if (!activeActions.length) {
-    return {
-      icon: "flask-conical",
-      title: "Gjør fokuset testbart",
-      text: "Lag ett lite eksperiment du kan prøve i en konkret situasjon før neste samtale.",
-      action: "Nytt eksperiment",
-      handler: () => createAction(data, focusItems[0]?.area?.id || "")
-    };
-  }
-  return {
-    icon: "message-square-text",
-    title: "Fang hva du lærer",
-    text: "Når noe er prøvd, skriv ned hva du la merke til. Det gjør neste samtale skarpere.",
-    action: "Skriv refleksjon",
-    handler: () => activateWorkspacePane("reflections")
-  };
 }
 
 function freeExperimentSection(actions, data, editable) {
@@ -1137,9 +1110,9 @@ function freeExperimentSection(actions, data, editable) {
 
 function focusList(items, editable, data, detail) {
   return el("div", { class: "focus-picker" }, [
-    ...items.map(({ area, index }, itemIndex) => el("article", { class: `focus-nav-item ${itemIndex === 0 ? "active" : ""}` }, [
-      el("button", { class: "focus-nav-button", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index }, data, editable, detail) }, [
-        el("span", { class: `ui-meta type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" }),
+    ...items.map(({ area, index }, itemIndex) => el("article", { class: `focus-nav-item ${itemIndex === (state.selectedFocusIndex || 0) ? "active" : ""}` }, [
+      el("button", { class: "focus-nav-button", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index, itemIndex }, data, editable, detail) }, [
+        el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) }),
         el("span", { class: "ui-stack-sm focus-nav-copy" }, [
           el("span", { class: "focus-nav-label", text: `Fokus ${index + 1}` }),
           el("strong", { class: "focus-nav-title", text: area.title || "Bevegelsesønske" }),
@@ -1157,28 +1130,28 @@ function focusList(items, editable, data, detail) {
 
 function selectFocusCard(buttonNode, item, data, editable, detail) {
   const card = buttonNode.closest(".focus-nav-item");
+  state.selectedFocusIndex = item.itemIndex || 0;
   $$(".focus-nav-item", card.parentElement).forEach((node) => node.classList.toggle("active", node === card));
   detail.replaceChildren(focusDetail(item, data, editable));
   refreshIcons();
 }
 
 function focusDetail({ area, index }, data, editable) {
-  const actions = data.actions.filter((action) => action.development_area_id === area.id && action.status !== "done");
+  const actions = data.actions.filter((action) => action.development_area_id === area.id && !isExperimentClosed(action.status));
   return el("section", { class: "content-card focus-detail-card" }, [
     el("div", { class: "focus-detail-titlebar" }, [
       el("div", { class: "focus-detail-heading" }, [
         el("span", { class: "focus-detail-meta" }, [
           el("span", { class: "eyebrow", text: `Fokus ${index + 1}` }),
-          el("span", { class: `ui-meta type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" })
+          el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) })
         ]),
         el("h3", { text: area.title || "Bevegelsesønske" })
       ]),
       editable ? el("span", { class: "row-tools" }, [
-        iconAction("Rediger fokus", "pencil", () => editFocusArea(index)),
         iconAction("Slett fokus", "trash-2", () => deleteFocusArea(index), "danger")
       ]) : null
     ].filter(Boolean)),
-    focusDetailWorkspace(area),
+    focusDetailWorkspace(area, index, editable),
     el("div", { class: "detail-divider" }),
     el("div", { class: "experiment-section-head" }, [
       el("div", {}, [
@@ -1192,22 +1165,48 @@ function focusDetail({ area, index }, data, editable) {
   ]);
 }
 
-function focusDetailWorkspace(area) {
+function focusDetailWorkspace(area, index, editable) {
   return el("div", { class: "focus-detail-workspace" }, [
-    focusDetailBlock("Kjernebevegelse", area.movement || area.description, "Hva skal dette fokuset hjelpe deg å bevege, endre eller oppnå?", "primary"),
+    focusDetailBlock("Ønsket bevegelse", area.movement || area.description, "Hva skal dette fokuset hjelpe deg å bevege, endre eller oppnå?", "movement", area, index, editable, "primary"),
     el("div", { class: "focus-detail-support" }, [
-      focusDetailBlock("Tegn på fremgang", area.progressSigns, "Hvordan vil du merke at noe faktisk er i bevegelse?"),
-      focusDetailBlock("Neste praksis", area.nextPractice, "Hva er den minste konkrete praksisen du kan teste nå?")
+      focusDetailBlock("Tittel", area.title, "Gi fokusområdet et kort navn.", "title", area, index, editable),
+      focusDetailBlock("Typiske situasjoner", area.typicalSituations, "Hvor viser dette mønsteret seg oftest?", "typicalSituations", area, index, editable),
+      focusDetailBlock("Tegn på fremgang", area.progressSigns, "Hvordan vil du merke at noe faktisk er i bevegelse?", "progressSigns", area, index, editable)
     ])
   ]);
 }
 
-function focusDetailBlock(label, value, emptyText, variant = "") {
+function focusDetailBlock(label, value, emptyText, fieldKey = "", area = null, index = 0, editable = false, variant = "") {
   const text = (value || "").trim();
+  const editKey = `focus:${index}:${fieldKey}`;
+  if (editable && state.inlineEditKey === editKey) {
+    return inlineTextAreaBlock({
+      className: `focus-detail-block ${variant}`,
+      label,
+      value: text,
+      placeholder: emptyText,
+      onCancel: () => {
+        state.inlineEditKey = null;
+        reloadProgramAndRender("work");
+      },
+      onSave: async (nextValue) => {
+        await saveFocusField(index, fieldKey, nextValue);
+      }
+    });
+  }
   return el("article", { class: `focus-detail-block ${variant} ${text ? "" : "is-empty"}` }, [
     el("p", { class: "focus-detail-label", text: label }),
-    el("p", { class: "focus-detail-text", text: text || emptyText })
-  ]);
+    el("p", { class: "focus-detail-text", text: text || emptyText }),
+    editable && fieldKey ? el("button", {
+      class: "field-inline-action",
+      type: "button",
+      text: text ? "Rediger" : "Legg til",
+      onclick: () => {
+        state.inlineEditKey = editKey;
+        reloadProgramAndRender("work");
+      }
+    }) : null
+  ].filter(Boolean));
 }
 
 function focusEmptyState(editable) {
@@ -1226,97 +1225,32 @@ function emptyState(title, text) {
   ]);
 }
 
-function sessionsWorkspace(sessions) {
+function sessionsWorkspace(sessions, data) {
   const editable = canEditProgram(getCurrentClient());
   return el("section", { class: "panel document-panel sessions-stack" }, [
-    sessionsOverview(sessions, editable),
-    workspaceIntro("Samtaler", "Hva trenger neste coachingtime å avklare?", "Samtalene skal gjøre utviklingen operasjonell: forbered temaet, fang innsikt, tydeliggjør beslutninger og avtal hva som skal prøves videre.", [
+    workspaceIntro("Samtaler", "Forbered og land coaching-samtaler.", "Behold samtalens viktigste felter, og bruk dem til å koble innsikt tilbake til praksis.", [
       editable ? iconAction("Ny samtale", "plus", () => addSession()) : null
     ].filter(Boolean)),
-    sessions.length ? sessionsWorkbench(sessions, editable) : sessionEmptyState(editable),
+    sessions.length ? sessionsWorkbench(sessions, data, editable) : sessionEmptyState(editable),
     sessionsEditor(sessions)
   ]);
 }
 
-function sessionsOverview(sessions, editable) {
-  const next = sessionNextStep(sessions);
-  return el("section", { class: "start-overview sessions-overview" }, [
-    el("div", { class: "start-hero sessions-hero" }, [
-      el("div", { class: "start-hero-copy" }, [
-        el("p", { class: "eyebrow", text: "Samtalemodus" }),
-        el("h3", { text: "Bruk samtalen til å gjøre utvikling konkret." }),
-        el("p", { class: "muted", text: "Start med et tydelig samtalemål, fang hva som blir klart underveis, og lukk med en praksis som kan testes før neste møte." })
-      ]),
-      el("div", { class: "start-next-card" }, [
-        el("span", { class: "card-icon" }, [icon(next.icon)]),
-        el("div", {}, [
-          el("p", { class: "eyebrow", text: "Neste beste steg" }),
-          el("strong", { text: next.title }),
-          el("p", { text: next.text })
-        ]),
-        editable ? button(next.action, "arrow-right", next.handler, "primary") : null
-      ].filter(Boolean))
-    ]),
-    sessionProgress(sessions, editable)
-  ]);
-}
-
-function sessionProgress(sessions, editable) {
-  const latest = sessions[0] || {};
-  const steps = [
-    ["Forbered", "Samtalemål", Boolean(latest.goal)],
-    ["Gjennomfør", "Innsikt er fanget", Boolean(latest.notes)],
-    ["Beslutninger", "Valg er tydeliggjort", Boolean(latest.actions)],
-    ["Neste praksis", "Læring tas videre", Boolean(latest.reflection)]
-  ];
-  const doneCount = steps.filter(([, , done]) => done).length;
-  return el("div", { class: "start-progress sessions-progress" }, [
-    el("div", { class: "start-progress-head" }, [
-      el("span", { class: "badge ok", text: `${doneCount} av ${steps.length} på plass` }),
-      el("span", { class: "muted", text: "En god samtale starter før møtet og slutter med noe som kan prøves." })
-    ]),
-    el("div", { class: "start-checklist" }, steps.map(([title, text, done], index) =>
-      el("button", { class: `start-check ${done ? "done" : ""}`, type: "button", onclick: editable ? () => sessions.length ? editSession(0) : addSession() : null }, [
-        el("span", { class: `start-check-icon ${done ? "done" : ""}` }, [
-          done ? icon("check") : el("span", { text: String(index + 1) })
-        ]),
-        el("span", {}, [
-          el("strong", { text: title }),
-          el("small", { text })
-        ])
-      ])
-    ))
-  ]);
-}
-
-function sessionNextStep(sessions) {
-  const latest = sessions[0];
-  if (!latest) {
-    return { icon: "calendar-plus", title: "Planlegg første samtale", text: "Opprett en samtale med tydelig mål før dere møtes.", action: "Ny samtale", handler: () => addSession() };
-  }
-  if (!latest.goal) {
-    return { icon: "target", title: "Sett samtalemål", text: "Avklar hva denne samtalen skal hjelpe dere å forstå eller bevege.", action: "Sett mål", handler: () => editSession(0) };
-  }
-  if (!latest.notes || !latest.actions) {
-    return { icon: "message-square-text", title: "Fang innsikt og beslutninger", text: "Skriv ned hva som ble tydelig, og hva dere velger å gjøre videre.", action: "Oppsummer samtale", handler: () => editSession(0) };
-  }
-  return { icon: "check-circle-2", title: "Lukk med neste praksis", text: "Gjør det lett å ta med læringen inn i hverdagen før neste møte.", action: "Ta videre", handler: () => editSession(0) };
-}
-
-function sessionsWorkbench(sessions, editable) {
+function sessionsWorkbench(sessions, data, editable) {
+  const selectedIndex = Math.max(0, Math.min(state.selectedSessionIndex || 0, sessions.length - 1));
   const detail = el("aside", { class: "session-detail" }, [
-    sessionDetail(sessions[0], 0, editable)
+    sessionDetail(sessions[selectedIndex], selectedIndex, editable, data)
   ]);
   return el("section", { class: "sessions-workbench" }, [
-    sessionRail(sessions, detail, editable),
+    sessionRail(sessions, detail, editable, data),
     el("div", { class: "session-detail-wrap" }, [detail])
   ]);
 }
 
-function sessionRail(sessions, detail, editable) {
+function sessionRail(sessions, detail, editable, data) {
   return el("div", { class: "session-rail" }, sessions.map((session, index) =>
-    el("article", { class: `session-nav-item ${index === 0 ? "active" : ""}` }, [
-      el("button", { class: "session-nav-button", type: "button", onclick: () => selectSessionCard(session, index, detail, editable) }, [
+    el("article", { class: `session-nav-item ${index === (state.selectedSessionIndex || 0) ? "active" : ""}` }, [
+      el("button", { class: "session-nav-button", type: "button", onclick: () => selectSessionCard(session, index, detail, editable, data) }, [
         el("span", { class: "session-nav-date", text: session.date ? formatDate(session.date) : `Samtale ${index + 1}` }),
         el("strong", { class: "session-nav-title", text: session.focus || "Samtale uten tittel" }),
         el("small", { text: session.goal || "Mål ikke satt ennå" })
@@ -1325,14 +1259,16 @@ function sessionRail(sessions, detail, editable) {
   ));
 }
 
-function selectSessionCard(session, index, detail, editable) {
+function selectSessionCard(session, index, detail, editable, data) {
   const cards = $$(".session-nav-item", detail.closest(".sessions-workbench"));
+  state.selectedSessionIndex = index;
   cards.forEach((node, itemIndex) => node.classList.toggle("active", itemIndex === index));
-  detail.replaceChildren(sessionDetail(session, index, editable));
+  detail.replaceChildren(sessionDetail(session, index, editable, data));
   refreshIcons();
 }
 
-function sessionDetail(session, index, editable) {
+function sessionDetail(session, index, editable, data = null) {
+  const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id && !isExperimentClosed(action.status));
   return el("section", { class: "content-card session-detail-card" }, [
     el("div", { class: "session-detail-titlebar" }, [
       el("div", { class: "session-detail-heading" }, [
@@ -1343,27 +1279,110 @@ function sessionDetail(session, index, editable) {
         el("h3", { text: session.focus || "Samtale uten tittel" })
       ]),
       editable ? el("span", { class: "row-tools" }, [
-        iconAction("Rediger samtale", "pencil", () => editSession(index)),
         iconAction("Slett samtale", "trash-2", () => deleteSession(index), "danger")
       ]) : null
     ].filter(Boolean)),
     el("div", { class: "session-detail-workspace" }, [
-      sessionDetailBlock("Samtalemål", session.goal, "Hva skal denne samtalen hjelpe dere å avklare, forstå eller bevege?", "primary"),
+      sessionDetailBlock("Tittel", session.focus, "Gi samtalen en kort tittel.", "focus", index, editable),
+      sessionDetailBlock("Mål med samtalen", session.goal, "Hva skal denne samtalen hjelpe dere å avklare, forstå eller bevege?", "goal", index, editable, "primary"),
       el("div", { class: "session-detail-grid" }, [
-        sessionDetailBlock("Innsikt", session.notes, "Hva ble tydeligere, viktigere eller annerledes?"),
-        sessionDetailBlock("Beslutninger", session.actions, "Hva velger dere å prøve, undersøke eller følge opp?")
+        sessionDetailBlock("Innsikt", session.notes, "Hva ble tydeligere, viktigere eller annerledes?", "notes", index, editable),
+        sessionDetailBlock("Mulig neste steg", session.actions, "Hva velger dere å prøve, undersøke eller følge opp?", "actions", index, editable)
       ]),
-      sessionDetailBlock("Tas videre", session.reflection, "Hva skal klienten huske, bruke eller komme tilbake til?")
+      sessionDetailBlock("Tas videre", session.reflection, "Hva skal klienten huske, bruke eller komme tilbake til?", "reflection", index, editable)
+    ]),
+    linkedActions.length ? el("div", { class: "detail-divider" }) : null,
+    linkedActions.length ? el("div", { class: "experiment-section-head" }, [
+      el("div", {}, [
+        el("h4", { text: "Eksperimenter fra samtalen" }),
+        el("p", { text: "Neste steg som er gjort om til faktisk eksperiment." })
+      ])
+    ]) : null,
+    linkedActions.length ? el("div", { class: "experiment-list" }, linkedActions.map((action) => experimentRow(action, data, editable))) : null
+  ].filter(Boolean));
+}
+
+function sessionDetailBlock(label, value, emptyText, fieldKey = "", index = 0, editable = false, variant = "") {
+  const text = (value || "").trim();
+  const editKey = `session:${index}:${fieldKey}`;
+  if (editable && state.inlineEditKey === editKey) {
+    return inlineTextAreaBlock({
+      className: `session-detail-block ${variant}`,
+      label,
+      value: text,
+      placeholder: emptyText,
+      onCancel: () => {
+        state.inlineEditKey = null;
+        reloadProgramAndRender("sessions");
+      },
+      onSave: async (nextValue) => {
+        await saveSessionField(index, fieldKey, nextValue);
+      }
+    });
+  }
+  return el("article", { class: `session-detail-block ${variant} ${text ? "" : "is-empty"}` }, [
+    el("p", { class: "session-detail-label", text: label }),
+    el("p", { class: "session-detail-text", text: text || emptyText }),
+    editable && fieldKey ? el("div", { class: "field-inline-row" }, [
+      fieldKey === "actions" && text ? el("button", {
+        class: "field-inline-action",
+        type: "button",
+        text: "Gjør til eksperiment",
+        onclick: () => createActionFromSessionNextStep(index, text)
+      }) : null,
+      el("button", {
+        class: "field-inline-action",
+        type: "button",
+        text: text ? "Rediger" : "Legg til",
+        onclick: () => {
+          state.inlineEditKey = editKey;
+          reloadProgramAndRender("sessions");
+        }
+      })
+    ].filter(Boolean)) : null
+  ].filter(Boolean));
+}
+
+function inlineTextAreaBlock({ className, label, value, placeholder, onCancel, onSave }) {
+  const textarea = el("textarea", { class: "inline-textarea", text: value || "", placeholder });
+  return el("article", { class: `${className} is-editing` }, [
+    el("p", { class: "focus-detail-label", text: label }),
+    textarea,
+    el("div", { class: "inline-edit-actions" }, [
+      button("Avbryt", "x", async () => onCancel(), "ghost"),
+      button("Lagre", "save", async () => onSave(textarea.value), "primary")
     ])
   ]);
 }
 
-function sessionDetailBlock(label, value, emptyText, variant = "") {
-  const text = (value || "").trim();
-  return el("article", { class: `session-detail-block ${variant} ${text ? "" : "is-empty"}` }, [
-    el("p", { class: "session-detail-label", text: label }),
-    el("p", { class: "session-detail-text", text: text || emptyText })
-  ]);
+async function saveFocusField(index, fieldKey, value) {
+  const areas = getAreas();
+  const area = normalizeArea(areas[index]);
+  const next = [...areas];
+  next[index] = {
+    ...area,
+    [fieldKey]: value || "",
+    description: fieldKey === "movement" ? value || "" : area.description
+  };
+  setAreas(next.filter(hasAreaContent));
+  state.inlineEditKey = null;
+  markDirty();
+  const saved = await savePlan();
+  if (!saved) return;
+  await reloadProgramAndRender("work");
+}
+
+async function saveSessionField(index, fieldKey, value) {
+  const sessions = getSessions();
+  const session = sessions[index] || {};
+  const next = [...sessions];
+  next[index] = { ...session, [fieldKey]: value || "" };
+  setSessions(next.filter((item) => item.date || item.focus || item.goal || item.notes || item.actions || item.reflection));
+  state.inlineEditKey = null;
+  markDirty();
+  const saved = await savePlan();
+  if (!saved) return;
+  await reloadProgramAndRender("sessions");
 }
 
 function sessionEmptyState(editable) {
@@ -1373,30 +1392,6 @@ function sessionEmptyState(editable) {
     el("p", { class: "muted", text: "Start med et samtalemål. Etterpå kan dere samle innsikt, beslutninger og hva klienten tar med seg videre." }),
     editable ? button("Ny samtale", "plus", () => addSession(), "ghost") : null
   ].filter(Boolean));
-}
-
-function areaPills(areas) {
-  const items = areas.map(normalizeArea).filter(hasAreaContent);
-  if (!items.length) return el("p", { class: "muted", text: "Ingen områder satt ennå." });
-  return el("div", { class: "area-pills" }, items.map((area, index) => el("span", { text: area.title || `Område ${index + 1}` })));
-}
-
-function section(title, description, iconName, children, open = false) {
-  const body = el("div", { class: `section-body ${open ? "open" : ""}` }, children);
-  return el("section", { class: "panel section-card" }, [
-    el("button", { class: "section-toggle", type: "button", onclick: () => body.classList.toggle("open") }, [
-      el("div", {}, [el("strong", { text: title }), el("span", { text: description })]),
-      el("span", { class: "section-arrow", text: "⌄" })
-    ]),
-    body
-  ]);
-}
-
-function field(name, label, value, type = "text") {
-  const control = type === "textarea"
-    ? el("textarea", { name, text: value })
-    : el("input", { name, type, value });
-  return el("label", { text: label }, [control]);
 }
 
 function areasEditor(areas) {
@@ -1410,6 +1405,7 @@ function areasEditor(areas) {
         el("input", { name: "area.projectType", value: item.projectType }),
         el("textarea", { name: "area.description", text: item.description }),
         el("textarea", { name: "area.movement", text: item.movement }),
+        el("textarea", { name: "area.typicalSituations", text: item.typicalSituations }),
         el("textarea", { name: "area.progressSigns", text: item.progressSigns }),
         el("textarea", { name: "area.nextPractice", text: item.nextPractice })
       ]);
@@ -1420,40 +1416,18 @@ function areasEditor(areas) {
 }
 
 function addFocusArea() {
-  const next = [...getAreas().filter(hasAreaContent), { title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }];
+  const next = [...getAreas().filter(hasAreaContent), { title: "Nytt fokusområde", description: "", projectType: "inner", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" }];
   setAreas(next);
-  editFocusArea(next.length - 1);
-}
-
-function editFocusArea(index) {
-  const areas = getAreas();
-  const area = normalizeArea(areas[index]);
-  openEntityModal(index >= areas.length || !hasAreaContent(area) ? "Legg til fokus" : "Rediger fokus", "Fokus", [
-    inputSpec("title", "Kort tittel", "text", area.title, { maxlength: 64, placeholder: "Maks 6-8 ord" }),
-    selectSpec("projectType", "Type", [["inner", "Indre prosjekt"], ["outer", "Ytre prosjekt"]], area.projectType || "inner", false),
-    textareaSpec("movement", "Hva vil du bevege, endre på eller oppnå?", area.movement || area.description, { placeholder: "Hva ønsker du å utvikle, forstå bedre eller gjøre annerledes innenfor dette fokuset?" }),
-    textareaSpec("progressSigns", "Hvordan vil du merke fremgang?", area.progressSigns, { placeholder: "Hva vil være små eller tydelige tegn på at du er i bevegelse?" })
-  ], async (values) => {
-    const next = [...areas];
-    next[index] = {
-      id: area.id || "",
-      title: values.title || "",
-      description: values.movement || "",
-      projectType: values.projectType || "inner",
-      movement: values.movement || "",
-      progressSigns: values.progressSigns || "",
-      nextPractice: area.nextPractice || ""
-    };
-    setAreas(next.filter(hasAreaContent));
-    markDirty();
-    const saved = await savePlan();
-    if (!saved) throw new Error("Lagring feilet.");
-    await reloadProgramAndRender("work");
-  }, hasAreaContent(area) ? { dangerLabel: "Slett fokus", onDanger: () => deleteFocusArea(index) } : {});
+  state.selectedFocusIndex = next.length - 1;
+  state.inlineEditKey = `focus:${next.length - 1}:title`;
+  markDirty();
+  savePlan().then((saved) => {
+    if (saved) reloadProgramAndRender("work");
+  });
 }
 
 async function deleteFocusArea(index) {
-  if (!confirmDelete("Slette dette fokuset?")) return false;
+  if (!(await confirmDelete("Slette dette fokuset?"))) return false;
   const areas = getAreas();
   const area = areas[index];
   if (area?.id) {
@@ -1479,6 +1453,7 @@ function setAreas(values) {
       el("input", { name: "area.projectType", value: item.projectType }),
       el("textarea", { name: "area.description", text: item.description }),
       el("textarea", { name: "area.movement", text: item.movement }),
+      el("textarea", { name: "area.typicalSituations", text: item.typicalSituations }),
       el("textarea", { name: "area.progressSigns", text: item.progressSigns }),
       el("textarea", { name: "area.nextPractice", text: item.nextPractice })
     ]);
@@ -1508,43 +1483,18 @@ function sessionHiddenFields(session, index) {
 
 function addSession() {
   const sessions = getSessions();
-  setSessions([...sessions, { date: new Date().toISOString().slice(0, 10), focus: "", goal: "", notes: "", actions: "", reflection: "" }]);
-  editSession(sessions.length);
-}
-
-function editSession(index) {
-  const sessions = getSessions();
-  const session = sessions[index] || { date: "", focus: "", goal: "", notes: "", actions: "", reflection: "" };
-  openEntityModal(index >= sessions.length ? "Ny samtale" : "Rediger samtale", "Samtaler", [
-    sectionSpec("Før samtalen", "Hva ønsker du at samtalen skal hjelpe deg å avklare, forstå eller bevege?"),
-    inputSpec("date", "Dato", "date", session.date || ""),
-    inputSpec("focus", "Tittel", "text", session.focus || "", { maxlength: 72, placeholder: "Kort navn på samtalen" }),
-    textareaSpec("goal", "Mål med samtalen", session.goal || "", { placeholder: "Hva ønsker du at denne samtalen skal hjelpe deg å avklare, forstå eller bevege?" }),
-    sectionSpec("Etter samtalen", "Hva ble tydelig, og hva tar du med deg videre?"),
-    textareaSpec("notes", "Viktig innsikt", session.notes || "", { placeholder: "Hva ble tydeligere, viktigere eller annerledes etter samtalen?" }),
-    textareaSpec("actions", "Mulig neste steg", session.actions || "", { placeholder: "Er det noe du vil prøve, undersøke eller følge opp videre?" }),
-    textareaSpec("reflection", "Hva tar du med deg videre?", session.reflection || "", { placeholder: "Hva vil du huske, bruke eller komme tilbake til?" })
-  ], async (values) => {
-    const next = [...sessions];
-    next[index] = {
-      id: session.id || "",
-      date: values.date || "",
-      focus: values.focus || "",
-      goal: values.goal || "",
-      notes: values.notes || "",
-      actions: values.actions || "",
-      reflection: values.reflection || ""
-    };
-    setSessions(next.filter((item) => item.date || item.focus || item.goal || item.notes || item.actions || item.reflection));
-    markDirty();
-    const saved = await savePlan();
-    if (!saved) throw new Error("Lagring feilet.");
-    await reloadProgramAndRender("sessions");
-  }, index < sessions.length ? { dangerLabel: "Slett samtale", onDanger: () => deleteSession(index) } : {});
+  const nextIndex = sessions.length;
+  setSessions([...sessions, { date: new Date().toISOString().slice(0, 10), focus: "Ny samtale", goal: "", notes: "", actions: "", reflection: "" }]);
+  state.selectedSessionIndex = nextIndex;
+  state.inlineEditKey = `session:${nextIndex}:focus`;
+  markDirty();
+  savePlan().then((saved) => {
+    if (saved) reloadProgramAndRender("sessions");
+  });
 }
 
 async function deleteSession(index) {
-  if (!confirmDelete("Slette denne samtalen?")) return false;
+  if (!(await confirmDelete("Slette denne samtalen?"))) return false;
   const sessions = getSessions();
   const session = sessions[index];
   if (session?.id) {
@@ -1565,44 +1515,10 @@ function setSessions(values) {
   editor.replaceChildren(...values.map((session, index) => sessionHiddenFields(session, index)));
 }
 
-function actionsPreview(actions) {
-  if (!actions.length) return el("p", { class: "muted", text: "Ingen handlinger registrert ennå. I neste batch gjør vi dette til en egen, mer elegant arbeidsflate." });
-  return el("div", { class: "compact-list" }, actions.slice(0, 5).map((action) => el("div", { class: "compact-item" }, [
-    el("strong", { text: action.title || "Handling uten tittel" }),
-    el("span", { text: action.status || "todo" })
-  ])));
-}
-
-function actionList(actions, data) {
-  if (!actions.length) return el("p", { class: "muted", text: "Ingen eksperimenter ennå." });
-  const editable = canEditProgram(getCurrentClient());
-  return el("div", { class: "action-list" }, actions.map((action) => el("article", { class: "action-card editable-row" }, [
-    el("div", { class: "action-main" }, [
-      el("div", { class: "action-title-row" }, [
-        el("strong", { text: action.title || "Eksperiment uten tittel" }),
-        action.due_date ? el("span", { class: "action-date", text: formatDate(action.due_date) }) : null
-      ].filter(Boolean)),
-      actionMeta(action, data)
-    ]),
-    editable ? el("div", { class: "row-actions inline-actions action-tools" }, [
-      el("button", { class: "icon-button", type: "button", title: "Rediger", onclick: () => editAction(action, data) }, [icon("pencil")])
-    ]) : null
-  ].filter(Boolean))));
-}
-
-function reflectionsPreview(reflections) {
-  if (!reflections.length) return el("p", { class: "muted", text: "Ingen refleksjoner ennå. Private refleksjoner forblir private i Supabase-policyene." });
-  return el("div", { class: "compact-list" }, reflections.slice(0, 5).map((reflection) => el("div", { class: "compact-item" }, [
-    el("strong", { text: reflection.prompt || (reflection.visibility === "private" ? "Privat refleksjon" : "Delt refleksjon") }),
-    el("span", { text: reflection.visibility === "private" ? "Privat" : "Delt med coach" })
-  ])));
-}
-
 function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
   return el("div", { class: "reflection-space" }, [
-    reflectionsOverview(data, canWriteReflection),
-    workspaceIntro("Refleksjon", "Hva lærer du av det som faktisk skjer?", "Bruk refleksjoner til å fange observasjoner mens de er ferske. Noe kan være privat, noe kan deles med coach når det hjelper samtalen videre."),
+    workspaceIntro("Refleksjon", "Skriv ned det du legger merke til.", "Privat er standard. Del bare med coach når det faktisk hjelper samtalen videre."),
     canWriteReflection ? reflectionComposer(data) : reflectionCoachNote(),
     el("section", { class: "panel document-panel reflection-log-section" }, [
       el("p", { class: "eyebrow", text: "Logg" }),
@@ -1612,59 +1528,16 @@ function reflectionsWorkspace(data) {
   ].filter(Boolean));
 }
 
-function reflectionsOverview(data, canWriteReflection) {
-  const privateCount = (data.reflections || []).filter((item) => item.visibility === "private").length;
-  const sharedCount = (data.reflections || []).filter((item) => item.visibility === "shared_with_coach").length;
-  const hasRecent = (data.reflections || []).length > 0;
-  return el("section", { class: "start-overview reflections-overview" }, [
-    el("div", { class: "start-hero reflections-hero" }, [
-      el("div", { class: "start-hero-copy" }, [
-        el("p", { class: "eyebrow", text: "Læringsmodus" }),
-        el("h3", { text: canWriteReflection ? "Fang læringen mens den fortsatt er konkret." : "Se det klienten har valgt å dele." }),
-        el("p", { class: "muted", text: canWriteReflection ? "Skriv kort om hva du prøvde, hva du la merke til, og hva du vil ta med inn i neste samtale." : "Private refleksjoner forblir private. Her ser coach bare det klienten aktivt har delt." })
-      ]),
-      el("div", { class: "start-next-card" }, [
-        el("span", { class: "card-icon" }, [icon(hasRecent ? "message-square-text" : "notebook-pen")]),
-        el("div", {}, [
-          el("p", { class: "eyebrow", text: "Neste beste steg" }),
-          el("strong", { text: hasRecent ? "Bruk læringen videre" : "Skriv første refleksjon" }),
-          el("p", { text: hasRecent ? "Velg hva som skal deles med coach, og hva som bare skal hjelpe deg å tenke." : "Start med noen få linjer om hva som ble tydelig sist." })
-        ]),
-        canWriteReflection ? button(hasRecent ? "Skriv ny refleksjon" : "Start refleksjon", "arrow-right", () => $("#reflection-body")?.focus(), "primary") : null
-      ].filter(Boolean))
-    ]),
-    el("div", { class: "start-progress reflections-progress" }, [
-      el("div", { class: "start-progress-head" }, [
-        el("span", { class: "badge ok", text: `${data.reflections?.length || 0} refleksjoner` }),
-        el("span", { class: "muted", text: `${privateCount} private · ${sharedCount} delt med coach` })
-      ]),
-      el("div", { class: "reflection-metrics" }, [
-        reflectionMetric("Privat rom", String(privateCount), "Bare synlig for deg"),
-        reflectionMetric("Delt læring", String(sharedCount), "Synlig for coach"),
-        reflectionMetric("Knyttet til fokus", String((data.reflections || []).filter((item) => item.development_area_id).length), "Gir samtalen kontekst")
-      ])
-    ])
-  ]);
-}
-
-function reflectionMetric(label, value, help) {
-  return el("article", { class: "reflection-metric" }, [
-    el("span", { text: label }),
-    el("strong", { text: value }),
-    el("small", { text: help })
-  ]);
-}
-
 function reflectionComposer(data) {
   return el("section", { class: "panel document-panel reflection-composer" }, [
     el("div", { class: "reflection-composer-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Ny refleksjon" }),
-        el("h3", { text: "Skriv for å forstå mer" }),
-        el("p", { class: "muted", text: "Hold det kort. Én observasjon er nok hvis den gjør neste handling tydeligere." })
+        el("h3", { text: "Hva skjedde?" }),
+        el("p", { class: "muted", text: "Skriv kort. Du kan beholde refleksjonen privat eller dele den med coach." })
       ])
     ]),
-    el("textarea", { id: "reflection-body", placeholder: "Hva la du merke til, hva flyttet seg, eller hva vil du ta med videre?" }),
+    el("textarea", { id: "reflection-body", placeholder: "Hva skjedde? Hva gjorde du? Hva la du merke til hos deg selv eller andre?" }),
     el("div", { class: "field-pair" }, [
       el("label", { text: "Synlighet" }, [
         el("select", { id: "reflection-visibility" }, [
@@ -1697,11 +1570,12 @@ function reflectionsList(reflections, data) {
   return el("div", { class: "reflection-list" }, reflections.map((reflection) => {
     const editable = reflection.created_by === state.user?.id;
     const area = (data.areas || []).find((item) => item.id === reflection.development_area_id);
+    if (editable && state.inlineEditKey === `reflection:${reflection.id}`) return reflectionInlineCard(reflection, data);
     return el("article", { class: "content-card reflection-card editable-row" }, [
       el("button", {
         class: "row-open",
         type: "button",
-        onclick: editable ? () => editReflection(reflection, data) : undefined,
+        onclick: editable ? () => startReflectionEdit(reflection.id) : undefined,
         disabled: editable ? undefined : true
       }, [
         cardIcon("notebook-pen"),
@@ -1715,15 +1589,58 @@ function reflectionsList(reflections, data) {
         ])
       ]),
       editable ? el("span", { class: "row-tools" }, [
-        iconAction("Rediger refleksjon", "pencil", () => editReflection(reflection, data)),
+        iconAction("Rediger refleksjon", "pencil", () => startReflectionEdit(reflection.id)),
         iconAction("Slett refleksjon", "trash-2", () => deleteReflection(reflection.id), "danger")
       ]) : null
     ].filter(Boolean));
   }));
 }
 
+function startReflectionEdit(id) {
+  state.inlineEditKey = `reflection:${id}`;
+  reloadProgramAndRender("reflections");
+}
+
+function reflectionInlineCard(reflection, data) {
+  const body = el("textarea", { class: "inline-textarea", text: reflection.body || "", placeholder: "Skriv en kort refleksjon..." });
+  const visibility = el("select", {}, [
+    el("option", { value: "private", text: "Privat", selected: reflection.visibility === "private" }),
+    el("option", { value: "shared_with_coach", text: "Del med coach", selected: reflection.visibility === "shared_with_coach" })
+  ]);
+  const area = el("select", {}, [
+    el("option", { value: "", text: "Hele forløpet", selected: !reflection.development_area_id }),
+    ...data.areas.map((item) => el("option", { value: item.id, text: item.title || "Utviklingsområde", selected: reflection.development_area_id === item.id }))
+  ]);
+  return el("article", { class: "content-card reflection-card reflection-card-edit" }, [
+    el("div", { class: "field-pair" }, [
+      el("label", { text: "Synlighet" }, [visibility]),
+      el("label", { text: "Knytt til" }, [area])
+    ]),
+    body,
+    el("div", { class: "inline-edit-actions" }, [
+      button("Avbryt", "x", async () => {
+        state.inlineEditKey = null;
+        await reloadProgramAndRender("reflections");
+      }, "ghost"),
+      button("Lagre", "save", async () => {
+        const { error } = await state.sb.from("client_reflections").update({
+          body: body.value || "",
+          visibility: visibility.value || "private",
+          development_area_id: area.value || null
+        }).eq("id", reflection.id);
+        if (error) {
+          await showAppMessage("Kunne ikke lagre refleksjonen", error.message || "Prøv igjen.");
+          return;
+        }
+        state.inlineEditKey = null;
+        await reloadProgramAndRender("reflections");
+      }, "primary")
+    ])
+  ]);
+}
+
 function createAction(data, presetAreaId = "") {
-  openEntityModal("Nytt eksperiment", "Arbeid", [
+  openEntityDrawer("Nytt eksperiment", "Arbeid", [
     inputSpec("title", "Navn på eksperiment"),
     selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], presetAreaId || "", false),
     sectionSpec("Før", "Gjør forsøket tydelig før du går ut og tester."),
@@ -1744,15 +1661,49 @@ function createAction(data, presetAreaId = "") {
       title: values.title,
       description: actionDescription(values),
       due_date: values.dueDate || null,
-      status: "todo"
+      status: "planned"
     });
     await reloadProgramAndRender("work");
   });
 }
 
+function createActionFromSessionNextStep(sessionIndex, nextStepText) {
+  const client = getCurrentClient();
+  const data = client ? state.programCache[client.id] : null;
+  const session = getSessions()[sessionIndex] || {};
+  if (!data) return;
+  openEntityDrawer("Gjør til eksperiment", "Samtale", [
+    inputSpec("title", "Navn på eksperiment", "text", nextStepText.slice(0, 80)),
+    selectSpec("areaId", "Knytt til fokus", [["", "Velg fokus"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], "", false),
+    textareaSpec("action", "Hva skal testes?", nextStepText, { placeholder: "Hva skal klienten prøve i praksis?" }),
+    textareaSpec("signals", "Hva skal observeres?", "", { placeholder: "Hva skal klienten se etter?" }),
+    inputSpec("dueDate", "Når skal det avleses?", "date")
+  ], async (values) => {
+    const { error } = await state.sb.from("session_actions").insert({
+      program_id: data.program.id,
+      session_id: session.id || null,
+      development_area_id: values.areaId || null,
+      title: values.title || "Eksperiment fra samtale",
+      description: actionDescription({
+        hypothesis: "",
+        action: values.action || "",
+        signals: values.signals || "",
+        observation: "",
+        effect: "",
+        learning: "",
+        nextStep: ""
+      }),
+      due_date: values.dueDate || null,
+      status: "planned"
+    });
+    if (error) throw error;
+    await reloadProgramAndRender("sessions");
+  });
+}
+
 function editAction(action, data) {
   const parsed = parseActionDescription(action.description || "");
-  openEntityModal("Rediger eksperiment", "Arbeid", [
+  openEntityDrawer("Rediger eksperiment", "Arbeid", [
     inputSpec("title", "Navn på eksperiment", "text", action.title || ""),
     selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], action.development_area_id || "", false),
     sectionSpec("Før", "Hva var planen og antakelsen?"),
@@ -1816,12 +1767,20 @@ function effectLabel(value) {
 }
 
 function phaseLabel(status, parsed) {
-  if (status === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep) return "Avlest";
-  if (status === "testing" || parsed.action || parsed.signals) return "Prøves ut";
+  const normalized = normalizeExperimentStatus(status);
+  if (normalized === "closed") return "Avsluttet";
+  if (normalized === "continued") return "Videreført";
+  if (normalized === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep) return "Avlest";
+  if (normalized === "active" || parsed.action || parsed.signals) return "Prøves ut";
   return "Planlagt";
 }
 
 function experimentStateClass(action, parsed) {
+  const status = normalizeExperimentStatus(action.status);
+  if (status === "closed") return "is-reviewed";
+  if (status === "continued") return "has-effect";
+  if (status === "reviewed") return "is-reviewed";
+  if (status === "active") return "is-testing";
   if (parsed.effect === "clear" || parsed.effect === "some") return "has-effect";
   if (parsed.effect || parsed.learning || parsed.nextStep) return "is-reviewed";
   if (parsed.observation || parsed.action || parsed.signals) return "is-testing";
@@ -1829,10 +1788,10 @@ function experimentStateClass(action, parsed) {
 }
 
 async function deleteAction(id) {
-  if (!confirmDelete("Slette dette eksperimentet?")) return false;
+  if (!(await confirmDelete("Slette dette eksperimentet?"))) return false;
   const { error } = await state.sb.from("session_actions").delete().eq("id", id);
   if (error) {
-    alert("Kunne ikke slette eksperimentet.");
+    await showAppMessage("Kunne ikke slette eksperimentet", error.message || "Prøv igjen.");
     return false;
   }
   await reloadProgramAndRender("work");
@@ -1905,27 +1864,11 @@ async function createReflection(programId) {
   await reloadProgramAndRender("reflections");
 }
 
-function editReflection(reflection, data) {
-  openEntityModal("Rediger refleksjon", "Refleksjon", [
-    textareaSpec("body", "Refleksjon", reflection.body || "", { placeholder: "Skriv en kort refleksjon..." }),
-    selectSpec("visibility", "Synlighet", [["private", "Privat"], ["shared_with_coach", "Del med coach"]], reflection.visibility || "private", false),
-    selectSpec("areaId", "Knytt til", [["", "Hele forløpet"], ...data.areas.map((area) => [area.id, area.title || "Utviklingsområde"])], reflection.development_area_id || "", false)
-  ], async (values) => {
-    const { error } = await state.sb.from("client_reflections").update({
-      body: values.body || "",
-      visibility: values.visibility || "private",
-      development_area_id: values.areaId || null
-    }).eq("id", reflection.id);
-    if (error) throw error;
-    await reloadProgramAndRender("reflections");
-  }, { dangerLabel: "Slett refleksjon", onDanger: () => deleteReflection(reflection.id) });
-}
-
 async function deleteReflection(id) {
-  if (!confirmDelete("Slette denne refleksjonen?")) return false;
+  if (!(await confirmDelete("Slette denne refleksjonen?"))) return false;
   const { error } = await state.sb.from("client_reflections").delete().eq("id", id);
   if (error) {
-    alert("Kunne ikke slette refleksjonen.");
+    await showAppMessage("Kunne ikke slette refleksjonen", error.message || "Prøv igjen.");
     return false;
   }
   await reloadProgramAndRender("reflections");
@@ -1936,23 +1879,6 @@ async function reloadProgramAndRender(activePane = "direction") {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (client) delete state.programCache[client.id];
   await renderPlan(activePane);
-}
-
-function experimentSidebar(client, data) {
-  const editable = canEditProgram(client);
-  const activeActions = (data.actions || []).filter((action) => action.status !== "done");
-  return el("aside", { class: "experiment-sidebar" }, [
-    el("div", { class: "experiment-head" }, [
-      el("h3", { text: "Aktive eksperimenter" }),
-      editable ? el("button", { class: "icon-button", type: "button", title: "Nytt eksperiment", onclick: () => createAction(data) }, [icon("plus")]) : null
-    ].filter(Boolean)),
-    activeActions.length ? el("div", { class: "experiment-list" }, activeActions.map((action) => experimentRow(action, data, editable))) :
-      el("div", { class: "experiment-empty" }, [
-        el("strong", { text: "Ingen aktive" }),
-        el("p", { text: "Legg inn små forsøk når dere vil teste en ny måte å handle, observere eller øve på." }),
-        editable ? button("Nytt eksperiment", "plus", () => createAction(data), "ghost") : null
-      ].filter(Boolean))
-  ]);
 }
 
 function experimentRow(action, data, editable) {
@@ -1980,35 +1906,6 @@ function experimentRow(action, data, editable) {
       icon("chevron-right")
     ].filter(Boolean))
   ].filter(Boolean));
-}
-
-function planRail(client, plan, data) {
-  const areaCount = (plan.areas || []).map(normalizeArea).filter((area) => area.title || area.description).length;
-  const checks = [
-    ["Retning", Boolean(plan.c_purpose && plan.c_success)],
-    ["Fokusområder", areaCount >= 2],
-    ["Eksperimenter", (data.actions || []).length > 0],
-    ["Samtaler", (plan.sessions || []).length > 0]
-  ];
-  return el("aside", { class: "plan-rail" }, [
-    el("section", { class: "panel" }, [
-      el("p", { class: "eyebrow", text: "Klient" }),
-      el("h3", { text: client.name || "Uten navn" }),
-      el("p", { class: "muted", text: [client.role, client.employer, coachNames(client)].filter(Boolean).join(" · ") })
-    ]),
-    el("section", { class: "panel" }, [
-      el("p", { class: "eyebrow", text: "Aktivitet" }),
-      el("div", { class: "progress-list" }, checks.map(([label, done]) => el("div", { class: "progress-item" }, [
-        el("span", { text: label }),
-        el("span", { class: `progress-dot ${done ? "done" : ""}` })
-      ])))
-    ]),
-    el("section", { class: "panel" }, [
-      el("p", { class: "eyebrow", text: "Status" }),
-      el("h3", { text: statusLabel(data.program.status) }),
-      el("p", { class: "muted", text: data.program.updated_at ? `Sist oppdatert ${formatDate(data.program.updated_at)}` : "Ikke oppdatert ennå" })
-    ])
-  ]);
 }
 
 function saveStrip(editable = true) {
@@ -2059,7 +1956,7 @@ async function savePlan() {
     const current = state.programCache[client.id] || await loadClientProgram(client);
     if (!current) throw new Error("Mangler programrad.");
     const plan = collectPlan();
-    const { error: programError } = await state.sb.from("coaching_programs").update({
+    const programValues = {
       purpose: plan.c_purpose,
       success_criteria: plan.c_success,
       expectations_coach: plan.c_expect_coach,
@@ -2071,7 +1968,9 @@ async function savePlan() {
       session_count: plan.c_sessions ? Number(plan.c_sessions) : null,
       session_duration: plan.c_duration || null,
       status: "active"
-    }).eq("id", current.program.id);
+    };
+    if ("c_context" in plan) programValues.context = plan.c_context || null;
+    const { error: programError } = await state.sb.from("coaching_programs").update(programValues).eq("id", current.program.id);
     if (programError) throw programError;
     await saveAreas(current.program.id, plan.areas);
     await saveSessions(current.program.id, plan.sessions);
@@ -2085,7 +1984,7 @@ async function savePlan() {
     console.error("Kunne ikke lagre utviklingsplan", error);
     setSaveState("error");
     if (status) status.textContent = "Lagring feilet";
-    alert(`Kunne ikke lagre: ${error.message || "Ukjent feil"}`);
+    await showAppMessage("Kunne ikke lagre", error.message || "Ukjent feil");
     return false;
   }
 }
@@ -2117,21 +2016,39 @@ function getAreas() {
     projectType: $("[name='area.projectType']", card).value.trim() || "inner",
     description: $("[name='area.description']", card).value.trim(),
     movement: $("[name='area.movement']", card).value.trim(),
+    typicalSituations: $("[name='area.typicalSituations']", card)?.value.trim() || "",
     progressSigns: $("[name='area.progressSigns']", card).value.trim(),
     nextPractice: $("[name='area.nextPractice']", card).value.trim()
   }));
 }
 
+function normalizeProjectType(value) {
+  return ["inner", "outer", "both"].includes(value) ? value : "inner";
+}
+
+function projectTypeLabel(value) {
+  return {
+    inner: "Indre prosjekt",
+    outer: "Ytre prosjekt",
+    both: "Indre + ytre"
+  }[normalizeProjectType(value)];
+}
+
+function projectTypeClass(value) {
+  return normalizeProjectType(value) === "outer" ? "outer" : "inner";
+}
+
 function normalizeArea(area) {
-  if (!area) return { id: "", title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
-  if (typeof area === "string") return { id: "", title: area.trim(), description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
+  if (!area) return { id: "", title: "", description: "", projectType: "inner", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" };
+  if (typeof area === "string") return { id: "", title: area.trim(), description: "", projectType: "inner", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" };
   const movement = (area.movement || area.description || "").trim();
   return {
     id: area.id || "",
     title: (area.title || "").trim(),
     description: (area.description || movement).trim(),
-    projectType: area.projectType === "outer" || area.project_type === "outer" ? "outer" : "inner",
+    projectType: normalizeProjectType(area.projectType || area.project_type),
     movement,
+    typicalSituations: (area.typicalSituations || area.typical_situations || "").trim(),
     progressSigns: (area.progressSigns || area.progress_signs || "").trim(),
     nextPractice: (area.nextPractice || area.next_practice || "").trim()
   };
@@ -2139,7 +2056,7 @@ function normalizeArea(area) {
 
 function hasAreaContent(area) {
   const item = normalizeArea(area);
-  return Boolean(item.title || item.description || item.movement || item.progressSigns || item.nextPractice);
+  return Boolean(item.title || item.description || item.movement || item.typicalSituations || item.progressSigns);
 }
 
 function getSessions() {
@@ -2164,11 +2081,12 @@ async function saveAreas(programId, areas) {
       description: area.movement || area.description || null,
       project_type: area.projectType || "inner",
       movement: area.movement || null,
+      typical_situations: area.typicalSituations || null,
       progress_signs: area.progressSigns || null,
-      next_practice: area.nextPractice || null,
+      next_practice: null,
       sort_order: area.index
     }))
-    .filter((row) => row.title || row.description || row.movement || row.progress_signs || row.next_practice);
+    .filter((row) => row.title || row.description || row.movement || row.typical_situations || row.progress_signs);
   for (const row of rows) {
     if (row.id) await updateArea(row);
     else await insertArea(row);
@@ -2285,8 +2203,12 @@ function openCoachEdit(coach) {
     inputSpec("name", "Navn", "text", coach.name || ""),
     inputSpec("email", "E-post", "email", coach.email || "")
   ], async (values) => {
-    await state.sb.from("coaches").update({ name: values.name, email: values.email }).eq("id", coach.id);
-    if (coach.user_id) await state.sb.from("profiles").update({ name: values.name }).eq("id", coach.user_id);
+    const { error } = await state.sb.from("coaches").update({ name: values.name, email: values.email }).eq("id", coach.id);
+    if (error) throw error;
+    if (coach.user_id) {
+      const { error: profileError } = await state.sb.from("profiles").update({ name: values.name }).eq("id", coach.user_id);
+      if (profileError) throw profileError;
+    }
     await reloadAndRender();
   });
 }
@@ -2298,7 +2220,8 @@ function openClientEdit(client) {
     inputSpec("employer", "Arbeidsgiver", "text", client.employer || ""),
     selectSpec("coachIds", "Coach(er)", state.coaches.map((coach) => [coach.id, coach.name]), client.coach_ids || [], true)
   ], async (values) => {
-    await state.sb.from("clients").update({ name: values.name, role: values.role, employer: values.employer, coach_ids: values.coachIds }).eq("id", client.id);
+    const { error } = await state.sb.from("clients").update({ name: values.name, role: values.role, employer: values.employer, coach_ids: values.coachIds }).eq("id", client.id);
+    if (error) throw error;
     await reloadAndRender();
   });
 }
@@ -2321,6 +2244,27 @@ function openEntityModal(title, kicker, specs, onSave, options = {}) {
     }
   }
   $("#entity-modal").showModal();
+  refreshIcons();
+}
+
+function openEntityDrawer(title, kicker, specs, onSave, options = {}) {
+  state.drawer = { specs, onSave, ...options };
+  $("#drawer-title").textContent = title;
+  $("#drawer-kicker").textContent = kicker;
+  $("#drawer-message").textContent = "";
+  $("#drawer-fields").replaceChildren(...specs.map(renderSpec));
+  const dangerSlot = $("#drawer-danger-slot");
+  if (dangerSlot) {
+    if (options.onDanger) {
+      dangerSlot.replaceChildren(el("button", { class: "button modal-danger-button", type: "button", onclick: handleDrawerDanger }, [
+        icon("trash-2"),
+        el("span", { text: options.dangerLabel || "Slett" })
+      ]));
+    } else {
+      dangerSlot.replaceChildren();
+    }
+  }
+  $("#entity-drawer").showModal();
   refreshIcons();
 }
 
@@ -2374,28 +2318,49 @@ function renderSpec(spec) {
   return el("label", { text: spec.label }, [el("input", { name: spec.name, type: spec.type, value: spec.value, required: spec.name === "name" || spec.name === "email", ...(spec.attrs || {}) })]);
 }
 
+function collectSpecValues(specs, form) {
+  const values = {};
+  specs.forEach((spec) => {
+    if (spec.kind === "section") return;
+    const control = $(`[name='${spec.name}']`, form);
+    if (spec.kind === "choice") {
+      values[spec.name] = $(`[name='${spec.name}']:checked`, form)?.value || "";
+    } else {
+      values[spec.name] = spec.multiple ? Array.from(control.selectedOptions).map((option) => option.value) : control.value.trim();
+    }
+  });
+  return values;
+}
+
 $("#entity-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (event.submitter?.value === "cancel") {
     $("#entity-modal").close();
     return;
   }
-  const values = {};
-  state.modal.specs.forEach((spec) => {
-    if (spec.kind === "section") return;
-    const control = $(`[name='${spec.name}']`, $("#entity-form"));
-    if (spec.kind === "choice") {
-      values[spec.name] = $(`[name='${spec.name}']:checked`, $("#entity-form"))?.value || "";
-    } else {
-      values[spec.name] = spec.multiple ? Array.from(control.selectedOptions).map((option) => option.value) : control.value.trim();
-    }
-  });
+  const values = collectSpecValues(state.modal.specs, $("#entity-form"));
   try {
     $("#modal-message").textContent = "Lagrer...";
     await state.modal.onSave(values);
     $("#entity-modal").close();
   } catch (error) {
     $("#modal-message").textContent = error.message || "Kunne ikke lagre.";
+  }
+});
+
+$("#drawer-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (event.submitter?.value === "cancel") {
+    $("#entity-drawer").close();
+    return;
+  }
+  const values = collectSpecValues(state.drawer.specs, $("#drawer-form"));
+  try {
+    $("#drawer-message").textContent = "Lagrer...";
+    await state.drawer.onSave(values);
+    $("#entity-drawer").close();
+  } catch (error) {
+    $("#drawer-message").textContent = error.message || "Kunne ikke lagre.";
   }
 });
 
@@ -2409,6 +2374,46 @@ async function handleModalDanger() {
     $("#modal-message").textContent = error.message || "Kunne ikke slette.";
   }
 }
+
+async function handleDrawerDanger() {
+  if (!state.drawer?.onDanger) return;
+  try {
+    $("#drawer-message").textContent = "";
+    const deleted = await state.drawer.onDanger();
+    if (deleted !== false) $("#entity-drawer").close();
+  } catch (error) {
+    $("#drawer-message").textContent = error.message || "Kunne ikke slette.";
+  }
+}
+
+$("#confirm-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const confirmed = event.submitter?.value === "confirm";
+  $("#confirm-dialog").close();
+  state.confirmResolve?.(confirmed);
+  state.confirmResolve = null;
+});
+
+$("#confirm-dialog").addEventListener("cancel", (event) => {
+  event.preventDefault();
+  $("#confirm-dialog").close();
+  state.confirmResolve?.(false);
+  state.confirmResolve = null;
+});
+
+$("#message-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  $("#message-dialog").close();
+  state.messageResolve?.(true);
+  state.messageResolve = null;
+});
+
+$("#message-dialog").addEventListener("cancel", (event) => {
+  event.preventDefault();
+  $("#message-dialog").close();
+  state.messageResolve?.(false);
+  state.messageResolve = null;
+});
 
 async function inviteClient(values) {
   const { data: { session } } = await state.sb.auth.getSession();
@@ -2440,16 +2445,36 @@ async function inviteCoach(values) {
 }
 
 async function deleteCoach(coach) {
-  if (!confirm(`Slett coach "${coach.name}"? Klientenes planer beholdes.`)) return;
-  await state.sb.from("coaches").delete().eq("id", coach.id);
-  if (coach.user_id) await state.sb.from("profiles").delete().eq("id", coach.user_id);
+  if (!(await confirmDelete(`Slett coach "${coach.name}"? Klientenes planer beholdes.`))) return;
+  const { error } = await state.sb.from("coaches").delete().eq("id", coach.id);
+  if (error) {
+    await showAppMessage("Kunne ikke slette coach", error.message || "Prøv igjen.");
+    return;
+  }
+  if (coach.user_id) {
+    const { error: profileError } = await state.sb.from("profiles").delete().eq("id", coach.user_id);
+    if (profileError) {
+      await showAppMessage("Coach ble slettet, men ikke profilen", profileError.message || "Kontroller tilgangene.");
+      return;
+    }
+  }
   await reloadAndRender();
 }
 
 async function deleteClient(client) {
-  if (!confirm(`Slett klient "${client.name}"? All plandata slettes permanent i dagens datamodell.`)) return;
-  await state.sb.from("clients").delete().eq("id", client.id);
-  if (client.user_id) await state.sb.from("profiles").delete().eq("id", client.user_id);
+  if (!(await confirmDelete(`Slett klient "${client.name}"? All plandata slettes permanent i dagens datamodell.`))) return;
+  const { error } = await state.sb.from("clients").delete().eq("id", client.id);
+  if (error) {
+    await showAppMessage("Kunne ikke slette klient", error.message || "Prøv igjen.");
+    return;
+  }
+  if (client.user_id) {
+    const { error: profileError } = await state.sb.from("profiles").delete().eq("id", client.user_id);
+    if (profileError) {
+      await showAppMessage("Klient ble slettet, men ikke profilen", profileError.message || "Kontroller tilgangene.");
+      return;
+    }
+  }
   await reloadAndRender();
 }
 
@@ -2581,23 +2606,37 @@ function iconAction(label, iconName, handler, tone = "") {
   }, [icon(iconName)]);
 }
 
-function greeting() {
-  const first = (state.profile.name || "").split(" ")[0] || "hei";
-  if (state.profile.role === "client") return `Hei, ${first}`;
-  if (state.profile.role === "admin") return "Administrativ oversikt";
-  return `Hei, ${first}`;
-}
-
-function roleLabel(role) {
-  return { admin: "Admin", coach: "Coach", client: "Klient" }[role] || role;
-}
-
 function statusLabel(status) {
   return { draft: "Utkast", active: "Aktivt forløp", completed: "Fullført", archived: "Arkivert" }[status] || "Utkast";
 }
 
-function confirmDelete(message) {
-  return window.confirm(message);
+function confirmDelete(message, options = {}) {
+  const dialog = $("#confirm-dialog");
+  if (!dialog) return Promise.resolve(false);
+  $("#confirm-kicker").textContent = options.kicker || "Bekreft sletting";
+  $("#confirm-title").textContent = options.title || "Er du sikker?";
+  $("#confirm-message").textContent = message;
+  const action = $("#confirm-action");
+  action.querySelector("span").textContent = options.confirmLabel || "Slett";
+  if (dialog.open) dialog.close();
+  dialog.showModal();
+  refreshIcons();
+  return new Promise((resolve) => {
+    state.confirmResolve = resolve;
+  });
+}
+
+function showAppMessage(title, message, options = {}) {
+  const dialog = $("#message-dialog");
+  if (!dialog) return Promise.resolve(false);
+  $("#message-kicker").textContent = options.kicker || "Status";
+  $("#message-title").textContent = title;
+  $("#message-text").textContent = message;
+  if (dialog.open) dialog.close();
+  dialog.showModal();
+  return new Promise((resolve) => {
+    state.messageResolve = resolve;
+  });
 }
 
 function formatDate(iso) {
