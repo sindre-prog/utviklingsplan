@@ -717,8 +717,7 @@ tr:last-child td { border-bottom: 0; }
   justify-content: space-between;
   align-items: flex-start;
   gap: 24px;
-  padding-bottom: 28px;
-  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
 }
 .direction-simple-copy {
   max-width: 720px;
@@ -755,6 +754,50 @@ tr:last-child td { border-bottom: 0; }
   border: 1px solid var(--line);
   color: #000;
 }
+.workspace-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.direction-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.workspace-card {
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+.direction-workspace-card.wide {
+  grid-column: 1 / -1;
+}
+.workspace-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--wash);
+}
+.workspace-card-head h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 1.18;
+}
+.workspace-card-head p {
+  max-width: 680px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.45;
+}
 .direction-list {
   display: grid;
   gap: 0;
@@ -765,11 +808,14 @@ tr:last-child td { border-bottom: 0; }
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
   align-items: start;
-  padding: 24px 0;
+  padding: 20px 22px;
   border-top: 1px solid var(--line);
 }
+.direction-workspace-card .direction-field:first-child {
+  border-top: 0;
+}
 .direction-field:last-child {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
 }
 .direction-field:hover {
   background: rgba(0,0,0,.012);
@@ -777,8 +823,8 @@ tr:last-child td { border-bottom: 0; }
 .direction-field-main,
 .direction-edit {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 28px;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 24px;
   align-items: start;
 }
 .direction-field-label h4 {
@@ -818,13 +864,14 @@ tr:last-child td { border-bottom: 0; }
 }
 .direction-edit-trigger {
   align-self: start;
-  border: 0;
-  padding: 4px 0;
-  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #fff;
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
-  opacity: 0;
+  opacity: .72;
 }
 .direction-field:hover .direction-edit-trigger,
 .direction-edit-trigger:focus-visible {
@@ -858,6 +905,39 @@ tr:last-child td { border-bottom: 0; }
   display: flex;
   justify-content: flex-start;
   gap: 10px;
+}
+.field-inline-action {
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #fff;
+  color: rgba(0,0,0,.62);
+  font-size: 12px;
+  font-weight: 800;
+}
+.field-inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.inline-textarea {
+  min-height: 132px;
+  width: 100%;
+  margin: 0;
+  font-size: 15px;
+}
+.inline-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+}
+.focus-detail-block.is-editing,
+.session-detail-block.is-editing {
+  background: #fff;
+  border-color: var(--line-strong);
 }
 .work-stack { display: grid; gap: 16px; }
 .document-panel {
@@ -2287,7 +2367,7 @@ tr:last-child td { border-bottom: 0; }
     min-height: 34px;
     padding-inline: 14px;
   }
-  .plan-layout, .focus-workbench, .focus-detail-support, .sessions-workbench, .session-detail-grid, .reflection-metrics, .now-grid, .grid.three, .grid.two, .consent-grid, .start-hero, .start-checklist { grid-template-columns: 1fr; }
+  .plan-layout, .direction-card-grid, .focus-workbench, .focus-detail-support, .sessions-workbench, .session-detail-grid, .reflection-metrics, .now-grid, .grid.three, .grid.two, .consent-grid, .start-hero, .start-checklist { grid-template-columns: 1fr; }
   .focus-workbench { gap: 28px; }
   .consent-panel { max-width: none; padding: 24px; }
   .consent-point { min-height: 0; }
@@ -2365,7 +2445,7 @@ tr:last-child td { border-bottom: 0; }
     font-size: 30px;
   }
   .direction-field {
-    padding: 22px 0;
+    padding: 18px;
   }
   .direction-field.is-editing {
     padding: 18px;
