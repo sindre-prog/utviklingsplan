@@ -802,9 +802,7 @@ function directionWorkspace(client, plan) {
     el("div", { class: "direction-card-grid m3-card-grid" }, [
       ...directionSpecs.map((spec, index) => directionCard(spec, editable, client, index))
     ]),
-    el("div", { class: "direction-footnote" }, [
-      el("p", { text: "Forventninger, konfidensialitet og praktiske rammer skal være tydelige nok til at både klient og coach vet hva som deles, hva som følges opp, og hva som ligger utenfor forløpet." })
-    ])
+    coachingFrame()
   ]);
 }
 
@@ -835,26 +833,26 @@ function getDirectionSpecs(plan) {
     {
       key: "c_purpose",
       label: "Mål",
-      subhead: "Retning for forløpet",
+      subhead: "Kort avklaring",
       value: plan.c_purpose,
       helper: "Hva skal dette coachingforløpet hjelpe deg å bevege, avklare eller utvikle?",
-      placeholder: "Eksempel: Bli tryggere i prioritering og tydeligere i lederrollen når presset øker."
+      placeholder: "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?"
     },
     {
       key: "c_success",
       label: "Tegn på bevegelse",
-      subhead: "Slik merkes fremgang",
+      subhead: "Merker i praksis",
       value: plan.c_success,
       helper: "Hva vil du, coach eller andre kunne legge merke til hvis arbeidet begynner å virke?",
-      placeholder: "Eksempel: Færre omstarter, raskere beslutninger og tydeligere forventningsavklaringer."
+      placeholder: "Hva vil du eller andre kunne legge merke til hvis arbeidet begynner å virke?"
     },
     {
       key: "c_expect_client",
       label: "Forventninger til klient",
-      subhead: "Eierskap mellom samtaler",
+      subhead: "Eget ansvar",
       value: plan.c_expect_client,
       helper: "Hva tar klienten ansvar for å prøve, observere eller forberede mellom samtalene?",
-      placeholder: "Eksempel: Teste små grep i arbeidshverdagen og notere korte observasjoner mens de er ferske."
+      placeholder: "Hva tar klienten ansvar for mellom samtalene?"
     },
     {
       key: "c_expect_coach",
@@ -862,35 +860,35 @@ function getDirectionSpecs(plan) {
       subhead: "Støtte og utfordring",
       value: plan.c_expect_coach,
       helper: "Hva skal coach bidra med, utfordre, holde fast i eller følge opp?",
-      placeholder: "Eksempel: Hjelpe med presisering, utfordre antakelser og holde tråden fra samtale til praksis."
+      placeholder: "Hva ønsker du at din coach skal bidra med, utfordre, holde fast i eller følge opp?"
     },
     {
       key: "frame",
       label: "Rammer og konfidensialitet",
-      subhead: "Praktisk avtale",
+      subhead: "Avklart samarbeid",
       helper: "Hva er den praktiske rammen, og hva skal være privat, delt eller utenfor coachingens mandat?",
       fields: [
         {
           key: "c_practical",
           label: "Praktiske rammer",
           value: plan.c_practical,
-          placeholder: "Eksempel: Seks samtaler annenhver uke. Mellom samtalene testes små praksiseksperimenter."
+          placeholder: "Hva er den praktiske rammen for samarbeidet?"
         },
         {
           key: "c_confidentiality",
           label: "Konfidensialitet",
           value: plan.c_confidentiality,
-          placeholder: "Eksempel: Refleksjoner er private med mindre klient velger å dele. Coaching erstatter ikke helsehjelp."
+          placeholder: "Hva skal være privat, delt eller utenfor coachingens mandat?"
         }
       ]
     },
     {
       key: "c_context",
       label: "Interessenter og kontekst",
-      subhead: "Hvem påvirkes",
+      subhead: "Rundt forløpet",
       value: plan.c_context,
       helper: "Hvilke personer, team, roller eller organisatoriske forventninger påvirker arbeidet?",
-      placeholder: "Eksempel: Ledergruppen, nærmeste leder og teamet som trenger tydeligere prioriteringer."
+      placeholder: "Hvilke personer, team, roller eller organisatoriske forventninger påvirker arbeidet?"
     }
   ];
 }
@@ -935,7 +933,7 @@ function directionSpecPreview(spec) {
 }
 
 function directionAccent(index = 0) {
-  return ["#e7e8ff", "#abd7ff", "#b6f596", "#ffa6a6", "#fef8ee", "#f6f3ec"][index % 6];
+  return ["#e7e8ff", "#d7eaff", "#dff7d2", "#ffe1e1", "#ece6f0", "#dfe8dc"][index % 6];
 }
 
 function directionFieldContent(spec, value, editable) {
@@ -949,9 +947,9 @@ function directionFieldContent(spec, value, editable) {
     ]),
     el("div", { class: "direction-card-body" }, [
       el("span", { class: "direction-card-kicker", text: "Tittel" }),
-      value ? directionValueContent(spec) : el("p", { class: "direction-empty", text: spec.placeholder || spec.helper })
+      value ? directionValueContent(spec) : el("p", { class: "direction-empty", text: "Ikke fylt ut ennå." })
     ]),
-    el("p", { class: "direction-card-helper", text: spec.helper }),
+    el("p", { class: "direction-card-helper", text: spec.placeholder || spec.helper }),
     editable ? el("md-filled-button", {
       class: "direction-edit-trigger",
       type: "button",
@@ -992,6 +990,21 @@ function directionValueContent(spec) {
     )));
   }
   return el("p", { text: spec.value });
+}
+
+function coachingFrame() {
+  const items = [
+    ["lock-keyhole", "Konfidensialitet", "Det som deles i coachingrommet behandles alltid konfidensielt."],
+    ["heart-handshake", "Rolleavklaring", "Coaching er ikke terapi. Ved psykiske helseutfordringer anbefales kontakt med kvalifisert fagperson."],
+    ["compass", "Ansvar", "Du eier egne mål, valg og handlinger. Coach fasiliterer refleksjon, retning og fremdrift."]
+  ];
+  return el("div", { class: "coaching-frame" }, items.map(([iconName, title, text]) => el("article", {}, [
+    icon(iconName),
+    el("div", {}, [
+      el("strong", { text: title }),
+      el("p", { text })
+    ])
+  ])));
 }
 
 async function activateDirectionEdit(spec) {
