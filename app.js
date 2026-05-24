@@ -32,7 +32,10 @@ const state = {
   selectedClientId: null,
   dirty: false,
   saveTimer: null,
-  modal: null
+  modal: null,
+  drawer: null,
+  confirmResolve: null,
+  messageResolve: null
 };
 
 const planFields = [
@@ -722,7 +725,7 @@ function programToFormState(data) {
       typicalSituations: area.typical_situations || "",
       progressSigns: area.progress_signs || "",
       nextPractice: area.next_practice || ""
-    })) : [{ id: "", title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }],
+    })) : [{ id: "", title: "", description: "", projectType: "inner", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" }],
     sessions: data.sessions.map((session) => ({
       id: session.id || "",
       date: session.session_date || "",
@@ -1445,6 +1448,7 @@ function areasEditor(areas) {
         el("input", { name: "area.projectType", value: item.projectType }),
         el("textarea", { name: "area.description", text: item.description }),
         el("textarea", { name: "area.movement", text: item.movement }),
+        el("textarea", { name: "area.typicalSituations", text: item.typicalSituations }),
         el("textarea", { name: "area.progressSigns", text: item.progressSigns }),
         el("textarea", { name: "area.nextPractice", text: item.nextPractice })
       ]);
@@ -1455,7 +1459,7 @@ function areasEditor(areas) {
 }
 
 function addFocusArea() {
-  const next = [...getAreas().filter(hasAreaContent), { title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }];
+  const next = [...getAreas().filter(hasAreaContent), { title: "", description: "", projectType: "inner", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" }];
   setAreas(next);
   editFocusArea(next.length - 1);
 }
@@ -1476,6 +1480,7 @@ function editFocusArea(index) {
       description: values.movement || "",
       projectType: values.projectType || "inner",
       movement: values.movement || "",
+      typicalSituations: area.typicalSituations || "",
       progressSigns: values.progressSigns || "",
       nextPractice: area.nextPractice || ""
     };
@@ -1488,7 +1493,7 @@ function editFocusArea(index) {
 }
 
 async function deleteFocusArea(index) {
-  if (!confirmDelete("Slette dette fokuset?")) return false;
+  if (!(await confirmDelete("Slette dette fokuset?"))) return false;
   const areas = getAreas();
   const area = areas[index];
   if (area?.id) {
@@ -1514,6 +1519,7 @@ function setAreas(values) {
       el("input", { name: "area.projectType", value: item.projectType }),
       el("textarea", { name: "area.description", text: item.description }),
       el("textarea", { name: "area.movement", text: item.movement }),
+      el("textarea", { name: "area.typicalSituations", text: item.typicalSituations }),
       el("textarea", { name: "area.progressSigns", text: item.progressSigns }),
       el("textarea", { name: "area.nextPractice", text: item.nextPractice })
     ]);
@@ -1579,7 +1585,7 @@ function editSession(index) {
 }
 
 async function deleteSession(index) {
-  if (!confirmDelete("Slette denne samtalen?")) return false;
+  if (!(await confirmDelete("Slette denne samtalen?"))) return false;
   const sessions = getSessions();
   const session = sessions[index];
   if (session?.id) {
@@ -1758,7 +1764,7 @@ function reflectionsList(reflections, data) {
 }
 
 function createAction(data, presetAreaId = "") {
-  openEntityModal("Nytt eksperiment", "Arbeid", [
+  openEntityDrawer("Nytt eksperiment", "Arbeid", [
     inputSpec("title", "Navn på eksperiment"),
     selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], presetAreaId || "", false),
     sectionSpec("Før", "Gjør forsøket tydelig før du går ut og tester."),
@@ -1787,7 +1793,7 @@ function createAction(data, presetAreaId = "") {
 
 function editAction(action, data) {
   const parsed = parseActionDescription(action.description || "");
-  openEntityModal("Rediger eksperiment", "Arbeid", [
+  openEntityDrawer("Rediger eksperiment", "Arbeid", [
     inputSpec("title", "Navn på eksperiment", "text", action.title || ""),
     selectSpec("areaId", "Knytt til fokus", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokus"])], action.development_area_id || "", false),
     sectionSpec("Før", "Hva var planen og antakelsen?"),
@@ -1872,10 +1878,10 @@ function experimentStateClass(action, parsed) {
 }
 
 async function deleteAction(id) {
-  if (!confirmDelete("Slette dette eksperimentet?")) return false;
+  if (!(await confirmDelete("Slette dette eksperimentet?"))) return false;
   const { error } = await state.sb.from("session_actions").delete().eq("id", id);
   if (error) {
-    alert("Kunne ikke slette eksperimentet.");
+    await showAppMessage("Kunne ikke slette eksperimentet", error.message || "Prøv igjen.");
     return false;
   }
   await reloadProgramAndRender("work");
@@ -1965,10 +1971,10 @@ function editReflection(reflection, data) {
 }
 
 async function deleteReflection(id) {
-  if (!confirmDelete("Slette denne refleksjonen?")) return false;
+  if (!(await confirmDelete("Slette denne refleksjonen?"))) return false;
   const { error } = await state.sb.from("client_reflections").delete().eq("id", id);
   if (error) {
-    alert("Kunne ikke slette refleksjonen.");
+    await showAppMessage("Kunne ikke slette refleksjonen", error.message || "Prøv igjen.");
     return false;
   }
   await reloadProgramAndRender("reflections");
@@ -2130,7 +2136,7 @@ async function savePlan() {
     console.error("Kunne ikke lagre utviklingsplan", error);
     setSaveState("error");
     if (status) status.textContent = "Lagring feilet";
-    alert(`Kunne ikke lagre: ${error.message || "Ukjent feil"}`);
+    await showAppMessage("Kunne ikke lagre", error.message || "Ukjent feil");
     return false;
   }
 }
@@ -2162,6 +2168,7 @@ function getAreas() {
     projectType: $("[name='area.projectType']", card).value.trim() || "inner",
     description: $("[name='area.description']", card).value.trim(),
     movement: $("[name='area.movement']", card).value.trim(),
+    typicalSituations: $("[name='area.typicalSituations']", card)?.value.trim() || "",
     progressSigns: $("[name='area.progressSigns']", card).value.trim(),
     nextPractice: $("[name='area.nextPractice']", card).value.trim()
   }));
@@ -2348,8 +2355,12 @@ function openCoachEdit(coach) {
     inputSpec("name", "Navn", "text", coach.name || ""),
     inputSpec("email", "E-post", "email", coach.email || "")
   ], async (values) => {
-    await state.sb.from("coaches").update({ name: values.name, email: values.email }).eq("id", coach.id);
-    if (coach.user_id) await state.sb.from("profiles").update({ name: values.name }).eq("id", coach.user_id);
+    const { error } = await state.sb.from("coaches").update({ name: values.name, email: values.email }).eq("id", coach.id);
+    if (error) throw error;
+    if (coach.user_id) {
+      const { error: profileError } = await state.sb.from("profiles").update({ name: values.name }).eq("id", coach.user_id);
+      if (profileError) throw profileError;
+    }
     await reloadAndRender();
   });
 }
@@ -2361,7 +2372,8 @@ function openClientEdit(client) {
     inputSpec("employer", "Arbeidsgiver", "text", client.employer || ""),
     selectSpec("coachIds", "Coach(er)", state.coaches.map((coach) => [coach.id, coach.name]), client.coach_ids || [], true)
   ], async (values) => {
-    await state.sb.from("clients").update({ name: values.name, role: values.role, employer: values.employer, coach_ids: values.coachIds }).eq("id", client.id);
+    const { error } = await state.sb.from("clients").update({ name: values.name, role: values.role, employer: values.employer, coach_ids: values.coachIds }).eq("id", client.id);
+    if (error) throw error;
     await reloadAndRender();
   });
 }
@@ -2384,6 +2396,27 @@ function openEntityModal(title, kicker, specs, onSave, options = {}) {
     }
   }
   $("#entity-modal").showModal();
+  refreshIcons();
+}
+
+function openEntityDrawer(title, kicker, specs, onSave, options = {}) {
+  state.drawer = { specs, onSave, ...options };
+  $("#drawer-title").textContent = title;
+  $("#drawer-kicker").textContent = kicker;
+  $("#drawer-message").textContent = "";
+  $("#drawer-fields").replaceChildren(...specs.map(renderSpec));
+  const dangerSlot = $("#drawer-danger-slot");
+  if (dangerSlot) {
+    if (options.onDanger) {
+      dangerSlot.replaceChildren(el("button", { class: "button modal-danger-button", type: "button", onclick: handleDrawerDanger }, [
+        icon("trash-2"),
+        el("span", { text: options.dangerLabel || "Slett" })
+      ]));
+    } else {
+      dangerSlot.replaceChildren();
+    }
+  }
+  $("#entity-drawer").showModal();
   refreshIcons();
 }
 
@@ -2437,28 +2470,49 @@ function renderSpec(spec) {
   return el("label", { text: spec.label }, [el("input", { name: spec.name, type: spec.type, value: spec.value, required: spec.name === "name" || spec.name === "email", ...(spec.attrs || {}) })]);
 }
 
+function collectSpecValues(specs, form) {
+  const values = {};
+  specs.forEach((spec) => {
+    if (spec.kind === "section") return;
+    const control = $(`[name='${spec.name}']`, form);
+    if (spec.kind === "choice") {
+      values[spec.name] = $(`[name='${spec.name}']:checked`, form)?.value || "";
+    } else {
+      values[spec.name] = spec.multiple ? Array.from(control.selectedOptions).map((option) => option.value) : control.value.trim();
+    }
+  });
+  return values;
+}
+
 $("#entity-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   if (event.submitter?.value === "cancel") {
     $("#entity-modal").close();
     return;
   }
-  const values = {};
-  state.modal.specs.forEach((spec) => {
-    if (spec.kind === "section") return;
-    const control = $(`[name='${spec.name}']`, $("#entity-form"));
-    if (spec.kind === "choice") {
-      values[spec.name] = $(`[name='${spec.name}']:checked`, $("#entity-form"))?.value || "";
-    } else {
-      values[spec.name] = spec.multiple ? Array.from(control.selectedOptions).map((option) => option.value) : control.value.trim();
-    }
-  });
+  const values = collectSpecValues(state.modal.specs, $("#entity-form"));
   try {
     $("#modal-message").textContent = "Lagrer...";
     await state.modal.onSave(values);
     $("#entity-modal").close();
   } catch (error) {
     $("#modal-message").textContent = error.message || "Kunne ikke lagre.";
+  }
+});
+
+$("#drawer-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (event.submitter?.value === "cancel") {
+    $("#entity-drawer").close();
+    return;
+  }
+  const values = collectSpecValues(state.drawer.specs, $("#drawer-form"));
+  try {
+    $("#drawer-message").textContent = "Lagrer...";
+    await state.drawer.onSave(values);
+    $("#entity-drawer").close();
+  } catch (error) {
+    $("#drawer-message").textContent = error.message || "Kunne ikke lagre.";
   }
 });
 
@@ -2472,6 +2526,46 @@ async function handleModalDanger() {
     $("#modal-message").textContent = error.message || "Kunne ikke slette.";
   }
 }
+
+async function handleDrawerDanger() {
+  if (!state.drawer?.onDanger) return;
+  try {
+    $("#drawer-message").textContent = "";
+    const deleted = await state.drawer.onDanger();
+    if (deleted !== false) $("#entity-drawer").close();
+  } catch (error) {
+    $("#drawer-message").textContent = error.message || "Kunne ikke slette.";
+  }
+}
+
+$("#confirm-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const confirmed = event.submitter?.value === "confirm";
+  $("#confirm-dialog").close();
+  state.confirmResolve?.(confirmed);
+  state.confirmResolve = null;
+});
+
+$("#confirm-dialog").addEventListener("cancel", (event) => {
+  event.preventDefault();
+  $("#confirm-dialog").close();
+  state.confirmResolve?.(false);
+  state.confirmResolve = null;
+});
+
+$("#message-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  $("#message-dialog").close();
+  state.messageResolve?.(true);
+  state.messageResolve = null;
+});
+
+$("#message-dialog").addEventListener("cancel", (event) => {
+  event.preventDefault();
+  $("#message-dialog").close();
+  state.messageResolve?.(false);
+  state.messageResolve = null;
+});
 
 async function inviteClient(values) {
   const { data: { session } } = await state.sb.auth.getSession();
@@ -2503,16 +2597,36 @@ async function inviteCoach(values) {
 }
 
 async function deleteCoach(coach) {
-  if (!confirm(`Slett coach "${coach.name}"? Klientenes planer beholdes.`)) return;
-  await state.sb.from("coaches").delete().eq("id", coach.id);
-  if (coach.user_id) await state.sb.from("profiles").delete().eq("id", coach.user_id);
+  if (!(await confirmDelete(`Slett coach "${coach.name}"? Klientenes planer beholdes.`))) return;
+  const { error } = await state.sb.from("coaches").delete().eq("id", coach.id);
+  if (error) {
+    await showAppMessage("Kunne ikke slette coach", error.message || "Prøv igjen.");
+    return;
+  }
+  if (coach.user_id) {
+    const { error: profileError } = await state.sb.from("profiles").delete().eq("id", coach.user_id);
+    if (profileError) {
+      await showAppMessage("Coach ble slettet, men ikke profilen", profileError.message || "Kontroller tilgangene.");
+      return;
+    }
+  }
   await reloadAndRender();
 }
 
 async function deleteClient(client) {
-  if (!confirm(`Slett klient "${client.name}"? All plandata slettes permanent i dagens datamodell.`)) return;
-  await state.sb.from("clients").delete().eq("id", client.id);
-  if (client.user_id) await state.sb.from("profiles").delete().eq("id", client.user_id);
+  if (!(await confirmDelete(`Slett klient "${client.name}"? All plandata slettes permanent i dagens datamodell.`))) return;
+  const { error } = await state.sb.from("clients").delete().eq("id", client.id);
+  if (error) {
+    await showAppMessage("Kunne ikke slette klient", error.message || "Prøv igjen.");
+    return;
+  }
+  if (client.user_id) {
+    const { error: profileError } = await state.sb.from("profiles").delete().eq("id", client.user_id);
+    if (profileError) {
+      await showAppMessage("Klient ble slettet, men ikke profilen", profileError.message || "Kontroller tilgangene.");
+      return;
+    }
+  }
   await reloadAndRender();
 }
 
@@ -2659,8 +2773,33 @@ function statusLabel(status) {
   return { draft: "Utkast", active: "Aktivt forløp", completed: "Fullført", archived: "Arkivert" }[status] || "Utkast";
 }
 
-function confirmDelete(message) {
-  return window.confirm(message);
+function confirmDelete(message, options = {}) {
+  const dialog = $("#confirm-dialog");
+  if (!dialog) return Promise.resolve(false);
+  $("#confirm-kicker").textContent = options.kicker || "Bekreft sletting";
+  $("#confirm-title").textContent = options.title || "Er du sikker?";
+  $("#confirm-message").textContent = message;
+  const action = $("#confirm-action");
+  action.querySelector("span").textContent = options.confirmLabel || "Slett";
+  if (dialog.open) dialog.close();
+  dialog.showModal();
+  refreshIcons();
+  return new Promise((resolve) => {
+    state.confirmResolve = resolve;
+  });
+}
+
+function showAppMessage(title, message, options = {}) {
+  const dialog = $("#message-dialog");
+  if (!dialog) return Promise.resolve(false);
+  $("#message-kicker").textContent = options.kicker || "Status";
+  $("#message-title").textContent = title;
+  $("#message-text").textContent = message;
+  if (dialog.open) dialog.close();
+  dialog.showModal();
+  return new Promise((resolve) => {
+    state.messageResolve = resolve;
+  });
 }
 
 function formatDate(iso) {

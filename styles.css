@@ -1906,9 +1906,23 @@ tr:last-child td { border-bottom: 0; }
   font-weight: 700;
 }
 
-.modal { border: 0; padding: 0; background: transparent; max-width: none; max-height: none; }
-.modal::backdrop { background: rgba(0,0,0,.42); }
+.modal,
+.drawer,
+.confirm-dialog { border: 0; padding: 0; background: transparent; max-width: none; max-height: none; }
+.modal::backdrop,
+.drawer::backdrop,
+.confirm-dialog::backdrop { background: rgba(0,0,0,.42); }
 #modal-fields {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  overflow-x: hidden;
+}
+.drawer[open] {
+  margin: 0 0 0 auto;
+  min-height: 100dvh;
+}
+#drawer-fields {
   min-width: 0;
   display: grid;
   gap: 14px;
@@ -1930,18 +1944,39 @@ tr:last-child td { border-bottom: 0; }
   box-shadow: var(--shadow);
   overflow-x: hidden;
 }
+.drawer-panel {
+  width: min(520px, 100vw);
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-bottom: 96px;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 22px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  overflow-x: hidden;
+}
 .modal-panel:has(.choice-field) {
   min-height: min(520px, calc(100dvh - 32px));
 }
-.modal-panel textarea { min-height: 94px; }
-.modal-panel label {
+.modal-panel textarea,
+.drawer-panel textarea { min-height: 94px; }
+.modal-panel label,
+.drawer-panel label {
   color: rgba(0,0,0,.58);
   font-size: 12px;
   font-weight: 700;
 }
 .modal-panel input,
 .modal-panel textarea,
-.modal-panel select {
+.modal-panel select,
+.drawer-panel input,
+.drawer-panel textarea,
+.drawer-panel select {
   min-width: 0;
   font-size: 14px;
   font-weight: 500;
@@ -1972,6 +2007,32 @@ tr:last-child td { border-bottom: 0; }
 }
 .modal-danger-button:hover {
   background: rgba(186,63,54,.08);
+}
+.confirm-panel {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  display: grid;
+  gap: 20px;
+  padding: 22px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+.confirm-panel h3 {
+  margin: 2px 0 8px;
+  font-size: 24px;
+  line-height: 1.1;
+}
+.confirm-panel p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 .choice-field {
   min-width: 0;
@@ -2152,13 +2213,15 @@ tr:last-child td { border-bottom: 0; }
     min-height: 44px;
     font-size: 13px;
   }
-  .modal[open] {
+  .modal[open],
+  .drawer[open] {
     width: 100%;
     height: 100dvh;
     margin: 0;
     overflow-x: hidden;
   }
-  .modal-panel {
+  .modal-panel,
+  .drawer-panel {
     width: 100%;
     max-width: none;
     height: 100dvh;
@@ -2177,12 +2240,23 @@ tr:last-child td { border-bottom: 0; }
   }
   .modal-panel input,
   .modal-panel textarea,
-  .modal-panel select {
+  .modal-panel select,
+  .drawer-panel input,
+  .drawer-panel textarea,
+  .drawer-panel select {
     font-size: 16px;
     font-weight: 500;
   }
-  #modal-fields {
+  #modal-fields,
+  #drawer-fields {
     padding-bottom: 116px;
+  }
+  .confirm-panel {
+    width: calc(100vw - 32px);
+  }
+  .confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
   .modal-actions {
     bottom: 0;
