@@ -53,6 +53,26 @@ Norwegian UI labels:
 
 Do not add new experiment status labels without updating this glossary and the data contract.
 
+### Experiment Status Transitions
+
+Allowed transitions:
+
+- `planned -> active`
+- `active -> reviewed`
+- `reviewed -> continued`
+- `reviewed -> closed`
+- `continued -> active`
+
+Status meanings:
+
+- `planned`: created, but not currently being tested.
+- `active`: currently being tested in practice.
+- `reviewed`: read out or summarized after testing.
+- `continued`: intentionally carried forward after review.
+- `closed`: intentionally ended after review.
+
+Do not build a free-form status picker everywhere. UI should offer only the valid next transition for the current status.
+
 ### Focus Field Labels
 
 - `Dagens mønster`
@@ -87,6 +107,9 @@ Do not add new experiment status labels without updating this glossary and the d
 5. Keep `Mulig neste steg` in Samtaler as free text.
    - Add a path to turn it into an experiment.
    - Do not force every next step to become an experiment.
+   - Use the action label `Gjør til eksperiment`.
+   - This action opens the shared experiment drawer and copies the text into `Hva skal testes?`.
+   - The user must choose a focus area and can edit the copied text before saving.
 
 6. Retning `Rediger retning` behavior:
    - In empty state, it activates the first missing field.
@@ -96,6 +119,10 @@ Do not add new experiment status labels without updating this glossary and the d
 7. Refleksjon focus-area linking:
    - Include in MVP as optional.
    - Do not require a focus link to write a reflection.
+
+8. Experiment creation pattern:
+   - Use `Drawer` as the single creation/editing pattern for experiments.
+   - Do not implement both drawer and contextual panel variants.
 
 ## Package 1: Foundation Decisions And Data Contract
 
@@ -119,9 +146,12 @@ Lock remaining data and language decisions before any UI build.
 ### Acceptance Criteria
 
 - No open data decision blocks Retning or Fokusomrader.
+- Schema decisions are concrete enough that Package 3 only implements them; it must not make product decisions during migration work.
 - Experiment creation fields are identical from Fokusomrader and Samtaler.
+- Experiment status transitions are locked.
 - `Mulig neste steg` behavior is explicit.
 - `next_practice` behavior is explicit.
+- Drawer is confirmed as the single experiment creation pattern.
 
 ## Package 2: Shared Interaction Components
 
@@ -138,7 +168,7 @@ Build one interaction system before rebuilding screens.
 - `SegmentedControl`
 - `MoreMenu`
 - `ConfirmDialog`
-- `Drawer` or contextual panel for experiment creation
+- `Drawer` for experiment creation
 - `ErrorMessage`
 - `EmptyState`
 
@@ -154,6 +184,7 @@ Build one interaction system before rebuilding screens.
 
 - Screens do not create one-off inline editors.
 - Screens do not create one-off confirm dialogs.
+- Screens do not create alternative experiment creation panels.
 - Native alert/confirm is not needed for V2 core flows.
 
 ## Package 3: Schema Migration
@@ -243,12 +274,15 @@ Preserve current conversation fields while improving editing and experiment crea
 - Direct field-level inline editing.
 - `Eksperimenter fra denne samtalen`.
 - `Mulig neste steg` remains free text and can be turned into an experiment.
+- The `Gjør til eksperiment` action opens the shared experiment drawer with `Mulig neste steg` copied into `Hva skal testes?`.
 
 ### Acceptance Criteria
 
 - No modal editing for core fields.
 - Experiments created from a conversation have `session_id`.
 - Experiments can link to a focus area.
+- `Mulig neste steg` can remain free text without becoming an experiment.
+- `Mulig neste steg` can be copied into the shared experiment drawer.
 - Old conversation UI is removed from render path.
 
 ## Package 7: Refleksjon V2
@@ -310,6 +344,10 @@ Remove old code paths after V2 surfaces are accepted.
 
 - No old surface renders below new V2 surface.
 - Search confirms no duplicate modal forms remain for core content.
+- Search confirms old render branches are removed for each V2 surface.
+- Search confirms old modal paths are removed for core content.
+- Search confirms dead helper functions tied to replaced surfaces are removed.
+- Search confirms legacy files are either removed or explicitly documented as retained.
 - Spaghetti check passes for each module.
 
 ## Package 10: QA And Release Gate
@@ -327,7 +365,19 @@ Verify product, UX, role, and security behavior before release.
 - Private/shared reflection test.
 - Experiment creation from Fokusomrader.
 - Experiment creation from Samtaler.
-- RLS smoke test.
+- RLS scenarios:
+  - Coach cannot see private reflections.
+  - Coach can see only assigned clients' program data.
+  - Client cannot broadly update protected `clients` fields such as coach assignment.
+  - Client can create and edit own allowed reflection content.
+  - Shared reflections are visible to the assigned coach.
+- Legacy path searches:
+  - Old Retning render branches.
+  - Old Fokusomrader render branches.
+  - Old Samtaler render branches.
+  - Old Refleksjon render branches.
+  - Old modal paths for core content.
+  - Native `alert()` / `confirm()` in V2 core flows.
 - Local Supabase reset.
 - Remote migration dry-run before push.
 
