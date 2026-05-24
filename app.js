@@ -35,16 +35,18 @@ const state = {
   modal: null,
   drawer: null,
   confirmResolve: null,
-  messageResolve: null
+  messageResolve: null,
+  directionEditKey: null
 };
 
 const planFields = [
-  ["c_purpose", "Arbeidshypotese: hva tror vi dette forløpet egentlig handler om?", "textarea"],
-  ["c_success", "Tegn på bevegelse: hva vil være annerledes i praksis?", "textarea"],
-  ["c_expect_coach", "Hva trenger du fra coach for at dette skal bli nyttig?", "textarea"],
-  ["c_expect_client", "Hva vil du utforske eller teste mellom samtalene?", "textarea"],
-  ["c_confidentiality", "Hva skal holdes privat, og hva kan deles i samtalene?", "textarea"],
-  ["c_practical", "Rammer for samarbeidet", "textarea"]
+  ["c_purpose", "Mål", "textarea"],
+  ["c_success", "Tegn på bevegelse", "textarea"],
+  ["c_expect_client", "Forventninger til klient", "textarea"],
+  ["c_expect_coach", "Forventninger til coach", "textarea"],
+  ["c_practical", "Praktiske rammer", "textarea"],
+  ["c_confidentiality", "Konfidensialitet", "textarea"],
+  ["c_context", "Interessenter og kontekst", "textarea"]
 ];
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -757,7 +759,11 @@ function clientWorkspaceTabs(_data, activePane = "direction") {
 
 function setupWorkspaceTabs() {
   $$(".workspace-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
+    tab.addEventListener("click", async () => {
+      if (state.directionEditKey) {
+        await showAppMessage("Lagre eller avbryt først", "Du har et åpent Retning-felt. Lagre eller avbryt før du går videre.");
+        return;
+      }
       $$(".workspace-tab").forEach((item) => item.classList.toggle("active", item === tab));
       $$(".workspace-pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === tab.dataset.tab));
     });
@@ -773,111 +779,34 @@ function hiddenPlanState(plan) {
   ]);
 }
 
-function directionWorkspace(client, plan, data) {
+function directionWorkspace(client, plan) {
   const editable = canEditProgram(client);
   const directionSpecs = getDirectionSpecs(plan);
-  return el("div", { class: "direction-stack" }, [
-    startOverview(client, plan, data, editable),
-    el("section", { class: "panel document-panel" }, [
-      workspaceIntro("Retning", "Hva jobber vi mot?", "Utvikling uten retning blir tilfeldig. Her samler du hva coachingen skal bidra til på overordnet nivå, hvordan bevegelse merkes, og hvilke rammer som gjør samarbeidet nyttig."),
-      el("div", { class: "direction-grid" }, directionSpecs.map((spec) => (
-        directionCard(spec.label, spec.value, spec.emptyText, spec.icon, spec.layout, editable ? () => editDirectionField(spec) : null)
-      ))),
-      coachingFrame()
-    ])
-  ]);
-}
-
-function startOverview(client, plan, data, editable) {
-  const items = startChecklist(plan, data);
-  const completed = items.filter((item) => item.done).length;
-  const next = items.find((item) => !item.done) || {
-    label: "Hold planen levende",
-    text: "Bruk refleksjoner og eksperimenter mellom samtalene, og juster retningen når noe blir tydeligere.",
-    action: "Skriv refleksjon",
-    pane: "reflections",
-    icon: "sparkles"
-  };
-  const progressText = `${completed} av ${items.length} på plass`;
   const firstName = (client.name || "du").split(" ")[0];
-  return el("section", { class: "start-overview" }, [
-    el("div", { class: "start-hero" }, [
-      el("div", { class: "start-hero-copy" }, [
-        el("p", { class: "eyebrow", text: "Start her" }),
+  const status = directionStatus(plan);
+  const nextMissing = directionSpecs.find((spec) => !directionSpecHasValue(spec));
+  return el("div", { class: "direction-v2" }, [
+    el("section", { class: "direction-v2-hero" }, [
+      el("div", { class: "direction-v2-copy" }, [
+        el("p", { class: "eyebrow", text: "Retning" }),
         el("h3", { text: `Hei ${firstName}, la oss gjøre dette konkret.` }),
-        el("p", { class: "muted", text: "Utviklingsplanen skal hjelpe deg å holde fast i retning, gjøre små eksperimenter i praksis og få mer ut av hver coachingtime." })
+        el("p", { class: "muted", text: "Dette er den korte avtalen som gjør resten av forløpet nyttig: hva dere jobber mot, hva som skal merkes i praksis, og hvilke rammer som gjør arbeidet trygt og presist." })
       ]),
-      el("div", { class: "start-next-card" }, [
-        el("span", { class: "card-icon" }, [icon(next.icon)]),
-        el("div", {}, [
-          el("p", { class: "eyebrow", text: "Neste beste steg" }),
-          el("strong", { text: next.label }),
-          el("p", { text: next.text })
-        ]),
-        editable ? button(next.action, "arrow-right", () => activateWorkspacePane(next.pane), "primary") : null
+      el("div", { class: "direction-v2-status" }, [
+        el("span", { class: `direction-status ${status.tone}`, text: status.label }),
+        el("p", { text: status.text }),
+        editable && nextMissing ? button(status.action, "arrow-right", () => activateDirectionEdit(nextMissing), "primary") : null,
+        !nextMissing ? button("Gå til fokusområder", "arrow-right", () => activateWorkspacePane("work"), "ghost") : null
       ].filter(Boolean))
     ]),
-    el("div", { class: "start-progress" }, [
-      el("div", { class: "start-progress-head" }, [
-        el("span", { class: "badge ok", text: progressText }),
-        el("span", { class: "muted", text: "Forløpet blir bedre jo mer konkret dette blir." })
+    el("section", { class: "direction-v2-fields" }, [
+      el("div", { class: "direction-section-head" }, [
+        el("p", { class: "eyebrow", text: "Kontrakten" }),
+        el("h3", { text: "Det viktigste dere må være enige om" })
       ]),
-      el("div", { class: "start-checklist" }, items.map((item) => el("button", {
-        class: `start-check ${item.done ? "done" : ""}`,
-        type: "button",
-        onclick: () => activateWorkspacePane(item.pane)
-      }, [
-        el("span", { class: `start-check-icon ${item.done ? "done" : ""}` }, [icon(item.done ? "check" : item.icon)]),
-        el("span", {}, [
-          el("strong", { text: item.label }),
-          el("small", { text: item.done ? item.doneText : item.text })
-        ])
-      ])))
+      ...directionSpecs.map((spec) => directionInlineField(spec, editable, client))
     ])
   ]);
-}
-
-function startChecklist(plan, data) {
-  const areas = (plan.areas || []).map(normalizeArea).filter(hasAreaContent);
-  const sessions = (plan.sessions || []).filter((session) => session.date || session.focus || session.goal || session.notes);
-  return [
-    {
-      label: "Sett retning",
-      text: "Skriv hva coachingforløpet skal hjelpe deg å bevege.",
-      doneText: "Retningen er formulert.",
-      done: Boolean(plan.c_purpose && plan.c_success),
-      pane: "direction",
-      action: "Sett retning",
-      icon: "target"
-    },
-    {
-      label: "Velg første fokus",
-      text: "Finn ett område som er viktig nok til å jobbe med nå.",
-      doneText: `${areas.length} fokusområde${areas.length === 1 ? "" : "r"} er valgt.`,
-      done: areas.length > 0,
-      pane: "work",
-      action: "Velg fokus",
-      icon: "layers-3"
-    },
-    {
-      label: "Gjør det testbart",
-      text: "Lag et lite eksperiment som kan prøves i arbeidshverdagen.",
-      doneText: `${(data.actions || []).length} eksperiment${(data.actions || []).length === 1 ? "" : "er"} er lagt inn.`,
-      done: (data.actions || []).length > 0,
-      pane: "work",
-      action: "Lag eksperiment",
-      icon: "flask-conical"
-    },
-    {
-      label: "Ta med læring videre",
-      text: "Bruk samtaler eller refleksjoner til å fange hva som faktisk skjer.",
-      doneText: "Det finnes læring fra samtale eller refleksjon.",
-      done: sessions.length > 0 || (data.reflections || []).length > 0,
-      pane: sessions.length > 0 ? "sessions" : "reflections",
-      action: "Fang læring",
-      icon: "message-square-text"
-    }
-  ];
 }
 
 function activateWorkspacePane(paneName) {
@@ -889,67 +818,188 @@ function getDirectionSpecs(plan) {
   return [
     {
       key: "c_purpose",
-      label: "Mål med coachingen",
+      label: "Mål",
       value: plan.c_purpose,
-      emptyText: "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?",
-      placeholder: "Hva ønsker du at coachingforløpet skal bidra til å bevege, avklare eller utvikle?",
-      icon: "target",
-      layout: "wide"
+      helper: "Hva skal dette coachingforløpet hjelpe deg å bevege, avklare eller utvikle?",
+      placeholder: "Eksempel: Bli tryggere i prioritering og tydeligere i lederrollen når presset øker."
     },
     {
       key: "c_success",
       label: "Tegn på bevegelse",
       value: plan.c_success,
-      emptyText: "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?",
-      placeholder: "Hva vil du, coach eller andre legge merke til hvis dette begynner å virke?",
-      icon: "route",
-      layout: "wide"
+      helper: "Hva vil du, coach eller andre kunne legge merke til hvis arbeidet begynner å virke?",
+      placeholder: "Eksempel: Færre omstarter, raskere beslutninger og tydeligere forventningsavklaringer."
     },
     {
-      key: "c_practical",
-      label: "Prosess og samarbeid",
-      value: plan.c_practical,
-      emptyText: "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?",
-      placeholder: "Hva trenger du fra coach, og hva må være tydelig mellom dere for at samarbeidet skal bli nyttig?",
-      icon: "handshake",
-      layout: ""
+      key: "c_expect_client",
+      label: "Forventninger til klient",
+      value: plan.c_expect_client,
+      helper: "Hva tar klienten ansvar for å prøve, observere eller forberede mellom samtalene?",
+      placeholder: "Eksempel: Teste små grep i arbeidshverdagen og notere korte observasjoner mens de er ferske."
     },
     {
-      key: "c_confidentiality",
-      label: "Rammer og forventninger",
-      value: plan.c_confidentiality,
-      emptyText: "Hva skal være avklart om konfidensialitet, ansvar og grensesetting?",
-      placeholder: "Hva bør være avklart om konfidensialitet, ansvar, grenser og praktiske forventninger?",
-      icon: "shield-check",
-      layout: ""
+      key: "c_expect_coach",
+      label: "Forventninger til coach",
+      value: plan.c_expect_coach,
+      helper: "Hva skal coach bidra med, utfordre, holde fast i eller følge opp?",
+      placeholder: "Eksempel: Hjelpe med presisering, utfordre antakelser og holde tråden fra samtale til praksis."
+    },
+    {
+      key: "frame",
+      label: "Rammer og konfidensialitet",
+      helper: "Hva er den praktiske rammen, og hva skal være privat, delt eller utenfor coachingens mandat?",
+      fields: [
+        {
+          key: "c_practical",
+          label: "Praktiske rammer",
+          value: plan.c_practical,
+          placeholder: "Eksempel: Seks samtaler annenhver uke. Mellom samtalene testes små praksiseksperimenter."
+        },
+        {
+          key: "c_confidentiality",
+          label: "Konfidensialitet",
+          value: plan.c_confidentiality,
+          placeholder: "Eksempel: Refleksjoner er private med mindre klient velger å dele. Coaching erstatter ikke helsehjelp."
+        }
+      ]
+    },
+    {
+      key: "c_context",
+      label: "Interessenter og kontekst",
+      value: plan.c_context,
+      helper: "Hvilke personer, team, roller eller organisatoriske forventninger påvirker arbeidet?",
+      placeholder: "Eksempel: Ledergruppen, nærmeste leder og teamet som trenger tydeligere prioriteringer."
     }
   ];
 }
 
-function editDirectionField(spec) {
-  openEntityModal(`Rediger ${spec.label.toLowerCase()}`, "Retning", [
-    textareaSpec(spec.key, spec.label, spec.value || "", { placeholder: spec.placeholder })
-  ], async (values) => {
-    setPlanValue(spec.key, values[spec.key]);
-    markDirty();
-    const saved = await savePlan();
-    if (!saved) throw new Error("Lagring feilet.");
-    await reloadProgramAndRender("direction");
-  });
+function directionStatus(plan) {
+  if (!plan.c_purpose || !plan.c_success) {
+    return {
+      tone: "missing",
+      label: "Mangler retning",
+      text: "Start med mål og tegn på bevegelse før dere velger fokusområder.",
+      action: "Sett retning"
+    };
+  }
+  if (!plan.c_expect_client || !plan.c_expect_coach) {
+    return {
+      tone: "partial",
+      label: "Mangler avtale",
+      text: "Gjør forventningene tydelige, så klient og coach vet hva de skal holde fast i.",
+      action: "Avklar forventninger"
+    };
+  }
+  return {
+    tone: "ready",
+    label: "Retning satt",
+    text: "Kontrakten er tydelig nok til å velge fokusområder og starte praksisarbeidet.",
+    action: "Gå videre"
+  };
+}
+
+function directionSpecHasValue(spec) {
+  if (spec.fields) return spec.fields.every((field) => (field.value || "").trim());
+  return Boolean((spec.value || "").trim());
+}
+
+function directionSpecPreview(spec) {
+  if (spec.fields) {
+    const values = spec.fields.filter((field) => (field.value || "").trim());
+    if (!values.length) return "";
+    return values.map((field) => `${field.label}: ${field.value}`).join("\n\n");
+  }
+  return spec.value || "";
+}
+
+function directionInlineField(spec, editable, client) {
+  const value = directionSpecPreview(spec);
+  const roleHint = state.profile.role === "coach"
+    ? "Er dette presist nok til å coache fra?"
+    : "Skriv kort nok til at du faktisk vil bruke det mellom samtalene.";
+  return el("article", { class: `direction-field ${value ? "has-value" : "is-empty"}`, "data-direction-key": spec.key }, [
+    el("div", { class: "direction-field-main" }, [
+      el("div", { class: "direction-field-label" }, [
+        el("h4", { text: spec.label }),
+        el("p", { text: spec.helper })
+      ]),
+      el("div", { class: "direction-field-value" }, [
+        value ? directionValueContent(spec) : el("p", { class: "direction-empty", text: spec.placeholder || spec.helper }),
+        el("small", { text: roleHint })
+      ])
+    ]),
+    editable ? el("button", {
+      class: "direction-field-hit",
+      type: "button",
+      title: `Rediger ${spec.label}`,
+      onclick: () => activateDirectionEdit(spec)
+    }) : null
+  ].filter(Boolean));
+}
+
+function directionValueContent(spec) {
+  if (spec.fields) {
+    return el("div", { class: "direction-subvalues" }, spec.fields.map((field) => (
+      el("div", {}, [
+        el("strong", { text: field.label }),
+        el("p", { text: field.value || "Ikke satt ennå." })
+      ])
+    )));
+  }
+  return el("p", { text: spec.value });
+}
+
+async function activateDirectionEdit(spec) {
+  if (state.directionEditKey && state.directionEditKey !== spec.key) {
+    await showAppMessage("Lagre eller avbryt først", "Bare ett Retning-felt kan redigeres om gangen.");
+    return;
+  }
+  const field = $(`[data-direction-key='${spec.key}']`);
+  if (!field) return;
+  state.directionEditKey = spec.key;
+  field.classList.add("is-editing");
+  field.replaceChildren(directionEditContent(spec));
+  refreshIcons();
+}
+
+function directionEditContent(spec) {
+  const fields = spec.fields || [spec];
+  return el("div", { class: "direction-edit" }, [
+    el("div", { class: "direction-field-label" }, [
+      el("h4", { text: spec.label }),
+      el("p", { text: spec.helper })
+    ]),
+    el("div", { class: "direction-edit-fields" }, fields.map((field) => (
+      el("label", { text: field.label || spec.label }, [
+        el("textarea", {
+          name: `inline-${field.key}`,
+          text: field.value || "",
+          placeholder: field.placeholder || spec.placeholder || spec.helper
+        })
+      ])
+    ))),
+    el("div", { class: "direction-edit-actions" }, [
+      button("Avbryt", "x", async () => {
+        state.directionEditKey = null;
+        await reloadProgramAndRender("direction");
+      }, "ghost"),
+      button("Lagre", "save", async () => {
+        fields.forEach((field) => {
+          setPlanValue(field.key, $(`[name='inline-${field.key}']`)?.value || "");
+        });
+        state.directionEditKey = null;
+        markDirty();
+        const saved = await savePlan();
+        if (!saved) return;
+        await reloadProgramAndRender("direction");
+      }, "primary")
+    ])
+  ]);
 }
 
 function setPlanValue(name, value) {
   const control = $(`[name='${name}']`, $("#plan-form"));
   if (control) control.value = value || "";
-}
-
-function directionCard(label, value, emptyText, iconName, layout = "", onOpen = null) {
-  return el("article", { class: `content-card direction-card ${layout} ${value ? "has-value" : "is-empty"}` }, [
-    cardIcon(iconName),
-    el("p", { class: "content-card-label", text: label }),
-    contentPreview(value, emptyText, layout === "wide" ? 6 : 5),
-    onOpen ? el("button", { class: "card-hit", type: "button", title: "Rediger", onclick: onOpen }) : null
-  ].filter(Boolean));
 }
 
 function cardIcon(name) {
@@ -963,28 +1013,6 @@ function contentPreview(value, emptyText, lines = 5) {
     style: `--preview-lines:${lines}`,
     text: text || emptyText
   });
-}
-
-function documentBlock(label, value, emptyText) {
-  return el("article", { class: "document-block" }, [
-    el("p", { class: "eyebrow", text: label }),
-    el("p", { class: value ? "" : "muted", text: value || emptyText })
-  ]);
-}
-
-function coachingFrame() {
-  const items = [
-    ["lock-keyhole", "Konfidensialitet", "Det som deles i coachingrommet behandles alltid konfidensielt."],
-    ["heart-handshake", "Rolleavklaring", "Coaching er ikke terapi. Ved psykiske helseutfordringer anbefales kontakt med kvalifisert fagperson."],
-    ["compass", "Ansvar", "Du eier egne mål, valg og handlinger. Coach fasiliterer refleksjon, retning og fremdrift."]
-  ];
-  return el("div", { class: "coaching-frame" }, items.map(([iconName, title, text]) => el("article", {}, [
-    icon(iconName),
-    el("div", {}, [
-      el("strong", { text: title }),
-      el("p", { text })
-    ])
-  ])));
 }
 
 function workWorkspace(client, data, plan) {
