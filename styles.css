@@ -708,49 +708,36 @@ tr:last-child td { border-bottom: 0; }
 .workspace-pane { display: none; }
 .workspace-pane.active { display: grid; gap: 30px; }
 .direction-stack { display: grid; gap: 16px; }
-.direction-v2 {
+.direction-simple {
   display: grid;
-  gap: 34px;
+  gap: 28px;
 }
-.direction-v2-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: clamp(24px, 5vw, 72px);
-  align-items: end;
-  padding: 46px 0 34px;
+.direction-simple-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding-bottom: 28px;
   border-bottom: 1px solid var(--line);
 }
-.direction-v2-copy {
-  max-width: 760px;
-}
-.direction-v2-copy h3 {
+.direction-simple-copy {
   max-width: 720px;
-  margin: 10px 0 14px;
-  font-size: clamp(38px, 4.5vw, 58px);
-  line-height: 1;
+}
+.direction-simple-copy h3 {
+  margin: 8px 0 10px;
+  font-size: 32px;
+  line-height: 1.1;
   letter-spacing: 0;
 }
-.direction-v2-copy p:not(.eyebrow) {
-  max-width: 650px;
-  font-size: 16px;
-  line-height: 1.55;
-}
-.direction-v2-status {
-  display: grid;
-  justify-items: start;
-  gap: 12px;
-  padding-bottom: 4px;
-}
-.direction-v2-status p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.45;
+.direction-simple-copy p:not(.eyebrow) {
+  max-width: 640px;
+  font-size: 15px;
+  line-height: 1.5;
 }
 .direction-status {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   min-height: 28px;
   padding: 7px 11px;
   border-radius: 999px;
@@ -768,23 +755,16 @@ tr:last-child td { border-bottom: 0; }
   border: 1px solid var(--line);
   color: #000;
 }
-.direction-v2-fields {
+.direction-list {
   display: grid;
   gap: 0;
-}
-.direction-section-head {
-  display: grid;
-  gap: 4px;
-  padding-bottom: 20px;
-}
-.direction-section-head h3 {
-  margin: 0;
-  font-size: 28px;
-  line-height: 1.1;
 }
 .direction-field {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
   padding: 24px 0;
   border-top: 1px solid var(--line);
 }
@@ -792,13 +772,13 @@ tr:last-child td { border-bottom: 0; }
   border-bottom: 1px solid var(--line);
 }
 .direction-field:hover {
-  background: linear-gradient(90deg, rgba(0,0,0,.018), transparent 62%);
+  background: rgba(0,0,0,.012);
 }
 .direction-field-main,
 .direction-edit {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: clamp(24px, 5vw, 64px);
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 28px;
   align-items: start;
 }
 .direction-field-label h4 {
@@ -815,19 +795,13 @@ tr:last-child td { border-bottom: 0; }
 }
 .direction-field-value {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   max-width: 720px;
 }
 .direction-field-value p {
   margin: 0;
   font-size: 16px;
   line-height: 1.55;
-}
-.direction-field-value small {
-  color: rgba(0,0,0,.45);
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1.4;
 }
 .direction-empty {
   color: rgba(0,0,0,.46);
@@ -842,13 +816,19 @@ tr:last-child td { border-bottom: 0; }
   font-size: 12px;
   font-weight: 800;
 }
-.direction-field-hit {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+.direction-edit-trigger {
+  align-self: start;
   border: 0;
+  padding: 4px 0;
   background: transparent;
-  cursor: text;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0;
+}
+.direction-field:hover .direction-edit-trigger,
+.direction-edit-trigger:focus-visible {
+  opacity: 1;
 }
 .direction-field.is-editing {
   padding: 24px;
@@ -2318,11 +2298,19 @@ tr:last-child td { border-bottom: 0; }
   .workspace-head .button { width: 100%; min-height: 38px; }
   .workspace-intro-actions .button { width: fit-content; min-height: 38px; }
   .document-block, .focus-row, .editable-row, .row-open { grid-template-columns: 1fr; gap: 8px; }
-  .direction-v2-hero,
+  .direction-simple-head,
+  .direction-field,
   .direction-field-main,
   .direction-edit {
     grid-template-columns: 1fr;
     gap: 18px;
+  }
+  .direction-simple-head {
+    display: grid;
+  }
+  .direction-edit-trigger {
+    justify-self: start;
+    opacity: 1;
   }
   .direction-edit-actions {
     grid-column: 1;
@@ -2370,14 +2358,11 @@ tr:last-child td { border-bottom: 0; }
   .topline { padding: 40px 20px 46px; grid-template-columns: 1fr; align-items: flex-start; min-height: 0; }
   .topline-actions { justify-content: flex-start; padding-bottom: 0; }
   .content { padding: 42px 20px 86px; }
-  .direction-v2-hero {
-    padding: 22px 0 30px;
+  .direction-simple-head {
+    padding-bottom: 22px;
   }
-  .direction-v2-copy h3 {
-    font-size: 44px;
-  }
-  .direction-v2-status {
-    padding-bottom: 0;
+  .direction-simple-copy h3 {
+    font-size: 30px;
   }
   .direction-field {
     padding: 22px 0;

@@ -784,26 +784,16 @@ function directionWorkspace(client, plan) {
   const directionSpecs = getDirectionSpecs(plan);
   const firstName = (client.name || "du").split(" ")[0];
   const status = directionStatus(plan);
-  const nextMissing = directionSpecs.find((spec) => !directionSpecHasValue(spec));
-  return el("div", { class: "direction-v2" }, [
-    el("section", { class: "direction-v2-hero" }, [
-      el("div", { class: "direction-v2-copy" }, [
+  return el("section", { class: "direction-simple" }, [
+    el("div", { class: "direction-simple-head" }, [
+      el("div", { class: "direction-simple-copy" }, [
         el("p", { class: "eyebrow", text: "Retning" }),
         el("h3", { text: `Hei ${firstName}, la oss gjøre dette konkret.` }),
-        el("p", { class: "muted", text: "Dette er den korte avtalen som gjør resten av forløpet nyttig: hva dere jobber mot, hva som skal merkes i praksis, og hvilke rammer som gjør arbeidet trygt og presist." })
+        el("p", { class: "muted", text: "Avklar hva dere jobber mot, hva som skal merkes i praksis, og hvilke rammer som gjør samarbeidet nyttig." })
       ]),
-      el("div", { class: "direction-v2-status" }, [
-        el("span", { class: `direction-status ${status.tone}`, text: status.label }),
-        el("p", { text: status.text }),
-        editable && nextMissing ? button(status.action, "arrow-right", () => activateDirectionEdit(nextMissing), "primary") : null,
-        !nextMissing ? button("Gå til fokusområder", "arrow-right", () => activateWorkspacePane("work"), "ghost") : null
-      ].filter(Boolean))
+      el("span", { class: `direction-status ${status.tone}`, text: status.label })
     ]),
-    el("section", { class: "direction-v2-fields" }, [
-      el("div", { class: "direction-section-head" }, [
-        el("p", { class: "eyebrow", text: "Kontrakten" }),
-        el("h3", { text: "Det viktigste dere må være enige om" })
-      ]),
+    el("div", { class: "direction-list" }, [
       ...directionSpecs.map((spec) => directionInlineField(spec, editable, client))
     ])
   ]);
@@ -914,9 +904,6 @@ function directionSpecPreview(spec) {
 
 function directionInlineField(spec, editable, client) {
   const value = directionSpecPreview(spec);
-  const roleHint = state.profile.role === "coach"
-    ? "Er dette presist nok til å coache fra?"
-    : "Skriv kort nok til at du faktisk vil bruke det mellom samtalene.";
   return el("article", { class: `direction-field ${value ? "has-value" : "is-empty"}`, "data-direction-key": spec.key }, [
     el("div", { class: "direction-field-main" }, [
       el("div", { class: "direction-field-label" }, [
@@ -924,14 +911,14 @@ function directionInlineField(spec, editable, client) {
         el("p", { text: spec.helper })
       ]),
       el("div", { class: "direction-field-value" }, [
-        value ? directionValueContent(spec) : el("p", { class: "direction-empty", text: spec.placeholder || spec.helper }),
-        el("small", { text: roleHint })
+        value ? directionValueContent(spec) : el("p", { class: "direction-empty", text: spec.placeholder || spec.helper })
       ])
     ]),
     editable ? el("button", {
-      class: "direction-field-hit",
+      class: "direction-edit-trigger",
       type: "button",
       title: `Rediger ${spec.label}`,
+      text: value ? "Rediger" : "Legg til",
       onclick: () => activateDirectionEdit(spec)
     }) : null
   ].filter(Boolean));
