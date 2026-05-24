@@ -792,7 +792,7 @@ function directionWorkspace(client, plan) {
   const firstName = (client.name || "du").split(" ")[0];
   const status = directionStatus(plan);
   return el("section", { class: "ui-workspace direction-simple" }, [
-    pageIntro(status.label, `Hei, ${firstName}. La oss gjøre dette konkret.`, "Avklar hva dere jobber mot, hva som skal merkes i praksis, og hvilke rammer som gjør samarbeidet nyttig.", [], status.tone),
+    pageIntro(status.label, `Hei, ${firstName}. La oss avklare retningen.`, "Fyll ut det viktigste for coachingforløpet: hva du vil jobbe med, hvordan du merker fremgang, og hva du trenger fra coachen din.", [], status.tone),
     el("div", { class: "ui-card-grid direction-card-grid" }, [
       ...directionSpecs.map((spec, index) => directionCard(spec, editable, client, index))
     ]),
@@ -826,52 +826,52 @@ function getDirectionSpecs(plan) {
   return [
     {
       key: "c_purpose",
-      label: "Mål",
-      subhead: "Kort avklaring",
-      valueLabel: "Din retning",
+      label: "Hva vil du oppnå?",
+      subhead: "Retning for forløpet",
+      valueLabel: "Ditt mål",
       value: plan.c_purpose,
-      helper: "Hva skal dette coachingforløpet hjelpe deg å bevege, avklare eller utvikle?",
-      placeholder: "Hva skal coachingforløpet hjelpe deg å bevege, avklare eller utvikle?"
+      helper: "Hva ønsker du at coachingforløpet skal hjelpe deg med?",
+      placeholder: "Hva ønsker du at coachingforløpet skal hjelpe deg med?"
     },
     {
       key: "c_success",
-      label: "Tegn på bevegelse",
-      subhead: "Merker i praksis",
-      valueLabel: "Når det virker",
+      label: "Hvordan vil du merke fremgang?",
+      subhead: "Konkret effekt",
+      valueLabel: "Tegn på fremgang",
       value: plan.c_success,
-      helper: "Hva vil du, coach eller andre kunne legge merke til hvis arbeidet begynner å virke?",
-      placeholder: "Hva vil du, coachen din eller andre kunne legge merke til hvis dette begynner å virke?"
+      helper: "Hva vil du, coachen din eller andre merke hvis dette begynner å virke?",
+      placeholder: "Hva vil du, coachen din eller andre merke hvis dette begynner å virke?"
     },
     {
       key: "c_expect_client",
-      label: "Forventninger til klient",
-      subhead: "Eget ansvar",
-      valueLabel: "Din del",
+      label: "Ditt ansvar",
+      subhead: "Mellom samtalene",
+      valueLabel: "Dette gjør du",
       value: plan.c_expect_client,
-      helper: "Hva tar klienten ansvar for å prøve, observere eller forberede mellom samtalene?",
-      placeholder: "Hva tar du ansvar for å prøve, observere eller forberede mellom samtalene?"
+      helper: "Hva vil du prøve, observere eller forberede mellom samtalene?",
+      placeholder: "Hva vil du prøve, observere eller forberede mellom samtalene?"
     },
     {
       key: "c_expect_coach",
-      label: "Forventninger til din coach",
-      subhead: "Støtte og utfordring",
-      valueLabel: "Coachens del",
+      label: "Hva trenger du fra coachen?",
+      subhead: "Coachens bidrag",
+      valueLabel: "Dette ber du coachen bidra med",
       value: plan.c_expect_coach,
-      helper: "Hva skal coach bidra med, utfordre, holde fast i eller følge opp?",
-      placeholder: "Hva ønsker du at din coach skal bidra med, utfordre, holde fast i eller følge opp?"
+      helper: "Hva trenger du at coachen bidrar med, utfordrer deg på eller følger opp?",
+      placeholder: "Hva trenger du at coachen bidrar med, utfordrer deg på eller følger opp?"
     },
     {
       key: "frame",
-      label: "Rammer og konfidensialitet",
-      subhead: "Avklart samarbeid",
-      valueLabel: "Avtalt ramme",
-      helper: "Hva er den praktiske rammen, og hva skal være privat, delt eller utenfor coachingens mandat?",
+      label: "Rammer for samarbeidet",
+      subhead: "Praktiske og trygge rammer",
+      valueLabel: "Dette skal være avklart",
+      helper: "Hva bør være avklart om tid, rolle, konfidensialitet og hva som ligger utenfor coachingens mandat?",
       fields: [
         {
           key: "c_practical",
           label: "Praktiske rammer",
           value: plan.c_practical,
-          placeholder: "Hva er den praktiske rammen for samarbeidet?"
+          placeholder: "Hva bør være avklart om tid og rolle?"
         },
         {
           key: "c_confidentiality",
@@ -883,12 +883,12 @@ function getDirectionSpecs(plan) {
     },
     {
       key: "c_context",
-      label: "Interessenter og kontekst",
-      subhead: "Rundt forløpet",
-      valueLabel: "Kontekst",
+      label: "Hvem og hva påvirker forløpet?",
+      subhead: "Kontekst rundt deg",
+      valueLabel: "Viktig kontekst",
       value: plan.c_context,
-      helper: "Hvilke personer, team, roller eller organisatoriske forventninger påvirker arbeidet?",
-      placeholder: "Hvilke personer, team, roller eller organisatoriske forventninger påvirker arbeidet?"
+      helper: "Hvilke personer, roller, team eller forventninger påvirker det du jobber med?",
+      placeholder: "Hvilke personer, roller, team eller forventninger påvirker det du jobber med?"
     }
   ];
 }
@@ -897,7 +897,7 @@ function directionStatus(plan) {
   if (!plan.c_purpose || !plan.c_success) {
     return {
       tone: "missing",
-      label: "Mangler retning",
+      label: "Ikke utfylt ennå",
       text: "Start med mål og tegn på bevegelse før dere velger fokusområder.",
       action: "Sett retning"
     };
@@ -905,14 +905,14 @@ function directionStatus(plan) {
   if (!plan.c_expect_client || !plan.c_expect_coach) {
     return {
       tone: "partial",
-      label: "Mangler avtale",
+      label: "Delvis utfylt",
       text: "Gjør forventningene tydelige, så klient og coach vet hva de skal holde fast i.",
       action: "Avklar forventninger"
     };
   }
   return {
     tone: "ready",
-    label: "Retning satt",
+    label: "Lagret",
     text: "Kontrakten er tydelig nok til å velge fokusområder og starte praksisarbeidet.",
     action: "Gå videre"
   };
@@ -947,13 +947,13 @@ function directionFieldContent(spec, value, editable) {
     ]),
     el("div", { class: "ui-field-body direction-card-body" }, [
       el("span", { class: "ui-field-kicker direction-card-kicker", text: spec.valueLabel || "Din formulering" }),
-      value ? directionValueContent(spec) : el("p", { class: "ui-empty-text direction-empty", text: "Ikke fylt ut ennå." })
+      value ? directionValueContent(spec) : el("p", { class: "ui-empty-text direction-empty", text: "Ikke fylt ut ennå" })
     ]),
     el("p", { class: "ui-field-helper direction-card-helper", text: spec.placeholder || spec.helper }),
     editable ? el("button", {
       class: "ui-field-action direction-edit-trigger",
       type: "button",
-      text: value ? "Rediger" : "Legg til",
+      text: value ? "Rediger" : "Fyll ut",
       onclick: () => activateDirectionEdit(spec)
     }) : null
   ].filter(Boolean));
@@ -975,7 +975,7 @@ function directionInlineField(spec, editable, client) {
       class: "direction-edit-trigger",
       type: "button",
       title: `Rediger ${spec.label}`,
-      text: value ? "Rediger" : "Legg til",
+      text: value ? "Rediger" : "Fyll ut",
       onclick: () => activateDirectionEdit(spec)
     }) : null
   ].filter(Boolean));
@@ -995,9 +995,9 @@ function directionValueContent(spec) {
 
 function coachingFrame() {
   const items = [
-    ["lock-keyhole", "Konfidensialitet", "Det som deles i coachingrommet behandles alltid konfidensielt."],
-    ["heart-handshake", "Rolleavklaring", "Coaching er ikke terapi. Ved psykiske helseutfordringer anbefales kontakt med kvalifisert fagperson."],
-    ["compass", "Ansvar", "Du eier egne mål, valg og handlinger. Coach fasiliterer refleksjon, retning og fremdrift."]
+    ["lock-keyhole", "Konfidensialitet", "Det du deler i coachingrommet behandles konfidensielt."],
+    ["heart-handshake", "Rolleavklaring", "Coaching er ikke terapi. Ved psykiske helseutfordringer bør du kontakte kvalifisert helsepersonell."],
+    ["compass", "Ansvar", "Du eier egne mål, valg og handlinger. Coachen hjelper deg å tenke tydeligere, prioritere og holde fremdrift."]
   ];
   return el("div", { class: "coaching-frame" }, items.map(([iconName, title, text]) => el("article", {}, [
     icon(iconName),
@@ -1135,8 +1135,8 @@ function focusWorkbench(items, data, editable) {
 }
 
 function focusIntro(editable = false) {
-  return workspaceIntro("Fokusområder", "Velg hva du vil jobbe med nå.", "Hold det konkret: ett til fire fokusområder som kan prøves, observeres og justeres i praksis.", [
-    editable ? addAction("Legg til fokusområde", () => addFocusArea()) : null
+  return workspaceIntro("Fokusområder", "Hva bør du ha fokus på nå?", "Velg 1-4 områder du ønsker å utvikle, endre eller forstå bedre i praksis.", [
+    editable ? addAction("Nytt fokusområde", () => addFocusArea()) : null
   ].filter(Boolean));
 }
 
@@ -1145,10 +1145,10 @@ function freeExperimentSection(actions, data, editable) {
   return el("section", { class: "ui-section-card free-experiments" }, [
     el("div", { class: "experiment-section-head" }, [
       el("div", {}, [
-        el("h4", { text: "Frie eksperimenter" }),
-        el("p", { text: "Brukes når du vil teste noe uten å knytte det til et bestemt fokusområde." })
+        el("h4", { text: "Eksperimenter på tvers" }),
+        el("p", { text: "Ting du vil prøve uten å knytte dem til ett bestemt fokusområde." })
       ]),
-      editable ? addAction("Nytt eksperiment", () => createAction(data, "")) : null
+      editable ? addAction("Legg til eksperiment", () => createAction(data, "")) : null
     ].filter(Boolean)),
     actions.length ? el("div", { class: "experiment-list" }, actions.map((action) => experimentRow(action, data, editable))) : null
   ].filter(Boolean));
@@ -1160,7 +1160,7 @@ function focusList(items, editable, data, detail) {
       el("button", { class: "focus-nav-button", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index, itemIndex }, data, editable, detail) }, [
         el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) }),
         el("span", { class: "ui-stack-sm focus-nav-copy" }, [
-          el("span", { class: "focus-nav-label", text: `Fokus ${index + 1}` }),
+          el("span", { class: "focus-nav-label", text: `Fokusområde ${index + 1}` }),
           el("strong", { class: "focus-nav-title", text: area.title || "Bevegelsesønske" }),
           contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 3)
         ])
@@ -1168,7 +1168,7 @@ function focusList(items, editable, data, detail) {
     ].filter(Boolean))),
     editable ? el("button", { class: "ui-add-row focus-add-card", type: "button", onclick: () => addFocusArea() }, [
       el("span", { class: "ui-add-icon add-orb" }, [icon("plus")]),
-      el("strong", { text: "Legg til fokusområde" })
+      el("strong", { text: "Nytt fokusområde" })
     ]) : null,
     !items.length && !editable ? emptyState("Ingen fokus ennå", "Fokusområder blir synlige her når de er lagt inn.") : null
   ].filter(Boolean));
@@ -1188,7 +1188,7 @@ function focusDetail({ area, index }, data, editable) {
     el("div", { class: "focus-detail-titlebar" }, [
       el("div", { class: "focus-detail-heading" }, [
         el("span", { class: "focus-detail-meta" }, [
-          el("span", { class: "eyebrow", text: `Fokus ${index + 1}` }),
+          el("span", { class: "eyebrow", text: `Fokusområde ${index + 1}` }),
           el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) })
         ]),
         editableTitle({
@@ -1209,22 +1209,22 @@ function focusDetail({ area, index }, data, editable) {
     el("div", { class: "detail-divider" }),
     el("div", { class: "experiment-section-head" }, [
       el("div", {}, [
-        el("h4", { text: "Eksperimenter for dette fokuset" }),
-        el("p", { text: "Konkrete ting du vil teste, observere og lære av i praksis." })
+        el("h4", { text: "Ting du vil prøve i praksis" }),
+        el("p", { text: "Små handlinger eller justeringer du vil teste mellom samtalene." })
       ]),
-      editable ? addAction("Nytt eksperiment", () => createAction(data, area.id)) : null
+      editable ? addAction("Legg til eksperiment", () => createAction(data, area.id)) : null
     ].filter(Boolean)),
     actions.length ? el("div", { class: "experiment-list" }, actions.map((action) => experimentRow(action, data, editable))) :
-      el("p", { class: "content-card-body is-empty", text: "Ingen eksperimenter knyttet til dette fokuset ennå." })
+      el("p", { class: "content-card-body is-empty", text: "Ingen eksperimenter lagt til ennå." })
   ]);
 }
 
 function focusDetailWorkspace(area, index, editable) {
   return el("div", { class: "focus-detail-workspace" }, [
-    focusDetailBlock("Ønsket bevegelse", area.movement || area.description, "Hva skal dette fokuset hjelpe deg å bevege, endre eller oppnå?", "movement", area, index, editable, "primary"),
+    focusDetailBlock("Hva ønsker du skal bli annerledes?", area.movement || area.description, "Hva ønsker du skal bli annerledes?", "movement", area, index, editable, "primary"),
     el("div", { class: "focus-detail-support" }, [
-      focusDetailBlock("Typiske situasjoner", area.typicalSituations, "Hvor viser dette mønsteret seg oftest?", "typicalSituations", area, index, editable),
-      focusDetailBlock("Tegn på fremgang", area.progressSigns, "Hvordan vil du merke at noe faktisk er i bevegelse?", "progressSigns", area, index, editable)
+      focusDetailBlock("Når merker du dette mest?", area.typicalSituations, "Hvilke situasjoner, relasjoner eller møter gjør dette tydeligst?", "typicalSituations", area, index, editable),
+      focusDetailBlock("Hvordan vil du merke fremgang?", area.progressSigns, "Hvordan vil du merke fremgang?", "progressSigns", area, index, editable)
     ])
   ]);
 }
@@ -1267,7 +1267,7 @@ function focusEmptyState(editable) {
     el("p", { class: "eyebrow", text: "Fokusområder" }),
     el("h3", { text: "Legg til første fokusområde" }),
     el("p", { class: "muted", text: "Start med ett område du vil undersøke, forstå bedre eller bevege. Eksperimenter kan kobles på etterpå." }),
-    editable ? addAction("Legg til fokusområde", () => addFocusArea()) : null
+    editable ? addAction("Nytt fokusområde", () => addFocusArea()) : null
   ].filter(Boolean));
 }
 
@@ -1311,8 +1311,8 @@ function editableTitle({ className = "", title, empty = false, editKey, value = 
 function sessionsWorkspace(sessions, data) {
   const editable = canEditProgram(getCurrentClient());
   return el("section", { class: "panel document-panel sessions-stack" }, [
-    workspaceIntro("Samtaler", "Forbered og land samtalene.", "Bruk samtalene til å avklare mål, fange innsikt og velge hva som skal prøves videre.", [
-      editable ? addAction("Ny samtale", () => addSession()) : null
+    workspaceIntro("Samtaler", "Forbered og land samtalene.", "Bruk samtalene til å sortere det viktigste, forstå hva som skjer og velge hva du vil gjøre videre.", [
+      editable ? addAction("Opprett samtale", () => addSession()) : null
     ].filter(Boolean)),
     sessions.length ? sessionsWorkbench(sessions, data, editable) : sessionEmptyState(editable),
     sessionsEditor(sessions)
@@ -1336,7 +1336,7 @@ function sessionRail(sessions, detail, editable, data) {
       el("button", { class: "session-nav-button", type: "button", onclick: () => selectSessionCard(session, index, detail, editable, data) }, [
         el("span", { class: "session-nav-date", text: session.date ? formatDate(session.date) : `Samtale ${index + 1}` }),
         el("strong", { class: "session-nav-title", text: session.focus || "Samtale uten tittel" }),
-        el("small", { text: session.goal || "Mål ikke satt ennå" })
+        el("small", { text: session.goal || "Ikke definert ennå" })
       ])
     ])
   ));
@@ -1374,12 +1374,12 @@ function sessionDetail(session, index, editable, data = null) {
       ]) : null
     ].filter(Boolean)),
     el("div", { class: "session-detail-workspace" }, [
-      sessionDetailBlock("Mål med samtalen", session.goal, "Hva skal denne samtalen hjelpe dere å avklare, forstå eller bevege?", "goal", index, editable, "primary"),
+      sessionDetailBlock("Hva er viktig i denne samtalen?", session.goal, "Hva håper dere å forstå, avklare eller komme videre på i denne samtalen?", "goal", index, editable, "primary"),
       el("div", { class: "session-detail-grid" }, [
-        sessionDetailBlock("Innsikt", session.notes, "Hva ble tydeligere, viktigere eller annerledes?", "notes", index, editable),
-        sessionDetailBlock("Mulig neste steg", session.actions, "Hva velger dere å prøve, undersøke eller følge opp?", "actions", index, editable)
+        sessionDetailBlock("Det som ble tydelig", session.notes, "Hva ble tydeligere i løpet av samtalen?", "notes", index, editable),
+        sessionDetailBlock("Neste steg i praksis", session.actions, "Hva skal prøves, undersøkes eller følges opp videre?", "actions", index, editable)
       ]),
-      sessionDetailBlock("Tas videre", session.reflection, "Hva skal klienten huske, bruke eller komme tilbake til?", "reflection", index, editable)
+      sessionDetailBlock("Viktig å ta med videre", session.reflection, "Hva bør huskes, brukes videre eller tas opp igjen senere?", "reflection", index, editable)
     ]),
     linkedActions.length ? el("div", { class: "detail-divider" }) : null,
     linkedActions.length ? el("div", { class: "experiment-section-head" }, [
@@ -1480,7 +1480,7 @@ function sessionEmptyState(editable) {
     el("p", { class: "eyebrow", text: "Samtaler" }),
     el("h3", { text: "Planlegg første coachingtime" }),
     el("p", { class: "muted", text: "Start med et samtalemål. Etterpå kan dere samle innsikt, beslutninger og hva du tar med deg videre." }),
-    editable ? addAction("Ny samtale", () => addSession()) : null
+    editable ? addAction("Opprett samtale", () => addSession()) : null
   ].filter(Boolean));
 }
 
@@ -1607,11 +1607,14 @@ function setSessions(values) {
 
 function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
+  const intro = canWriteReflection
+    ? workspaceIntro("Egen refleksjon", "Det du vil huske, forstå eller utforske videre", "Skriv ned tanker, reaksjoner eller observasjoner mens de fortsatt er ferske. Ingenting deles før du velger det selv.")
+    : workspaceIntro("Delt med coach", "Refleksjoner som er delt", "Her vises kun refleksjoner som aktivt er delt i coachingforløpet.");
   return el("div", { class: "reflection-space" }, [
-    workspaceIntro("Refleksjon", "Hva vil du ta med videre?", "Skriv ned observasjoner mens de er ferske. Bare du ser refleksjonen din til du velger å dele den med coach."),
-    canWriteReflection ? reflectionComposer(data) : reflectionCoachNote(),
+    intro,
+    canWriteReflection ? reflectionComposer(data) : null,
     el("section", { class: "panel document-panel reflection-log-section" }, [
-      reflectionsList(data.reflections, data)
+      reflectionsList(data.reflections, data, canWriteReflection)
     ])
   ].filter(Boolean));
 }
@@ -1649,12 +1652,16 @@ function reflectionComposer(data) {
 
 function reflectionCoachNote() {
   return el("section", { class: "panel document-panel reflection-note" }, [
-    workspaceIntro("Refleksjon", "Refleksjoner klienten har delt.", "Her ser du bare refleksjoner klienten aktivt har valgt å dele med deg.")
+    workspaceIntro("Delt med coach", "Refleksjoner som er delt", "Her vises kun refleksjoner som aktivt er delt i coachingforløpet.")
   ]);
 }
 
-function reflectionsList(reflections, data) {
-  if (!reflections.length) return emptyState("Ingen refleksjoner ennå", "Skriv korte notater når noe blir tydeligere, flytter seg eller bør tas med videre.");
+function reflectionsList(reflections, data, canWriteReflection = false) {
+  if (!reflections.length) {
+    return canWriteReflection
+      ? emptyState("Ingen refleksjoner ennå", "Skriv korte notater når noe blir tydeligere eller bør tas med videre.")
+      : emptyState("Ingen delte refleksjoner ennå", "Del refleksjoner når det er noe du ønsker å utforske videre sammen.");
+  }
   return el("div", { class: "reflection-list" }, reflections.map((reflection) => {
     const editable = reflection.created_by === state.user?.id;
     const area = (data.areas || []).find((item) => item.id === reflection.development_area_id);
