@@ -791,37 +791,32 @@ function directionWorkspace(client, plan) {
   const directionSpecs = getDirectionSpecs(plan);
   const firstName = (client.name || "du").split(" ")[0];
   const status = directionStatus(plan);
-  return el("section", { class: "direction-simple" }, [
-    el("div", { class: "direction-simple-head" }, [
-      el("div", { class: "direction-simple-copy" }, [
-        el("p", { class: "eyebrow", text: "Retning" }),
-        el("h3", { text: `Hei ${firstName}, la oss gjøre dette konkret.` }),
-        el("p", { class: "muted", text: "Avklar hva dere jobber mot, hva som skal merkes i praksis, og hvilke rammer som gjør samarbeidet nyttig." })
-      ]),
-      el("div", { class: "workspace-inline-actions" }, [
+  return el("section", { class: "m3-workspace direction-simple" }, [
+    el("section", { class: "m3-hero direction-hero" }, [
+      el("div", { class: "m3-hero-copy" }, [
         el("span", { class: `direction-status ${status.tone}`, text: status.label }),
-        editable ? button(status.action || "Rediger retning", "pencil", () => activateFirstMissingDirectionField(directionSpecs), "ghost") : null
-      ].filter(Boolean))
+        el("h3", { text: `Hei, ${firstName}. La oss gjøre dette konkret.` }),
+        el("p", { text: "Avklar hva dere jobber mot, hva som skal merkes i praksis, og hvilke rammer som gjør samarbeidet nyttig." })
+      ])
     ]),
-    el("div", { class: "direction-card-grid" }, [
-      directionCard("Mål og bevegelse", "Hva forløpet skal hjelpe frem, og hvordan dere ser at noe faktisk flytter seg.", directionSpecs.slice(0, 2), editable, client),
-      directionCard("Samarbeid", "Hva klient og coach kan forvente av hverandre mellom og i samtalene.", directionSpecs.slice(2, 4), editable, client),
-      directionCard("Rammer", "Praktiske grenser, konfidensialitet og konteksten coachingarbeidet skjer i.", directionSpecs.slice(4), editable, client, "wide")
+    el("div", { class: "direction-card-grid m3-card-grid" }, [
+      ...directionSpecs.map((spec, index) => directionCard(spec, editable, client, index))
+    ]),
+    el("div", { class: "direction-footnote" }, [
+      el("p", { text: "Forventninger, konfidensialitet og praktiske rammer skal være tydelige nok til at både klient og coach vet hva som deles, hva som følges opp, og hva som ligger utenfor forløpet." })
     ])
   ]);
 }
 
-function directionCard(title, text, specs, editable, client, variant = "") {
-  return el("article", { class: `workspace-card direction-workspace-card ${variant}` }, [
-    el("div", { class: "workspace-card-head" }, [
-      el("div", {}, [
-        el("h3", { text: title }),
-        el("p", { text })
-      ])
-    ]),
-    el("div", { class: "direction-list" }, [
-      ...specs.map((spec) => directionInlineField(spec, editable, client))
-    ])
+function directionCard(spec, editable, client, index = 0) {
+  const value = directionSpecPreview(spec);
+  const isFrame = Boolean(spec.fields);
+  return el("article", {
+    class: `workspace-card direction-workspace-card direction-field ${value ? "has-value" : "is-empty"} ${isFrame ? "wide" : ""}`,
+    "data-direction-key": spec.key,
+    style: `--direction-accent:${directionAccent(index)}`
+  }, [
+    directionFieldContent(spec, value, editable)
   ]);
 }
 
@@ -840,6 +835,7 @@ function getDirectionSpecs(plan) {
     {
       key: "c_purpose",
       label: "Mål",
+      subhead: "Retning for forløpet",
       value: plan.c_purpose,
       helper: "Hva skal dette coachingforløpet hjelpe deg å bevege, avklare eller utvikle?",
       placeholder: "Eksempel: Bli tryggere i prioritering og tydeligere i lederrollen når presset øker."
@@ -847,6 +843,7 @@ function getDirectionSpecs(plan) {
     {
       key: "c_success",
       label: "Tegn på bevegelse",
+      subhead: "Slik merkes fremgang",
       value: plan.c_success,
       helper: "Hva vil du, coach eller andre kunne legge merke til hvis arbeidet begynner å virke?",
       placeholder: "Eksempel: Færre omstarter, raskere beslutninger og tydeligere forventningsavklaringer."
@@ -854,13 +851,15 @@ function getDirectionSpecs(plan) {
     {
       key: "c_expect_client",
       label: "Forventninger til klient",
+      subhead: "Eierskap mellom samtaler",
       value: plan.c_expect_client,
       helper: "Hva tar klienten ansvar for å prøve, observere eller forberede mellom samtalene?",
       placeholder: "Eksempel: Teste små grep i arbeidshverdagen og notere korte observasjoner mens de er ferske."
     },
     {
       key: "c_expect_coach",
-      label: "Forventninger til coach",
+      label: "Forventninger til din coach",
+      subhead: "Støtte og utfordring",
       value: plan.c_expect_coach,
       helper: "Hva skal coach bidra med, utfordre, holde fast i eller følge opp?",
       placeholder: "Eksempel: Hjelpe med presisering, utfordre antakelser og holde tråden fra samtale til praksis."
@@ -868,6 +867,7 @@ function getDirectionSpecs(plan) {
     {
       key: "frame",
       label: "Rammer og konfidensialitet",
+      subhead: "Praktisk avtale",
       helper: "Hva er den praktiske rammen, og hva skal være privat, delt eller utenfor coachingens mandat?",
       fields: [
         {
@@ -887,6 +887,7 @@ function getDirectionSpecs(plan) {
     {
       key: "c_context",
       label: "Interessenter og kontekst",
+      subhead: "Hvem påvirkes",
       value: plan.c_context,
       helper: "Hvilke personer, team, roller eller organisatoriske forventninger påvirker arbeidet?",
       placeholder: "Eksempel: Ledergruppen, nærmeste leder og teamet som trenger tydeligere prioriteringer."
@@ -931,6 +932,32 @@ function directionSpecPreview(spec) {
     return values.map((field) => `${field.label}: ${field.value}`).join("\n\n");
   }
   return spec.value || "";
+}
+
+function directionAccent(index = 0) {
+  return ["#e7e8ff", "#abd7ff", "#b6f596", "#ffa6a6", "#fef8ee", "#f6f3ec"][index % 6];
+}
+
+function directionFieldContent(spec, value, editable) {
+  return el("div", { class: "direction-card-inner" }, [
+    el("div", { class: "direction-card-head" }, [
+      el("span", { class: "direction-card-orb", "aria-hidden": "true" }),
+      el("div", { class: "direction-card-title" }, [
+        el("h3", { text: spec.label }),
+        el("p", { text: spec.subhead || "Subhead" })
+      ])
+    ]),
+    el("div", { class: "direction-card-body" }, [
+      el("span", { class: "direction-card-kicker", text: "Tittel" }),
+      value ? directionValueContent(spec) : el("p", { class: "direction-empty", text: spec.placeholder || spec.helper })
+    ]),
+    el("p", { class: "direction-card-helper", text: spec.helper }),
+    editable ? el("md-filled-button", {
+      class: "direction-edit-trigger",
+      type: "button",
+      onclick: () => activateDirectionEdit(spec)
+    }, [el("span", { text: value ? "Rediger" : "Legg til" })]) : null
+  ].filter(Boolean));
 }
 
 function directionInlineField(spec, editable, client) {
@@ -997,11 +1024,11 @@ function directionEditContent(spec) {
       ])
     ))),
     el("div", { class: "direction-edit-actions" }, [
-      button("Avbryt", "x", async () => {
+      materialButton("Avbryt", async () => {
         state.directionEditKey = null;
         await reloadProgramAndRender("direction");
-      }, "ghost"),
-      button("Lagre", "save", async () => {
+      }, "outlined"),
+      materialButton("Lagre", async () => {
         fields.forEach((field) => {
           setPlanValue(field.key, $(`[name='inline-${field.key}']`)?.value || "");
         });
@@ -1010,7 +1037,7 @@ function directionEditContent(spec) {
         const saved = await savePlan();
         if (!saved) return;
         await reloadProgramAndRender("direction");
-      }, "primary")
+      })
     ])
   ]);
 }
@@ -2594,6 +2621,11 @@ function coachNames(client) {
 
 function button(label, iconName, handler, variant = "primary") {
   return el("button", { class: `button ${variant}`, type: "button", onclick: handler }, [icon(iconName), el("span", { text: label })]);
+}
+
+function materialButton(label, handler, variant = "filled") {
+  const tag = variant === "outlined" ? "md-outlined-button" : variant === "text" ? "md-text-button" : "md-filled-button";
+  return el(tag, { type: "button", onclick: handler }, [el("span", { text: label })]);
 }
 
 function iconAction(label, iconName, handler, tone = "") {
