@@ -50,12 +50,21 @@ The main navigation remains:
 
 ## Editing Patterns
 
+### Unsaved Changes
+
+All inline editing must handle unsaved changes explicitly:
+
+- If the user navigates away, switches tab, changes selected item, or closes an edit field with unsaved changes, show product UI that asks whether to save, discard, or stay.
+- Do not silently save on blur for long text fields.
+- Do not silently discard user input.
+- Network or save errors must keep the user's draft visible and explain what failed.
+
 ### Inline
 
 Use for:
 
 - Retning fields
-- Focus area sections
+- Focus area fields
 - Active practice summaries
 - Conversation notes
 - Reflection text
@@ -102,6 +111,15 @@ The following must be resolved before building heavy new UI:
 
 1. One practice-experiment status model:
    `planned -> active -> reviewed -> continued / closed`
+
+   UI labels:
+   - `planned` -> `Planlagt`
+   - `active` -> `Prøves ut`
+   - `reviewed` -> `Avlest`
+   - `continued` -> `Videreført`
+   - `closed` -> `Avsluttet`
+
+   Do not introduce additional status words in UI or code without updating this glossary first.
 
 2. Practice experiments can be linked to:
    - program

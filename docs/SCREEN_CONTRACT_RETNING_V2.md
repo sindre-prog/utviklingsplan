@@ -55,6 +55,10 @@ MVP Retning has six visible fields:
 5. Rammer og konfidensialitet
    What are the practical boundaries, confidentiality expectations, and limits of the work?
 
+   This field must make both parts visible in helper text:
+   - Practical frame: cadence, duration, meeting rhythm, and boundaries for the collaboration.
+   - Confidentiality: what is private, what may be shared, and what is outside the scope of coaching.
+
 6. Interessenter og kontekst
    Which people, teams, roles, or organizational expectations shape the work?
 
@@ -66,12 +70,15 @@ Known existing data fields:
 - `coaching_programs.success_criteria` -> Tegn på bevegelse
 - `coaching_programs.expectations_client` -> Forventninger til klient
 - `coaching_programs.expectations_coach` -> Forventninger til coach
-- `coaching_programs.confidentiality` -> Rammer og konfidensialitet
+- `coaching_programs.practical_frame` -> Practical frame portion of Rammer og konfidensialitet
+- `coaching_programs.confidentiality` -> Confidentiality portion of Rammer og konfidensialitet
 - Existing schema does not currently have a dedicated stakeholder/context field.
 
-Open decision:
+Data decision before implementation:
 
-- Either add a dedicated `context` / `stakeholders` field to `coaching_programs`, or use `practical_frame` for MVP with a clear label. Prefer a dedicated field if we are already changing schema.
+- Do not overload `practical_frame` for Interessenter og kontekst.
+- Before implementing Retning V2, either add a dedicated `context` / `stakeholders` field to `coaching_programs`, or explicitly remove Interessenter og kontekst from MVP.
+- Preferred decision: add a dedicated field if schema work is already included in the implementation package.
 
 ## Visible Structure
 
@@ -96,6 +103,14 @@ Retning V2 should have:
 
 5. Next step
    - A single prompt to continue to Fokusområder when minimum fields are present
+
+## UX Writing Direction
+
+The intro copy should feel direct, personal, and action-oriented, closer to:
+
+`Hei Maria, la oss gjøre dette konkret.`
+
+Avoid generic explanatory product copy in the main intro. The first section should help the user feel oriented and invited into the work, not instructed by a dashboard.
 
 ## Must Not Include
 
@@ -136,6 +151,10 @@ Prioritize:
 - What am I expected to practice or observe?
 - What is private and what may be shared?
 
+Minimum MVP difference:
+
+- Client-facing helper text should emphasize clarity, safety, and what the client commits to between conversations.
+
 ### Coach
 
 Prioritize:
@@ -145,16 +164,30 @@ Prioritize:
 - Is context/stakeholder pressure visible?
 - Is the program ready for focus selection?
 
+Minimum MVP difference:
+
+- Coach-facing helper text should emphasize whether the contract is specific enough to coach from.
+
 For MVP, client and coach may see the same fields, but helper text, status, and next action should reflect role when possible.
 
 ## Edit Pattern
 
-Use inline editing for each section:
+Use direct field-level inline editing, consistent with Fokusomrader, Samtaler, and Refleksjon.
 
-- Click edit icon on a section.
-- Section opens into editable fields in place.
-- User can save/cancel section.
-- Saved state is visible without moving context.
+Normal state:
+
+- Retning fields display as readable content, not as a form.
+- No modal is used for core Retning fields.
+- No global `Rediger retning` mode that opens all fields at once.
+- No section-level edit button that opens several fields at once.
+- No permanent edit icon on every field.
+
+Active edit state:
+
+- Only the selected field enters edit mode.
+- The field becomes an input/textarea in place.
+- Local `Lagre` and `Avbryt` controls appear for that field.
+- Other fields remain in read mode.
 
 Do not use a generic full-screen modal for Retning core fields.
 
@@ -165,6 +198,7 @@ Retning V2 implementation must remove from the active render path:
 - Legacy Retning stacked cards
 - Competing progress navigation cards inside Retning
 - Hidden expectation fields that are saved without being shown
+- Section-level edit mode for multiple Retning fields
 - Any Retning-specific native alert or confirm
 - Any duplicate Retning form path
 
@@ -174,7 +208,8 @@ Retning V2 is accepted when:
 
 - The six MVP fields are visible.
 - The two expectation fields are no longer orphaned.
-- Core field editing happens inline or in one approved contextual pattern.
+- Core field editing uses direct field-level inline editing.
+- Only the active field enters edit mode.
 - There is one clear primary action.
 - There is no competing progress navigation.
 - Old Retning UI is not rendered below the new surface.
