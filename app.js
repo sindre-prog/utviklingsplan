@@ -2,6 +2,22 @@ const SUPABASE_URL = "https://upuffmfgsxlzybifxveg.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq";
 const CONSENT_VERSION = "coaching-portal-v1";
 
+const EXPERIMENT_STATUS = {
+  planned: "Planlagt",
+  active: "Prøves ut",
+  reviewed: "Avlest",
+  continued: "Videreført",
+  closed: "Avsluttet"
+};
+
+const EXPERIMENT_STATUS_LEGACY_MAP = {
+  todo: "planned",
+  doing: "active",
+  testing: "active",
+  done: "reviewed",
+  dropped: "closed"
+};
+
 const state = {
   sb: null,
   user: null,
@@ -30,6 +46,23 @@ const planFields = [
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+function normalizeExperimentStatus(status) {
+  const value = status || "planned";
+  return EXPERIMENT_STATUS[value] ? value : EXPERIMENT_STATUS_LEGACY_MAP[value] || "planned";
+}
+
+function experimentStatusLabel(status) {
+  return EXPERIMENT_STATUS[normalizeExperimentStatus(status)];
+}
+
+function isExperimentClosed(status) {
+  return normalizeExperimentStatus(status) === "closed";
+}
+
+function isExperimentReviewed(status) {
+  return ["reviewed", "continued", "closed"].includes(normalizeExperimentStatus(status));
+}
 
 function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
@@ -675,6 +708,7 @@ function programToFormState(data) {
     c_expect_client: data.program.expectations_client || "",
     c_confidentiality: data.program.confidentiality || "",
     c_practical: data.program.practical_frame || "",
+    c_context: data.program.context || "",
     c_start: data.program.start_date || "",
     c_end: data.program.end_date || "",
     c_sessions: data.program.session_count || "",
@@ -685,6 +719,7 @@ function programToFormState(data) {
       description: area.description || "",
       projectType: area.project_type || "inner",
       movement: area.movement || area.description || "",
+      typicalSituations: area.typical_situations || "",
       progressSigns: area.progress_signs || "",
       nextPractice: area.next_practice || ""
     })) : [{ id: "", title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" }],
@@ -976,7 +1011,7 @@ function workspaceIntro(kicker, title, text, actions = []) {
 }
 
 function focusWorkbench(items, data, editable) {
-  const freeActions = data.actions.filter((action) => !action.development_area_id && action.status !== "done");
+  const freeActions = data.actions.filter((action) => !action.development_area_id && !isExperimentClosed(action.status));
   if (!items.length) {
     return el("div", { class: "focus-workspace-stack" }, [
       el("div", { class: "focus-workbench focus-workbench-empty" }, [
@@ -1011,10 +1046,10 @@ function focusIntro(editable = false) {
 }
 
 function workOverview(client, focusItems, data, editable) {
-  const activeActions = (data.actions || []).filter((action) => !["done", "reviewed"].includes(action.status));
+  const activeActions = (data.actions || []).filter((action) => !isExperimentReviewed(action.status));
   const reviewedActions = (data.actions || []).filter((action) => {
     const parsed = parseActionDescription(action.description || "");
-    return action.status === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep;
+    return isExperimentReviewed(action.status) || parsed.effect || parsed.learning || parsed.nextStep;
   });
   const next = workNextStep(focusItems, activeActions, data);
   return el("section", { class: "start-overview focus-overview" }, [
@@ -1139,7 +1174,7 @@ function focusList(items, editable, data, detail) {
   return el("div", { class: "focus-picker" }, [
     ...items.map(({ area, index }, itemIndex) => el("article", { class: `focus-nav-item ${itemIndex === 0 ? "active" : ""}` }, [
       el("button", { class: "focus-nav-button", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index }, data, editable, detail) }, [
-        el("span", { class: `ui-meta type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" }),
+        el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) }),
         el("span", { class: "ui-stack-sm focus-nav-copy" }, [
           el("span", { class: "focus-nav-label", text: `Fokus ${index + 1}` }),
           el("strong", { class: "focus-nav-title", text: area.title || "Bevegelsesønske" }),
@@ -1163,13 +1198,13 @@ function selectFocusCard(buttonNode, item, data, editable, detail) {
 }
 
 function focusDetail({ area, index }, data, editable) {
-  const actions = data.actions.filter((action) => action.development_area_id === area.id && action.status !== "done");
+  const actions = data.actions.filter((action) => action.development_area_id === area.id && !isExperimentClosed(action.status));
   return el("section", { class: "content-card focus-detail-card" }, [
     el("div", { class: "focus-detail-titlebar" }, [
       el("div", { class: "focus-detail-heading" }, [
         el("span", { class: "focus-detail-meta" }, [
           el("span", { class: "eyebrow", text: `Fokus ${index + 1}` }),
-          el("span", { class: `ui-meta type-chip ${area.projectType === "outer" ? "outer" : "inner"}`, text: area.projectType === "outer" ? "Ytre prosjekt" : "Indre prosjekt" })
+          el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) })
         ]),
         el("h3", { text: area.title || "Bevegelsesønske" })
       ]),
@@ -1430,7 +1465,7 @@ function editFocusArea(index) {
   const area = normalizeArea(areas[index]);
   openEntityModal(index >= areas.length || !hasAreaContent(area) ? "Legg til fokus" : "Rediger fokus", "Fokus", [
     inputSpec("title", "Kort tittel", "text", area.title, { maxlength: 64, placeholder: "Maks 6-8 ord" }),
-    selectSpec("projectType", "Type", [["inner", "Indre prosjekt"], ["outer", "Ytre prosjekt"]], area.projectType || "inner", false),
+    selectSpec("projectType", "Type", [["inner", "Indre prosjekt"], ["outer", "Ytre prosjekt"], ["both", "Indre + ytre"]], area.projectType || "inner", false),
     textareaSpec("movement", "Hva vil du bevege, endre på eller oppnå?", area.movement || area.description, { placeholder: "Hva ønsker du å utvikle, forstå bedre eller gjøre annerledes innenfor dette fokuset?" }),
     textareaSpec("progressSigns", "Hvordan vil du merke fremgang?", area.progressSigns, { placeholder: "Hva vil være små eller tydelige tegn på at du er i bevegelse?" })
   ], async (values) => {
@@ -1569,7 +1604,7 @@ function actionsPreview(actions) {
   if (!actions.length) return el("p", { class: "muted", text: "Ingen handlinger registrert ennå. I neste batch gjør vi dette til en egen, mer elegant arbeidsflate." });
   return el("div", { class: "compact-list" }, actions.slice(0, 5).map((action) => el("div", { class: "compact-item" }, [
     el("strong", { text: action.title || "Handling uten tittel" }),
-    el("span", { text: action.status || "todo" })
+    el("span", { text: experimentStatusLabel(action.status) })
   ])));
 }
 
@@ -1744,7 +1779,7 @@ function createAction(data, presetAreaId = "") {
       title: values.title,
       description: actionDescription(values),
       due_date: values.dueDate || null,
-      status: "todo"
+      status: "planned"
     });
     await reloadProgramAndRender("work");
   });
@@ -1816,12 +1851,20 @@ function effectLabel(value) {
 }
 
 function phaseLabel(status, parsed) {
-  if (status === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep) return "Avlest";
-  if (status === "testing" || parsed.action || parsed.signals) return "Prøves ut";
+  const normalized = normalizeExperimentStatus(status);
+  if (normalized === "closed") return "Avsluttet";
+  if (normalized === "continued") return "Videreført";
+  if (normalized === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep) return "Avlest";
+  if (normalized === "active" || parsed.action || parsed.signals) return "Prøves ut";
   return "Planlagt";
 }
 
 function experimentStateClass(action, parsed) {
+  const status = normalizeExperimentStatus(action.status);
+  if (status === "closed") return "is-reviewed";
+  if (status === "continued") return "has-effect";
+  if (status === "reviewed") return "is-reviewed";
+  if (status === "active") return "is-testing";
   if (parsed.effect === "clear" || parsed.effect === "some") return "has-effect";
   if (parsed.effect || parsed.learning || parsed.nextStep) return "is-reviewed";
   if (parsed.observation || parsed.action || parsed.signals) return "is-testing";
@@ -1940,7 +1983,7 @@ async function reloadProgramAndRender(activePane = "direction") {
 
 function experimentSidebar(client, data) {
   const editable = canEditProgram(client);
-  const activeActions = (data.actions || []).filter((action) => action.status !== "done");
+  const activeActions = (data.actions || []).filter((action) => !isExperimentClosed(action.status));
   return el("aside", { class: "experiment-sidebar" }, [
     el("div", { class: "experiment-head" }, [
       el("h3", { text: "Aktive eksperimenter" }),
@@ -2059,7 +2102,7 @@ async function savePlan() {
     const current = state.programCache[client.id] || await loadClientProgram(client);
     if (!current) throw new Error("Mangler programrad.");
     const plan = collectPlan();
-    const { error: programError } = await state.sb.from("coaching_programs").update({
+    const programValues = {
       purpose: plan.c_purpose,
       success_criteria: plan.c_success,
       expectations_coach: plan.c_expect_coach,
@@ -2071,7 +2114,9 @@ async function savePlan() {
       session_count: plan.c_sessions ? Number(plan.c_sessions) : null,
       session_duration: plan.c_duration || null,
       status: "active"
-    }).eq("id", current.program.id);
+    };
+    if ("c_context" in plan) programValues.context = plan.c_context || null;
+    const { error: programError } = await state.sb.from("coaching_programs").update(programValues).eq("id", current.program.id);
     if (programError) throw programError;
     await saveAreas(current.program.id, plan.areas);
     await saveSessions(current.program.id, plan.sessions);
@@ -2122,16 +2167,33 @@ function getAreas() {
   }));
 }
 
+function normalizeProjectType(value) {
+  return ["inner", "outer", "both"].includes(value) ? value : "inner";
+}
+
+function projectTypeLabel(value) {
+  return {
+    inner: "Indre prosjekt",
+    outer: "Ytre prosjekt",
+    both: "Indre + ytre"
+  }[normalizeProjectType(value)];
+}
+
+function projectTypeClass(value) {
+  return normalizeProjectType(value) === "outer" ? "outer" : "inner";
+}
+
 function normalizeArea(area) {
-  if (!area) return { id: "", title: "", description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
-  if (typeof area === "string") return { id: "", title: area.trim(), description: "", projectType: "inner", movement: "", progressSigns: "", nextPractice: "" };
+  if (!area) return { id: "", title: "", description: "", projectType: "inner", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" };
+  if (typeof area === "string") return { id: "", title: area.trim(), description: "", projectType: "inner", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" };
   const movement = (area.movement || area.description || "").trim();
   return {
     id: area.id || "",
     title: (area.title || "").trim(),
     description: (area.description || movement).trim(),
-    projectType: area.projectType === "outer" || area.project_type === "outer" ? "outer" : "inner",
+    projectType: normalizeProjectType(area.projectType || area.project_type),
     movement,
+    typicalSituations: (area.typicalSituations || area.typical_situations || "").trim(),
     progressSigns: (area.progressSigns || area.progress_signs || "").trim(),
     nextPractice: (area.nextPractice || area.next_practice || "").trim()
   };
@@ -2139,7 +2201,7 @@ function normalizeArea(area) {
 
 function hasAreaContent(area) {
   const item = normalizeArea(area);
-  return Boolean(item.title || item.description || item.movement || item.progressSigns || item.nextPractice);
+  return Boolean(item.title || item.description || item.movement || item.typicalSituations || item.progressSigns || item.nextPractice);
 }
 
 function getSessions() {
@@ -2164,11 +2226,12 @@ async function saveAreas(programId, areas) {
       description: area.movement || area.description || null,
       project_type: area.projectType || "inner",
       movement: area.movement || null,
+      typical_situations: area.typicalSituations || null,
       progress_signs: area.progressSigns || null,
       next_practice: area.nextPractice || null,
       sort_order: area.index
     }))
-    .filter((row) => row.title || row.description || row.movement || row.progress_signs || row.next_practice);
+    .filter((row) => row.title || row.description || row.movement || row.typical_situations || row.progress_signs || row.next_practice);
   for (const row of rows) {
     if (row.id) await updateArea(row);
     else await insertArea(row);
