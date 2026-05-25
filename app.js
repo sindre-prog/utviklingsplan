@@ -685,7 +685,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-58")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-59")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1934,16 +1934,15 @@ async function saveSharedResourceReflection(sharedResource, values, renderSectio
   }
 
   try {
-    await library.saveClientResourceReflection(state.sb, sharedResource.id, {
+    const saved = await library.saveClientResourceReflection(state.sb, sharedResource.id, {
       clientNote: values.clientNote,
       clientVisibility: values.clientVisibility || "private",
       status: "responded"
     });
-    sharedResource.client_note = values.clientNote || "";
-    sharedResource.client_visibility = values.clientVisibility || "private";
-    sharedResource.status = "responded";
-    sharedResource.responded_at = new Date().toISOString();
-    renderSection?.();
+    sharedResource.client_note = saved?.client_note ?? values.clientNote ?? "";
+    sharedResource.client_visibility = saved?.client_visibility ?? values.clientVisibility ?? "private";
+    sharedResource.status = saved?.status || "responded";
+    sharedResource.responded_at = saved?.responded_at || new Date().toISOString();
   } catch (error) {
     await showAppMessage("Kunne ikke lagre refleksjonen", error.message || "Prøv igjen.");
     throw error;
