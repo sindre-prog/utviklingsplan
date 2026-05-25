@@ -42,7 +42,8 @@ const state = {
   selectedSessionIndex: 0,
   resourceCache: null,
   selectedResourceSlug: null,
-  selectedSharedResourceId: null
+  selectedSharedResourceId: null,
+  resourceLibraryPromise: null
 };
 
 const planFields = [
@@ -570,12 +571,12 @@ async function renderResources() {
     el("p", { class: "muted", text: "Leser publiserte ressurser, tags og filmetadata." })
   ]));
 
-  const library = getResourceLibrary();
+  const library = await ensureResourceLibrary();
   if (!library) {
     content.replaceChildren(el("section", { class: "panel empty-state" }, [
       el("p", { class: "eyebrow", text: "Ressurser" }),
       el("h3", { text: "Ressursmodulen er ikke lastet" }),
-      el("p", { class: "muted", text: "Last siden på nytt. Hvis feilen fortsetter, sjekk importen i index.html." })
+      el("p", { class: "muted", text: "Kunne ikke laste ressursmodulen. Prøv å laste siden på nytt." })
     ]));
     return;
   }
@@ -679,6 +680,26 @@ function getResourceLibrary() {
   return window.RaederResourceLibrary || null;
 }
 
+async function ensureResourceLibrary() {
+  const loaded = getResourceLibrary();
+  if (loaded) return loaded;
+
+  if (!state.resourceLibraryPromise) {
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js")
+      .then((library) => {
+        window.RaederResourceLibrary = library;
+        return library;
+      })
+      .catch((error) => {
+        console.error("Could not load resource library module", error);
+        state.resourceLibraryPromise = null;
+        return null;
+      });
+  }
+
+  return state.resourceLibraryPromise;
+}
+
 function canShareResources() {
   return state.profile?.role === "coach" || state.profile?.role === "admin";
 }
@@ -710,7 +731,7 @@ function canShareResourceToClient(client) {
 }
 
 async function sendResourceToClient(resource, values) {
-  const library = getResourceLibrary();
+  const library = await ensureResourceLibrary();
   if (!library?.shareResourceWithClient) throw new Error("Ressursmodulen mangler sendefunksjon.");
 
   const client = state.clients.find((item) => item.id === values.clientId);
@@ -900,7 +921,7 @@ async function loadClientProgram(client) {
     .eq("client_id", client.id)
     .maybeSingle();
   if (error || !program) return null;
-  const library = getResourceLibrary();
+  const library = await ensureResourceLibrary();
   const sharedResourcesPromise = library?.getSharedResourcesForProgram
     ? library.getSharedResourcesForProgram(state.sb, program.id, { viewerRole: state.profile?.role }).catch(() => [])
     : Promise.resolve([]);
@@ -1877,7 +1898,7 @@ async function openSharedResource(sharedResource, canWriteReflection) {
   state.selectedSharedResourceId = sharedResource.id;
 
   if (canWriteReflection && sharedResource.status === "assigned") {
-    const library = getResourceLibrary();
+    const library = await ensureResourceLibrary();
     try {
       await library.updateSharedResourceStatus(state.sb, sharedResource.id, {
         status: "viewed",
@@ -1892,7 +1913,7 @@ async function openSharedResource(sharedResource, canWriteReflection) {
 }
 
 async function saveSharedResourceReflection(sharedResource, values) {
-  const library = getResourceLibrary();
+  const library = await ensureResourceLibrary();
   if (!library?.saveClientResourceReflection) {
     await showAppMessage("Kunne ikke lagre", "Ressursmodulen mangler lagrefunksjon.");
     return;
