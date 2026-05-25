@@ -685,7 +685,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-60")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-61")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1857,7 +1857,7 @@ function reflectionsWorkspace(data) {
         el("p", { class: "eyebrow", text: canWriteReflection ? "Dine refleksjoner" : "Delt med coach" }),
         el("h3", { text: canWriteReflection ? "Refleksjoner du har skrevet" : "Refleksjoner som er delt" }),
         el("p", { class: "muted", text: canWriteReflection
-          ? "Dette er egne notater fra coachingarbeidet. De er private med mindre du velger å dele dem."
+          ? "Her ligger refleksjonene du har skrevet selv. De er private med mindre du velger å dele dem."
           : "Her vises refleksjoner klienten aktivt har delt i coachingforløpet." })
       ]),
       reflectionsList(data.reflections, data, canWriteReflection)
@@ -1877,9 +1877,9 @@ function resourcesFromCoachSection(data, canWriteReflection) {
       el("div", { class: "client-resources-head" }, [
         el("div", {}, [
           el("p", { class: "eyebrow", text: canWriteReflection ? "Fra coachen din" : "Delte ressurser" }),
-          el("h3", { text: canWriteReflection ? "Oppgaver og ressurser" : "Ressurser delt med klienten" }),
+          el("h3", { text: canWriteReflection ? "Ressurser fra coach" : "Ressurser delt med klienten" }),
           el("p", { class: "muted", text: canWriteReflection
-            ? "Åpne en ressurs når du vil lese, bruke en øvelse eller skrive en refleksjon knyttet til den."
+            ? "Her finner du det coachen din har sendt til deg. Åpne en ressurs for å lese, bruke en øvelse eller skrive en refleksjon knyttet til den."
             : "Her ser du ressursene som er delt i dette coachingforløpet." })
         ])
       ]),
@@ -1908,6 +1908,12 @@ function resourcesFromCoachSection(data, canWriteReflection) {
 }
 
 async function openSharedResource(sharedResource, canWriteReflection, renderSection = null) {
+  if (state.selectedSharedResourceId === sharedResource.id) {
+    state.selectedSharedResourceId = null;
+    renderSection?.();
+    return;
+  }
+
   state.selectedSharedResourceId = sharedResource.id;
   renderSection?.();
 
