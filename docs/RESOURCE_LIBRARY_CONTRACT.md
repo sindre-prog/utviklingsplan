@@ -262,6 +262,7 @@ Visibility:
 Review status:
 
 - `draft`
+- `approved_for_pilot`
 - `reviewed`
 - `needs_revision`
 
