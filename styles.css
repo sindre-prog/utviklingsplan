@@ -37,6 +37,7 @@
   --wash-strong: #eeeeee;
   --panel: var(--md-sys-color-surface-container-lowest);
   --hero: var(--md-sys-color-tertiary-container);
+  --menu-pill-bg: #f6f3ec;
   --subtle-accent: var(--md-sys-color-secondary-container);
   --subtle-accent-soft: #fbf8ff;
   --attention-accent: #abd7ff;
@@ -52,7 +53,8 @@
   --danger: var(--md-sys-color-error);
   --ok: var(--status-success);
   --card-border: var(--md-sys-color-outline-variant);
-  --card-border-strong: #79747e;
+  --card-border-strong: var(--md-sys-color-outline);
+  --card-radius: 8px;
   --card-shadow: 0 1px 2px rgba(0,0,0,.08), 0 1px 3px 1px rgba(0,0,0,.04);
   --card-shadow-hover: 0 2px 6px 2px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.08);
   --shadow: 0 3px 8px rgba(0,0,0,.12);
@@ -373,7 +375,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent-line); bo
   white-space: nowrap;
 }
 .nav-item:hover { background: rgba(255,255,255,.76); color: #000; }
-.nav-item.active { background: #fff; color: #000; font-weight: 800; box-shadow: 0 4px 14px rgba(0,0,0,.07); }
+.nav-item.active { background: var(--menu-pill-bg); color: #000; font-weight: 800; box-shadow: none; }
 .workspace { position: relative; z-index: 1; min-width: 0; }
 .topline {
   position: relative;
@@ -1280,7 +1282,7 @@ tr:last-child td { border-bottom: 0; }
   font-size: 11px;
   font-weight: 800;
 }
-.workspace-tab.active { background: var(--accent); color: #000; }
+.workspace-tab.active { background: var(--menu-pill-bg); color: #000; }
 .workspace-pane { display: none; }
 .workspace-pane.active { display: grid; gap: 30px; }
 .direction-stack { display: grid; gap: 16px; }
@@ -1542,8 +1544,8 @@ tr:last-child td { border-bottom: 0; }
 }
 .content-card {
   position: relative;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
   background: #fff;
   box-shadow: none;
 }
@@ -3249,7 +3251,7 @@ select:focus {
 }
 
 .nav-item.active {
-  background: var(--accent);
+  background: var(--menu-pill-bg);
   color: var(--md-sys-color-on-surface);
   box-shadow: none;
 }
@@ -3288,7 +3290,7 @@ select:focus {
 }
 
 .workspace-tab.active {
-  background: var(--accent);
+  background: var(--menu-pill-bg);
   color: var(--md-sys-color-on-surface);
 }
 
@@ -3372,8 +3374,8 @@ select:focus {
 .reflection-log-section,
 .focus-empty-state,
 .free-experiments {
-  border: 1px solid var(--md-sys-color-outline);
-  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
   background: #fff;
   box-shadow: none;
 }
@@ -3412,6 +3414,14 @@ select:focus {
   height: 40px;
   border-radius: 999px;
   background: var(--direction-orb-bg);
+}
+
+.direction-card-orb svg {
+  width: 19px;
+  height: 19px;
+  margin: 10.5px;
+  color: var(--md-sys-color-secondary);
+  stroke-width: 2;
 }
 
 .direction-card-title h3 {
@@ -3956,7 +3966,7 @@ select:focus {
 
 .ui-field-card {
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 8px;
+  border-radius: var(--card-radius);
   background: #fff;
   box-shadow: none;
 }
@@ -3989,6 +3999,14 @@ select:focus {
   height: 40px;
   border-radius: 999px;
   background: var(--direction-orb-bg);
+}
+
+.ui-field-orb svg {
+  width: 19px;
+  height: 19px;
+  margin: 10.5px;
+  color: var(--md-sys-color-secondary);
+  stroke-width: 2;
 }
 
 .ui-field-title h3 {
@@ -4132,8 +4150,8 @@ textarea.ui-edit-control {
 }
 
 .ui-object-card {
-  border-radius: 8px;
-  border-color: var(--md-sys-color-outline);
+  border-radius: var(--card-radius);
+  border-color: var(--card-border);
 }
 
 .ui-editable-title {
@@ -4196,8 +4214,8 @@ textarea.ui-edit-control {
   display: grid;
   gap: 16px;
   padding: 24px;
-  border: 1px solid var(--md-sys-color-outline);
-  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
   background: #fff;
   box-shadow: none;
 }
