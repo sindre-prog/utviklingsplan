@@ -685,7 +685,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-55")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;

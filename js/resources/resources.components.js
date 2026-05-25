@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js";
+import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-55";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",

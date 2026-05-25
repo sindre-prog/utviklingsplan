@@ -1,8 +1,8 @@
-export * from "./resources.constants.js";
-export * from "./resources.queries.js";
-export * from "./resources.mutations.js";
-export * from "./resources.renderer.js";
-export * from "./resources.components.js";
-export * from "./resources.seed.js";
+export * from "./resources.constants.js?v=polish-55";
+export * from "./resources.queries.js?v=polish-55";
+export * from "./resources.mutations.js?v=polish-55";
+export * from "./resources.renderer.js?v=polish-55";
+export * from "./resources.components.js?v=polish-55";
+export * from "./resources.seed.js?v=polish-55";
 
-export const RESOURCE_LIBRARY_MODULE_VERSION = "batch-5";
+export const RESOURCE_LIBRARY_MODULE_VERSION = "polish-55";
