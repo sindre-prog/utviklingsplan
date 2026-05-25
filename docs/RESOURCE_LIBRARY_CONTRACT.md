@@ -27,6 +27,87 @@ Ressursbiblioteket skal støtte den eksisterende løkken:
 
 Det skal ikke innføres en ny hovedfane i klientens arbeidsflyt i V1.
 
+## Låste V1-Beslutninger
+
+V1 skal bygges som en seedet, native og kontekstuell ressursflyt.
+
+### Seed Før Admin CRUD
+
+Start med manuelt seedede pilotressurser.
+
+Admin CRUD bygges etter at ressursmodell, renderer, deling og klientvisning fungerer.
+
+Begrunnelse:
+
+Vi må først bevise at ressursstrukturen, `content_json`, rendering, deling og klientopplevelse fungerer. Hvis admin CRUD bygges for tidlig, risikerer vi å lage redigeringsflate for en modell som ikke er landet.
+
+Teknisk seed:
+
+- 1-3 demoressurser i første batch
+- nok variasjon til å teste renderer, deling og tilgang
+
+Faglig pilot etterpå:
+
+- 5-7 pilotressurser når modellen sitter
+
+Pilotressurser kan oppdateres manuelt av utvikler i første fase. Admin CRUD er ikke blokkering for å teste kjerneflyten.
+
+### Storage Fra Dag En, Men Ikke Filavhengig
+
+Supabase Storage bør settes opp fra dag én, men V1 skal ikke være filavhengig.
+
+Regler:
+
+- opprett bucket for `resource-assets`
+- bruk private storage som standard
+- lagre `storage_path`, ikke public URL
+- generer signed URL når bruker har rett til å åpne fil
+- ikke gjør ressursbiblioteket avhengig av opplastede filer i V1
+- seedede ressurser kan ha illustrasjon eller fil der det finnes
+- native `content_json` er primærkilden
+
+En ressurs skal kunne fungere uten fil. Filer er supplement.
+
+### Ingen Ny Klient-Hovedfane
+
+Ikke lag ny hovedfane i V1.
+
+Vis `Ressurser fra coach` kontekstuelt i eksisterende klientflyt.
+
+Primær plassering:
+
+- klientens program-/oversiktsside som egen seksjon
+
+Sekundær plassering:
+
+- fokusområde
+- samtale
+- eksperiment
+
+Regel:
+
+Klienten skal kun se ressurser som coachen har sendt. Klienten skal ikke få tilgang til et generelt bibliotek.
+
+Program-/oversiktssiden bør vise:
+
+- siste eller aktive sendte ressurser
+- tittel
+- kort `coach_note`
+- type
+- estimert tid
+- status
+- åpne-knapp
+
+Kontekstsider skal bare vise ressurser knyttet til den aktuelle konteksten.
+
+Klienten skal forstå at ressursen er sendt som del av coachingarbeidet, ikke som en separat læringsplattform.
+
+### Flyten Som Skal Bevises
+
+Før V1 regnes som vellykket, må denne flyten fungere:
+
+`Coach finner pilotressurs -> coach sender med instruks og kontekst -> klient ser ressursen i relevant coachingflate -> klient åpner og bruker ressursen -> klient kan skrive privat refleksjon -> klient kan eksplisitt dele refleksjon -> coach ser status`
+
 ## Roller
 
 ### Coach
@@ -147,7 +228,17 @@ Felter:
 - `content_json`
 - `intended_outcome`
 - `best_used_when`
+- `not_for`
 - `coach_guidance`
+- `client_intro`
+- `suggested_coach_note`
+- `default_context_types`
+- `reflection_prompts`
+- `next_step_prompt`
+- `basis`
+- `review_status`
+- `reviewed_by`
+- `last_reviewed_at`
 - `visibility`
 - `status`
 - `created_by`
@@ -167,6 +258,12 @@ Visibility:
 - `internal`
 - `coach`
 - `client_assignable`
+
+Review status:
+
+- `draft`
+- `reviewed`
+- `needs_revision`
 
 `content_json` skal støtte strukturert presentasjon fra start. Ikke lag én stor `content_body` hvis ressursene senere skal ha blokker.
 
@@ -549,6 +646,129 @@ Blokker må være presentasjon, ikke egen datalogikk i V1.
 Ikke bygg en full editor før behovet er bevist. Start med kontrollert innholdsmodell og gode maler.
 
 V1 skal ha en enkel renderer for blokktypene som faktisk brukes. Ikke bygg en generisk content engine, LMS-motor eller full blokkbygger.
+
+## Pilotressursmal
+
+Hver pilotressurs skal defineres komplett nok til å teste faglig bruk, rendering, deling og klientopplevelse.
+
+Dette er minimumsmalen for seed-ressurser:
+
+```yaml
+title:
+slug:
+summary:
+type:
+format:
+phase:
+tags:
+estimated_duration:
+difficulty:
+language:
+
+intended_outcome:
+best_used_when:
+not_for:
+coach_guidance:
+client_intro:
+suggested_coach_note:
+default_context_types:
+
+content_json:
+reflection_prompts:
+next_step_prompt:
+
+cover_image:
+illustration:
+files:
+
+basis:
+review_status:
+reviewed_by:
+last_reviewed_at:
+```
+
+### Feltforklaring
+
+`title`:
+Navnet på ressursen.
+
+`slug`:
+Stabil teknisk identifikator.
+
+`summary`:
+Kort beskrivelse for kort, søk og preview.
+
+`type`:
+Hva ressursen er faglig, for eksempel `template`, `exercise`, `reflection`, `framework`, `worksheet`, `article`, `audio`, `video`, `guided_session` eller `assessment`.
+
+`format`:
+Hvordan ressursen leveres, for eksempel `native`, `pdf`, `audio`, `video`, `external_link` eller `downloadable_asset`.
+
+`phase`:
+Anbefalt faglig plassering i coachingløpet.
+
+`tags`:
+Flate søke- og filtreringstags.
+
+`estimated_duration`:
+Estimert tidsbruk for klient.
+
+`difficulty`:
+Enkel vanskelighetsgrad. Skal hjelpe coachen å velge, ikke gi klienten prestasjonsfølelse.
+
+`language`:
+Språk.
+
+`intended_outcome`:
+Hva ressursen skal hjelpe klienten med.
+
+`best_used_when`:
+Når coach typisk bør bruke ressursen.
+
+`not_for`:
+Når ressursen ikke bør brukes, eller når coach bør velge noe annet.
+
+`coach_guidance`:
+Kort faglig veiledning til coach.
+
+`client_intro`:
+Rolig forklaring til klienten om hvorfor ressursen finnes og hvordan den kan brukes.
+
+`suggested_coach_note`:
+Forslag coach kan bruke eller tilpasse når ressursen sendes.
+
+`default_context_types`:
+Hvilke kontekster ressursen typisk kan knyttes til, for eksempel `focus_area`, `session` eller `experiment`.
+
+`content_json`:
+Strukturert ressursinnhold som renderer kan vise.
+
+`reflection_prompts`:
+Spørsmål klienten kan svare på privat eller velge å dele med coach.
+
+`next_step_prompt`:
+Avsluttende spørsmål eller handling som hjelper klienten videre.
+
+`cover_image`:
+Eventuelt coverbilde.
+
+`illustration`:
+Eventuell illustrasjon, modell eller faglig grafikk.
+
+`files`:
+Eventuelle filer i `resource_files`, for eksempel PDF, worksheet, lyd eller vedlegg.
+
+`basis`:
+Kort faglig grunnlag, for eksempel `erfaringsbasert`, `forskningsinformert`, `intern modell` eller `ekstern modell`.
+
+`review_status`:
+Faglig kvalitetssikringsstatus.
+
+`reviewed_by`:
+Hvem som har kvalitetssikret ressursen.
+
+`last_reviewed_at`:
+Når ressursen sist ble kvalitetssikret.
 
 ## Eksempler På Ressurser
 
