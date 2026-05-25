@@ -41,7 +41,8 @@ const state = {
   selectedFocusIndex: 0,
   selectedSessionIndex: 0,
   resourceCache: null,
-  selectedResourceSlug: null
+  selectedResourceSlug: null,
+  selectedSharedResourceId: null
 };
 
 const planFields = [
@@ -725,6 +726,7 @@ async function sendResourceToClient(resource, values) {
     contextType: "program",
     coachNote: values.coachNote
   });
+  delete state.programCache[client.id];
 
   setTimeout(() => {
     showAppMessage("Ressurs sendt", `${resource.title} er sendt til ${client.name || client.email || "klienten"}.`, { kicker: "Ressurser" });
@@ -898,12 +900,17 @@ async function loadClientProgram(client) {
     .eq("client_id", client.id)
     .maybeSingle();
   if (error || !program) return null;
-  const [{ data: areas }, { data: sessions }, { data: actions }, { data: reflections }, { data: evaluations }] = await Promise.all([
+  const library = getResourceLibrary();
+  const sharedResourcesPromise = library?.getSharedResourcesForProgram
+    ? library.getSharedResourcesForProgram(state.sb, program.id).catch(() => [])
+    : Promise.resolve([]);
+  const [{ data: areas }, { data: sessions }, { data: actions }, { data: reflections }, { data: evaluations }, sharedResources] = await Promise.all([
     state.sb.from("development_areas").select("*").eq("program_id", program.id).order("sort_order"),
     state.sb.from("coaching_sessions").select("*").eq("program_id", program.id).order("session_date", { ascending: false }),
     state.sb.from("session_actions").select("*").eq("program_id", program.id).order("created_at", { ascending: false }),
     state.sb.from("client_reflections").select("*").eq("program_id", program.id).order("created_at", { ascending: false }),
-    state.sb.from("program_evaluations").select("*").eq("program_id", program.id).limit(1)
+    state.sb.from("program_evaluations").select("*").eq("program_id", program.id).limit(1),
+    sharedResourcesPromise
   ]);
   const payload = {
     program,
@@ -911,7 +918,8 @@ async function loadClientProgram(client) {
     sessions: sessions || [],
     actions: actions || [],
     reflections: reflections || [],
-    evaluation: evaluations?.[0] || null
+    evaluation: evaluations?.[0] || null,
+    sharedResources: sharedResources || []
   };
   state.programCache[client.id] = payload;
   return payload;
@@ -1821,11 +1829,85 @@ function reflectionsWorkspace(data) {
     : workspaceIntro("Delt med coach", "Refleksjoner som er delt", "Her vises kun refleksjoner som aktivt er delt i coachingforløpet.");
   return el("div", { class: "reflection-space" }, [
     intro,
+    resourcesFromCoachSection(data, canWriteReflection),
     canWriteReflection ? reflectionComposer(data) : null,
     el("section", { class: "panel document-panel reflection-log-section" }, [
       reflectionsList(data.reflections, data, canWriteReflection)
     ])
   ].filter(Boolean));
+}
+
+function resourcesFromCoachSection(data, canWriteReflection) {
+  const library = getResourceLibrary();
+  if (!library?.createClientResourceList) return null;
+
+  const sharedResources = data.sharedResources || [];
+  const selected = sharedResources.find((item) => item.id === state.selectedSharedResourceId) || null;
+
+  return el("section", { class: "ui-section-card panel document-panel client-resources-section" }, [
+    el("div", { class: "client-resources-head" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Ressurser fra coach" }),
+        el("h3", { text: canWriteReflection ? "Ressurser som er sendt til deg" : "Ressurser sendt til klienten" }),
+        el("p", { class: "muted", text: canWriteReflection
+          ? "Åpne ressursen, bruk den i ditt eget tempo, og del refleksjon bare når det er nyttig."
+          : "Her ser du ressursene som er sendt i dette coachingforløpet." })
+      ])
+    ]),
+    library.createClientResourceList(sharedResources, {
+      createElement: el,
+      onOpen: (sharedResource) => openSharedResource(sharedResource, canWriteReflection),
+      emptyText: canWriteReflection
+        ? "Når coachen sender en ressurs, vises den her."
+        : "Ingen ressurser er sendt i dette forløpet ennå."
+    }),
+    selected ? library.createClientResourceView(selected, {
+      createElement: el,
+      readOnly: !canWriteReflection,
+      onClose: () => {
+        state.selectedSharedResourceId = null;
+        reloadProgramAndRender("reflections");
+      },
+      onSave: saveSharedResourceReflection
+    }) : null
+  ].filter(Boolean));
+}
+
+async function openSharedResource(sharedResource, canWriteReflection) {
+  state.selectedSharedResourceId = sharedResource.id;
+
+  if (canWriteReflection && sharedResource.status === "assigned") {
+    const library = getResourceLibrary();
+    try {
+      await library.updateSharedResourceStatus(state.sb, sharedResource.id, {
+        status: "viewed",
+        viewed_at: new Date().toISOString()
+      });
+    } catch (error) {
+      await showAppMessage("Kunne ikke oppdatere status", error.message || "Ressursen kan fortsatt åpnes.");
+    }
+  }
+
+  await reloadProgramAndRender("reflections");
+}
+
+async function saveSharedResourceReflection(sharedResource, values) {
+  const library = getResourceLibrary();
+  if (!library?.saveClientResourceReflection) {
+    await showAppMessage("Kunne ikke lagre", "Ressursmodulen mangler lagrefunksjon.");
+    return;
+  }
+
+  try {
+    await library.saveClientResourceReflection(state.sb, sharedResource.id, {
+      clientNote: values.clientNote,
+      clientVisibility: values.clientVisibility || "private",
+      status: "responded"
+    });
+    await reloadProgramAndRender("reflections");
+  } catch (error) {
+    await showAppMessage("Kunne ikke lagre refleksjonen", error.message || "Prøv igjen.");
+  }
 }
 
 function reflectionComposer(data) {

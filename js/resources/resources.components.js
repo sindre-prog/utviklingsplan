@@ -134,15 +134,113 @@ export function createResourcePreview(resource, options = {}) {
 }
 
 export function createSendResourceDrawer() {
-  throw new Error("createSendResourceDrawer is not implemented before resource library Batch 3.");
+  throw new Error("createSendResourceDrawer is not used in the static app; app.js orchestrates the existing drawer.");
 }
 
-export function createClientResourceList() {
-  throw new Error("createClientResourceList is not implemented before resource library Batch 4.");
+export function createClientResourceList(sharedResources = [], options = {}) {
+  const { createElement, onOpen, emptyTitle = "Ingen ressurser fra coach ennå", emptyText = "Når coachen sender en ressurs, vises den her." } = options;
+  requireCreateElement(createElement);
+
+  if (!sharedResources.length) {
+    return createElement("section", { class: "client-resource-list client-resource-list--empty" }, [
+      createElement("p", { class: "eyebrow", text: "Ressurser fra coach" }),
+      createElement("h3", { text: emptyTitle }),
+      createElement("p", { class: "muted", text: emptyText })
+    ]);
+  }
+
+  return createElement("div", { class: "client-resource-list" }, sharedResources.map((sharedResource) => {
+    const resource = sharedResource.resource || {};
+    return createElement("article", { class: "client-resource-row" }, [
+      createElement("button", {
+        class: "client-resource-open",
+        type: "button",
+        onclick: () => onOpen?.(sharedResource)
+      }, [
+        createElement("span", { class: "client-resource-main" }, [
+          createElement("span", { class: "client-resource-meta" }, [
+            createSharedResourceStatus(sharedResource.status, { createElement }),
+            createElement("span", { class: "badge", text: labelFor(TYPE_LABELS, resource.type) }),
+            resource.estimated_duration ? createElement("span", { class: "badge", text: `${resource.estimated_duration} min` }) : null
+          ].filter(Boolean)),
+          createElement("strong", { text: resource.title || "Ressurs" }),
+          createElement("span", { class: "client-resource-summary", text: sharedResource.coach_note || resource.summary || "" })
+        ]),
+        createElement("span", { class: "client-resource-action", text: "Åpne" })
+      ])
+    ]);
+  }));
 }
 
-export function createClientResourceView() {
-  throw new Error("createClientResourceView is not implemented before resource library Batch 4.");
+export function createClientResourceView(sharedResource, options = {}) {
+  const { createElement, onClose, onSave, readOnly = false } = options;
+  requireCreateElement(createElement);
+
+  const resource = sharedResource?.resource || {};
+  const note = createElement("textarea", {
+    class: "ui-edit-control client-resource-note",
+    text: sharedResource?.client_note || "",
+    placeholder: "Skriv en privat refleksjon. Ingenting deles før du velger det selv.",
+    rows: "6",
+    disabled: readOnly
+  });
+  const visibility = createElement("select", { disabled: readOnly }, [
+    createElement("option", { value: "private", text: "Privat", selected: sharedResource?.client_visibility !== "shared_with_coach" }),
+    createElement("option", { value: "shared_with_coach", text: "Del med coach", selected: sharedResource?.client_visibility === "shared_with_coach" })
+  ]);
+
+  return createElement("article", { class: "client-resource-view" }, [
+    createElement("header", { class: "client-resource-view-head" }, [
+      createElement("div", { class: "resource-preview-cover client-resource-cover" }, [
+        createElement("span", { class: "resource-preview-cover__mark" })
+      ]),
+      createElement("div", { class: "client-resource-view-title" }, [
+        createElement("p", { class: "eyebrow", text: "Ressurs fra coach" }),
+        createElement("h3", { text: resource.title || "Ressurs" }),
+        createElement("p", { text: resource.client_intro || resource.summary || "" }),
+        createElement("div", { class: "meta-row" }, [
+          createSharedResourceStatus(sharedResource?.status, { createElement }),
+          ...metaPills(createElement, resource)
+        ]),
+        onClose ? createElement("button", { class: "button ghost", type: "button", text: "Lukk", onclick: onClose }) : null
+      ].filter(Boolean))
+    ]),
+    sharedResource?.coach_note ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
+      createElement("h4", { text: "Fra coach" }),
+      createElement("p", { text: sharedResource.coach_note })
+    ]) : null,
+    createElement("section", { class: "resource-preview-section" }, [
+      createElement("h4", { text: "Innhold" }),
+      createElement("div", { class: "resource-content" }, renderResourceContentBlocks(resource.content_json || [], { createElement }))
+    ]),
+    createElement("section", { class: "resource-preview-section" }, [
+      createElement("h4", { text: "Refleksjonsspørsmål" }),
+      createElement("div", { class: "resource-reflection-prompts" }, renderReflectionPrompts(resource.reflection_prompts || [], { createElement }))
+    ]),
+    (resource.files || []).length ? createElement("section", { class: "resource-preview-section" }, [
+      createElement("h4", { text: "Filer" }),
+      createElement("ul", { class: "resource-files" }, resource.files.map((file) => createElement("li", {}, [
+        createElement("span", { text: file.display_name })
+      ])))
+    ]) : null,
+    createElement("section", { class: "resource-preview-section client-resource-response" }, [
+      createElement("h4", { text: "Din refleksjon" }),
+      note,
+      createElement("label", { text: "Synlighet" }, [visibility]),
+      readOnly ? null : createElement("div", { class: "toolbar" }, [
+        createElement("span", { class: "muted", text: "Privat er standard." }),
+        createElement("button", {
+          class: "ui-button ui-button-filled",
+          type: "button",
+          text: "Lagre refleksjon",
+          onclick: () => onSave?.(sharedResource, {
+            clientNote: note.value || "",
+            clientVisibility: visibility.value || "private"
+          })
+        })
+      ])
+    ].filter(Boolean))
+  ].filter(Boolean));
 }
 
 export function createSharedResourceStatus(status, options = {}) {
