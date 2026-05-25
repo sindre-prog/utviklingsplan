@@ -13,6 +13,18 @@ function normalizeResource(row) {
   };
 }
 
+function normalizeSharedResource(row, options = {}) {
+  const viewerRole = options.viewerRole || "coach";
+  const clientNoteIsVisible = viewerRole === "client" || row.client_visibility === "shared_with_coach";
+
+  return {
+    ...row,
+    client_note: clientNoteIsVisible ? row.client_note : "",
+    client_note_is_private: Boolean(row.client_note_is_private) || (!clientNoteIsVisible && Boolean(row.client_note)),
+    resource: normalizeResource(row.resources || row.resource)
+  };
+}
+
 function applyResourceFilters(resources, filters = {}) {
   const query = (filters.query || "").trim().toLowerCase();
   const phase = filters.phase || "all";
@@ -86,7 +98,7 @@ export async function getResourceById(supabaseClient, resourceId) {
   return normalizeResource(data);
 }
 
-export async function getSharedResourcesForClient(supabaseClient, clientId) {
+export async function getSharedResourcesForClient(supabaseClient, clientId, options = {}) {
   requireSupabaseClient(supabaseClient);
 
   const { data, error } = await supabaseClient
@@ -101,14 +113,20 @@ export async function getSharedResourcesForClient(supabaseClient, clientId) {
 
   if (error) throw error;
 
-  return (data || []).map((row) => ({
-    ...row,
-    resource: normalizeResource(row.resources)
-  }));
+  return (data || []).map((row) => normalizeSharedResource(row, options));
 }
 
-export async function getSharedResourcesForProgram(supabaseClient, programId) {
+export async function getSharedResourcesForProgram(supabaseClient, programId, options = {}) {
   requireSupabaseClient(supabaseClient);
+
+  if (options.viewerRole !== "client" && typeof supabaseClient.rpc === "function") {
+    const { data, error } = await supabaseClient
+      .rpc("get_shared_resources_for_program_safe", { p_program_id: programId });
+
+    if (error) throw error;
+
+    return (data || []).map((row) => normalizeSharedResource(row, options));
+  }
 
   const { data, error } = await supabaseClient
     .from("shared_resources")
@@ -122,8 +140,5 @@ export async function getSharedResourcesForProgram(supabaseClient, programId) {
 
   if (error) throw error;
 
-  return (data || []).map((row) => ({
-    ...row,
-    resource: normalizeResource(row.resources)
-  }));
+  return (data || []).map((row) => normalizeSharedResource(row, options));
 }

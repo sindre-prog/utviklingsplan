@@ -902,7 +902,7 @@ async function loadClientProgram(client) {
   if (error || !program) return null;
   const library = getResourceLibrary();
   const sharedResourcesPromise = library?.getSharedResourcesForProgram
-    ? library.getSharedResourcesForProgram(state.sb, program.id).catch(() => [])
+    ? library.getSharedResourcesForProgram(state.sb, program.id, { viewerRole: state.profile?.role }).catch(() => [])
     : Promise.resolve([]);
   const [{ data: areas }, { data: sessions }, { data: actions }, { data: reflections }, { data: evaluations }, sharedResources] = await Promise.all([
     state.sb.from("development_areas").select("*").eq("program_id", program.id).order("sort_order"),

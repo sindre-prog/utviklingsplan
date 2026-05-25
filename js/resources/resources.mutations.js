@@ -7,60 +7,22 @@ function requireSupabaseClient(supabaseClient) {
 export async function shareResourceWithClient(supabaseClient, payload) {
   requireSupabaseClient(supabaseClient);
 
-  const existingQuery = supabaseClient
-    .from("shared_resources")
-    .select("*")
-    .eq("resource_id", payload.resourceId)
-    .eq("client_id", payload.clientId)
-    .eq("context_type", payload.contextType || "program")
-    .is("archived_at", null)
-    .limit(1);
-
-  if (payload.programId) existingQuery.eq("program_id", payload.programId);
-  else existingQuery.is("program_id", null);
-
-  if (payload.contextType && payload.contextType !== "program") existingQuery.eq("context_id", payload.contextId);
-  else existingQuery.is("context_id", null);
-
-  const { data: existing, error: existingError } = await existingQuery.maybeSingle();
-  if (existingError) throw existingError;
-
-  const row = {
-    resource_id: payload.resourceId,
-    client_id: payload.clientId,
-    program_id: payload.programId || null,
-    context_type: payload.contextType || "program",
-    context_id: payload.contextType && payload.contextType !== "program" ? payload.contextId : null,
-    coach_note: payload.coachNote || null,
-    status: "assigned",
-    client_visibility: "private"
-  };
-
-  if (existing?.id) {
-    const { data, error } = await supabaseClient
-      .from("shared_resources")
-      .update({
-        coach_note: row.coach_note,
-        status: "assigned"
-      })
-      .eq("id", existing.id)
-      .select("*")
-      .single();
-
-    if (error) throw error;
-
-    return data;
+  if (typeof supabaseClient.rpc !== "function") {
+    throw new TypeError("Supabase RPC support is required for resource sharing.");
   }
 
-  const { data, error } = await supabaseClient
-    .from("shared_resources")
-    .insert(row)
-    .select("*")
-    .single();
+  const { data, error } = await supabaseClient.rpc("share_resource_with_client_safe", {
+    p_resource_id: payload.resourceId,
+    p_client_id: payload.clientId,
+    p_program_id: payload.programId,
+    p_context_type: payload.contextType || "program",
+    p_context_id: payload.contextType && payload.contextType !== "program" ? payload.contextId : null,
+    p_coach_note: payload.coachNote || null
+  });
 
   if (error) throw error;
 
-  return data;
+  return { id: data };
 }
 
 export async function updateSharedResourceStatus(supabaseClient, sharedResourceId, values) {

@@ -41,6 +41,17 @@ function metaPills(createElement, resource) {
   ];
 }
 
+function contextLabel(sharedResource) {
+  const labels = {
+    program: "Forløp",
+    focus_area: "Fokusområde",
+    session: "Samtale",
+    experiment: "Eksperiment",
+    reflection: "Refleksjon"
+  };
+  return labels[sharedResource.context_type] || "Forløp";
+}
+
 function listSection(createElement, title, items = []) {
   if (!items.length) return null;
 
@@ -160,6 +171,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
         createElement("span", { class: "client-resource-main" }, [
           createElement("span", { class: "client-resource-meta" }, [
             createSharedResourceStatus(sharedResource.status, { createElement }),
+            createElement("span", { class: "badge", text: contextLabel(sharedResource) }),
             createElement("span", { class: "badge", text: labelFor(TYPE_LABELS, resource.type) }),
             resource.estimated_duration ? createElement("span", { class: "badge", text: `${resource.estimated_duration} min` }) : null
           ].filter(Boolean)),
@@ -177,6 +189,7 @@ export function createClientResourceView(sharedResource, options = {}) {
   requireCreateElement(createElement);
 
   const resource = sharedResource?.resource || {};
+  const privateResponse = readOnly && sharedResource?.client_note_is_private;
   const note = createElement("textarea", {
     class: "ui-edit-control client-resource-note",
     text: sharedResource?.client_note || "",
@@ -200,6 +213,7 @@ export function createClientResourceView(sharedResource, options = {}) {
         createElement("p", { text: resource.client_intro || resource.summary || "" }),
         createElement("div", { class: "meta-row" }, [
           createSharedResourceStatus(sharedResource?.status, { createElement }),
+          createElement("span", { class: "badge", text: contextLabel(sharedResource || {}) }),
           ...metaPills(createElement, resource)
         ]),
         onClose ? createElement("button", { class: "button ghost", type: "button", text: "Lukk", onclick: onClose }) : null
@@ -224,10 +238,10 @@ export function createClientResourceView(sharedResource, options = {}) {
       ])))
     ]) : null,
     createElement("section", { class: "resource-preview-section client-resource-response" }, [
-      createElement("h4", { text: "Din refleksjon" }),
-      note,
-      createElement("label", { text: "Synlighet" }, [visibility]),
-      readOnly ? null : createElement("div", { class: "toolbar" }, [
+      createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
+      privateResponse ? createElement("p", { class: "muted", text: "Klienten har lagret en privat refleksjon som ikke er delt med coach." }) : note,
+      privateResponse ? null : createElement("label", { text: "Synlighet" }, [visibility]),
+      readOnly || privateResponse ? null : createElement("div", { class: "toolbar" }, [
         createElement("span", { class: "muted", text: "Privat er standard." }),
         createElement("button", {
           class: "ui-button ui-button-filled",
