@@ -18,6 +18,65 @@ const EXPERIMENT_STATUS_LEGACY_MAP = {
   dropped: "closed"
 };
 
+const RESOURCE_TYPE_OPTIONS = [
+  ["article", "Artikkel"],
+  ["exercise", "Øvelse"],
+  ["reflection", "Refleksjon"],
+  ["worksheet", "Arbeidsark"],
+  ["assessment", "Kartlegging"],
+  ["audio", "Lyd"],
+  ["video", "Video"],
+  ["framework", "Rammeverk"],
+  ["template", "Mal"],
+  ["guided_session", "Veiledet økt"]
+];
+const RESOURCE_FORMAT_OPTIONS = [
+  ["native", "Native"],
+  ["pdf", "PDF"],
+  ["audio", "Lyd"],
+  ["video", "Video"],
+  ["link", "Lenke"],
+  ["mixed", "Blandet"]
+];
+const RESOURCE_PHASE_OPTIONS = [
+  ["direction", "Retning"],
+  ["focus", "Fokus"],
+  ["experiment", "Eksperiment"],
+  ["observation", "Observasjon"],
+  ["session", "Samtale"],
+  ["reflection", "Refleksjon"],
+  ["adjustment", "Justering"]
+];
+const RESOURCE_STATUS_OPTIONS = [
+  ["draft", "Utkast"],
+  ["published", "Publisert"],
+  ["archived", "Arkivert"]
+];
+const RESOURCE_VISIBILITY_OPTIONS = [
+  ["admin", "Kun admin"],
+  ["coach", "Coach"],
+  ["client_assignable", "Kan sendes til klient"]
+];
+const RESOURCE_REVIEW_STATUS_OPTIONS = [
+  ["draft", "Utkast"],
+  ["approved_for_pilot", "Godkjent pilot"],
+  ["reviewed", "Vurdert"],
+  ["needs_revision", "Må revideres"]
+];
+const RESOURCE_DIFFICULTY_OPTIONS = [
+  ["", "Ikke satt"],
+  ["easy", "Enkel"],
+  ["medium", "Middels"],
+  ["advanced", "Avansert"]
+];
+const RESOURCE_CONTEXT_OPTIONS = [
+  ["program", "Forløp"],
+  ["focus_area", "Fokusområde"],
+  ["session", "Samtale"],
+  ["experiment", "Eksperiment"],
+  ["reflection", "Refleksjon"]
+];
+
 const state = {
   sb: null,
   user: null,
@@ -479,12 +538,14 @@ function clientGrid(clients) {
 function renderAdmin() {
   setHeader("Administrasjon", "Team og tilgang", [
     button("Inviter coach", "user-round-plus", () => openCoachInvite()),
-    button("Inviter klient", "user-plus", () => openClientInvite())
+    button("Inviter klient", "user-plus", () => openClientInvite()),
+    button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
   ]);
   const coachSearch = el("input", { class: "search", placeholder: "Søk coach" });
   const clientSearch = el("input", { class: "search", placeholder: "Søk klient, coach eller arbeidsgiver" });
   const coachTableSlot = el("div");
   const clientTableSlot = el("div");
+  const resourceAdminSlot = el("div");
   const renderCoaches = () => {
     const q = coachSearch.value.trim().toLowerCase();
     const coaches = state.coaches.filter((coach) => [coach.name, coach.email].filter(Boolean).join(" ").toLowerCase().includes(q));
@@ -531,10 +592,12 @@ function renderAdmin() {
       ]),
       el("div", { class: "filter-row admin-filter-row" }, [clientSearch, adminCoachFilter, adminSortFilter]),
       clientTableSlot
-    ])
+    ]),
+    resourceAdminSlot
   );
   renderCoaches();
   renderClientsTable();
+  renderResourceAdminSection(resourceAdminSlot);
 }
 
 function adminTable(title, headers, rows) {
@@ -555,6 +618,248 @@ function actionGroup(actions) {
   return el("div", { class: "row-actions" }, actions.map(([label, handler, disabled = false]) => {
     return el("button", { class: "button ghost", disabled, onclick: disabled ? null : handler, text: label });
   }));
+}
+
+async function renderResourceAdminSection(slot) {
+  slot.replaceChildren(el("section", { class: "panel list-panel" }, [
+    el("div", { class: "toolbar" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Fagbibliotek" }),
+        el("h3", { text: "Ressurser" }),
+        el("p", { class: "muted", text: "Pilot-admin for native ressurser. Filopplasting og blokkeditor kommer senere." })
+      ]),
+      button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
+    ]),
+    el("p", { class: "muted", text: "Henter ressurser..." })
+  ]));
+
+  const library = await ensureResourceLibrary();
+  if (!library?.getAdminResources) {
+    slot.replaceChildren(el("section", { class: "panel empty-state" }, [
+      el("p", { class: "eyebrow", text: "Ressurser" }),
+      el("h3", { text: "Adminfunksjonen er ikke lastet" }),
+      el("p", { class: "muted", text: "Last siden på nytt. Hvis feilen fortsetter mangler ressursmodulen admin-query." })
+    ]));
+    return;
+  }
+
+  let resources = [];
+  try {
+    resources = await library.getAdminResources(state.sb);
+  } catch (error) {
+    slot.replaceChildren(el("section", { class: "panel empty-state" }, [
+      el("p", { class: "eyebrow", text: "Ressurser" }),
+      el("h3", { text: "Kunne ikke hente ressurser" }),
+      el("p", { class: "muted", text: error.message || "Sjekk RLS og resource-migrations." })
+    ]));
+    return;
+  }
+
+  const search = el("input", { class: "search", placeholder: "Søk ressurs, type eller tag" });
+  const tableSlot = el("div");
+  const statusFilter = filterMenu([
+    { value: "all", label: "Alle statuser" },
+    { value: "draft", label: "Utkast" },
+    { value: "published", label: "Publisert" },
+    { value: "archived", label: "Arkivert" }
+  ], "all", "Filtrer ressurser på status", () => renderTable());
+
+  const renderTable = () => {
+    const query = search.value.trim().toLowerCase();
+    const filtered = resources.filter((resource) => {
+      const matchesStatus = statusFilter.value === "all" || resource.status === statusFilter.value;
+      const haystack = [
+        resource.title,
+        resource.slug,
+        resource.summary,
+        resource.type,
+        resource.phase,
+        resource.status,
+        ...(resource.tags || [])
+      ].filter(Boolean).join(" ").toLowerCase();
+      return matchesStatus && (!query || haystack.includes(query));
+    });
+    tableSlot.replaceChildren(adminTable("Ressurser", ["Tittel", "Type", "Fase", "Status", "Tags", ""], filtered.map((resource) => [
+      resource.title || "-",
+      resourceLabel(RESOURCE_TYPE_OPTIONS, resource.type),
+      resourceLabel(RESOURCE_PHASE_OPTIONS, resource.phase),
+      resourceLabel(RESOURCE_STATUS_OPTIONS, resource.status),
+      (resource.tags || []).join(", ") || "-",
+      actionGroup([
+        ["Rediger", () => openResourceAdminEditor(resource)],
+        [resource.status === "archived" ? "Reaktiver" : "Arkiver", () => toggleResourceArchive(resource)]
+      ])
+    ])));
+  };
+
+  search.addEventListener("input", renderTable);
+  slot.replaceChildren(el("section", { class: "panel list-panel" }, [
+    el("div", { class: "toolbar" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Fagbibliotek" }),
+        el("h3", { text: "Ressurser" }),
+        el("p", { class: "muted", text: "Administrer pilotressurser. Bruk enkel JSON for innholdsblokker inntil blokkeditoren er verdt å bygge." })
+      ]),
+      button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
+    ]),
+    el("div", { class: "filter-row admin-filter-row" }, [search, statusFilter]),
+    tableSlot
+  ]));
+  renderTable();
+}
+
+function resourceLabel(options, value) {
+  return options.find(([optionValue]) => optionValue === value)?.[1] || value || "-";
+}
+
+function resourceSlug(title = "") {
+  return title
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "o")
+    .replace(/å/g, "a")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function textLines(value = "") {
+  return String(value || "")
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function jsonText(value, fallback = []) {
+  return JSON.stringify(value ?? fallback, null, 2);
+}
+
+function parseJsonArray(value, fieldName) {
+  const text = String(value || "").trim();
+  if (!text) return [];
+  try {
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) throw new Error("not-array");
+    return parsed;
+  } catch {
+    throw new Error(`${fieldName} må være gyldig JSON-array.`);
+  }
+}
+
+function parseResourceAdminPayload(values, currentResource = null) {
+  const title = values.title.trim();
+  const slug = (values.slug.trim() || resourceSlug(title));
+  if (!title) throw new Error("Tittel må fylles ut.");
+  if (!slug) throw new Error("Slug må fylles ut.");
+  if (!values.summary.trim()) throw new Error("Summary må fylles ut.");
+
+  const estimatedDuration = values.estimated_duration ? Number(values.estimated_duration) : null;
+  if (estimatedDuration !== null && (!Number.isInteger(estimatedDuration) || estimatedDuration <= 0)) {
+    throw new Error("Varighet må være et positivt heltall.");
+  }
+
+  const status = values.status || currentResource?.status || "draft";
+
+  return {
+    title,
+    slug,
+    summary: values.summary.trim(),
+    type: values.type || "framework",
+    format: values.format || "native",
+    phase: values.phase || "reflection",
+    visibility: values.visibility || "client_assignable",
+    status,
+    archived_at: status === "archived" ? (currentResource?.archived_at || new Date().toISOString()) : null,
+    review_status: values.review_status || "draft",
+    language: values.language.trim() || "no",
+    estimated_duration: estimatedDuration,
+    difficulty: values.difficulty || null,
+    intended_outcome: values.intended_outcome.trim() || null,
+    best_used_when: textLines(values.best_used_when),
+    not_for: textLines(values.not_for),
+    coach_guidance: values.coach_guidance.trim() || null,
+    client_intro: values.client_intro.trim() || null,
+    suggested_coach_note: values.suggested_coach_note.trim() || null,
+    default_context_types: textLines(values.default_context_types),
+    content_json: parseJsonArray(values.content_json, "Content JSON"),
+    reflection_prompts: textLines(values.reflection_prompts),
+    next_step_prompt: values.next_step_prompt.trim() || null,
+    basis: values.basis.trim() || null,
+    reviewed_by: values.reviewed_by.trim() || null,
+    last_reviewed_at: values.last_reviewed_at || null,
+    tags: textLines(values.tags)
+  };
+}
+
+async function openResourceAdminEditor(resource = null) {
+  if (state.profile?.role !== "admin") return;
+  const library = await ensureResourceLibrary();
+  if (!library?.createResource || !library?.updateResource) {
+    await showAppMessage("Ressursadmin mangler", "Last siden på nytt. Hvis feilen fortsetter mangler mutation-modulen.");
+    return;
+  }
+
+  const isNew = !resource?.id;
+  openEntityDrawer(isNew ? "Ny ressurs" : resource.title, "Fagbibliotek", [
+    sectionSpec("Grunninfo", "Hold ressursen native og strukturert. Filer og illustrasjoner håndteres senere."),
+    inputSpec("title", "Tittel", "text", resource?.title || ""),
+    inputSpec("slug", "Slug", "text", resource?.slug || "", { placeholder: "genereres fra tittel hvis tom" }),
+    textareaSpec("summary", "Summary", resource?.summary || "", { rows: "3" }),
+    selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework"),
+    selectSpec("format", "Format", RESOURCE_FORMAT_OPTIONS, resource?.format || "native"),
+    selectSpec("phase", "Fase", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection"),
+    selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "draft"),
+    selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable"),
+    selectSpec("review_status", "Fagstatus", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft"),
+    inputSpec("estimated_duration", "Varighet i minutter", "number", resource?.estimated_duration || "", { min: "1" }),
+    selectSpec("difficulty", "Vanskelighetsgrad", RESOURCE_DIFFICULTY_OPTIONS, resource?.difficulty || ""),
+    inputSpec("language", "Språk", "text", resource?.language || "no"),
+    sectionSpec("Faglig bruk", "Dette hjelper coachen å velge riktig ressurs."),
+    textareaSpec("intended_outcome", "Hva ressursen skal hjelpe med", resource?.intended_outcome || "", { rows: "3" }),
+    textareaSpec("best_used_when", "Best brukt når", (resource?.best_used_when || []).join("\n"), { rows: "4" }),
+    textareaSpec("not_for", "Ikke egnet når", (resource?.not_for || []).join("\n"), { rows: "4" }),
+    textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" }),
+    textareaSpec("client_intro", "Intro til klient", resource?.client_intro || "", { rows: "4" }),
+    textareaSpec("suggested_coach_note", "Foreslått instruks fra coach", resource?.suggested_coach_note || "", { rows: "3" }),
+    selectSpec("default_context_types", "Standard kontekster", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"], true),
+    sectionSpec("Innhold", "Content JSON må være et JSON-array. Reflection prompts skrives én per linje."),
+    textareaSpec("content_json", "Content JSON", jsonText(resource?.content_json || []), { rows: "10", spellcheck: "false" }),
+    textareaSpec("reflection_prompts", "Refleksjonsspørsmål", (resource?.reflection_prompts || []).join("\n"), { rows: "5" }),
+    textareaSpec("next_step_prompt", "Neste steg", resource?.next_step_prompt || "", { rows: "2" }),
+    textareaSpec("basis", "Faglig grunnlag", resource?.basis || "", { rows: "3" }),
+    inputSpec("reviewed_by", "Vurdert av", "text", resource?.reviewed_by || ""),
+    inputSpec("last_reviewed_at", "Sist vurdert", "date", resource?.last_reviewed_at || ""),
+    textareaSpec("tags", "Tags", (resource?.tags || []).join(", "), { rows: "2" })
+  ], async (values) => {
+    const payload = parseResourceAdminPayload(values, resource);
+    if (isNew) await library.createResource(state.sb, payload);
+    else await library.updateResource(state.sb, resource.id, payload);
+    await renderAdmin();
+  }, resource?.id ? {
+    dangerLabel: resource.status === "archived" ? "Reaktiver" : "Arkiver",
+    onDanger: async () => {
+      if (resource.status === "archived") await library.reactivateResource(state.sb, resource.id, "draft");
+      else await library.archiveResource(state.sb, resource.id);
+      await renderAdmin();
+      return true;
+    }
+  } : {});
+}
+
+async function toggleResourceArchive(resource) {
+  const library = await ensureResourceLibrary();
+  if (!library?.archiveResource || !library?.reactivateResource) return;
+  if (resource.status === "archived") {
+    await library.reactivateResource(state.sb, resource.id, "draft");
+  } else if (await confirmDelete(`Arkivere "${resource.title}"?`)) {
+    await library.archiveResource(state.sb, resource.id);
+  } else {
+    return;
+  }
+  await renderAdmin();
 }
 
 async function renderResources() {
@@ -685,7 +990,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-62")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-63")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
