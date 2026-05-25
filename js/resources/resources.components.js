@@ -35,10 +35,9 @@ function labelFor(map, value) {
 
 function metaPills(createElement, resource) {
   return [
-    createElement("span", { class: "badge", text: labelFor(TYPE_LABELS, resource.type) }),
-    createElement("span", { class: "badge", text: `${resource.estimated_duration || "?"} min` }),
-    createElement("span", { class: "badge resource-meta-subtle", text: labelFor(PHASE_LABELS, resource.phase) })
-  ];
+    resource.type ? createElement("span", { class: "badge", text: labelFor(TYPE_LABELS, resource.type) }) : null,
+    resource.estimated_duration ? createElement("span", { class: "badge", text: `${resource.estimated_duration} min` }) : null
+  ].filter(Boolean);
 }
 
 function contextLabel(sharedResource) {
@@ -50,6 +49,11 @@ function contextLabel(sharedResource) {
     reflection: "Refleksjon"
   };
   return labels[sharedResource.context_type] || "Forløp";
+}
+
+function resourceContextText(sharedResource) {
+  if (!sharedResource?.context_type || sharedResource.context_type === "program") return "";
+  return `Knyttet til ${contextLabel(sharedResource).toLowerCase()}`;
 }
 
 function listSection(createElement, title, items = []) {
@@ -72,10 +76,7 @@ export function createResourceCard(resource, options = {}) {
   }, [
     createElement("span", { class: "resource-card__meta" }, metaPills(createElement, resource)),
     createElement("strong", { class: "resource-card__title", text: resource.title }),
-    createElement("span", { class: "resource-card__summary", text: resource.summary || "" }),
-    createElement("span", { class: "resource-card__tags" }, (resource.tags || []).slice(0, 4).map((tag) => (
-      createElement("span", { class: "resource-tag", text: tag })
-    )))
+    createElement("span", { class: "resource-card__summary", text: resource.summary || "" })
   ]);
 }
 
@@ -93,9 +94,6 @@ export function createResourcePreview(resource, options = {}) {
 
   return createElement("article", { class: "resource-preview" }, [
     createElement("header", { class: "resource-preview-head" }, [
-      createElement("div", { class: "resource-preview-cover" }, [
-        createElement("span", { class: "resource-preview-cover__mark" })
-      ]),
       createElement("div", { class: "resource-preview-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs" }),
         createElement("h3", { text: resource.title }),
@@ -149,7 +147,7 @@ export function createSendResourceDrawer() {
 }
 
 export function createClientResourceList(sharedResources = [], options = {}) {
-  const { createElement, onOpen, emptyTitle = "Ingen ressurser fra coach ennå", emptyText = "Når coachen sender en ressurs, vises den her." } = options;
+  const { createElement, onOpen, selectedId = null, emptyTitle = "Ingen ressurser fra coach ennå", emptyText = "Når coachen sender en ressurs, vises den her." } = options;
   requireCreateElement(createElement);
 
   if (!sharedResources.length) {
@@ -162,24 +160,22 @@ export function createClientResourceList(sharedResources = [], options = {}) {
 
   return createElement("div", { class: "client-resource-list" }, sharedResources.map((sharedResource) => {
     const resource = sharedResource.resource || {};
+    const selected = selectedId === sharedResource.id;
+    const contextText = resourceContextText(sharedResource);
     return createElement("article", { class: "client-resource-row" }, [
       createElement("button", {
-        class: "client-resource-open",
+        class: `client-resource-open ${selected ? "active" : ""}`,
         type: "button",
         onclick: () => onOpen?.(sharedResource)
       }, [
         createElement("span", { class: "client-resource-main" }, [
-          createElement("span", { class: "client-resource-meta" }, [
-            createSharedResourceStatus(sharedResource.status, { createElement }),
-            createElement("span", { class: "badge", text: contextLabel(sharedResource) }),
-            createElement("span", { class: "badge", text: labelFor(TYPE_LABELS, resource.type) }),
-            resource.estimated_duration ? createElement("span", { class: "badge", text: `${resource.estimated_duration} min` }) : null
-          ].filter(Boolean)),
+          createElement("span", { class: "client-resource-meta" }, metaPills(createElement, resource)),
           createElement("strong", { text: resource.title || "Ressurs" }),
-          createElement("span", { class: "client-resource-summary", text: sharedResource.coach_note || resource.summary || "" })
+          createElement("span", { class: "client-resource-summary", text: sharedResource.coach_note || resource.summary || "" }),
+          contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null
         ]),
-        createElement("span", { class: "client-resource-action", text: "Åpne" })
-      ])
+        createElement("span", { class: "client-resource-action", text: selected ? "Åpen" : "Åpne" })
+      ].filter(Boolean))
     ]);
   }));
 }
@@ -190,6 +186,7 @@ export function createClientResourceView(sharedResource, options = {}) {
 
   const resource = sharedResource?.resource || {};
   const privateResponse = readOnly && sharedResource?.client_note_is_private;
+  let clientVisibility = sharedResource?.client_visibility === "shared_with_coach" ? "shared_with_coach" : "private";
   const note = createElement("textarea", {
     class: "ui-edit-control client-resource-note",
     text: sharedResource?.client_note || "",
@@ -197,26 +194,34 @@ export function createClientResourceView(sharedResource, options = {}) {
     rows: "6",
     disabled: readOnly
   });
-  const visibility = createElement("select", { disabled: readOnly }, [
-    createElement("option", { value: "private", text: "Privat", selected: sharedResource?.client_visibility !== "shared_with_coach" }),
-    createElement("option", { value: "shared_with_coach", text: "Del med coach", selected: sharedResource?.client_visibility === "shared_with_coach" })
-  ]);
+  const visibilityButtons = [];
+  const setVisibility = (value) => {
+    clientVisibility = value;
+    visibilityButtons.forEach((button) => {
+      button.classList.toggle("active", button.dataset.value === clientVisibility);
+    });
+  };
+  const createVisibilityButton = (value, label) => {
+    const button = createElement("button", {
+      class: `visibility-choice ${clientVisibility === value ? "active" : ""}`,
+      type: "button",
+      "data-value": value,
+      onclick: () => setVisibility(value)
+    }, [
+      createElement("span", { text: label })
+    ]);
+    visibilityButtons.push(button);
+    return button;
+  };
 
   return createElement("article", { class: "client-resource-view" }, [
+    onClose ? createElement("button", { class: "button ghost client-resource-close", type: "button", text: "Lukk", onclick: onClose }) : null,
     createElement("header", { class: "client-resource-view-head" }, [
-      createElement("div", { class: "resource-preview-cover client-resource-cover" }, [
-        createElement("span", { class: "resource-preview-cover__mark" })
-      ]),
       createElement("div", { class: "client-resource-view-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs fra coach" }),
         createElement("h3", { text: resource.title || "Ressurs" }),
         createElement("p", { text: resource.client_intro || resource.summary || "" }),
-        createElement("div", { class: "meta-row" }, [
-          createSharedResourceStatus(sharedResource?.status, { createElement }),
-          createElement("span", { class: "badge", text: contextLabel(sharedResource || {}) }),
-          ...metaPills(createElement, resource)
-        ]),
-        onClose ? createElement("button", { class: "button ghost", type: "button", text: "Lukk", onclick: onClose }) : null
+        createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
       ].filter(Boolean))
     ]),
     sharedResource?.coach_note ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
@@ -240,16 +245,21 @@ export function createClientResourceView(sharedResource, options = {}) {
     createElement("section", { class: "resource-preview-section client-resource-response" }, [
       createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
       privateResponse ? createElement("p", { class: "muted", text: "Klienten har lagret en privat refleksjon som ikke er delt med coach." }) : note,
-      privateResponse ? null : createElement("label", { text: "Synlighet" }, [visibility]),
+      readOnly || privateResponse ? null : createElement("div", { class: "visibility-control" }, [
+        createElement("p", { text: "Privat til du velger å dele." }),
+        createElement("div", { class: "visibility-choice-row" }, [
+          createVisibilityButton("private", "Privat"),
+          createVisibilityButton("shared_with_coach", "Del med coach")
+        ])
+      ]),
       readOnly || privateResponse ? null : createElement("div", { class: "toolbar" }, [
-        createElement("span", { class: "muted", text: "Privat er standard." }),
         createElement("button", {
           class: "ui-button ui-button-filled",
           type: "button",
           text: "Lagre refleksjon",
           onclick: () => onSave?.(sharedResource, {
             clientNote: note.value || "",
-            clientVisibility: visibility.value || "private"
+            clientVisibility
           })
         })
       ])
