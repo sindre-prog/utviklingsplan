@@ -6,10 +6,19 @@
   <title>Utviklingsplan | Ræder&</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=polish-46">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css?v=polish-51">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script type="module">
+    import "https://esm.run/@material/web/button/filled-button.js";
+    import "https://esm.run/@material/web/button/outlined-button.js";
+    import "https://esm.run/@material/web/button/text-button.js";
+    import "https://esm.run/@material/web/iconbutton/icon-button.js";
+    import * as resourceLibrary from "./js/resources/resources.api.js";
+
+    window.RaederResourceLibrary = resourceLibrary;
+  </script>
 </head>
 <body>
   <main id="root">
@@ -92,6 +101,51 @@
     </form>
   </dialog>
 
-  <script src="./app.js?v=polish-46" defer></script>
+  <dialog class="drawer" id="entity-drawer">
+    <form method="dialog" class="drawer-panel" id="drawer-form">
+      <div class="modal-head">
+        <div><p class="eyebrow" id="drawer-kicker">Rediger</p><h3 id="drawer-title">Detaljer</h3></div>
+        <button class="icon-button" value="cancel" title="Lukk" formnovalidate><i data-lucide="x"></i></button>
+      </div>
+      <div id="drawer-fields"></div>
+      <p class="form-message" id="drawer-message"></p>
+      <div class="modal-actions">
+        <div id="drawer-danger-slot"></div>
+        <div class="modal-primary-actions">
+          <button class="button ghost" value="cancel" formnovalidate>Avbryt</button>
+          <button class="button primary" id="drawer-save" value="default"><i data-lucide="save"></i><span>Lagre</span></button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="confirm-dialog">
+    <form method="dialog" class="confirm-panel" id="confirm-form">
+      <div>
+        <p class="eyebrow" id="confirm-kicker">Bekreft</p>
+        <h3 id="confirm-title">Er du sikker?</h3>
+        <p id="confirm-message"></p>
+      </div>
+      <div class="confirm-actions">
+        <button class="button ghost" value="cancel" formnovalidate>Avbryt</button>
+        <button class="button danger" id="confirm-action" value="confirm"><i data-lucide="trash-2"></i><span>Slett</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="confirm-dialog" id="message-dialog">
+    <form method="dialog" class="confirm-panel" id="message-form">
+      <div>
+        <p class="eyebrow" id="message-kicker">Status</p>
+        <h3 id="message-title">Noe gikk galt</h3>
+        <p id="message-text"></p>
+      </div>
+      <div class="confirm-actions">
+        <button class="button primary" value="ok">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="./app.js?v=polish-51" defer></script>
 </body>
 </html>

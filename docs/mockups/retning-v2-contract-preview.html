@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retning V2 Preview</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    body { margin: 0; background: #fff; }
+    .preview-shell { max-width: 1220px; margin: 0 auto; padding: 34px 40px 80px; }
+    .preview-topline { display: flex; justify-content: space-between; align-items: start; gap: 24px; padding-bottom: 28px; }
+    .preview-brand { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+    .preview-actions { display: flex; gap: 10px; align-items: center; }
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-topline">
+      <div>
+        <div class="preview-brand">Ræder&</div>
+        <p class="eyebrow" style="margin-top:48px">Utviklingsplan</p>
+        <h2 id="view-title">Maria Solberg</h2>
+      </div>
+      <div class="preview-actions">
+        <button class="button ghost">Klienter</button>
+        <button class="button ghost">Book coachingtime</button>
+      </div>
+    </header>
+
+    <div class="workspace-tabs">
+      <button class="workspace-tab active"><span>Retning</span></button>
+      <button class="workspace-tab"><span>Fokusområder</span></button>
+      <button class="workspace-tab"><span>Samtaler</span></button>
+      <button class="workspace-tab"><span>Refleksjon</span></button>
+    </div>
+
+    <section class="direction-simple">
+      <div class="direction-simple-head">
+        <div class="direction-simple-copy">
+          <p class="eyebrow">Retning</p>
+          <h3>Hei Maria, la oss gjøre dette konkret.</h3>
+          <p class="muted">Avklar hva dere jobber mot, hva som skal merkes i praksis, og hvilke rammer som gjør samarbeidet nyttig.</p>
+        </div>
+        <span class="direction-status partial">Mangler avtale</span>
+      </div>
+
+      <div class="direction-list">
+        <article class="direction-field has-value">
+          <div class="direction-field-main">
+            <div class="direction-field-label">
+              <h4>Mål</h4>
+              <p>Hva skal dette coachingforløpet hjelpe deg å bevege, avklare eller utvikle?</p>
+            </div>
+            <div class="direction-field-value">
+              <p>Bli tryggere i prioritering og tydeligere i lederrollen når presset øker.</p>
+            </div>
+          </div>
+          <button class="direction-edit-trigger">Rediger</button>
+        </article>
+
+        <article class="direction-field has-value">
+          <div class="direction-field-main">
+            <div class="direction-field-label">
+              <h4>Tegn på bevegelse</h4>
+              <p>Hva vil du, coach eller andre kunne legge merke til hvis arbeidet begynner å virke?</p>
+            </div>
+            <div class="direction-field-value">
+              <p>Færre omstarter i teamet, raskere beslutninger og tydeligere forventningsavklaringer.</p>
+            </div>
+          </div>
+          <button class="direction-edit-trigger">Rediger</button>
+        </article>
+
+        <article class="direction-field is-empty">
+          <div class="direction-field-main">
+            <div class="direction-field-label">
+              <h4>Forventninger til klient</h4>
+              <p>Hva tar klienten ansvar for å prøve, observere eller forberede mellom samtalene?</p>
+            </div>
+            <div class="direction-field-value">
+              <p class="direction-empty">Eksempel: Teste små grep i arbeidshverdagen og notere korte observasjoner mens de er ferske.</p>
+            </div>
+          </div>
+          <button class="direction-edit-trigger">Legg til</button>
+        </article>
+
+        <article class="direction-field has-value">
+          <div class="direction-field-main">
+            <div class="direction-field-label">
+              <h4>Forventninger til coach</h4>
+              <p>Hva skal coach bidra med, utfordre, holde fast i eller følge opp?</p>
+            </div>
+            <div class="direction-field-value">
+              <p>Hjelpe med presisering, utfordre antakelser og holde tråden fra samtale til praksis.</p>
+            </div>
+          </div>
+          <button class="direction-edit-trigger">Rediger</button>
+        </article>
+
+        <article class="direction-field has-value">
+          <div class="direction-field-main">
+            <div class="direction-field-label">
+              <h4>Rammer og konfidensialitet</h4>
+              <p>Hva er den praktiske rammen, og hva skal være privat, delt eller utenfor coachingens mandat?</p>
+            </div>
+            <div class="direction-field-value">
+              <div class="direction-subvalues">
+                <div>
+                  <strong>Praktiske rammer</strong>
+                  <p>Seks samtaler annenhver uke. Mellom samtalene testes små praksiseksperimenter.</p>
+                </div>
+                <div>
+                  <strong>Konfidensialitet</strong>
+                  <p>Refleksjoner er private med mindre klient velger å dele. Coaching erstatter ikke helsehjelp.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="direction-edit-trigger">Rediger</button>
+        </article>
+
+        <article class="direction-field has-value">
+          <div class="direction-field-main">
+            <div class="direction-field-label">
+              <h4>Interessenter og kontekst</h4>
+              <p>Hvilke personer, team, roller eller organisatoriske forventninger påvirker arbeidet?</p>
+            </div>
+            <div class="direction-field-value">
+              <p>Ledergruppen, nærmeste leder og teamet som trenger tydeligere prioriteringer.</p>
+            </div>
+          </div>
+          <button class="direction-edit-trigger">Rediger</button>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
