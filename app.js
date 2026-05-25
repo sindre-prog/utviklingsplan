@@ -685,7 +685,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-61")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-62")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -844,6 +844,38 @@ async function renderPlan(activePane = "direction") {
     ])
   ]);
 
+  const editable = canEditProgram(client);
+  if (editable) form.addEventListener("input", () => markDirty());
+  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]), ...(editable ? [saveStrip(true)] : []));
+  if (!editable) setFormReadonly(form);
+  setupWorkspaceTabs();
+  refreshIcons();
+}
+
+function renderCachedProgram(activePane = "direction") {
+  const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
+  const data = client ? state.programCache[client.id] : null;
+  if (!client || !data) {
+    reloadProgramAndRender(activePane);
+    return;
+  }
+  const plan = programToFormState(data);
+  const form = el("form", { class: "client-workspace", id: "plan-form" }, [
+    hiddenPlanState(plan),
+    clientWorkspaceTabs(data, activePane),
+    el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, "data-pane": "direction" }, [
+      directionWorkspace(client, plan, data)
+    ]),
+    el("section", { class: `workspace-pane ${activePane === "work" ? "active" : ""}`, "data-pane": "work" }, [
+      workWorkspace(client, data, plan)
+    ]),
+    el("section", { class: `workspace-pane ${activePane === "sessions" ? "active" : ""}`, "data-pane": "sessions" }, [
+      sessionsWorkspace(plan.sessions, data)
+    ]),
+    el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, "data-pane": "reflections" }, [
+      reflectionsWorkspace(data)
+    ])
+  ]);
   const editable = canEditProgram(client);
   if (editable) form.addEventListener("input", () => markDirty());
   $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]), ...(editable ? [saveStrip(true)] : []));
@@ -1064,6 +1096,7 @@ function getDirectionSpecs(plan) {
   return [
     {
       key: "c_purpose",
+      iconName: "target",
       label: "Hva vil du oppnå?",
       subhead: "Retning for forløpet",
       valueLabel: "Ditt mål",
@@ -1073,6 +1106,7 @@ function getDirectionSpecs(plan) {
     },
     {
       key: "c_success",
+      iconName: "activity",
       label: "Hvordan vil du merke fremgang?",
       subhead: "Konkret effekt",
       valueLabel: "Tegn på fremgang",
@@ -1082,6 +1116,7 @@ function getDirectionSpecs(plan) {
     },
     {
       key: "c_expect_client",
+      iconName: "user-check",
       label: "Hva trenger du fra deg selv?",
       subhead: "Din del",
       valueLabel: "Dette vil du bidra med",
@@ -1091,6 +1126,7 @@ function getDirectionSpecs(plan) {
     },
     {
       key: "c_expect_coach",
+      iconName: "messages-square",
       label: "Hva trenger du fra coachen?",
       subhead: "Coachens bidrag",
       valueLabel: "Dette ber du coachen bidra med",
@@ -1100,6 +1136,7 @@ function getDirectionSpecs(plan) {
     },
     {
       key: "frame",
+      iconName: "shield-check",
       label: "Rammer for samarbeidet",
       subhead: "Praktiske og trygge rammer",
       valueLabel: "Dette skal være avklart",
@@ -1121,6 +1158,7 @@ function getDirectionSpecs(plan) {
     },
     {
       key: "c_context",
+      iconName: "network",
       label: "Hvem og hva påvirker forløpet?",
       subhead: "Kontekst rundt deg",
       valueLabel: "Viktig kontekst",
@@ -1177,7 +1215,9 @@ function directionAccent() {
 function directionFieldContent(spec, value, editable) {
   return el("div", { class: "ui-field-card-inner direction-card-inner" }, [
     el("div", { class: "ui-field-card-head direction-card-head" }, [
-      el("span", { class: "ui-field-orb direction-card-orb", "aria-hidden": "true" }),
+      el("span", { class: "ui-field-orb direction-card-orb", "aria-hidden": "true" }, [
+        icon(spec.iconName || "circle")
+      ]),
       el("div", { class: "ui-field-title direction-card-title" }, [
         el("h3", { text: spec.label }),
         el("p", { text: spec.subhead || "Subhead" })
@@ -1478,7 +1518,7 @@ function focusDetailBlock(label, value, emptyText, fieldKey = "", area = null, i
       placeholder: emptyText,
       onCancel: () => {
         state.inlineEditKey = null;
-        reloadProgramAndRender("work");
+        renderCachedProgram("work");
       },
       onSave: async (nextValue) => {
         await saveFocusField(index, fieldKey, nextValue);
@@ -1494,7 +1534,7 @@ function focusDetailBlock(label, value, emptyText, fieldKey = "", area = null, i
       text: text ? "Rediger" : "Legg til",
       onclick: () => {
         state.inlineEditKey = editKey;
-        reloadProgramAndRender("work");
+        renderCachedProgram("work");
       }
     }) : null
   ].filter(Boolean));
@@ -1531,7 +1571,7 @@ function editableTitle({ className = "", title, empty = false, editKey, value = 
       el("div", { class: "ui-inline-editor-actions" }, [
         el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: async () => {
           state.inlineEditKey = null;
-          await reloadProgramAndRender(editKey.startsWith("session:") ? "sessions" : "work");
+          renderCachedProgram(editKey.startsWith("session:") ? "sessions" : "work");
         }}),
         el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => onSave(input.value) })
       ])
@@ -1541,7 +1581,7 @@ function editableTitle({ className = "", title, empty = false, editKey, value = 
     el("h3", { class: empty ? "is-empty" : "", text: title }),
     el("button", { class: "ui-title-action", type: "button", text: empty ? "Legg til tittel" : "Rediger tittel", onclick: () => {
       state.inlineEditKey = editKey;
-      reloadProgramAndRender(editKey.startsWith("session:") ? "sessions" : "work");
+      renderCachedProgram(editKey.startsWith("session:") ? "sessions" : "work");
     }})
   ]);
 }
@@ -1641,7 +1681,7 @@ function sessionDetailBlock(label, value, emptyText, fieldKey = "", index = 0, e
       placeholder: emptyText,
       onCancel: () => {
         state.inlineEditKey = null;
-        reloadProgramAndRender("sessions");
+        renderCachedProgram("sessions");
       },
       onSave: async (nextValue) => {
         await saveSessionField(index, fieldKey, nextValue);
@@ -1664,7 +1704,7 @@ function sessionDetailBlock(label, value, emptyText, fieldKey = "", index = 0, e
         text: text ? "Rediger" : "Legg til",
         onclick: () => {
           state.inlineEditKey = editKey;
-          reloadProgramAndRender("sessions");
+          renderCachedProgram("sessions");
         }
       })
     ].filter(Boolean)) : null
@@ -2048,7 +2088,7 @@ function reflectionsList(reflections, data, canWriteReflection = false) {
 
 function startReflectionEdit(id) {
   state.inlineEditKey = `reflection:${id}`;
-  reloadProgramAndRender("reflections");
+  renderCachedProgram("reflections");
 }
 
 function reflectionInlineCard(reflection, data) {
@@ -2088,7 +2128,7 @@ function reflectionInlineCard(reflection, data) {
     el("div", { class: "ui-inline-editor-actions inline-edit-actions" }, [
       el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: async () => {
         state.inlineEditKey = null;
-        await reloadProgramAndRender("reflections");
+        renderCachedProgram("reflections");
       }}),
       el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => {
         const { error } = await state.sb.from("client_reflections").update({
