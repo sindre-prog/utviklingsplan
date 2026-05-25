@@ -435,9 +435,10 @@ function setHeader(kicker, title, actions = []) {
 }
 
 function metric(label, value, iconName, help) {
-  return el("div", { class: "panel" }, [
+  const tone = label.toLowerCase().replaceAll(" ", "-");
+  return el("div", { class: `panel metric-card metric-card--${tone}` }, [
     el("div", { class: "meta-row" }, [el("span", { class: "badge", text: label }), icon(iconName)]),
-    el("h2", { text: value, style: "margin-top:16px" }),
+    el("h2", { text: value }),
     el("p", { class: "muted", text: help })
   ]);
 }
@@ -673,7 +674,8 @@ function adminTable(title, headers, rows) {
 
 function actionGroup(actions) {
   return el("div", { class: "row-actions" }, actions.map(([label, handler, disabled = false]) => {
-    return el("button", { class: "button ghost", disabled, onclick: disabled ? null : handler, text: label });
+    const tone = ["Slett", "Arkiver"].includes(label) ? "destructive" : "ghost";
+    return el("button", { class: `button ${tone}`, disabled, onclick: disabled ? null : handler, text: label });
   }));
 }
 
@@ -1487,7 +1489,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-73")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-74")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
