@@ -117,7 +117,8 @@ const state = {
   resourceCache: null,
   selectedResourceSlug: null,
   selectedSharedResourceId: null,
-  resourceLibraryPromise: null
+  resourceLibraryPromise: null,
+  passwordSessionUserId: null
 };
 
 const planFields = [
@@ -191,17 +192,25 @@ async function init() {
   const tokenHash = urlParams.get("token_hash") || hashParams.get("token_hash");
   const hasAuthTokens = hashParams.has("access_token") || hashParams.has("refresh_token") || urlParams.has("access_token") || urlParams.has("refresh_token");
   const isPasswordFlow = ["invite", "recovery"].includes(authType) || Boolean(authCode) || Boolean(tokenHash) || hasAuthTokens;
+  const hasAuthCallback = Boolean(authCode) || Boolean(tokenHash) || hasAuthTokens;
 
   state.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   state.sb.auth.onAuthStateChange((event, session) => {
     if ((event === "PASSWORD_RECOVERY" || (isPasswordFlow && event === "SIGNED_IN")) && session?.user) {
       state.user = session.user;
+      state.passwordSessionUserId = session.user.id;
       setScreen("password");
       refreshIcons();
     }
   });
   bindAuth();
   let authError = null;
+  if (isPasswordFlow && hasAuthCallback) {
+    await state.sb.auth.signOut({ scope: "local" }).catch(() => {});
+    state.user = null;
+    state.profile = null;
+    state.passwordSessionUserId = null;
+  }
   if (tokenHash && ["invite", "recovery"].includes(authType)) {
     const { error } = await state.sb.auth.verifyOtp({ token_hash: tokenHash, type: authType });
     authError = error;
@@ -214,6 +223,7 @@ async function init() {
   const { data: { session } } = await state.sb.auth.getSession();
   if (session && isPasswordFlow) {
     state.user = session.user;
+    state.passwordSessionUserId = session.user.id;
     setScreen("password");
   } else if (session) {
     state.user = session.user;
@@ -256,8 +266,16 @@ function bindAuth() {
     if (password.length < 8) return setMessage("#password-message", "Passordet må være minst 8 tegn.");
     if (password !== confirm) return setMessage("#password-message", "Passordene er ikke like.");
     setMessage("#password-message", "Setter passord...");
+    const { data: { session } } = await state.sb.auth.getSession();
+    if (!session?.user?.id) return setMessage("#password-message", "Aktiveringssesjonen mangler. Åpne invitasjonslenken på nytt.");
+    if (state.passwordSessionUserId && session.user.id !== state.passwordSessionUserId) {
+      await state.sb.auth.signOut({ scope: "local" }).catch(() => {});
+      return setMessage("#password-message", "Aktiveringssesjonen stemmer ikke. Åpne invitasjonslenken på nytt.");
+    }
+    state.user = session.user;
     const { error } = await state.sb.auth.updateUser({ password });
     if (error) return setMessage("#password-message", `Feil: ${error.message}`);
+    state.passwordSessionUserId = null;
     await state.sb
       .from("clients")
       .update({ account_activated_at: new Date().toISOString() })
@@ -1397,7 +1415,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-68")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-69")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -3901,6 +3919,7 @@ async function logout() {
   state.clients = [];
   state.coaches = [];
   state.selectedClientId = null;
+  state.passwordSessionUserId = null;
   state.dirty = false;
   setScreen("login");
 }
