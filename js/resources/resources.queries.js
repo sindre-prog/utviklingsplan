@@ -62,6 +62,23 @@ export async function getPublishedResources(supabaseClient, filters = {}) {
   return applyResourceFilters((data || []).map(normalizeResource), filters);
 }
 
+export async function getAdminResources(supabaseClient, filters = {}) {
+  requireSupabaseClient(supabaseClient);
+
+  const { data, error } = await supabaseClient
+    .from("resources")
+    .select(`
+      *,
+      resource_tags(tag),
+      resource_files(id, file_type, storage_path, display_name, sort_order)
+    `)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+
+  return applyResourceFilters((data || []).map(normalizeResource), filters);
+}
+
 export async function getResourceBySlug(supabaseClient, slug) {
   requireSupabaseClient(supabaseClient);
 
