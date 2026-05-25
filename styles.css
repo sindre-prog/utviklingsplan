@@ -2544,11 +2544,13 @@ tr:last-child td { border-bottom: 0; }
   background: #fff;
   box-shadow: var(--card-shadow);
 }
-.reflection-composer-head h3 {
+.reflection-composer-head h3,
+.reflection-log-head h3 {
   font-size: 28px;
   line-height: 1.12;
 }
-.reflection-composer-head .muted {
+.reflection-composer-head .muted,
+.reflection-log-head .muted {
   max-width: 620px;
   margin: 10px 0 0;
 }
@@ -2593,6 +2595,11 @@ tr:last-child td { border-bottom: 0; }
 .reflection-composer textarea { min-height: 126px; margin: 0 0 12px; }
 .reflection-helper { max-width: 720px; margin: 8px 0 12px; line-height: 1.55; }
 .reflection-composer .toolbar { margin: 14px 0 0; align-items: center; }
+.reflection-log-head {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
 .reflection-space .document-panel > h3,
 .reflection-space .section-title {
   font-family: "Inter", system-ui, sans-serif;
