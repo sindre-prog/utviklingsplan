@@ -507,7 +507,8 @@ function filterMenu(options, initialValue, ariaLabel, onChange) {
 
 function renderClients() {
   if (state.profile.role === "client") return navigate("plan", state.client?.id);
-  setHeader("Utviklingsplaner", "Klienter", [button("Inviter klient", "user-plus", () => openClientInvite())]);
+  const createInviteAction = (variant = "primary") => button("Inviter klient", variant === "ghost" ? "mail-plus" : "user-plus", () => openClientInvite(), variant);
+  setHeader("Utviklingsplaner", "Klienter", canInviteClient() ? [createInviteAction()] : []);
   const content = $("#content");
   const visibleClients = getVisibleClients();
   const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
@@ -539,7 +540,8 @@ function renderClients() {
     ]),
     el("div", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Arbeidsflate" }), el("h3", { text: "Klientoversikt" })])
+        el("div", {}, [el("p", { class: "eyebrow", text: "Arbeidsflate" }), el("h3", { text: "Klientoversikt" })]),
+        ...(canInviteClient() ? [createInviteAction("ghost")] : [])
       ]),
       el("div", { class: "filter-row client-filter-row" }, [search, coachFilter, sortFilter]),
       results
@@ -1421,7 +1423,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-70")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-71")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -3525,12 +3527,18 @@ function isMissingColumnError(error) {
 }
 
 function openClientInvite() {
+  const coachOptions = state.profile.role === "coach" && state.coach
+    ? [[state.coach.id, state.coach.name || state.user?.email || "Din coachprofil"]]
+    : state.coaches.map((coach) => [coach.id, coach.name]);
+  const defaultCoachIds = state.profile.role === "coach" && state.coach
+    ? [state.coach.id]
+    : state.coach ? [state.coach.id] : [];
   openEntityModal("Inviter klient", "Tilgang", [
     inputSpec("name", "Navn"),
     inputSpec("email", "E-post", "email"),
     inputSpec("role", "Stilling"),
     inputSpec("employer", "Arbeidsgiver"),
-    selectSpec("coachIds", "Coach(er)", state.coaches.map((coach) => [coach.id, coach.name]), state.coach ? [state.coach.id] : [], true)
+    selectSpec("coachIds", "Coach(er)", coachOptions, defaultCoachIds, true)
   ], inviteClient);
 }
 
@@ -3800,20 +3808,16 @@ async function callInviteUser(values) {
 async function verifyInvitedClient(email) {
   const { data: client, error } = await state.sb
     .from("clients")
-    .select("id, user_id, email")
+    .select("id, user_id, email, coach_ids")
     .ilike("email", email)
     .maybeSingle();
   if (error) throw error;
   if (!client?.id) throw new Error("Invitasjonen ble sendt, men klientraden ble ikke opprettet.");
   if (!client.user_id) throw new Error("Invitasjonen ble sendt, men klienten ble ikke koblet til Supabase Auth.");
-
-  const { data: profile, error: profileError } = await state.sb
-    .from("profiles")
-    .select("id, role")
-    .eq("id", client.user_id)
-    .maybeSingle();
-  if (profileError) throw profileError;
-  if (profile?.role !== "client") throw new Error("Klienten ble opprettet, men profilrollen er ikke client.");
+  if (state.profile.role === "coach" && state.coach?.id && !(client.coach_ids || []).includes(state.coach.id)) {
+    throw new Error("Klienten ble opprettet, men ble ikke koblet til din coachprofil.");
+  }
+  await verifyVisibleProfileRole(client.user_id, "client", "Klienten");
   return client;
 }
 
@@ -3845,22 +3849,29 @@ async function verifyInvitedCoach(email) {
   if (error) throw error;
   if (!coach?.id) throw new Error("Invitasjonen ble sendt, men coachraden ble ikke opprettet.");
   if (!coach.user_id) throw new Error("Invitasjonen ble sendt, men coachen ble ikke koblet til Supabase Auth.");
+  await verifyVisibleProfileRole(coach.user_id, "coach", "Coachen");
+}
 
+async function verifyVisibleProfileRole(userId, expectedRole, label) {
   const { data: profile, error: profileError } = await state.sb
     .from("profiles")
     .select("id, role")
-    .eq("id", coach.user_id)
+    .eq("id", userId)
     .maybeSingle();
   if (profileError) throw profileError;
-  if (profile?.role !== "coach") throw new Error("Coachen ble opprettet, men profilrollen er ikke coach.");
+  if (profile?.role && profile.role !== expectedRole) {
+    throw new Error(`${label} ble opprettet, men profilrollen er ikke ${expectedRole}.`);
+  }
 }
 
 async function inviteClient(values) {
+  const coachIds = values.coachIds?.length ? values.coachIds : state.coach?.id ? [state.coach.id] : [];
+  if (!coachIds.length) throw new Error("Velg minst én coach for klienten.");
   const result = await callInviteUser({
     email: values.email,
     name: values.name,
     role: "client",
-    coachIds: values.coachIds || [],
+    coachIds,
     jobRole: values.role,
     employer: values.employer
   });
@@ -3954,6 +3965,12 @@ function canOpenClient(client) {
   const coachId = state.coach?.id;
   if (!coachId) return false;
   return (client.coach_ids || []).includes(coachId);
+}
+
+function canInviteClient() {
+  if (!state.profile) return false;
+  if (state.profile.role === "admin") return true;
+  return Boolean(state.profile.role === "coach" && state.coach?.id);
 }
 
 function canEditProgram(client) {
