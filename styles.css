@@ -779,6 +779,12 @@ tr:last-child td { border-bottom: 0; }
   font-weight: 500;
   line-height: 1.55;
 }
+.resource-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
 .resource-preview-section {
   display: grid;
   gap: 10px;

@@ -5,4 +5,4 @@ export * from "./resources.renderer.js";
 export * from "./resources.components.js";
 export * from "./resources.seed.js";
 
-export const RESOURCE_LIBRARY_MODULE_VERSION = "batch-2";
+export const RESOURCE_LIBRARY_MODULE_VERSION = "batch-3";

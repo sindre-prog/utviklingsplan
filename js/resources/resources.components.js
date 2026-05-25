@@ -69,7 +69,7 @@ export function createResourceCard(resource, options = {}) {
 }
 
 export function createResourcePreview(resource, options = {}) {
-  const { createElement } = options;
+  const { createElement, primaryAction = null } = options;
   requireCreateElement(createElement);
 
   if (!resource) {
@@ -89,7 +89,16 @@ export function createResourcePreview(resource, options = {}) {
         createElement("p", { class: "eyebrow", text: "Ressurs" }),
         createElement("h3", { text: resource.title }),
         createElement("p", { text: resource.client_intro || resource.summary || "" }),
-        createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
+        createElement("div", { class: "meta-row" }, metaPills(createElement, resource)),
+        primaryAction ? createElement("div", { class: "resource-preview-actions" }, [
+          createElement("button", {
+            class: "button primary",
+            type: "button",
+            onclick: () => primaryAction.onClick?.(resource)
+          }, [
+            createElement("span", { text: primaryAction.label || "Send ressurs" })
+          ])
+        ]) : null
       ])
     ]),
     createElement("section", { class: "resource-preview-section" }, [

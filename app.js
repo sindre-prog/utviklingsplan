@@ -645,7 +645,13 @@ async function renderResources() {
           el("p", { class: "muted", text: "Prøv et annet søk eller fjern filtrene." })
         ])
     );
-    previewSlot.replaceChildren(library.createResourcePreview(selected, { createElement: el }));
+    previewSlot.replaceChildren(library.createResourcePreview(selected, {
+      createElement: el,
+      primaryAction: canShareResources() ? {
+        label: "Send ressurs",
+        onClick: openSendResourceDrawer
+      } : null
+    }));
     refreshIcons();
   };
 
@@ -670,6 +676,73 @@ async function renderResources() {
 
 function getResourceLibrary() {
   return window.RaederResourceLibrary || null;
+}
+
+function canShareResources() {
+  return state.profile?.role === "coach" || state.profile?.role === "admin";
+}
+
+function openSendResourceDrawer(resource) {
+  if (!resource || !canShareResources()) return;
+  const clients = getVisibleClients().filter((client) => canShareResourceToClient(client));
+  if (!clients.length) {
+    showAppMessage("Ingen klienter å sende til", "Du har ingen klienter med åpne forløp som kan motta ressurser ennå.", { kicker: "Ressurser" });
+    return;
+  }
+
+  openEntityDrawer(`Send ${resource.title}`, "Ressurs", [
+    sectionSpec("Send ressurs", "Velg klient og legg ved en kort instruks. Ressursen legges i klientens coachingforløp."),
+    selectSpec("clientId", "Klient", clients.map((client) => [client.id, client.name || client.email || "Uten navn"]), clients[0]?.id || ""),
+    textareaSpec("coachNote", "Instruks til klient", resource.suggested_coach_note || "", {
+      placeholder: "Skriv kort hvorfor du sender ressursen, og hva klienten bør bruke den til."
+    })
+  ], async (values) => {
+    await sendResourceToClient(resource, values);
+  });
+}
+
+function canShareResourceToClient(client) {
+  if (!client) return false;
+  if (state.profile.role === "admin") return true;
+  const coachId = state.coach?.id;
+  return Boolean(coachId && (client.coach_ids || []).includes(coachId));
+}
+
+async function sendResourceToClient(resource, values) {
+  const library = getResourceLibrary();
+  if (!library?.shareResourceWithClient) throw new Error("Ressursmodulen mangler sendefunksjon.");
+
+  const client = state.clients.find((item) => item.id === values.clientId);
+  if (!client) throw new Error("Velg en klient.");
+
+  const program = await ensureClientProgram(client);
+  if (!program?.id) throw new Error("Klienten mangler coachingforløp.");
+
+  await library.shareResourceWithClient(state.sb, {
+    resourceId: resource.id,
+    clientId: client.id,
+    programId: program.id,
+    contextType: "program",
+    coachNote: values.coachNote
+  });
+
+  setTimeout(() => {
+    showAppMessage("Ressurs sendt", `${resource.title} er sendt til ${client.name || client.email || "klienten"}.`, { kicker: "Ressurser" });
+  }, 0);
+}
+
+async function ensureClientProgram(client) {
+  const cached = state.programCache[client.id];
+  if (cached?.program) return cached.program;
+
+  const { data, error } = await state.sb
+    .from("coaching_programs")
+    .select("*")
+    .eq("client_id", client.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
 
 function filterResourceList(resources, filters) {
