@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-65";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-66";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {
@@ -46,7 +46,7 @@ function renderResourceStep(textBlock, worksheetBlock, options = {}) {
 }
 
 export function renderResourceBlock(block, options = {}) {
-  const { createElement = null } = options;
+  const { createElement = null, resourceFiles = [], onOpenFile = null } = options;
   assertElementFactory(createElement);
 
   if (!block || typeof block !== "object") {
@@ -62,13 +62,29 @@ export function renderResourceBlock(block, options = {}) {
         textNode(createElement, "p", "resource-block__content", block.content)
       ]);
     case RESOURCE_BLOCK_TYPES.illustration:
-      return createElement("div", {
-        class: "resource-block resource-block--illustration",
-        "data-illustration-key": block.key || ""
-      }, [
-        createElement("span", { class: "resource-illustration-orb" }),
-        createElement("p", { text: illustrationLabel(block.key) })
-      ]);
+      {
+        const file = findIllustrationFile(block, resourceFiles);
+        const label = file?.display_name || block.display_name || illustrationLabel(block.key);
+        return createElement("div", {
+          class: `resource-block resource-block--illustration ${file ? "has-file" : ""}`,
+          "data-illustration-key": block.key || "",
+          "data-file-id": file?.id || block.file_id || ""
+        }, [
+          file?.storage_path
+            ? createElement("img", {
+              class: "resource-illustration-image",
+              alt: label,
+              "data-storage-path": file.storage_path
+            })
+            : createElement("span", { class: "resource-illustration-orb" }),
+          createElement("p", { text: label }),
+          file && onOpenFile ? createElement("button", {
+            class: "button ghost resource-file-open",
+            type: "button",
+            onclick: () => onOpenFile(file)
+          }, [createElement("span", { text: "Åpne illustrasjon" })]) : null
+        ].filter(Boolean));
+      }
     case RESOURCE_BLOCK_TYPES.worksheet:
       return createElement("section", { class: "resource-block resource-block--worksheet" }, [
         renderList(createElement, "resource-block__fields", block.fields || [])
@@ -85,6 +101,17 @@ export function renderResourceBlock(block, options = {}) {
         "data-block-type": block.type || "unknown"
       });
   }
+}
+
+function findIllustrationFile(block, files = []) {
+  if (!block) return null;
+  return files.find((file) => (
+    file.file_type === "illustration" &&
+    (
+      (block.file_id && file.id === block.file_id) ||
+      (block.storage_path && file.storage_path === block.storage_path)
+    )
+  )) || null;
 }
 
 export function renderReflectionPrompts(prompts = [], options = {}) {

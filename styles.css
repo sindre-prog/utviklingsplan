@@ -855,6 +855,20 @@ tr:last-child td { border-bottom: 0; }
   background: var(--hero);
   margin: 2px 0 8px;
 }
+
+.resource-block--illustration.has-file {
+  align-content: center;
+  background: #fff;
+}
+
+.resource-illustration-image {
+  display: block;
+  width: min(100%, 520px);
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
 .resource-block--illustration p {
   margin: 10px 0 0;
   color: rgba(0,0,0,.54);
@@ -1061,6 +1075,29 @@ tr:last-child td { border-bottom: 0; }
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.resource-admin-inline-help {
+  margin: -2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.resource-admin-advanced {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.resource-admin-advanced summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.resource-admin-advanced input {
+  margin-top: 8px;
 }
 
 .resource-admin-upload {
@@ -2914,7 +2951,7 @@ tr:last-child td { border-bottom: 0; }
   min-height: min(520px, calc(100dvh - 32px));
 }
 .modal-panel textarea,
-.drawer-panel textarea { min-height: 94px; }
+.drawer-panel textarea { min-height: 86px; }
 .modal-panel label,
 .drawer-panel label {
   color: rgba(0,0,0,.58);
@@ -2930,6 +2967,11 @@ tr:last-child td { border-bottom: 0; }
   min-width: 0;
   font-size: 14px;
   font-weight: 500;
+}
+
+.drawer-panel input,
+.drawer-panel select {
+  min-height: 48px;
 }
 .modal-head, .modal-actions { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
 .modal-actions {

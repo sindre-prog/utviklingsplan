@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-65";
+import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-66";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -127,7 +127,11 @@ export function createResourcePreview(resource, options = {}) {
     ]),
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Innhold" }),
-      createElement("div", { class: "resource-content" }, renderResourceContentBlocks(resource.content_json || [], { createElement }))
+      createElement("div", { class: "resource-content" }, renderResourceContentBlocks(resource.content_json || [], {
+        createElement,
+        resourceFiles: resource.files || [],
+        onOpenFile
+      }))
     ]),
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Refleksjonsspørsmål" }),
@@ -262,7 +266,11 @@ export function createClientResourceView(sharedResource, options = {}) {
     ]) : null,
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Innhold" }),
-      createElement("div", { class: "resource-content" }, renderResourceContentBlocks(resource.content_json || [], { createElement }))
+      createElement("div", { class: "resource-content" }, renderResourceContentBlocks(resource.content_json || [], {
+        createElement,
+        resourceFiles: resource.files || [],
+        onOpenFile
+      }))
     ]),
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Refleksjonsspørsmål" }),

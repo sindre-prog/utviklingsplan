@@ -757,7 +757,7 @@ function createResourceBlock(type = "text") {
   if (type === "intro") return { type: "intro", content: "" };
   if (type === "worksheet") return { type: "worksheet", fields: [""] };
   if (type === "reflection_questions") return { type: "reflection_questions", questions: [""] };
-  if (type === "illustration") return { type: "illustration", key: "" };
+  if (type === "illustration") return { type: "illustration", file_id: "", storage_path: "", display_name: "", key: "" };
   if (type === "download") return { type: "download", label: "", file_url: "" };
   return { type: "text", heading: "", content: "" };
 }
@@ -769,7 +769,13 @@ function normalizeResourceBlocks(blocks = []) {
     if (type === "intro") return { type, content: block.content || "" };
     if (type === "worksheet") return { type, fields: Array.isArray(block.fields) ? block.fields : [] };
     if (type === "reflection_questions") return { type, questions: Array.isArray(block.questions) ? block.questions : [] };
-    if (type === "illustration") return { type, key: block.key || "" };
+    if (type === "illustration") return {
+      type,
+      file_id: block.file_id || "",
+      storage_path: block.storage_path || "",
+      display_name: block.display_name || "",
+      key: block.key || ""
+    };
     if (type === "download") return { type, label: block.label || "", file_url: block.file_url || "" };
     return { type: "text", heading: block.heading || "", content: block.content || "" };
   });
@@ -782,7 +788,8 @@ function lineArray(value) {
     .filter(Boolean);
 }
 
-function createResourceBlockEditor(initialBlocks = [], onChange = null) {
+function createResourceBlockEditor(initialBlocks = [], options = {}) {
+  const { getFiles = () => [], onChange = null } = options;
   let blocks = normalizeResourceBlocks(initialBlocks);
   const hidden = el("textarea", {
     name: "content_json",
@@ -817,7 +824,53 @@ function createResourceBlockEditor(initialBlocks = [], onChange = null) {
       return [el("textarea", { rows: "4", text: (block.questions || []).join("\n"), placeholder: "Ett spørsmål per linje", oninput: (event) => patchBlock(index, { questions: lineArray(event.target.value) }) })];
     }
     if (block.type === "illustration") {
-      return [el("input", { type: "text", value: block.key || "", placeholder: "illustrasjonsnøkkel, f.eks. control_circle", oninput: (event) => patchBlock(index, { key: event.target.value }) })];
+      const illustrations = (getFiles() || []).filter((file) => file.file_type === "illustration");
+      const selectedValue = block.file_id || block.storage_path || "";
+      const select = el("select", {
+        value: selectedValue,
+        onchange: (event) => {
+          const file = illustrations.find((item) => item.id === event.target.value || item.storage_path === event.target.value);
+          patchBlock(index, file ? {
+            file_id: file.id || "",
+            storage_path: file.storage_path || "",
+            display_name: file.display_name || "",
+            key: ""
+          } : {
+            file_id: "",
+            storage_path: "",
+            display_name: "",
+            key: block.key || ""
+          });
+        }
+      });
+      select.append(el("option", { value: "", text: illustrations.length ? "Velg illustrasjon" : "Ingen illustrasjoner lastet opp ennå" }));
+      illustrations.forEach((file) => {
+        select.append(el("option", {
+          value: file.id || file.storage_path,
+          text: file.display_name,
+          selected: selectedValue && (selectedValue === file.id || selectedValue === file.storage_path)
+        }));
+      });
+      return [
+        select,
+        illustrations.length
+          ? el("p", { class: "resource-admin-inline-help", text: "Velg en opplastet illustrasjon. Nye illustrasjoner legges til under Filer og bilder." })
+          : el("p", { class: "resource-admin-inline-help", text: "Last opp en fil med type Illustrasjon under Filer og bilder, og velg den her etterpå." }),
+        el("details", { class: "resource-admin-advanced" }, [
+          el("summary", { text: "Avansert: bruk gammel illustrasjonsnøkkel" }),
+          el("input", {
+            type: "text",
+            value: block.key || "",
+            placeholder: "f.eks. control_circle",
+            oninput: (event) => patchBlock(index, {
+              key: event.target.value,
+              file_id: "",
+              storage_path: "",
+              display_name: ""
+            })
+          })
+        ])
+      ];
     }
     if (block.type === "download") {
       return [
@@ -862,6 +915,7 @@ function createResourceBlockEditor(initialBlocks = [], onChange = null) {
       ])
     ])
   ]);
+  editor.refresh = render;
   render();
   return editor;
 }
@@ -871,6 +925,7 @@ function createResourceAdminPreview(library, getResourceDraft) {
   const renderPreview = () => {
     try {
       previewSlot.replaceChildren(library.createResourcePreview(getResourceDraft(), { createElement: el, onOpenFile: openResourceFile }));
+      hydrateResourceMedia(previewSlot);
       refreshIcons();
     } catch (error) {
       previewSlot.replaceChildren(el("p", { class: "muted", text: error.message || "Kunne ikke vise preview." }));
@@ -905,7 +960,23 @@ async function openResourceFile(file) {
   }
 }
 
-function createResourceFileManager(resource, library) {
+async function hydrateResourceMedia(root) {
+  const library = await ensureResourceLibrary();
+  if (!library?.getResourceFileUrl || !root) return;
+  const images = $$("img[data-storage-path]", root);
+  await Promise.all(images.map(async (image) => {
+    if (image.dataset.loaded === "true") return;
+    try {
+      image.src = await library.getResourceFileUrl(state.sb, image.dataset.storagePath);
+      image.dataset.loaded = "true";
+    } catch {
+      image.replaceWith(el("p", { class: "muted", text: "Kunne ikke laste illustrasjonen." }));
+    }
+  }));
+}
+
+function createResourceFileManager(resource, library, options = {}) {
+  const { onFilesChange = null } = options;
   if (!resource?.id) {
     return el("section", { class: "resource-admin-files" }, [
       el("div", { class: "resource-admin-helper-card" }, [
@@ -933,6 +1004,7 @@ function createResourceFileManager(resource, library) {
         if (!await confirmDelete(`Fjerne "${file.display_name}" fra ressursen?`)) return;
         await library.archiveResourceFile(state.sb, file.id);
         resource.files = files.filter((item) => item.id !== file.id);
+        onFilesChange?.(resource.files);
         renderFiles();
       } }, [icon("trash-2"), el("span", { text: "Fjern" })])
     ])));
@@ -965,6 +1037,7 @@ function createResourceFileManager(resource, library) {
             sortOrder: (resource.files || []).length
           });
           resource.files = [...(resource.files || []), uploaded];
+          onFilesChange?.(resource.files);
           fileInput.value = "";
           displayName.value = "";
           message.textContent = "Fil lastet opp.";
@@ -1078,41 +1151,48 @@ async function openResourceAdminEditor(resource = null) {
     }, [icon("copy"), el("span", { text: "Dupliser ressurs" })])
   ]) : null;
 
+  let blockEditor = null;
+  const refreshBlocks = () => blockEditor?.refresh?.();
+  blockEditor = createResourceBlockEditor(resource?.content_json || [], {
+    getFiles: () => resource?.files || [],
+    onChange: () => {}
+  });
+
   specs = [
-    sectionSpec("Grunninfo", "Publiserte ressurser med synlighet «Kan sendes til klient» vises i Ressurser og kan deles av coach."),
+    sectionSpec("Grunninfo", "Start med det coach og klient faktisk ser først."),
     inputSpec("title", "Tittel", "text", resource?.title || ""),
+    textareaSpec("summary", "Kort beskrivelse", resource?.summary || "", { rows: "3" }),
     inputSpec("slug", "Slug", "text", resource?.slug || "", { placeholder: "genereres fra tittel hvis tom" }),
-    textareaSpec("summary", "Summary", resource?.summary || "", { rows: "3" }),
-    selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework"),
-    selectSpec("format", "Format", RESOURCE_FORMAT_OPTIONS, resource?.format || "native"),
-    selectSpec("phase", "Fase", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection"),
-    selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "published"),
-    selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable"),
-    selectSpec("review_status", "Fagstatus", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "approved_for_pilot"),
-    inputSpec("estimated_duration", "Varighet i minutter", "number", resource?.estimated_duration || "", { min: "1" }),
-    selectSpec("difficulty", "Vanskelighetsgrad", RESOURCE_DIFFICULTY_OPTIONS, resource?.difficulty || ""),
-    inputSpec("language", "Språk", "text", resource?.language || "no"),
-    sectionSpec("Faglig bruk", "Dette hjelper coachen å velge riktig ressurs."),
+    sectionSpec("Innhold", "Bygg ressursen med lesbare blokker og tilhørende refleksjon."),
+    customSpec("content_json", blockEditor),
+    textareaSpec("reflection_prompts", "Refleksjonsspørsmål", (resource?.reflection_prompts || []).join("\n"), { rows: "5" }),
+    textareaSpec("next_step_prompt", "Neste steg", resource?.next_step_prompt || "", { rows: "2" }),
+    customSpec("resource_files", createResourceFileManager(resource, library, { onFilesChange: refreshBlocks })),
+    customSpec("resource_preview", createResourceAdminPreview(library, getDraftResource)),
+    sectionSpec("Bruk i coaching", "Hjelper coachen å velge riktig ressurs og bruke den presist."),
     textareaSpec("intended_outcome", "Hva ressursen skal hjelpe med", resource?.intended_outcome || "", { rows: "3" }),
     textareaSpec("best_used_when", "Best brukt når", (resource?.best_used_when || []).join("\n"), { rows: "4" }),
     textareaSpec("not_for", "Ikke egnet når", (resource?.not_for || []).join("\n"), { rows: "4" }),
     textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" }),
     textareaSpec("client_intro", "Intro til klient", resource?.client_intro || "", { rows: "4" }),
     textareaSpec("suggested_coach_note", "Foreslått instruks fra coach", resource?.suggested_coach_note || "", { rows: "3" }),
+    sectionSpec("Publisering og metadata", "Publiserte ressurser med synlighet «Kan sendes til klient» vises i Ressurser og kan deles av coach."),
+    selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework"),
+    selectSpec("format", "Format", RESOURCE_FORMAT_OPTIONS, resource?.format || "native"),
+    selectSpec("phase", "Fase", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection"),
+    inputSpec("estimated_duration", "Varighet i minutter", "number", resource?.estimated_duration || "", { min: "1" }),
+    selectSpec("difficulty", "Vanskelighetsgrad", RESOURCE_DIFFICULTY_OPTIONS, resource?.difficulty || ""),
     selectSpec("default_context_types", "Standard kontekster", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"], true),
-    sectionSpec("Innhold", "Bygg hovedinnholdet med blokker. Dette erstatter rå JSON i vanlig bruk."),
-    customSpec("content_json", createResourceBlockEditor(resource?.content_json || [])),
-    textareaSpec("reflection_prompts", "Refleksjonsspørsmål", (resource?.reflection_prompts || []).join("\n"), { rows: "5" }),
-    textareaSpec("next_step_prompt", "Neste steg", resource?.next_step_prompt || "", { rows: "2" }),
-    customSpec("resource_files", createResourceFileManager(resource, library)),
-    customSpec("resource_preview", createResourceAdminPreview(library, getDraftResource)),
+    selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "published"),
+    selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable"),
+    selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || (resource?.status === "published" ? "approved_for_pilot" : "draft")),
+    inputSpec("language", "Språk", "text", resource?.language || "no"),
     textareaSpec("basis", "Faglig grunnlag", resource?.basis || "", { rows: "3" }),
     inputSpec("reviewed_by", "Vurdert av", "text", resource?.reviewed_by || ""),
     inputSpec("last_reviewed_at", "Sist vurdert", "date", resource?.last_reviewed_at || ""),
     textareaSpec("tags", "Tags", (resource?.tags || []).join(", "), { rows: "2" }),
     ...(duplicateAction ? [customSpec("resource_actions", duplicateAction)] : [])
   ];
-
   openEntityDrawer(isNew ? "Ny ressurs" : resource.title, "Fagbibliotek", specs, async (values) => {
     const payload = parseResourceAdminPayload(values, resource);
     if (isNew) await library.createResource(state.sb, payload);
@@ -1252,6 +1332,7 @@ async function renderResources() {
         onClick: openSendResourceDrawer
       } : null
     }));
+    hydrateResourceMedia(previewSlot);
     refreshIcons();
   };
 
@@ -1283,7 +1364,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-65")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-66")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -2540,6 +2621,7 @@ function resourcesFromCoachSection(data, canWriteReflection) {
           : "Ingen ressurser er sendt i dette forløpet ennå."
       })
     );
+    hydrateResourceMedia(section);
   };
 
   renderSection();
