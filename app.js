@@ -686,6 +686,7 @@ async function renderResourceAdminSection(slot) {
       resourceLabel(RESOURCE_STATUS_OPTIONS, resource.status),
       (resource.tags || []).join(", ") || "-",
       actionGroup([
+        ...(resource.status === "draft" ? [["Publiser", () => publishResource(resource)]] : []),
         ["Rediger", () => openResourceAdminEditor(resource)],
         [resource.status === "archived" ? "Reaktiver" : "Arkiver", () => toggleResourceArchive(resource)]
       ])
@@ -761,7 +762,7 @@ function parseResourceAdminPayload(values, currentResource = null) {
     throw new Error("Varighet må være et positivt heltall.");
   }
 
-  const status = values.status || currentResource?.status || "draft";
+  const status = values.status || currentResource?.status || "published";
 
   return {
     title,
@@ -773,7 +774,7 @@ function parseResourceAdminPayload(values, currentResource = null) {
     visibility: values.visibility || "client_assignable",
     status,
     archived_at: status === "archived" ? (currentResource?.archived_at || new Date().toISOString()) : null,
-    review_status: values.review_status || "draft",
+    review_status: values.review_status || "approved_for_pilot",
     language: values.language.trim() || "no",
     estimated_duration: estimatedDuration,
     difficulty: values.difficulty || null,
@@ -811,9 +812,9 @@ async function openResourceAdminEditor(resource = null) {
     selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework"),
     selectSpec("format", "Format", RESOURCE_FORMAT_OPTIONS, resource?.format || "native"),
     selectSpec("phase", "Fase", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection"),
-    selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "draft"),
+    selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "published"),
     selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable"),
-    selectSpec("review_status", "Fagstatus", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft"),
+    selectSpec("review_status", "Fagstatus", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "approved_for_pilot"),
     inputSpec("estimated_duration", "Varighet i minutter", "number", resource?.estimated_duration || "", { min: "1" }),
     selectSpec("difficulty", "Vanskelighetsgrad", RESOURCE_DIFFICULTY_OPTIONS, resource?.difficulty || ""),
     inputSpec("language", "Språk", "text", resource?.language || "no"),
@@ -847,6 +848,18 @@ async function openResourceAdminEditor(resource = null) {
       return true;
     }
   } : {});
+}
+
+async function publishResource(resource) {
+  const library = await ensureResourceLibrary();
+  if (!library?.updateResource) return;
+  await library.updateResource(state.sb, resource.id, {
+    status: "published",
+    visibility: resource.visibility || "client_assignable",
+    review_status: resource.review_status || "approved_for_pilot",
+    archived_at: null
+  }, resource.tags || []);
+  await renderAdmin();
 }
 
 async function toggleResourceArchive(resource) {
