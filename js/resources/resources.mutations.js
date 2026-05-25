@@ -43,19 +43,15 @@ export async function updateSharedResourceStatus(supabaseClient, sharedResourceI
 export async function saveClientResourceReflection(supabaseClient, sharedResourceId, values) {
   requireSupabaseClient(supabaseClient);
 
-  const payload = {
-    client_note: values.clientNote || "",
-    client_visibility: values.clientVisibility || "private",
-    status: values.status || "responded",
-    responded_at: new Date().toISOString()
-  };
+  if (typeof supabaseClient.rpc !== "function") {
+    throw new TypeError("Supabase RPC support is required for saving resource reflections.");
+  }
 
-  const { data, error } = await supabaseClient
-    .from("shared_resources")
-    .update(payload)
-    .eq("id", sharedResourceId)
-    .select("*")
-    .single();
+  const { data, error } = await supabaseClient.rpc("save_client_resource_reflection_safe", {
+    p_shared_resource_id: sharedResourceId,
+    p_client_note: values.clientNote || "",
+    p_client_visibility: values.clientVisibility || "private"
+  });
 
   if (error) throw error;
 
