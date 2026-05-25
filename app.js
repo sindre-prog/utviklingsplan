@@ -1869,14 +1869,15 @@ function resourcesFromCoachSection(data, canWriteReflection) {
     el("div", { class: "client-resources-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Ressurser fra coach" }),
-        el("h3", { text: canWriteReflection ? "Ressurser som er sendt til deg" : "Ressurser sendt til klienten" }),
+        el("h3", { text: canWriteReflection ? "Ressurser fra coachen din" : "Ressurser delt med klienten" }),
         el("p", { class: "muted", text: canWriteReflection
-          ? "Åpne ressursen, bruk den i ditt eget tempo, og del refleksjon bare når det er nyttig."
-          : "Her ser du ressursene som er sendt i dette coachingforløpet." })
+          ? "Her finner du ressurser coachen din har sendt som støtte i arbeidet dere gjør sammen."
+          : "Her ser du ressursene som er delt i dette coachingforløpet." })
       ])
     ]),
     library.createClientResourceList(sharedResources, {
       createElement: el,
+      selectedId: selected?.id || null,
       onOpen: (sharedResource) => openSharedResource(sharedResource, canWriteReflection),
       emptyText: canWriteReflection
         ? "Når coachen sender en ressurs, vises den her."
