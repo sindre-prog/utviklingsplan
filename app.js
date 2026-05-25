@@ -685,7 +685,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-56")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-57")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1870,10 +1870,11 @@ function resourcesFromCoachSection(data, canWriteReflection) {
   if (!library?.createClientResourceList) return null;
 
   const sharedResources = data.sharedResources || [];
-  const selected = sharedResources.find((item) => item.id === state.selectedSharedResourceId) || null;
-
-  return el("section", { class: "ui-section-card panel document-panel client-resources-section" }, [
-    el("div", { class: "client-resources-head" }, [
+  const section = el("section", { class: "ui-section-card panel document-panel client-resources-section" });
+  const renderSection = () => {
+    const selected = sharedResources.find((item) => item.id === state.selectedSharedResourceId) || null;
+    section.replaceChildren(
+      el("div", { class: "client-resources-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Ressurser fra coach" }),
         el("h3", { text: canWriteReflection ? "Ressurser fra coachen din" : "Ressurser delt med klienten" }),
@@ -1881,29 +1882,34 @@ function resourcesFromCoachSection(data, canWriteReflection) {
           ? "Her finner du ressurser coachen din har sendt som støtte i arbeidet dere gjør sammen."
           : "Her ser du ressursene som er delt i dette coachingforløpet." })
       ])
-    ]),
-    library.createClientResourceList(sharedResources, {
-      createElement: el,
-      selectedId: selected?.id || null,
-      onOpen: (sharedResource) => openSharedResource(sharedResource, canWriteReflection),
-      emptyText: canWriteReflection
-        ? "Når coachen sender en ressurs, vises den her."
-        : "Ingen ressurser er sendt i dette forløpet ennå."
-    }),
-    selected ? library.createClientResourceView(selected, {
-      createElement: el,
-      readOnly: !canWriteReflection,
-      onClose: () => {
-        state.selectedSharedResourceId = null;
-        reloadProgramAndRender("reflections");
-      },
-      onSave: saveSharedResourceReflection
-    }) : null
-  ].filter(Boolean));
+      ]),
+      library.createClientResourceList(sharedResources, {
+        createElement: el,
+        selectedId: selected?.id || null,
+        onOpen: (sharedResource) => openSharedResource(sharedResource, canWriteReflection, renderSection),
+        renderSelected: (sharedResource) => library.createClientResourceView(sharedResource, {
+          createElement: el,
+          readOnly: !canWriteReflection,
+          onClose: () => {
+            state.selectedSharedResourceId = null;
+            renderSection();
+          },
+          onSave: (resource, values) => saveSharedResourceReflection(resource, values, renderSection)
+        }),
+        emptyText: canWriteReflection
+          ? "Når coachen sender en ressurs, vises den her."
+          : "Ingen ressurser er sendt i dette forløpet ennå."
+      })
+    );
+  };
+
+  renderSection();
+  return section;
 }
 
-async function openSharedResource(sharedResource, canWriteReflection) {
+async function openSharedResource(sharedResource, canWriteReflection, renderSection = null) {
   state.selectedSharedResourceId = sharedResource.id;
+  renderSection?.();
 
   if (canWriteReflection && sharedResource.status === "assigned") {
     const library = await ensureResourceLibrary();
@@ -1912,19 +1918,19 @@ async function openSharedResource(sharedResource, canWriteReflection) {
         status: "viewed",
         viewed_at: new Date().toISOString()
       });
+      sharedResource.status = "viewed";
+      sharedResource.viewed_at = new Date().toISOString();
     } catch (error) {
       await showAppMessage("Kunne ikke oppdatere status", error.message || "Ressursen kan fortsatt åpnes.");
     }
   }
-
-  await reloadProgramAndRender("reflections");
 }
 
-async function saveSharedResourceReflection(sharedResource, values) {
+async function saveSharedResourceReflection(sharedResource, values, renderSection = null) {
   const library = await ensureResourceLibrary();
   if (!library?.saveClientResourceReflection) {
     await showAppMessage("Kunne ikke lagre", "Ressursmodulen mangler lagrefunksjon.");
-    return;
+    throw new Error("Ressursmodulen mangler lagrefunksjon.");
   }
 
   try {
@@ -1933,9 +1939,14 @@ async function saveSharedResourceReflection(sharedResource, values) {
       clientVisibility: values.clientVisibility || "private",
       status: "responded"
     });
-    await reloadProgramAndRender("reflections");
+    sharedResource.client_note = values.clientNote || "";
+    sharedResource.client_visibility = values.clientVisibility || "private";
+    sharedResource.status = "responded";
+    sharedResource.responded_at = new Date().toISOString();
+    renderSection?.();
   } catch (error) {
     await showAppMessage("Kunne ikke lagre refleksjonen", error.message || "Prøv igjen.");
+    throw error;
   }
 }
 

@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-56";
+import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-57";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -56,6 +56,10 @@ function resourceContextText(sharedResource) {
   return `Knyttet til ${contextLabel(sharedResource).toLowerCase()}`;
 }
 
+function visibleResourceFiles(resource) {
+  return (resource.files || []).filter((file) => file.file_type !== "cover_image");
+}
+
 function listSection(createElement, title, items = []) {
   if (!items.length) return null;
 
@@ -83,6 +87,7 @@ export function createResourceCard(resource, options = {}) {
 export function createResourcePreview(resource, options = {}) {
   const { createElement, primaryAction = null } = options;
   requireCreateElement(createElement);
+  const files = visibleResourceFiles(resource || {});
 
   if (!resource) {
     return createElement("section", { class: "resource-preview empty-state" }, [
@@ -130,8 +135,8 @@ export function createResourcePreview(resource, options = {}) {
     ]),
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Filer og illustrasjoner" }),
-      (resource.files || []).length
-        ? createElement("ul", { class: "resource-files" }, resource.files.map((file) => (
+      files.length
+        ? createElement("ul", { class: "resource-files" }, files.map((file) => (
           createElement("li", {}, [
             createElement("span", { text: file.display_name }),
             createElement("small", { text: file.storage_path })
@@ -147,7 +152,14 @@ export function createSendResourceDrawer() {
 }
 
 export function createClientResourceList(sharedResources = [], options = {}) {
-  const { createElement, onOpen, selectedId = null, emptyTitle = "Ingen ressurser fra coach ennå", emptyText = "Når coachen sender en ressurs, vises den her." } = options;
+  const {
+    createElement,
+    onOpen,
+    renderSelected,
+    selectedId = null,
+    emptyTitle = "Ingen ressurser fra coach ennå",
+    emptyText = "Når coachen sender en ressurs, vises den her."
+  } = options;
   requireCreateElement(createElement);
 
   if (!sharedResources.length) {
@@ -175,8 +187,9 @@ export function createClientResourceList(sharedResources = [], options = {}) {
           contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null
         ]),
         createElement("span", { class: "client-resource-action", text: selected ? "Åpen" : "Åpne" })
-      ].filter(Boolean))
-    ]);
+      ].filter(Boolean)),
+      selected && typeof renderSelected === "function" ? renderSelected(sharedResource) : null
+    ].filter(Boolean));
   }));
 }
 
@@ -185,8 +198,11 @@ export function createClientResourceView(sharedResource, options = {}) {
   requireCreateElement(createElement);
 
   const resource = sharedResource?.resource || {};
+  const files = visibleResourceFiles(resource);
   const privateResponse = readOnly && sharedResource?.client_note_is_private;
   let clientVisibility = sharedResource?.client_visibility === "shared_with_coach" ? "shared_with_coach" : "private";
+  let saveStatus = null;
+  let saveButton = null;
   const note = createElement("textarea", {
     class: "ui-edit-control client-resource-note",
     text: sharedResource?.client_note || "",
@@ -236,9 +252,9 @@ export function createClientResourceView(sharedResource, options = {}) {
       createElement("h4", { text: "Refleksjonsspørsmål" }),
       createElement("div", { class: "resource-reflection-prompts" }, renderReflectionPrompts(resource.reflection_prompts || [], { createElement }))
     ]),
-    (resource.files || []).length ? createElement("section", { class: "resource-preview-section" }, [
+    files.length ? createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Filer" }),
-      createElement("ul", { class: "resource-files" }, resource.files.map((file) => createElement("li", {}, [
+      createElement("ul", { class: "resource-files" }, files.map((file) => createElement("li", {}, [
         createElement("span", { text: file.display_name })
       ])))
     ]) : null,
@@ -253,14 +269,27 @@ export function createClientResourceView(sharedResource, options = {}) {
         ])
       ]),
       readOnly || privateResponse ? null : createElement("div", { class: "toolbar" }, [
-        createElement("button", {
+        saveStatus = createElement("span", { class: "muted client-resource-save-status", text: sharedResource?.client_note ? "Lagret" : "Ikke lagret" }),
+        saveButton = createElement("button", {
           class: "ui-button ui-button-filled",
           type: "button",
           text: "Lagre refleksjon",
-          onclick: () => onSave?.(sharedResource, {
-            clientNote: note.value || "",
-            clientVisibility
-          })
+          onclick: async () => {
+            if (!onSave) return;
+            saveButton.disabled = true;
+            saveStatus.textContent = "Lagrer...";
+            try {
+              await onSave(sharedResource, {
+                clientNote: note.value || "",
+                clientVisibility
+              });
+              saveStatus.textContent = clientVisibility === "shared_with_coach" ? "Lagret og delt med coach" : "Lagret privat";
+            } catch (error) {
+              saveStatus.textContent = "Kunne ikke lagre";
+            } finally {
+              saveButton.disabled = false;
+            }
+          }
         })
       ])
     ].filter(Boolean))
