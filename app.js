@@ -685,7 +685,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-57")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-58")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1846,8 +1846,8 @@ function setSessions(values) {
 function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
   const intro = canWriteReflection
-    ? workspaceIntro("Egen refleksjon", "Det du vil huske, forstå eller utforske videre", "Skriv ned tanker, reaksjoner eller observasjoner mens de fortsatt er ferske. Ingenting deles før du velger det selv.")
-    : workspaceIntro("Delt med coach", "Refleksjoner som er delt", "Her vises kun refleksjoner som aktivt er delt i coachingforløpet.");
+    ? workspaceIntro("Arbeid mellom samtalene", "Ressurser og refleksjoner", "Her finner du ressurser coachen din har sendt, og refleksjoner du selv skriver underveis.")
+    : workspaceIntro("Oppfølging", "Ressurser og delte refleksjoner", "Her ser du ressursene som er delt med klienten, og refleksjoner klienten aktivt har valgt å dele.");
   return el("div", { class: "reflection-space" }, [
     intro,
     resourcesFromCoachSection(data, canWriteReflection),
@@ -1875,13 +1875,13 @@ function resourcesFromCoachSection(data, canWriteReflection) {
     const selected = sharedResources.find((item) => item.id === state.selectedSharedResourceId) || null;
     section.replaceChildren(
       el("div", { class: "client-resources-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Ressurser fra coach" }),
-        el("h3", { text: canWriteReflection ? "Ressurser fra coachen din" : "Ressurser delt med klienten" }),
-        el("p", { class: "muted", text: canWriteReflection
-          ? "Her finner du ressurser coachen din har sendt som støtte i arbeidet dere gjør sammen."
-          : "Her ser du ressursene som er delt i dette coachingforløpet." })
-      ])
+        el("div", {}, [
+          el("p", { class: "eyebrow", text: canWriteReflection ? "Fra coachen din" : "Delte ressurser" }),
+          el("h3", { text: canWriteReflection ? "Oppgaver og ressurser" : "Ressurser delt med klienten" }),
+          el("p", { class: "muted", text: canWriteReflection
+            ? "Åpne en ressurs når du vil lese, bruke en øvelse eller skrive en refleksjon knyttet til den."
+            : "Her ser du ressursene som er delt i dette coachingforløpet." })
+        ])
       ]),
       library.createClientResourceList(sharedResources, {
         createElement: el,
@@ -1972,11 +1972,11 @@ function reflectionComposer(data) {
     el("div", { class: "reflection-composer-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Ny refleksjon" }),
-        el("h3", { text: "Hva skjedde?" }),
-        el("p", { class: "muted", text: "Skriv kort om hva du gjorde, hva du la merke til, og hva du vil ta med til neste samtale." })
+        el("h3", { text: "Skriv en egen refleksjon" }),
+        el("p", { class: "muted", text: "Bruk dette når du vil notere noe fra hverdagen, uavhengig av en bestemt ressurs." })
       ])
     ]),
-    el("textarea", { class: "ui-edit-control", id: "reflection-body", placeholder: "Hva skjedde? Hva gjorde du? Hva la du merke til hos deg selv eller andre?" }),
+    el("textarea", { class: "ui-edit-control", id: "reflection-body", placeholder: "Hva skjedde? Hva la du merke til? Hva vil du ta med videre?" }),
     visibilityValue,
     el("div", { class: "field-pair" }, [
       el("div", { class: "visibility-control" }, [
