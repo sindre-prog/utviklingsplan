@@ -63,6 +63,21 @@ const RESOURCE_REVIEW_STATUS_OPTIONS = [
   ["reviewed", "Vurdert"],
   ["needs_revision", "Må revideres"]
 ];
+const RESOURCE_FILE_TYPE_OPTIONS = [
+  ["illustration", "Illustrasjon"],
+  ["printable", "Print/PDF"],
+  ["attachment", "Vedlegg"],
+  ["audio", "Lyd"],
+  ["video", "Video"]
+];
+const RESOURCE_BLOCK_TYPE_LABELS = {
+  intro: "Intro",
+  text: "Tekstseksjon",
+  worksheet: "Worksheet-felt",
+  reflection_questions: "Refleksjonsspørsmål",
+  illustration: "Illustrasjon",
+  download: "Nedlasting"
+};
 const RESOURCE_DIFFICULTY_OPTIONS = [
   ["", "Ikke satt"],
   ["easy", "Enkel"],
@@ -699,7 +714,7 @@ async function renderResourceAdminSection(slot) {
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fagbibliotek" }),
         el("h3", { text: "Ressurser" }),
-        el("p", { class: "muted", text: "Administrer pilotressurser. Bruk enkel JSON for innholdsblokker inntil blokkeditoren er verdt å bygge." })
+        el("p", { class: "muted", text: "Administrer pilotressurser, innholdsblokker, bilder og filer. Publiserte ressurser vises i Ressurser." })
       ]),
       button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
     ]),
@@ -736,6 +751,231 @@ function textLines(value = "") {
 
 function jsonText(value, fallback = []) {
   return JSON.stringify(value ?? fallback, null, 2);
+}
+
+function createResourceBlock(type = "text") {
+  if (type === "intro") return { type: "intro", content: "" };
+  if (type === "worksheet") return { type: "worksheet", fields: [""] };
+  if (type === "reflection_questions") return { type: "reflection_questions", questions: [""] };
+  if (type === "illustration") return { type: "illustration", key: "" };
+  if (type === "download") return { type: "download", label: "", file_url: "" };
+  return { type: "text", heading: "", content: "" };
+}
+
+function normalizeResourceBlocks(blocks = []) {
+  return (Array.isArray(blocks) ? blocks : []).map((block) => {
+    if (!block || typeof block !== "object") return createResourceBlock("text");
+    const type = block.type || "text";
+    if (type === "intro") return { type, content: block.content || "" };
+    if (type === "worksheet") return { type, fields: Array.isArray(block.fields) ? block.fields : [] };
+    if (type === "reflection_questions") return { type, questions: Array.isArray(block.questions) ? block.questions : [] };
+    if (type === "illustration") return { type, key: block.key || "" };
+    if (type === "download") return { type, label: block.label || "", file_url: block.file_url || "" };
+    return { type: "text", heading: block.heading || "", content: block.content || "" };
+  });
+}
+
+function lineArray(value) {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function createResourceBlockEditor(initialBlocks = [], onChange = null) {
+  let blocks = normalizeResourceBlocks(initialBlocks);
+  const hidden = el("textarea", {
+    name: "content_json",
+    class: "resource-admin-hidden-json",
+    text: jsonText(blocks),
+    "aria-hidden": "true",
+    tabindex: "-1"
+  });
+  const list = el("div", { class: "resource-block-editor-list" });
+  const addSelect = el("select", { class: "resource-admin-compact-select" });
+  Object.entries(RESOURCE_BLOCK_TYPE_LABELS).forEach(([value, label]) => {
+    addSelect.append(el("option", { value, text: label }));
+  });
+
+  const serialize = () => {
+    hidden.value = jsonText(blocks);
+    onChange?.(blocks);
+  };
+  const patchBlock = (index, patch) => {
+    blocks[index] = { ...blocks[index], ...patch };
+    serialize();
+  };
+
+  const renderBlockControls = (block, index) => {
+    if (block.type === "intro") {
+      return [el("textarea", { rows: "3", text: block.content || "", placeholder: "Kort intro til ressursen", oninput: (event) => patchBlock(index, { content: event.target.value }) })];
+    }
+    if (block.type === "worksheet") {
+      return [el("textarea", { rows: "4", text: (block.fields || []).join("\n"), placeholder: "Ett felt per linje", oninput: (event) => patchBlock(index, { fields: lineArray(event.target.value) }) })];
+    }
+    if (block.type === "reflection_questions") {
+      return [el("textarea", { rows: "4", text: (block.questions || []).join("\n"), placeholder: "Ett spørsmål per linje", oninput: (event) => patchBlock(index, { questions: lineArray(event.target.value) }) })];
+    }
+    if (block.type === "illustration") {
+      return [el("input", { type: "text", value: block.key || "", placeholder: "illustrasjonsnøkkel, f.eks. control_circle", oninput: (event) => patchBlock(index, { key: event.target.value }) })];
+    }
+    if (block.type === "download") {
+      return [
+        el("input", { type: "text", value: block.label || "", placeholder: "Lenketekst", oninput: (event) => patchBlock(index, { label: event.target.value }) }),
+        el("input", { type: "text", value: block.file_url || "", placeholder: "Filsti eller URL", oninput: (event) => patchBlock(index, { file_url: event.target.value }) })
+      ];
+    }
+    return [
+      el("input", { type: "text", value: block.heading || "", placeholder: "Overskrift", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
+      el("textarea", { rows: "4", text: block.content || "", placeholder: "Tekst", oninput: (event) => patchBlock(index, { content: event.target.value }) })
+    ];
+  };
+
+  const render = () => {
+    serialize();
+    list.replaceChildren(...blocks.map((block, index) => el("article", { class: "resource-block-editor-card" }, [
+      el("div", { class: "resource-block-editor-head" }, [
+        el("strong", { text: RESOURCE_BLOCK_TYPE_LABELS[block.type] || "Blokk" }),
+        el("div", { class: "resource-block-editor-actions" }, [
+          el("button", { class: "button ghost", type: "button", disabled: index === 0, onclick: () => { [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]]; render(); } }, [icon("arrow-up")]),
+          el("button", { class: "button ghost", type: "button", disabled: index === blocks.length - 1, onclick: () => { [blocks[index], blocks[index + 1]] = [blocks[index + 1], blocks[index]]; render(); } }, [icon("arrow-down")]),
+          el("button", { class: "button ghost", type: "button", onclick: () => { blocks.splice(index, 1); render(); } }, [icon("trash-2")])
+        ])
+      ]),
+      el("div", { class: "resource-block-editor-fields" }, renderBlockControls(block, index))
+    ])));
+    refreshIcons();
+  };
+
+  const editor = el("div", { class: "resource-block-editor" }, [
+    hidden,
+    el("div", { class: "resource-admin-helper-card" }, [
+      el("strong", { text: "Innholdsblokker" }),
+      el("p", { text: "Bygg ressursen med enkle blokker. Dette lagres strukturert, men du slipper å skrive JSON." })
+    ]),
+    list,
+    el("div", { class: "resource-block-editor-add" }, [
+      addSelect,
+      el("button", { class: "button secondary", type: "button", onclick: () => { blocks.push(createResourceBlock(addSelect.value)); render(); } }, [
+        icon("plus"),
+        el("span", { text: "Legg til blokk" })
+      ])
+    ])
+  ]);
+  render();
+  return editor;
+}
+
+function createResourceAdminPreview(library, getResourceDraft) {
+  const previewSlot = el("div", { class: "resource-admin-preview-slot" });
+  const renderPreview = () => {
+    try {
+      previewSlot.replaceChildren(library.createResourcePreview(getResourceDraft(), { createElement: el, onOpenFile: openResourceFile }));
+      refreshIcons();
+    } catch (error) {
+      previewSlot.replaceChildren(el("p", { class: "muted", text: error.message || "Kunne ikke vise preview." }));
+    }
+  };
+  const wrapper = el("section", { class: "resource-admin-preview" }, [
+    el("div", { class: "resource-admin-preview-head" }, [
+      el("div", {}, [
+        el("strong", { text: "Forhåndsvisning" }),
+        el("p", { text: "Viser omtrent hvordan ressursen leses i biblioteket." })
+      ]),
+      el("button", { class: "button secondary", type: "button", onclick: renderPreview }, [
+        icon("refresh-cw"),
+        el("span", { text: "Oppdater preview" })
+      ])
+    ]),
+    previewSlot
+  ]);
+  setTimeout(renderPreview, 0);
+  return wrapper;
+}
+
+async function openResourceFile(file) {
+  const library = await ensureResourceLibrary();
+  if (!library?.getResourceFileUrl || !file?.storage_path) return;
+  try {
+    const url = await library.getResourceFileUrl(state.sb, file.storage_path);
+    const opened = window.open(url, "_blank", "noopener");
+    if (!opened) window.location.href = url;
+  } catch (error) {
+    await showAppMessage("Kunne ikke åpne fil", error.message || "Prøv igjen.");
+  }
+}
+
+function createResourceFileManager(resource, library) {
+  if (!resource?.id) {
+    return el("section", { class: "resource-admin-files" }, [
+      el("div", { class: "resource-admin-helper-card" }, [
+        el("strong", { text: "Filer og bilder" }),
+        el("p", { text: "Lagre ressursen først. Deretter kan du laste opp illustrasjoner, PDF-er og andre vedlegg." })
+      ])
+    ]);
+  }
+
+  const fileList = el("div", { class: "resource-admin-file-list" });
+  const fileInput = el("input", { type: "file" });
+  const fileType = el("select", {});
+  RESOURCE_FILE_TYPE_OPTIONS.forEach(([value, label]) => fileType.append(el("option", { value, text: label })));
+  const displayName = el("input", { type: "text", placeholder: "Visningsnavn, valgfritt" });
+  const message = el("p", { class: "form-message", role: "status" });
+
+  const renderFiles = () => {
+    const files = resource.files || [];
+    fileList.replaceChildren(...files.map((file) => el("div", { class: "resource-admin-file-row" }, [
+      el("div", {}, [
+        el("strong", { text: file.display_name }),
+        el("span", { text: resourceLabel(RESOURCE_FILE_TYPE_OPTIONS, file.file_type) || file.file_type })
+      ]),
+      el("button", { class: "button ghost", type: "button", onclick: async () => {
+        if (!await confirmDelete(`Fjerne "${file.display_name}" fra ressursen?`)) return;
+        await library.archiveResourceFile(state.sb, file.id);
+        resource.files = files.filter((item) => item.id !== file.id);
+        renderFiles();
+      } }, [icon("trash-2"), el("span", { text: "Fjern" })])
+    ])));
+    if (!files.length) fileList.replaceChildren(el("p", { class: "muted", text: "Ingen filer lagt til ennå." }));
+    refreshIcons();
+  };
+  renderFiles();
+
+  return el("section", { class: "resource-admin-files" }, [
+    el("div", { class: "resource-admin-helper-card" }, [
+      el("strong", { text: "Filer og bilder" }),
+      el("p", { text: "Filer lagres privat i Supabase Storage. Ressursen fungerer fortsatt uten filer." })
+    ]),
+    fileList,
+    el("div", { class: "resource-admin-upload" }, [
+      fileInput,
+      fileType,
+      displayName,
+      el("button", { class: "button secondary", type: "button", onclick: async () => {
+        const file = fileInput.files?.[0];
+        if (!file) {
+          message.textContent = "Velg en fil først.";
+          return;
+        }
+        message.textContent = "Laster opp...";
+        try {
+          const uploaded = await library.uploadResourceFile(state.sb, resource.id, file, {
+            fileType: fileType.value,
+            displayName: displayName.value.trim() || file.name,
+            sortOrder: (resource.files || []).length
+          });
+          resource.files = [...(resource.files || []), uploaded];
+          fileInput.value = "";
+          displayName.value = "";
+          message.textContent = "Fil lastet opp.";
+          renderFiles();
+        } catch (error) {
+          message.textContent = error.message || "Kunne ikke laste opp fil.";
+        }
+      } }, [icon("upload"), el("span", { text: "Last opp" })])
+    ]),
+    message
+  ]);
 }
 
 function parseJsonArray(value, fieldName) {
@@ -804,8 +1044,42 @@ async function openResourceAdminEditor(resource = null) {
   }
 
   const isNew = !resource?.id;
-  openEntityDrawer(isNew ? "Ny ressurs" : resource.title, "Fagbibliotek", [
-    sectionSpec("Grunninfo", "Hold ressursen native og strukturert. Filer og illustrasjoner håndteres senere."),
+  let specs = [];
+  const getDraftResource = () => {
+    const form = $("#drawer-form");
+    const values = form ? collectSpecValues(specs, form) : {
+      title: resource?.title || "Ny ressurs",
+      slug: resource?.slug || "ny-ressurs",
+      summary: resource?.summary || "Ikke fylt ut ennå.",
+      content_json: jsonText(resource?.content_json || [])
+    };
+    return {
+      ...resource,
+      ...parseResourceAdminPayload(values, resource),
+      files: resource?.files || []
+    };
+  };
+
+  const duplicateAction = resource?.id ? el("section", { class: "resource-admin-actions" }, [
+    el("div", {}, [
+      el("strong", { text: "Arbeidsflyt" }),
+      el("p", { text: "Dupliser når du vil lage en variant med samme struktur uten å skrive alt på nytt." })
+    ]),
+    el("button", {
+      class: "button secondary",
+      type: "button",
+      onclick: async () => {
+        if (!library?.duplicateResource) return;
+        $("#drawer-message").textContent = "Dupliserer...";
+        await library.duplicateResource(state.sb, resource.id);
+        $("#entity-drawer").close();
+        await renderAdmin();
+      }
+    }, [icon("copy"), el("span", { text: "Dupliser ressurs" })])
+  ]) : null;
+
+  specs = [
+    sectionSpec("Grunninfo", "Publiserte ressurser med synlighet «Kan sendes til klient» vises i Ressurser og kan deles av coach."),
     inputSpec("title", "Tittel", "text", resource?.title || ""),
     inputSpec("slug", "Slug", "text", resource?.slug || "", { placeholder: "genereres fra tittel hvis tom" }),
     textareaSpec("summary", "Summary", resource?.summary || "", { rows: "3" }),
@@ -826,15 +1100,20 @@ async function openResourceAdminEditor(resource = null) {
     textareaSpec("client_intro", "Intro til klient", resource?.client_intro || "", { rows: "4" }),
     textareaSpec("suggested_coach_note", "Foreslått instruks fra coach", resource?.suggested_coach_note || "", { rows: "3" }),
     selectSpec("default_context_types", "Standard kontekster", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"], true),
-    sectionSpec("Innhold", "Content JSON må være et JSON-array. Reflection prompts skrives én per linje."),
-    textareaSpec("content_json", "Content JSON", jsonText(resource?.content_json || []), { rows: "10", spellcheck: "false" }),
+    sectionSpec("Innhold", "Bygg hovedinnholdet med blokker. Dette erstatter rå JSON i vanlig bruk."),
+    customSpec("content_json", createResourceBlockEditor(resource?.content_json || [])),
     textareaSpec("reflection_prompts", "Refleksjonsspørsmål", (resource?.reflection_prompts || []).join("\n"), { rows: "5" }),
     textareaSpec("next_step_prompt", "Neste steg", resource?.next_step_prompt || "", { rows: "2" }),
+    customSpec("resource_files", createResourceFileManager(resource, library)),
+    customSpec("resource_preview", createResourceAdminPreview(library, getDraftResource)),
     textareaSpec("basis", "Faglig grunnlag", resource?.basis || "", { rows: "3" }),
     inputSpec("reviewed_by", "Vurdert av", "text", resource?.reviewed_by || ""),
     inputSpec("last_reviewed_at", "Sist vurdert", "date", resource?.last_reviewed_at || ""),
-    textareaSpec("tags", "Tags", (resource?.tags || []).join(", "), { rows: "2" })
-  ], async (values) => {
+    textareaSpec("tags", "Tags", (resource?.tags || []).join(", "), { rows: "2" }),
+    ...(duplicateAction ? [customSpec("resource_actions", duplicateAction)] : [])
+  ];
+
+  openEntityDrawer(isNew ? "Ny ressurs" : resource.title, "Fagbibliotek", specs, async (values) => {
     const payload = parseResourceAdminPayload(values, resource);
     if (isNew) await library.createResource(state.sb, payload);
     else await library.updateResource(state.sb, resource.id, payload);
@@ -967,6 +1246,7 @@ async function renderResources() {
     );
     previewSlot.replaceChildren(library.createResourcePreview(selected, {
       createElement: el,
+      onOpenFile: openResourceFile,
       primaryAction: canShareResources() ? {
         label: "Send ressurs",
         onClick: openSendResourceDrawer
@@ -982,7 +1262,7 @@ async function renderResources() {
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Pilot" }),
         el("h3", { text: "Bibliotek for coach" }),
-        el("p", { class: "muted", text: "Se hvordan ressursene er strukturert før sendeflyt og klientvisning bygges." })
+        el("p", { class: "muted", text: "Finn, vurder og send ressurser som støtte i coachingarbeidet." })
       ])
     ]),
     el("div", { class: "filter-row resource-filter-row" }, [search, phaseFilter, typeFilter]),
@@ -1003,7 +1283,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-63")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-65")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -2248,6 +2528,7 @@ function resourcesFromCoachSection(data, canWriteReflection) {
         renderSelected: (sharedResource) => library.createClientResourceView(sharedResource, {
           createElement: el,
           readOnly: !canWriteReflection,
+          onOpenFile: openResourceFile,
           onClose: () => {
             state.selectedSharedResourceId = null;
             renderSection();
@@ -3106,6 +3387,10 @@ function selectSpec(name, label, options, value = [], multiple = false) {
   return { kind: "select", name, label, options, value, multiple };
 }
 
+function customSpec(name, node) {
+  return { kind: "custom", name, node };
+}
+
 function choiceSpec(name, label, options, value = "") {
   return { kind: "choice", name, label, options, value };
 }
@@ -3115,6 +3400,7 @@ function sectionSpec(title, text = "") {
 }
 
 function renderSpec(spec) {
+  if (spec.kind === "custom") return spec.node;
   if (spec.kind === "section") {
     return el("div", { class: "modal-section" }, [
       el("strong", { text: spec.title }),
@@ -3148,6 +3434,11 @@ function collectSpecValues(specs, form) {
   const values = {};
   specs.forEach((spec) => {
     if (spec.kind === "section") return;
+    if (spec.kind === "custom") {
+      const control = spec.name ? $(`[name='${spec.name}']`, form) : null;
+      if (control) values[spec.name] = control.value.trim();
+      return;
+    }
     const control = $(`[name='${spec.name}']`, form);
     if (spec.kind === "choice") {
       values[spec.name] = $(`[name='${spec.name}']:checked`, form)?.value || "";

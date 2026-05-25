@@ -9,7 +9,10 @@ function normalizeResource(row) {
   return {
     ...row,
     tags: (row.resource_tags || []).map((tag) => tag.tag).filter(Boolean).sort((a, b) => a.localeCompare(b, "no")),
-    files: (row.resource_files || []).slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    files: (row.resource_files || [])
+      .filter((file) => !file.archived_at)
+      .slice()
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
   };
 }
 
@@ -52,7 +55,7 @@ export async function getPublishedResources(supabaseClient, filters = {}) {
     .select(`
       *,
       resource_tags(tag),
-      resource_files(id, file_type, storage_path, display_name, sort_order)
+      resource_files(id, file_type, storage_path, display_name, sort_order, archived_at)
     `)
     .eq("status", "published")
     .order("title", { ascending: true });
@@ -70,7 +73,7 @@ export async function getAdminResources(supabaseClient, filters = {}) {
     .select(`
       *,
       resource_tags(tag),
-      resource_files(id, file_type, storage_path, display_name, sort_order)
+      resource_files(id, file_type, storage_path, display_name, sort_order, archived_at)
     `)
     .order("updated_at", { ascending: false });
 
@@ -87,7 +90,7 @@ export async function getResourceBySlug(supabaseClient, slug) {
     .select(`
       *,
       resource_tags(tag),
-      resource_files(id, file_type, storage_path, display_name, sort_order)
+      resource_files(id, file_type, storage_path, display_name, sort_order, archived_at)
     `)
     .eq("slug", slug)
     .maybeSingle();
@@ -105,7 +108,7 @@ export async function getResourceById(supabaseClient, resourceId) {
     .select(`
       *,
       resource_tags(tag),
-      resource_files(id, file_type, storage_path, display_name, sort_order)
+      resource_files(id, file_type, storage_path, display_name, sort_order, archived_at)
     `)
     .eq("id", resourceId)
     .maybeSingle();
@@ -122,7 +125,7 @@ export async function getSharedResourcesForClient(supabaseClient, clientId, opti
     .from("shared_resources")
     .select(`
       *,
-      resources(*, resource_tags(tag), resource_files(id, file_type, storage_path, display_name, sort_order))
+      resources(*, resource_tags(tag), resource_files(id, file_type, storage_path, display_name, sort_order, archived_at))
     `)
     .eq("client_id", clientId)
     .is("archived_at", null)
@@ -149,7 +152,7 @@ export async function getSharedResourcesForProgram(supabaseClient, programId, op
     .from("shared_resources")
     .select(`
       *,
-      resources(*, resource_tags(tag), resource_files(id, file_type, storage_path, display_name, sort_order))
+      resources(*, resource_tags(tag), resource_files(id, file_type, storage_path, display_name, sort_order, archived_at))
     `)
     .eq("program_id", programId)
     .is("archived_at", null)
@@ -158,4 +161,20 @@ export async function getSharedResourcesForProgram(supabaseClient, programId, op
   if (error) throw error;
 
   return (data || []).map((row) => normalizeSharedResource(row, options));
+}
+
+export async function getResourceFileUrl(supabaseClient, storagePath, expiresIn = 3600) {
+  requireSupabaseClient(supabaseClient);
+  if (!storagePath) return "";
+  if (!supabaseClient.storage?.from) {
+    throw new TypeError("Supabase Storage support is required for resource file URLs.");
+  }
+
+  const { data, error } = await supabaseClient
+    .storage
+    .from("resource-assets")
+    .createSignedUrl(storagePath, expiresIn);
+
+  if (error) throw error;
+  return data?.signedUrl || "";
 }

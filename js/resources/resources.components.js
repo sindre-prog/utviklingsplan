@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-63";
+import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-65";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -85,7 +85,7 @@ export function createResourceCard(resource, options = {}) {
 }
 
 export function createResourcePreview(resource, options = {}) {
-  const { createElement, primaryAction = null } = options;
+  const { createElement, primaryAction = null, onOpenFile = null } = options;
   requireCreateElement(createElement);
   const files = visibleResourceFiles(resource || {});
 
@@ -139,7 +139,11 @@ export function createResourcePreview(resource, options = {}) {
         ? createElement("ul", { class: "resource-files" }, files.map((file) => (
           createElement("li", {}, [
             createElement("span", { text: file.display_name }),
-            createElement("small", { text: file.storage_path })
+            onOpenFile ? createElement("button", {
+              class: "button ghost resource-file-open",
+              type: "button",
+              onclick: () => onOpenFile(file)
+            }, [createElement("span", { text: "Åpne" })]) : createElement("small", { text: file.storage_path })
           ])
         )))
         : createElement("p", { class: "muted", text: "Ingen filer registrert." })
@@ -198,7 +202,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
 }
 
 export function createClientResourceView(sharedResource, options = {}) {
-  const { createElement, onClose, onSave, readOnly = false } = options;
+  const { createElement, onClose, onSave, onOpenFile = null, readOnly = false } = options;
   requireCreateElement(createElement);
 
   const resource = sharedResource?.resource || {};
@@ -267,7 +271,12 @@ export function createClientResourceView(sharedResource, options = {}) {
     files.length ? createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Filer" }),
       createElement("ul", { class: "resource-files" }, files.map((file) => createElement("li", {}, [
-        createElement("span", { text: file.display_name })
+        createElement("span", { text: file.display_name }),
+        onOpenFile ? createElement("button", {
+          class: "button ghost resource-file-open",
+          type: "button",
+          onclick: () => onOpenFile(file)
+        }, [createElement("span", { text: "Åpne" })]) : null
       ])))
     ]) : null,
     createElement("section", { class: "resource-preview-section client-resource-response" }, [

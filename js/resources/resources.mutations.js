@@ -12,6 +12,16 @@ function cleanTags(tags = []) {
   )).sort((a, b) => a.localeCompare(b, "no"));
 }
 
+function safeFileName(name = "asset") {
+  return String(name || "asset")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120) || "asset";
+}
+
 async function replaceResourceTags(supabaseClient, resourceId, tags = []) {
   const nextTags = cleanTags(tags);
   const { error: deleteError } = await supabaseClient
@@ -89,6 +99,81 @@ export async function reactivateResource(supabaseClient, resourceId, status = "d
       archived_at: null
     })
     .eq("id", resourceId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function duplicateResource(supabaseClient, resourceId) {
+  requireSupabaseClient(supabaseClient);
+
+  const { data: source, error: sourceError } = await supabaseClient
+    .from("resources")
+    .select("*, resource_tags(tag)")
+    .eq("id", resourceId)
+    .single();
+
+  if (sourceError) throw sourceError;
+
+  const { id, created_at, updated_at, created_by, updated_by, archived_at, resource_tags: resourceTags = [], ...resourcePayload } = source;
+  const timestamp = Date.now().toString(36);
+  const copyPayload = {
+    ...resourcePayload,
+    title: `${source.title} kopi`,
+    slug: `${source.slug}-kopi-${timestamp}`,
+    status: "draft",
+    archived_at: null,
+    review_status: source.review_status || "draft"
+  };
+
+  return createResource(supabaseClient, {
+    ...copyPayload,
+    tags: resourceTags.map((tag) => tag.tag)
+  });
+}
+
+export async function uploadResourceFile(supabaseClient, resourceId, file, values = {}) {
+  requireSupabaseClient(supabaseClient);
+  if (!supabaseClient.storage?.from) {
+    throw new TypeError("Supabase Storage support is required for resource uploads.");
+  }
+  if (!resourceId) throw new Error("Ressurs må lagres før filer kan lastes opp.");
+  if (!file) throw new Error("Velg en fil først.");
+
+  const fileName = safeFileName(file.name);
+  const storagePath = `${resourceId}/${Date.now()}-${fileName}`;
+  const bucket = supabaseClient.storage.from("resource-assets");
+  const { error: uploadError } = await bucket.upload(storagePath, file, {
+    cacheControl: "3600",
+    upsert: false
+  });
+  if (uploadError) throw uploadError;
+
+  const { data, error } = await supabaseClient
+    .from("resource_files")
+    .insert({
+      resource_id: resourceId,
+      file_type: values.fileType || "attachment",
+      storage_path: storagePath,
+      display_name: values.displayName || file.name || fileName,
+      sort_order: Number.isInteger(values.sortOrder) ? values.sortOrder : 0
+    })
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function archiveResourceFile(supabaseClient, fileId) {
+  requireSupabaseClient(supabaseClient);
+
+  const { data, error } = await supabaseClient
+    .from("resource_files")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", fileId)
     .select("*")
     .single();
 
