@@ -392,6 +392,143 @@ Kvalitetskrav:
 - Illustrasjoner og modeller skal være integrert i ressursens faglige poeng.
 - Ingen ressurs skal se ut som et tilfeldig vedlegg i et kort.
 
+## Designbeslutninger For V1
+
+Land designmønstre før implementering, men ikke overdesign.
+
+Ressursbiblioteket skal bruke eksisterende designsystem og tokens. Ikke introduser et nytt visuelt system for bibliotek, lister, drawers, admin eller klientens ressursliste.
+
+Skillet mellom app-UI og ressurs-UI:
+
+- bibliotek, lister, drawers og admin følger portalens Material/workspace-system
+- selve ressursvisningen kan ha mer redaksjonell kvalitet
+- ressursvisningen skal fortsatt bruke samme typografi-, token- og spacing-prinsipper som portalen
+
+Ressurser skal ikke få egen klient-hovedfane i V1. De skal vises der de er relevante i eksisterende coachingflyt, og samlet som `Ressurser fra coach` for klient.
+
+### `ResourceCard`
+
+Skal brukes i coachbibliotek og klientens ressursliste.
+
+Samme komponent bør støtte to moduser:
+
+- `library`: coach søker etter og velger ressurs
+- `assigned`: klient eller coach ser en delt ressurs med status og kontekst
+
+Må vise:
+
+- tittel
+- type
+- estimert tid
+- phase eller tag
+- kort summary
+- status der relevant
+- primærhandling
+
+### `SendResourceDrawer`
+
+Skal brukes når coach sender ressurs.
+
+Drawer, ikke modal. Coach skal beholde klientkonteksten i bakgrunnen.
+
+Flyt:
+
+1. søk/filter
+2. velg ressurs
+3. preview
+4. legg til `coach_note`
+5. velg `context_type` og `context_id`
+6. send
+
+### `ResourcePreview`
+
+Coach skal kunne forstå ressursen før den sendes.
+
+Må vise:
+
+- title
+- summary
+- best_used_when
+- intended_outcome
+- coach_guidance
+- type, format og duration
+- eventuell preview av innhold
+
+### `ClientResourceList`
+
+Klienten skal ikke få et generelt bibliotek.
+
+Vis bare `Ressurser fra coach`.
+
+Må vise:
+
+- ressurs
+- hvorfor coach har sendt den
+- koblet kontekst
+- status
+- åpne-knapp
+
+### `ClientResourceView`
+
+Skal føles mer redaksjonell enn appens arbeidsflater, men fortsatt høre hjemme i portalen.
+
+Må være rolig, lesbar og tillitvekkende.
+
+Må vise:
+
+- cover eller illustrasjon hvis finnes
+- tittel
+- ingress
+- `coach_note`
+- ressursinnhold
+- eventuelle nedlastinger
+- privat refleksjonsfelt
+- eksplisitt valg for å dele refleksjon med coach
+
+### `SharedResourceStatus`
+
+Ikke lag LMS-følelse.
+
+Bruk nøkterne statuser:
+
+- `Sendt`
+- `Åpnet`
+- `Svart`
+- `Arkivert`
+
+### Adminflate
+
+Admin skal være praktisk, ikke polert.
+
+Prioriter:
+
+- liste
+- ny ressurs
+- rediger
+- status
+- tags
+- enkel preview
+
+### Mønstre Som Skal Gjenbrukes
+
+Bruk eksisterende:
+
+- cards
+- drawer
+- buttons
+- inputs
+- tabs hvis allerede etablert
+- typography
+- spacing
+- design tokens
+- toast/dialog-mønstre for feil og bekreftelser
+
+Ikke bruk native alert/confirm.
+
+Design-akseptanse:
+
+Når V1 er ferdig, skal det visuelt være åpenbart at ressursbiblioteket tilhører portalen, men ressursvisningen for klient skal oppleves mer gjennomarbeidet og faglig enn en vanlig appside.
+
 ## Innholdsmodell
 
 Ressursinnhold bør kunne bygges med blokker.
