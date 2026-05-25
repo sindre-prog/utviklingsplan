@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-60";
+import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-61";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -174,11 +174,15 @@ export function createClientResourceList(sharedResources = [], options = {}) {
     const resource = sharedResource.resource || {};
     const selected = selectedId === sharedResource.id;
     const contextText = resourceContextText(sharedResource);
-    return createElement("article", { class: "client-resource-row" }, [
+    return createElement("article", { class: `client-resource-row ${selected ? "is-open" : ""}` }, [
       createElement("button", {
         class: `client-resource-open ${selected ? "active" : ""}`,
         type: "button",
-        onclick: () => onOpen?.(sharedResource)
+        "aria-expanded": selected ? "true" : "false",
+        onclick: (event) => {
+          event.preventDefault();
+          onOpen?.(sharedResource);
+        }
       }, [
         createElement("span", { class: "client-resource-main" }, [
           createElement("span", { class: "client-resource-meta" }, metaPills(createElement, resource)),
@@ -186,7 +190,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
           createElement("span", { class: "client-resource-summary", text: sharedResource.coach_note || resource.summary || "" }),
           contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null
         ]),
-        createElement("span", { class: "client-resource-action", text: selected ? "Åpen" : "Åpne" })
+        createElement("span", { class: "client-resource-action", text: selected ? "Lukk" : "Åpne" })
       ].filter(Boolean)),
       selected && typeof renderSelected === "function" ? renderSelected(sharedResource) : null
     ].filter(Boolean));
@@ -231,14 +235,22 @@ export function createClientResourceView(sharedResource, options = {}) {
   };
 
   return createElement("article", { class: "client-resource-view" }, [
-    onClose ? createElement("button", { class: "button ghost client-resource-close", type: "button", text: "Lukk", onclick: onClose }) : null,
     createElement("header", { class: "client-resource-view-head" }, [
       createElement("div", { class: "client-resource-view-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs fra coach" }),
         createElement("h3", { text: resource.title || "Ressurs" }),
         createElement("p", { text: resource.client_intro || resource.summary || "" }),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
-      ].filter(Boolean))
+      ].filter(Boolean)),
+      onClose ? createElement("button", {
+        class: "button ghost client-resource-close",
+        type: "button",
+        text: "Lukk",
+        onclick: (event) => {
+          event.preventDefault();
+          onClose();
+        }
+      }) : null
     ]),
     sharedResource?.coach_note ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
       createElement("h4", { text: "Fra coach" }),
@@ -262,7 +274,7 @@ export function createClientResourceView(sharedResource, options = {}) {
       createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
       privateResponse ? createElement("p", { class: "muted", text: "Klienten har lagret en privat refleksjon som ikke er delt med coach." }) : note,
       readOnly || privateResponse ? null : createElement("div", { class: "visibility-control" }, [
-        createElement("p", { text: "Privat til du velger å dele." }),
+        createElement("p", { text: "Refleksjonen er privat til du velger å dele den med coach." }),
         createElement("div", { class: "visibility-choice-row" }, [
           createVisibilityButton("private", "Privat"),
           createVisibilityButton("shared_with_coach", "Del med coach")
