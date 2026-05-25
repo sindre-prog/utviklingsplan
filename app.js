@@ -346,8 +346,17 @@ async function loadReferenceData() {
     const { data } = await query;
     clients = data || [];
   } else {
-    const { data } = await state.sb.from("clients").select("*").order("name");
-    clients = data || [];
+    const { data, error } = await state.sb.rpc("get_admin_client_overview");
+    if (error && !isMissingFunctionError(error)) throw error;
+    if (!error) {
+      clients = data || [];
+    } else {
+      const { data: fallbackClients } = await state.sb
+        .from("clients")
+        .select("id, created_at, name, code, consent_given, consent_date, account_activated_at, consent_version, coach_ids, role, employer, user_id, email")
+        .order("name");
+      clients = fallbackClients || [];
+    }
   }
   state.clients = clients || [];
   await loadProgramSummaries();
@@ -637,6 +646,7 @@ function renderAdmin() {
           button("Inviter klient", "mail-plus", () => openClientInvite(), "ghost")
         ])
       ]),
+      el("p", { class: "muted", text: "Admin viser tilgang og status. Forløpsinnhold, notater og refleksjoner kan bare åpnes når du selv er coach for klienten." }),
       el("div", { class: "filter-row admin-filter-row" }, [clientSearch, adminCoachFilter, adminSortFilter]),
       clientTableSlot
     ]),
@@ -1423,7 +1433,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-71")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-72")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -3526,13 +3536,18 @@ function isMissingColumnError(error) {
   return text.includes("pgrst204") || text.includes("column") || text.includes("schema cache");
 }
 
+function isMissingFunctionError(error) {
+  const text = `${error?.code || ""} ${error?.message || ""} ${error?.details || ""}`.toLowerCase();
+  return text.includes("pgrst202") || text.includes("function") || text.includes("schema cache");
+}
+
 function openClientInvite() {
   const coachOptions = state.profile.role === "coach" && state.coach
     ? [[state.coach.id, state.coach.name || state.user?.email || "Din coachprofil"]]
     : state.coaches.map((coach) => [coach.id, coach.name]);
   const defaultCoachIds = state.profile.role === "coach" && state.coach
     ? [state.coach.id]
-    : state.coach ? [state.coach.id] : [];
+    : [];
   openEntityModal("Inviter klient", "Tilgang", [
     inputSpec("name", "Navn"),
     inputSpec("email", "E-post", "email"),
@@ -3793,6 +3808,8 @@ async function callInviteUser(values) {
   const email = normalizeEmail(values.email);
   if (!values.name?.trim()) throw new Error("Navn må fylles ut.");
   if (!email) throw new Error("E-post må fylles ut.");
+  if (values.role === "coach" && state.profile?.role !== "admin") throw new Error("Bare admin kan invitere coacher.");
+  if (values.role === "client" && !canInviteClient()) throw new Error("Du har ikke tilgang til å invitere klienter.");
   const { data: { session } } = await state.sb.auth.getSession();
   if (!session?.access_token) throw new Error("Du må være innlogget for å invitere.");
   const res = await fetch(`${SUPABASE_URL}/functions/v1/invite-user`, {
@@ -3806,12 +3823,7 @@ async function callInviteUser(values) {
 }
 
 async function verifyInvitedClient(email) {
-  const { data: client, error } = await state.sb
-    .from("clients")
-    .select("id, user_id, email, coach_ids")
-    .ilike("email", email)
-    .maybeSingle();
-  if (error) throw error;
+  const client = await findClientForInviteVerification(email);
   if (!client?.id) throw new Error("Invitasjonen ble sendt, men klientraden ble ikke opprettet.");
   if (!client.user_id) throw new Error("Invitasjonen ble sendt, men klienten ble ikke koblet til Supabase Auth.");
   if (state.profile.role === "coach" && state.coach?.id && !(client.coach_ids || []).includes(state.coach.id)) {
@@ -3821,7 +3833,29 @@ async function verifyInvitedClient(email) {
   return client;
 }
 
+async function findClientForInviteVerification(email) {
+  if (state.profile?.role === "admin") {
+    const { data, error } = await state.sb.rpc("get_admin_client_overview");
+    if (error && !isMissingFunctionError(error)) throw error;
+    if (!error) return (data || []).find((client) => normalizeEmail(client.email) === email) || null;
+  }
+
+  const { data: client, error } = await state.sb
+    .from("clients")
+    .select("id, user_id, email, coach_ids")
+    .ilike("email", email)
+    .maybeSingle();
+  if (error) throw error;
+  return client;
+}
+
 async function ensureInvitedClientProgram(clientId) {
+  if (state.profile?.role === "admin") {
+    const { data, error } = await state.sb.rpc("ensure_admin_client_program", { p_client_id: clientId });
+    if (error && !isMissingFunctionError(error)) throw error;
+    if (!error && data) return { id: data };
+  }
+
   const { data: existingProgram, error } = await state.sb
     .from("coaching_programs")
     .select("id")
