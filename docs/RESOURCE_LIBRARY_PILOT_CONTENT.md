@@ -31,6 +31,8 @@ tags:
 estimated_duration: 20
 difficulty: medium
 language: no
+visibility: client_assignable
+status: published
 
 intended_outcome: Hjelpe klienten å identifisere automatiske tankemønstre og utvikle mer fleksible og konstruktive perspektiver i situasjoner som skaper stress, frustrasjon eller usikkerhet.
 best_used_when:
@@ -97,7 +99,10 @@ next_step_prompt: Velg én situasjon den neste uken hvor du aktivt skal forsøke
 cover_image: abcde-cover.jpg
 illustration: abcde-model-diagram.svg
 files:
-  - abcde-printable.pdf
+  - file_type: pdf
+    storage_path: resources/abcde-modellen/abcde-printable.pdf
+    display_name: ABCDE-modellen som utskriftsvennlig PDF
+    sort_order: 1
 
 basis: Kognitiv atferdsterapi (CBT) og forskning på kognitiv restrukturering og emosjonell regulering.
 review_status: approved_for_pilot
@@ -124,6 +129,8 @@ tags:
 estimated_duration: 15
 difficulty: easy
 language: no
+visibility: client_assignable
+status: published
 
 intended_outcome: Hjelpe klienten å redusere unødvendig mentalt stress ved å tydeliggjøre hvor innsats faktisk har effekt.
 best_used_when:
@@ -181,7 +188,10 @@ next_step_prompt: Velg én konkret situasjon denne uken hvor du aktivt skal flyt
 cover_image: control-circle-cover.jpg
 illustration: control-circle-diagram.svg
 files:
-  - kontrollsirkelen-printable.pdf
+  - file_type: pdf
+    storage_path: resources/kontrollsirkelen/kontrollsirkelen-printable.pdf
+    display_name: Kontrollsirkelen som utskriftsvennlig PDF
+    sort_order: 1
 
 basis: Stoisk filosofi, moderne stressforskning og forskning på psykologisk fleksibilitet og locus of control.
 review_status: approved_for_pilot
@@ -208,6 +218,8 @@ tags:
 estimated_duration: 25
 difficulty: medium
 language: no
+visibility: client_assignable
+status: published
 
 intended_outcome: Hjelpe klienten å identifisere hvordan frykt påvirker atferd og valg, og utvikle større toleranse for usikkerhet og ubehag i viktige situasjoner.
 best_used_when:
@@ -266,7 +278,10 @@ next_step_prompt: Definer ett konkret steg du er villig til å ta denne uken, se
 cover_image: fear-acceptance-cover.jpg
 illustration: fear-curve-diagram.svg
 files:
-  - fear-reflection-printable.pdf
+  - file_type: pdf
+    storage_path: resources/a-akseptere-frykt/fear-reflection-printable.pdf
+    display_name: Å akseptere frykt som utskriftsvennlig PDF
+    sort_order: 1
 
 basis: Acceptance and Commitment Therapy (ACT), eksponeringsteori og forskning på psykologisk fleksibilitet og unngåelsesatferd.
 review_status: approved_for_pilot

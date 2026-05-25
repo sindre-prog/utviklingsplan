@@ -665,6 +665,8 @@ tags:
 estimated_duration:
 difficulty:
 language:
+visibility:
+status:
 
 intended_outcome:
 best_used_when:
@@ -719,6 +721,12 @@ Enkel vanskelighetsgrad. Skal hjelpe coachen å velge, ikke gi klienten prestasj
 
 `language`:
 Språk.
+
+`visibility`:
+Hvem ressursen kan brukes av. Pilotressurser bør være `client_assignable`.
+
+`status`:
+Publiseringsstatus. Pilotressurser bør være `published`.
 
 `intended_outcome`:
 Hva ressursen skal hjelpe klienten med.
