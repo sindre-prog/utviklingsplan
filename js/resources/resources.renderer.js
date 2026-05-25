@@ -20,7 +20,29 @@ export function renderResourceContentBlocks(blocks = [], options = {}) {
   const { createElement = null } = options;
   assertElementFactory(createElement);
 
-  return blocks.map((block) => renderResourceBlock(block, options));
+  const rendered = [];
+  for (let index = 0; index < blocks.length; index += 1) {
+    const block = blocks[index];
+    const nextBlock = blocks[index + 1];
+    if (block?.type === RESOURCE_BLOCK_TYPES.text && nextBlock?.type === RESOURCE_BLOCK_TYPES.worksheet) {
+      rendered.push(renderResourceStep(block, nextBlock, options));
+      index += 1;
+    } else {
+      rendered.push(renderResourceBlock(block, options));
+    }
+  }
+  return rendered;
+}
+
+function renderResourceStep(textBlock, worksheetBlock, options = {}) {
+  const { createElement = null } = options;
+  assertElementFactory(createElement);
+
+  return createElement("section", { class: "resource-block resource-block--step" }, [
+    ...(textBlock.heading ? [textNode(createElement, "h3", "resource-block__heading", textBlock.heading)] : []),
+    textNode(createElement, "p", "resource-block__content", textBlock.content),
+    renderList(createElement, "resource-block__fields", worksheetBlock.fields || [])
+  ]);
 }
 
 export function renderResourceBlock(block, options = {}) {
@@ -48,11 +70,11 @@ export function renderResourceBlock(block, options = {}) {
         createElement("p", { text: illustrationLabel(block.key) })
       ]);
     case RESOURCE_BLOCK_TYPES.worksheet:
-      return createElement("div", { class: "resource-block resource-block--worksheet" }, [
+      return createElement("section", { class: "resource-block resource-block--worksheet" }, [
         renderList(createElement, "resource-block__fields", block.fields || [])
       ]);
     case RESOURCE_BLOCK_TYPES.reflectionQuestions:
-      return createElement("div", { class: "resource-block resource-block--reflection-questions" }, [
+      return createElement("section", { class: "resource-block resource-block--reflection-questions" }, [
         renderList(createElement, "resource-block__questions", block.questions || [])
       ]);
     case RESOURCE_BLOCK_TYPES.download:
@@ -69,7 +91,8 @@ export function renderReflectionPrompts(prompts = [], options = {}) {
   const { createElement = null } = options;
   assertElementFactory(createElement);
 
-  return prompts.map((prompt) => textNode(createElement, "p", "resource-reflection-prompt", prompt));
+  if (!prompts.length) return [];
+  return [renderList(createElement, "resource-reflection-prompt-list", prompts)];
 }
 
 function illustrationLabel(key) {
