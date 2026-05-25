@@ -483,11 +483,7 @@ function filterMenu(options, initialValue, ariaLabel, onChange) {
 
 function renderClients() {
   if (state.profile.role === "client") return navigate("plan", state.client?.id);
-  setHeader("Utviklingsplaner", "Klienter", [
-    state.profile.role === "admin"
-      ? button("Legg til klient", "user-plus", () => openClientCreate())
-      : button("Inviter klient", "user-plus", () => openClientInvite())
-  ]);
+  setHeader("Utviklingsplaner", "Klienter", [button("Inviter klient", "user-plus", () => openClientInvite())]);
   const content = $("#content");
   const visibleClients = getVisibleClients();
   const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
@@ -556,8 +552,8 @@ function clientGrid(clients) {
 
 function renderAdmin() {
   setHeader("Administrasjon", "Team og tilgang", [
-    button("Legg til coach", "user-round-plus", () => openCoachCreate()),
-    button("Legg til klient", "user-plus", () => openClientCreate()),
+    button("Inviter coach", "user-round-plus", () => openCoachInvite()),
+    button("Inviter klient", "user-plus", () => openClientInvite()),
     button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
   ]);
   const coachSearch = el("input", { class: "search", placeholder: "Søk coach" });
@@ -602,7 +598,6 @@ function renderAdmin() {
       el("div", { class: "toolbar" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Team" }), el("h3", { text: "Coacher" })]),
         el("div", { class: "toolbar-actions" }, [
-          button("Legg til coach", "user-round-plus", () => openCoachCreate(), "ghost"),
           button("Inviter coach", "mail-plus", () => openCoachInvite(), "ghost")
         ])
       ]),
@@ -613,7 +608,6 @@ function renderAdmin() {
       el("div", { class: "toolbar" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })]),
         el("div", { class: "toolbar-actions" }, [
-          button("Legg til klient", "user-plus", () => openClientCreate(), "ghost"),
           button("Inviter klient", "mail-plus", () => openClientInvite(), "ghost")
         ])
       ]),
@@ -1403,7 +1397,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-67")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-68")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -3516,30 +3510,11 @@ function openClientInvite() {
   ], inviteClient);
 }
 
-function openClientCreate() {
-  openEntityModal("Legg til klient", "Tilgang", [
-    sectionSpec("Klient uten innlogging", "Oppretter klient og coachingforløp med én gang. Bruk Inviter klient når klienten også skal få portaltilgang."),
-    inputSpec("name", "Navn"),
-    inputSpec("email", "E-post", "email"),
-    inputSpec("role", "Stilling"),
-    inputSpec("employer", "Arbeidsgiver"),
-    selectSpec("coachIds", "Coach(er)", state.coaches.map((coach) => [coach.id, coach.name]), state.coach ? [state.coach.id] : [], true)
-  ], createClient);
-}
-
 function openCoachInvite() {
   openEntityModal("Inviter coach", "Tilgang", [
     inputSpec("name", "Navn"),
     inputSpec("email", "E-post", "email")
   ], inviteCoach);
-}
-
-function openCoachCreate() {
-  openEntityModal("Legg til coach", "Team", [
-    sectionSpec("Coach uten innlogging", "Oppretter coach i oversikten. Bruk Inviter coach når coachen også skal få portaltilgang."),
-    inputSpec("name", "Navn"),
-    inputSpec("email", "E-post", "email")
-  ], createCoach);
 }
 
 function openCoachEdit(coach) {
@@ -3778,84 +3753,105 @@ $("#message-dialog").addEventListener("cancel", (event) => {
   state.messageResolve = null;
 });
 
-function entityCode(prefix, value = "") {
-  const base = String(value || prefix)
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/æ/g, "ae")
-    .replace(/ø/g, "o")
-    .replace(/å/g, "a")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 42) || prefix;
-  return `${prefix}-${base}-${Date.now().toString(36)}`;
+function normalizeEmail(value = "") {
+  return String(value || "").trim().toLowerCase();
 }
 
-async function createClient(values) {
-  const name = values.name?.trim();
-  if (!name) throw new Error("Navn må fylles ut.");
-  const { data: client, error } = await state.sb
-    .from("clients")
-    .insert({
-      name,
-      email: values.email || null,
-      role: values.role || null,
-      employer: values.employer || null,
-      coach_ids: values.coachIds || [],
-      code: entityCode("client", values.email || name)
-    })
-    .select("id")
-    .single();
-  if (error) throw error;
-  const { error: programError } = await state.sb
-    .from("coaching_programs")
-    .insert({ client_id: client.id, status: "draft" });
-  if (programError) throw programError;
-  await reloadAndRender();
-}
-
-async function createCoach(values) {
-  const name = values.name?.trim();
-  if (!name) throw new Error("Navn må fylles ut.");
-  const { error } = await state.sb
-    .from("coaches")
-    .insert({
-      name,
-      email: values.email || null,
-      code: entityCode("coach", values.email || name)
-    });
-  if (error) throw error;
-  await reloadAndRender();
-}
-
-async function inviteClient(values) {
+async function callInviteUser(values) {
+  const email = normalizeEmail(values.email);
+  if (!values.name?.trim()) throw new Error("Navn må fylles ut.");
+  if (!email) throw new Error("E-post må fylles ut.");
   const { data: { session } } = await state.sb.auth.getSession();
+  if (!session?.access_token) throw new Error("Du må være innlogget for å invitere.");
   const res = await fetch(`${SUPABASE_URL}/functions/v1/invite-user`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_ANON_KEY },
-    body: JSON.stringify({ email: values.email, name: values.name, role: "client", coachIds: values.coachIds || [], jobRole: values.role, employer: values.employer })
+    body: JSON.stringify({ ...values, email })
   });
-  const result = await res.json();
+  const result = await res.json().catch(() => ({}));
   if (!res.ok || result.error) throw new Error(result.error || "Invitasjonen feilet.");
-  const { data: client } = await state.sb.from("clients").select("id").eq("email", values.email).maybeSingle();
-  if (client?.id) {
-    const { data: existingProgram } = await state.sb.from("coaching_programs").select("id").eq("client_id", client.id).maybeSingle();
-    if (!existingProgram) await state.sb.from("coaching_programs").insert({ client_id: client.id, status: "draft" });
-  }
+  return { ...result, email };
+}
+
+async function verifyInvitedClient(email) {
+  const { data: client, error } = await state.sb
+    .from("clients")
+    .select("id, user_id, email")
+    .ilike("email", email)
+    .maybeSingle();
+  if (error) throw error;
+  if (!client?.id) throw new Error("Invitasjonen ble sendt, men klientraden ble ikke opprettet.");
+  if (!client.user_id) throw new Error("Invitasjonen ble sendt, men klienten ble ikke koblet til Supabase Auth.");
+
+  const { data: profile, error: profileError } = await state.sb
+    .from("profiles")
+    .select("id, role")
+    .eq("id", client.user_id)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (profile?.role !== "client") throw new Error("Klienten ble opprettet, men profilrollen er ikke client.");
+  return client;
+}
+
+async function ensureInvitedClientProgram(clientId) {
+  const { data: existingProgram, error } = await state.sb
+    .from("coaching_programs")
+    .select("id")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  if (error) throw error;
+  if (existingProgram?.id) return existingProgram;
+
+  const { data: createdProgram, error: insertError } = await state.sb
+    .from("coaching_programs")
+    .insert({ client_id: clientId, status: "draft" })
+    .select("id")
+    .single();
+  if (insertError) throw insertError;
+  if (!createdProgram?.id) throw new Error("Klienten ble opprettet, men coachingforløpet kunne ikke bekreftes.");
+  return createdProgram;
+}
+
+async function verifyInvitedCoach(email) {
+  const { data: coach, error } = await state.sb
+    .from("coaches")
+    .select("id, user_id, email")
+    .ilike("email", email)
+    .maybeSingle();
+  if (error) throw error;
+  if (!coach?.id) throw new Error("Invitasjonen ble sendt, men coachraden ble ikke opprettet.");
+  if (!coach.user_id) throw new Error("Invitasjonen ble sendt, men coachen ble ikke koblet til Supabase Auth.");
+
+  const { data: profile, error: profileError } = await state.sb
+    .from("profiles")
+    .select("id, role")
+    .eq("id", coach.user_id)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (profile?.role !== "coach") throw new Error("Coachen ble opprettet, men profilrollen er ikke coach.");
+}
+
+async function inviteClient(values) {
+  const result = await callInviteUser({
+    email: values.email,
+    name: values.name,
+    role: "client",
+    coachIds: values.coachIds || [],
+    jobRole: values.role,
+    employer: values.employer
+  });
+  const client = await verifyInvitedClient(result.email);
+  await ensureInvitedClientProgram(client.id);
   await reloadAndRender();
 }
 
 async function inviteCoach(values) {
-  const { data: { session } } = await state.sb.auth.getSession();
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/invite-user`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_ANON_KEY },
-    body: JSON.stringify({ email: values.email, name: values.name, role: "coach" })
+  const result = await callInviteUser({
+    email: values.email,
+    name: values.name,
+    role: "coach"
   });
-  const result = await res.json();
-  if (!res.ok || result.error) throw new Error(result.error || "Invitasjonen feilet.");
+  await verifyInvitedCoach(result.email);
   await reloadAndRender();
 }
 
