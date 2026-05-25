@@ -685,7 +685,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-55")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-56")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1853,6 +1853,13 @@ function reflectionsWorkspace(data) {
     resourcesFromCoachSection(data, canWriteReflection),
     canWriteReflection ? reflectionComposer(data) : null,
     el("section", { class: "panel document-panel reflection-log-section" }, [
+      el("div", { class: "reflection-log-head" }, [
+        el("p", { class: "eyebrow", text: canWriteReflection ? "Dine refleksjoner" : "Delt med coach" }),
+        el("h3", { text: canWriteReflection ? "Refleksjoner du har skrevet" : "Refleksjoner som er delt" }),
+        el("p", { class: "muted", text: canWriteReflection
+          ? "Dette er egne notater fra coachingarbeidet. De er private med mindre du velger å dele dem."
+          : "Her vises refleksjoner klienten aktivt har delt i coachingforløpet." })
+      ]),
       reflectionsList(data.reflections, data, canWriteReflection)
     ])
   ].filter(Boolean));
@@ -1933,6 +1940,23 @@ async function saveSharedResourceReflection(sharedResource, values) {
 }
 
 function reflectionComposer(data) {
+  const visibilityValue = el("input", { id: "reflection-visibility", type: "hidden", value: "private" });
+  const setReflectionVisibility = (value, buttons) => {
+    visibilityValue.value = value;
+    buttons.forEach((button) => button.classList.toggle("active", button.dataset.value === value));
+  };
+  const visibilityButtons = [];
+  const visibilityButton = (value, label) => {
+    const button = el("button", {
+      class: `visibility-choice ${value === "private" ? "active" : ""}`,
+      type: "button",
+      "data-value": value,
+      onclick: () => setReflectionVisibility(value, visibilityButtons)
+    }, [el("span", { text: label })]);
+    visibilityButtons.push(button);
+    return button;
+  };
+
   return el("section", { class: "ui-section-card panel document-panel reflection-composer" }, [
     el("div", { class: "reflection-composer-head" }, [
       el("div", {}, [
@@ -1942,11 +1966,13 @@ function reflectionComposer(data) {
       ])
     ]),
     el("textarea", { class: "ui-edit-control", id: "reflection-body", placeholder: "Hva skjedde? Hva gjorde du? Hva la du merke til hos deg selv eller andre?" }),
+    visibilityValue,
     el("div", { class: "field-pair" }, [
-      el("label", { text: "Synlighet" }, [
-        el("select", { id: "reflection-visibility" }, [
-          el("option", { value: "private", text: "Privat" }),
-          el("option", { value: "shared_with_coach", text: "Del med coach" })
+      el("div", { class: "visibility-control" }, [
+        el("p", { text: "Privat til du velger å dele." }),
+        el("div", { class: "visibility-choice-row" }, [
+          visibilityButton("private", "Privat"),
+          visibilityButton("shared_with_coach", "Del med coach")
         ])
       ]),
       el("label", { text: "Knytt til" }, [
@@ -2011,17 +2037,35 @@ function startReflectionEdit(id) {
 
 function reflectionInlineCard(reflection, data) {
   const body = el("textarea", { class: "ui-edit-control inline-textarea", text: reflection.body || "", placeholder: "Skriv en kort refleksjon..." });
-  const visibility = el("select", {}, [
-    el("option", { value: "private", text: "Privat", selected: reflection.visibility === "private" }),
-    el("option", { value: "shared_with_coach", text: "Del med coach", selected: reflection.visibility === "shared_with_coach" })
-  ]);
+  let visibility = reflection.visibility === "shared_with_coach" ? "shared_with_coach" : "private";
+  const visibilityButtons = [];
+  const setVisibility = (value) => {
+    visibility = value;
+    visibilityButtons.forEach((button) => button.classList.toggle("active", button.dataset.value === visibility));
+  };
+  const visibilityButton = (value, label) => {
+    const button = el("button", {
+      class: `visibility-choice ${visibility === value ? "active" : ""}`,
+      type: "button",
+      "data-value": value,
+      onclick: () => setVisibility(value)
+    }, [el("span", { text: label })]);
+    visibilityButtons.push(button);
+    return button;
+  };
   const area = el("select", {}, [
     el("option", { value: "", text: "Hele forløpet", selected: !reflection.development_area_id }),
     ...data.areas.map((item) => el("option", { value: item.id, text: item.title || "Utviklingsområde", selected: reflection.development_area_id === item.id }))
   ]);
   return el("article", { class: "ui-inline-editor content-card reflection-card reflection-card-edit" }, [
     el("div", { class: "field-pair" }, [
-      el("label", { text: "Synlighet" }, [visibility]),
+      el("div", { class: "visibility-control" }, [
+        el("p", { text: "Privat til du velger å dele." }),
+        el("div", { class: "visibility-choice-row" }, [
+          visibilityButton("private", "Privat"),
+          visibilityButton("shared_with_coach", "Del med coach")
+        ])
+      ]),
       el("label", { text: "Knytt til" }, [area])
     ]),
     body,
@@ -2033,7 +2077,7 @@ function reflectionInlineCard(reflection, data) {
       el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => {
         const { error } = await state.sb.from("client_reflections").update({
           body: body.value || "",
-          visibility: visibility.value || "private",
+          visibility,
           development_area_id: area.value || null
         }).eq("id", reflection.id);
         if (error) {

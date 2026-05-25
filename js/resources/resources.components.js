@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-55";
+import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-56";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -152,7 +152,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
 
   if (!sharedResources.length) {
     return createElement("section", { class: "client-resource-list client-resource-list--empty" }, [
-      createElement("p", { class: "eyebrow", text: "Ressurser fra coach" }),
+      createElement("p", { class: "eyebrow", text: "Ressurser" }),
       createElement("h3", { text: emptyTitle }),
       createElement("p", { class: "muted", text: emptyText })
     ]);
