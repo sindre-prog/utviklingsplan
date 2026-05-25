@@ -70,16 +70,111 @@ I dagens repo finnes ikke serverlag. For Batch 1 betyr dette:
 
 Hvis appen senere får serverlag, kan funksjonene flyttes dit uten at datamodellen endres.
 
+## Arkitekturbeslutning: Ressurser Som Første Modul
+
+Ressursbiblioteket skal etableres som første avgrensede frontendmodul.
+
+Ny ressurslogikk skal ikke bygges direkte inn i `app.js`, bortsett fra små orkestreringskall hvis nødvendig.
+
+Dette er en kontrollert modernisering, ikke en full rewrite.
+
+### Repo-Tilpasset Struktur
+
+Bruk statisk JavaScript-struktur som passer dagens repo:
+
+```text
+js/
+  resources/
+    resources.constants.js
+    resources.api.js
+    resources.queries.js
+    resources.mutations.js
+    resources.renderer.js
+    resources.components.js
+    resources.seed.js
+```
+
+Ikke flytt auth, app state eller annen eksisterende kjernelogikk nå med mindre det er helt nødvendig.
+
+Hvis behovet oppstår senere, kan en separat `js/core/` vurderes:
+
+```text
+js/
+  core/
+    supabaseClient.js
+    appState.js
+```
+
+Dette skal ikke være en del av ressursbibliotekets første batch.
+
+### Hard Regel
+
+`app.js` kan brukes til:
+
+- init
+- routing
+- små orkestreringskall
+
+`app.js` skal ikke inneholde:
+
+- ressurs-spørringer
+- ressurs-mutations
+- `content_json` renderer
+- resource cards
+- `SendResourceDrawer`
+- klientens resource view
+
+### Importavklaring Før Kode
+
+Før Batch 1A implementeres, må importmønsteret avklares i dagens statiske app.
+
+Hvis ES modules brukes:
+
+- `index.html` må eventuelt laste `app.js` med `type="module"`
+- eller det må etableres en trygg bro mellom dagens globale app og ressursmodulene
+
+Ikke opprett moduler som ikke faktisk kan importeres rent.
+
+Batch 1A skal ikke lage mappepynt. Modulene skal være minimale, men reelle:
+
+- `resources.constants.js` med faktiske type/status/phase/context-konstanter
+- `resources.renderer.js` med eksporterte renderer-stubber
+- `resources.queries.js` med eksporterte query-funksjoner
+- `resources.mutations.js` med eksporterte mutation-funksjoner
+- `resources.api.js` som samler modulens offentlige API
+
 ## Batch 1 Mål
 
-Batch 1 skal bare etablere teknisk grunnmur:
+Batch 1 skal etablere teknisk grunnmur uten funksjonell UI.
 
-1. database-migration
-2. RLS
-3. storage bucket
-4. seed-struktur for pilotressurser
+### Batch 1A: Modulstruktur
 
-Ingen UI i Batch 1.
+- opprett `js/resources/`
+- legg inn constants
+- legg inn renderer-stubber
+- legg inn query/mutation-stubber
+- dokumenter importmønster
+- minimal endring i `index.html` hvis nødvendig
+- ingen funksjonell UI
+
+### Batch 1B: Databasegrunnmur
+
+- migrations
+- constraints/checks
+- RLS
+- storage bucket
+- seed-struktur
+
+### Batch 1C: Pilotressurser
+
+- seed 3 pilotressurser
+- ingen klient-/coach-UI
+
+Deretter:
+
+- Batch 2: resource renderer og read-only preview
+- Batch 3: coachbibliotek og `Send ressurs`-flyt
+- Batch 4: klientvisning, privat refleksjon og eksplisitt deling med coach
 
 ## Foreslåtte Tabeller
 
@@ -333,7 +428,9 @@ Later resource integration should add data access functions, for example:
 - `shareResourceWithClient(payload)`
 - `updateSharedResourceStatus(id, values)`
 
-In this repo, those will initially live in `app.js` unless a feature file split is introduced first.
+I dette repoet skal disse funksjonene ligge i `js/resources/`, ikke direkte i `app.js`.
+
+`app.js` kan bare kalle modulens offentlige API for init, routing eller små orkestreringskall.
 
 Do not put resource queries directly inside render functions.
 
@@ -346,6 +443,9 @@ Do not put resource queries directly inside render functions.
 - Private `resource-assets` bucket exists or is created idempotently.
 - Three pilot resources are seedable by slug.
 - Running the migration twice does not duplicate pilot resources.
+- Batch 1A establishes `js/resources/` with importable modules or a documented bridge to the current static app.
+- Resource constants, query stubs, mutation stubs, renderer stubs and public API live outside `app.js`.
+- `app.js` receives no resource business logic in Batch 1A.
 - No app UI is changed in Batch 1.
 
 ## Known Risks
@@ -354,4 +454,3 @@ Do not put resource queries directly inside render functions.
 - Strict column-level rules for `shared_resources` may need RPC later.
 - Existing app has some direct Supabase calls in render-adjacent logic; resource work should not worsen that pattern.
 - Actual asset files are not present yet, so file opening should be treated as metadata-only until assets are uploaded.
-
