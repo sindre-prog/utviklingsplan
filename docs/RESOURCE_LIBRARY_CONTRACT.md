@@ -38,7 +38,7 @@ Coach trenger å kunne:
 - sende ressurs til klient
 - legge ved kort personlig instruks
 - knytte ressursen til fokusområde, samtale eller eksperiment
-- se om klienten har åpnet eller fullført ressursen
+- se om klienten har åpnet eller svart på ressursen
 - følge opp ressursen i neste samtale
 
 ### Klient
@@ -48,7 +48,7 @@ Klient trenger å kunne:
 - se ressurser coachen har sendt
 - forstå hvorfor ressursen er sendt
 - åpne og bruke ressursen uten administrasjon
-- markere ressurs som ferdig eller lagre egen respons
+- lagre egen respons eller arkivere ressursen
 - velge hva som deles tilbake med coach
 
 Klient skal ikke få et stort generelt bibliotek dumpet inn i portalen i V1.
@@ -95,6 +95,36 @@ PDF skal være tillegg, ikke fundament. Ressurser bør i hovedsak kunne presente
 
 ## Foreslått Datamodell
 
+Alle tabell- og feltnavn skal være engelske. Ikke bland norsk og engelsk i database-schema.
+
+### Phase vs Context
+
+`phase` og `context_type` betyr ikke det samme.
+
+`phase` beskriver ressursens anbefalte faglige plassering i coachingløpet:
+
+- `direction`
+- `focus`
+- `experiment`
+- `observation`
+- `session`
+- `reflection`
+- `adjustment`
+
+`context_type` beskriver hvor ressursen faktisk er koblet når coach sender den til klient:
+
+- `program`
+- `focus_area`
+- `session`
+- `experiment`
+- `reflection`
+
+Eksempel:
+
+En ressurs kan ha `phase = reflection`, men sendes med `context_type = session` fordi coach ønsker at klienten reflekterer etter en konkret samtale.
+
+Ikke bland ressursens faglige plassering med konkret delingskontekst.
+
 ### `resources`
 
 Selve ressursen.
@@ -114,16 +144,17 @@ Felter:
 - `thumbnail_url`
 - `cover_image_url`
 - `illustration_url`
-- `content_body`
-- `file_url`
-- `audio_url`
-- `video_url`
-- `external_url`
+- `content_json`
+- `intended_outcome`
+- `best_used_when`
+- `coach_guidance`
 - `visibility`
 - `status`
 - `created_by`
 - `created_at`
+- `updated_by`
 - `updated_at`
+- `archived_at`
 
 Status:
 
@@ -136,6 +167,22 @@ Visibility:
 - `internal`
 - `coach`
 - `client_assignable`
+
+`content_json` skal støtte strukturert presentasjon fra start. Ikke lag én stor `content_body` hvis ressursene senere skal ha blokker.
+
+Eksempel:
+
+```json
+[
+  { "type": "intro", "content": "..." },
+  { "type": "section", "heading": "...", "content": "..." },
+  { "type": "question", "content": "..." },
+  { "type": "reflection_field", "label": "..." },
+  { "type": "download", "file_id": "..." }
+]
+```
+
+Blokkene er presentasjon i V1, ikke avansert egen logikk.
 
 ### `resource_tags`
 
@@ -156,19 +203,34 @@ Eksempler:
 - beslutninger
 - robusthet
 
-### `resource_collections`
+### `resource_files`
 
-Kuraterte pakker.
+Ressurser kan ha flere filer. Ikke lås datamodellen til én `file_url`.
 
-Eksempler:
+Felter:
 
-- Første 90 dager som leder
-- Stressmestring for ledere
-- Vanskelige samtaler
-- Retning og mandat
-- Selvledelse i press
+- `id`
+- `resource_id`
+- `file_type`
+- `storage_path`
+- `display_name`
+- `sort_order`
+- `created_by`
+- `created_at`
 
-En collection er en presentasjons- og kurateringsstruktur. Den skal ikke duplisere ressursinnhold.
+`file_type` kan være:
+
+- `pdf`
+- `audio`
+- `video`
+- `image`
+- `illustration`
+- `attachment`
+- `external_link`
+
+Lagre `storage_path`, ikke bare public URL. Generer signed URL når bruker faktisk skal åpne en privat fil.
+
+Private klientressurser skal ikke gjøres offentlig tilgjengelige via public URL.
 
 ### `shared_resources`
 
@@ -190,14 +252,14 @@ Felter:
 - `due_at`
 - `status`
 - `viewed_at`
-- `completed_at`
+- `responded_at`
+- `archived_at`
 - `client_note`
 - `client_visibility`
 
 `context_type` kan være:
 
 - `program`
-- `direction`
 - `focus_area`
 - `session`
 - `experiment`
@@ -207,11 +269,12 @@ Status:
 
 - `assigned`
 - `viewed`
-- `in_progress`
-- `completed`
-- `skipped`
+- `responded`
+- `archived`
 
 Klientens notat eller respons skal ikke automatisk deles med coach. Deling må være eksplisitt.
+
+Ressursinnhold skal ikke dupliseres per klient. `shared_resources` peker til `resources`. Klientspesifikt innhold bor kun i `shared_resources`.
 
 ## Coachflyt V1
 
@@ -238,6 +301,8 @@ Foreslått flyt:
 
 Dette skal bruke drawer, ikke modal, fordi coach skal beholde klientkonteksten.
 
+Drawer skal bruke eksisterende UI-mønstre for søk, kort, preview, knapper og feilvisning. Ikke bygg en egen modal- eller popup-modell for ressursdeling.
+
 ## Klientflyt V1
 
 Klient skal se en enkel seksjon:
@@ -254,6 +319,13 @@ Ressurskort bør vise:
 - status
 - primærhandling: `Åpne`
 
+Status i UI bør være rolig og coachingnær:
+
+- `Ikke åpnet`
+- `Åpnet`
+- `Svart`
+- `Arkivert`
+
 Klientens ressursvisning bør ha:
 
 - cover eller illustrasjon
@@ -266,6 +338,8 @@ Klientens ressursvisning bør ha:
 - synlig delingsvalg
 
 Standard skal være privat respons. Klient velger eksplisitt hva som deles med coach.
+
+Klient skal bare se ressurser som er delt med vedkommende. Klient skal ikke kunne åpne eller søke i hele ressursbiblioteket i V1.
 
 ## Søk Og Filtrering
 
@@ -337,6 +411,8 @@ Blokker må være presentasjon, ikke egen datalogikk i V1.
 
 Ikke bygg en full editor før behovet er bevist. Start med kontrollert innholdsmodell og gode maler.
 
+V1 skal ha en enkel renderer for blokktypene som faktisk brukes. Ikke bygg en generisk content engine, LMS-motor eller full blokkbygger.
+
 ## Eksempler På Ressurser
 
 ### Retning
@@ -387,6 +463,8 @@ Ikke bygg:
 - åpne klientbibliotek med alt innhold
 - filbank som primærmodell
 - dupliserte ressurskopier per klient
+- collections, læringsløp eller pakker
+- ordering, nesting, progression eller collection ownership
 
 Dette kan komme senere, men V1 skal bevise kjerneflyten.
 
@@ -401,9 +479,10 @@ MVP bør inneholde:
 5. Personlig instruks fra coach.
 6. Klientseksjon: `Ressurser fra coach`.
 7. Åpne ressurs.
-8. Marker ferdig.
+8. Lagre privat respons eller arkiver ressurs.
 9. Valgfri privat respons fra klient.
 10. Eksplisitt deling av respons med coach.
+11. 1-3 seed/demo-ressurser som viser riktig struktur.
 
 ## V2
 
@@ -431,12 +510,182 @@ V2 kan vurdere:
 - Ingen native alert/confirm.
 - Ingen ny hovednavigasjon i klientens coachingflyt.
 
+## Engineering Hygiene
+
+Disse reglene gjelder før implementering. De skal hindre at ressursbiblioteket blir blandet tilfeldig inn i eksisterende kode.
+
+### Featurestruktur
+
+All ressurslogikk skal ligge samlet i én tydelig feature-struktur som passer faktisk repo.
+
+Ikke spre resource-logikk i mange generelle mapper før mønsteret er stabilt.
+
+Hvis repoet får en feature-struktur, bør den følge denne logikken:
+
+```text
+resources/
+  components/
+  server/
+  queries/
+  mutations/
+  types/
+  schemas/
+  utils/
+```
+
+Tilpass mappenavn til faktisk kodebase. Ikke innfør `src/features/...` blindt hvis repoet ikke bruker det.
+
+### Database Og Migrations
+
+- Bruk stabile engelske tabell- og feltnavn.
+- Schema-endringer skal gjøres som migrations.
+- Ikke gjør manuelle Supabase Studio-endringer som ikke finnes i repoet.
+- Bruk enum-typer eller check constraints for `status`, `visibility`, `type`, `format`, `context_type` og `phase`.
+- Ikke lag midlertidige kolonner som `temp_url`, `misc`, `data`, `notes2` eller `old_status`.
+
+### Database-Modell vs UI-Modell
+
+Databasefelter skal ikke formes direkte etter første UI.
+
+Lag egne mapping- eller query-funksjoner der det trengs.
+
+Eksempler på funksjoner:
+
+- `getResources`
+- `getResourceById`
+- `createResource`
+- `shareResourceWithClient`
+- `getClientSharedResources`
+
+Supabase-kall skal ikke spres tilfeldig i komponenter eller render-funksjoner.
+
+### RLS Og Sikkerhet
+
+RLS skal bygges før UI.
+
+Ikke stol på at UI skjuler data.
+
+Regler:
+
+- Klient skal aldri kunne lese hele ressursbiblioteket.
+- Klient skal bare kunne se ressurser via `shared_resources` som tilhører klienten.
+- Coach skal bare kunne dele med klienter coachen har tilgang til.
+- Admin/fagansvarlig skal kunne administrere ressursbiblioteket.
+- Klientnotat er privat med mindre klient eksplisitt deler det med coach.
+- Private filer skal åpnes via signed URL, ikke public URL.
+
+### Filer
+
+- Ikke lås en ressurs til én `file_url`.
+- Bruk `resource_files` når ressursen kan ha flere filer.
+- Lagre `storage_path`.
+- Generer signed URL når filen åpnes.
+- Ikke gjør private klientressurser offentlig tilgjengelige.
+
+### Audit Og Sletting
+
+Sentrale tabeller skal ha:
+
+- `created_by`
+- `created_at`
+- `updated_by`
+- `updated_at`
+- `archived_at`
+
+`shared_resources` skal ha:
+
+- `shared_by`
+- `shared_at`
+
+Faginnhold skal ikke slettes fysisk i normal flyt. Bruk `archived` status.
+
+Fysisk sletting kan eventuelt komme senere som admin-only ved feilopprettelse.
+
+### Validering
+
+Valider input med Zod eller tilsvarende hvis stacken støtter det.
+
+Særlig:
+
+- `content_json`
+- resource type
+- status
+- phase
+- context_type
+- deling med klient
+- client visibility
+
+### Seed Og Pilotinnhold
+
+Lag 1-3 seed/demo-ressurser først.
+
+Ikke importer 50 ressurser før datamodellen, renderer og delingsflyten sitter.
+
+Seed-ressursene skal vise:
+
+- strukturert `content_json`
+- minst én illustrasjon eller modell
+- ressurs uten fil
+- ressurs med fil
+- ressurs som kan sendes til klient
+
+### Komponentnavn
+
+Komponentnavn skal være presise.
+
+Gode navn:
+
+- `ResourceCard`
+- `ResourcePreviewDrawer`
+- `SendResourceDrawer`
+- `SharedResourceStatus`
+- `ClientResourceView`
+
+Dårlige navn:
+
+- `Card2`
+- `NewModal`
+- `ResourceThing`
+- `TestComponent`
+
+### Dokumentasjon Før Ferdigmelding
+
+Når V1 implementeres, skal teknisk oppsummering dokumentere:
+
+- hvilke tabeller som er lagt til
+- hvilke RLS-regler som gjelder
+- hvilke sider eller ruter som er laget
+- hvordan man tester coach -> klient flyten
+- kjente begrensninger
+
+Hvis noe er uklart, dokumenter det som TODO i teknisk oppsummering. Ikke lag raske prod-fikser i schema.
+
+### Hygiene-Akseptanse
+
+Etter V1 skal en ny utvikler kunne forstå:
+
+- hvor ressursbiblioteket ligger i koden
+- hvilke tabeller som styrer flyten
+- hvordan tilgang fungerer
+- hvordan man legger til ny ressurs
+- hvordan man feilsøker deling
+
+## Anbefalt Byggerekkefølge
+
+1. Datamodell, migrations, RLS og typer.
+2. Admin CRUD for ressurser med enkel `content_json` og status.
+3. Coachbibliotek med søk, filter og preview.
+4. `Send ressurs` fra klient/program, fokusområde og samtale med `coach_note` og kontekst.
+5. Klientvisning av sendte ressurser, åpning av ressurs, privat respons og eksplisitt deling.
+6. Statusvisning for coach og visuell polish.
+
+Ikke bygg AI, analytics, full editor, collections, læringsløp eller avansert progresjon i V1.
+
 ## Åpne Beslutninger Før Kode
 
-- Skal ressursinnhold lagres som Markdown, JSON-blokker eller enkel rich text?
-- Skal første versjon støtte opplasting til Supabase Storage, eller kun URL-er til eksisterende filer?
+- Skal `content_json` være JSONB med enkel intern schema-validering, eller skal første batch starte med et statisk seed-format?
+- Skal første versjon støtte opplasting til Supabase Storage, eller kun manuelt seedede `resource_files`?
 - Skal admin kunne redigere ressurser i portalen i V1, eller importeres ressurser manuelt?
 - Skal klient kunne laste ned alle ressurser som PDF, eller bare utvalgte?
 - Skal ressursstatus være synlig for klient, coach eller begge?
 - Hvilke 10-15 ressurser skal være pilotinnhold?
-
