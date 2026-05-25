@@ -10,6 +10,12 @@ function textNode(createElement, tag, className, text) {
   return createElement(tag, { class: className, text: text || "" });
 }
 
+function renderList(createElement, className, items = []) {
+  return createElement("ul", { class: className }, items.map((item) => (
+    createElement("li", { text: item })
+  )));
+}
+
 export function renderResourceContentBlocks(blocks = [], options = {}) {
   const { createElement = null } = options;
   assertElementFactory(createElement);
@@ -37,15 +43,18 @@ export function renderResourceBlock(block, options = {}) {
       return createElement("div", {
         class: "resource-block resource-block--illustration",
         "data-illustration-key": block.key || ""
-      });
+      }, [
+        createElement("span", { class: "resource-illustration-orb" }),
+        createElement("p", { text: illustrationLabel(block.key) })
+      ]);
     case RESOURCE_BLOCK_TYPES.worksheet:
-      return createElement("div", { class: "resource-block resource-block--worksheet" }, (block.fields || []).map((field) => (
-        textNode(createElement, "p", "resource-block__field", field)
-      )));
+      return createElement("div", { class: "resource-block resource-block--worksheet" }, [
+        renderList(createElement, "resource-block__fields", block.fields || [])
+      ]);
     case RESOURCE_BLOCK_TYPES.reflectionQuestions:
-      return createElement("div", { class: "resource-block resource-block--reflection-questions" }, (block.questions || []).map((question) => (
-        textNode(createElement, "p", "resource-block__question", question)
-      )));
+      return createElement("div", { class: "resource-block resource-block--reflection-questions" }, [
+        renderList(createElement, "resource-block__questions", block.questions || [])
+      ]);
     case RESOURCE_BLOCK_TYPES.download:
       return textNode(createElement, "p", "resource-block resource-block--download", block.label);
     default:
@@ -61,4 +70,13 @@ export function renderReflectionPrompts(prompts = [], options = {}) {
   assertElementFactory(createElement);
 
   return prompts.map((prompt) => textNode(createElement, "p", "resource-reflection-prompt", prompt));
+}
+
+function illustrationLabel(key) {
+  const labels = {
+    abcde_model: "ABCDE-modellen",
+    control_circle: "Kontrollsirkelen",
+    fear_curve: "Fryktkurve"
+  };
+  return labels[key] || "Illustrasjon";
 }

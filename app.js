@@ -39,7 +39,9 @@ const state = {
   directionEditKey: null,
   inlineEditKey: null,
   selectedFocusIndex: 0,
-  selectedSessionIndex: 0
+  selectedSessionIndex: 0,
+  resourceCache: null,
+  selectedResourceSlug: null
 };
 
 const planFields = [
@@ -293,6 +295,7 @@ function renderShell() {
   $("#user-name").textContent = state.user.email || state.profile.name || "Bruker";
   const nav = [
     ["clients", state.profile.role === "client" ? "file-text" : "users", "Klienter"],
+    state.profile.role !== "client" && ["resources", "library", "Ressurser"],
     state.profile.role === "admin" && ["admin", "shield-check", "Administrasjon"]
   ].filter(Boolean);
   const navList = $("#nav-list");
@@ -309,6 +312,7 @@ function navigate(view, clientId = null) {
   const routes = {
     clients: renderClients,
     plan: renderPlan,
+    resources: renderResources,
     admin: renderAdmin
   };
   (routes[view] || renderClients)();
@@ -549,6 +553,138 @@ function actionGroup(actions) {
   return el("div", { class: "row-actions" }, actions.map(([label, handler, disabled = false]) => {
     return el("button", { class: "button ghost", disabled, onclick: disabled ? null : handler, text: label });
   }));
+}
+
+async function renderResources() {
+  if (state.profile.role === "client") {
+    navigate("plan", state.client?.id);
+    return;
+  }
+
+  setHeader("Ressursbibliotek", "Ressurser", []);
+  const content = $("#content");
+  content.replaceChildren(el("section", { class: "panel empty-state" }, [
+    el("p", { class: "eyebrow", text: "Ressurser" }),
+    el("h3", { text: "Henter pilotressurser" }),
+    el("p", { class: "muted", text: "Leser publiserte ressurser, tags og filmetadata." })
+  ]));
+
+  const library = getResourceLibrary();
+  if (!library) {
+    content.replaceChildren(el("section", { class: "panel empty-state" }, [
+      el("p", { class: "eyebrow", text: "Ressurser" }),
+      el("h3", { text: "Ressursmodulen er ikke lastet" }),
+      el("p", { class: "muted", text: "Last siden på nytt. Hvis feilen fortsetter, sjekk importen i index.html." })
+    ]));
+    return;
+  }
+
+  let resources = [];
+  try {
+    resources = await library.getPublishedResources(state.sb);
+  } catch (error) {
+    content.replaceChildren(el("section", { class: "panel empty-state" }, [
+      el("p", { class: "eyebrow", text: "Ressurser" }),
+      el("h3", { text: "Kunne ikke hente ressursene" }),
+      el("p", { class: "muted", text: error.message || "Sjekk RLS, migrations og seeddata." })
+    ]));
+    return;
+  }
+
+  state.resourceCache = resources;
+  if (!state.selectedResourceSlug || !resources.some((resource) => resource.slug === state.selectedResourceSlug)) {
+    state.selectedResourceSlug = resources[0]?.slug || null;
+  }
+
+  const search = el("input", { class: "search", placeholder: "Søk etter tema, ressurs eller tag" });
+  const listSlot = el("div", { class: "resource-list" });
+  const previewSlot = el("div", { class: "resource-preview-slot" });
+
+  const phaseFilter = filterMenu([
+    { value: "all", label: "Alle faser" },
+    { value: "direction", label: "Retning" },
+    { value: "focus", label: "Fokus" },
+    { value: "experiment", label: "Eksperiment" },
+    { value: "session", label: "Samtale" },
+    { value: "reflection", label: "Refleksjon" }
+  ], "all", "Filtrer på fase", () => render());
+
+  const typeFilter = filterMenu([
+    { value: "all", label: "Alle typer" },
+    { value: "framework", label: "Rammeverk" },
+    { value: "guided_session", label: "Veiledet økt" },
+    { value: "exercise", label: "Øvelse" },
+    { value: "worksheet", label: "Arbeidsark" }
+  ], "all", "Filtrer på type", () => render());
+
+  const selectResource = (resource) => {
+    state.selectedResourceSlug = resource.slug;
+    render();
+  };
+
+  const render = () => {
+    const filtered = filterResourceList(resources, {
+      query: search.value,
+      phase: phaseFilter.value,
+      type: typeFilter.value
+    });
+    if (!filtered.some((resource) => resource.slug === state.selectedResourceSlug)) {
+      state.selectedResourceSlug = filtered[0]?.slug || resources[0]?.slug || null;
+    }
+    const selected = resources.find((resource) => resource.slug === state.selectedResourceSlug) || filtered[0] || null;
+    listSlot.replaceChildren(
+      filtered.length
+        ? el("div", { class: "resource-card-list" }, filtered.map((resource) => library.createResourceCard(resource, {
+          createElement: el,
+          selected: selected?.slug === resource.slug,
+          onSelect: selectResource
+        })))
+        : el("section", { class: "panel empty-state resource-empty" }, [
+          el("p", { class: "eyebrow", text: "Søk" }),
+          el("h3", { text: "Ingen ressurser funnet" }),
+          el("p", { class: "muted", text: "Prøv et annet søk eller fjern filtrene." })
+        ])
+    );
+    previewSlot.replaceChildren(library.createResourcePreview(selected, { createElement: el }));
+    refreshIcons();
+  };
+
+  search.addEventListener("input", render);
+
+  content.replaceChildren(el("section", { class: "resource-library" }, [
+    el("div", { class: "resource-library-head" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Pilot" }),
+        el("h3", { text: "Bibliotek for coach" }),
+        el("p", { class: "muted", text: "Se hvordan ressursene er strukturert før sendeflyt og klientvisning bygges." })
+      ])
+    ]),
+    el("div", { class: "filter-row resource-filter-row" }, [search, phaseFilter, typeFilter]),
+    el("div", { class: "resource-library-grid" }, [
+      el("aside", { class: "resource-library-list-panel" }, [listSlot]),
+      previewSlot
+    ])
+  ]));
+  render();
+}
+
+function getResourceLibrary() {
+  return window.RaederResourceLibrary || null;
+}
+
+function filterResourceList(resources, filters) {
+  const query = (filters.query || "").trim().toLowerCase();
+  return resources.filter((resource) => {
+    const matchesQuery = !query || [
+      resource.title,
+      resource.summary,
+      resource.intended_outcome,
+      ...(resource.tags || [])
+    ].filter(Boolean).join(" ").toLowerCase().includes(query);
+    const matchesPhase = filters.phase === "all" || resource.phase === filters.phase;
+    const matchesType = filters.type === "all" || resource.type === filters.type;
+    return matchesQuery && matchesPhase && matchesType;
+  });
 }
 
 async function renderPlan(activePane = "direction") {
