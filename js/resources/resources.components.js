@@ -37,7 +37,7 @@ function metaPills(createElement, resource) {
   return [
     createElement("span", { class: "badge", text: labelFor(TYPE_LABELS, resource.type) }),
     createElement("span", { class: "badge", text: `${resource.estimated_duration || "?"} min` }),
-    createElement("span", { class: "badge ok", text: labelFor(PHASE_LABELS, resource.phase) })
+    createElement("span", { class: "badge resource-meta-subtle", text: labelFor(PHASE_LABELS, resource.phase) })
   ];
 }
 
@@ -55,7 +55,7 @@ function contextLabel(sharedResource) {
 function listSection(createElement, title, items = []) {
   if (!items.length) return null;
 
-  return createElement("section", { class: "resource-preview-section" }, [
+  return createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
     createElement("h4", { text: title }),
     createElement("ul", {}, items.map((item) => createElement("li", { text: item })))
   ]);
@@ -112,13 +112,13 @@ export function createResourcePreview(resource, options = {}) {
         ]) : null
       ])
     ]),
-    createElement("section", { class: "resource-preview-section" }, [
+    createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
       createElement("h4", { text: "Hva ressursen skal hjelpe med" }),
       createElement("p", { text: resource.intended_outcome || "Ikke definert ennå." })
     ]),
     listSection(createElement, "Best brukt når", resource.best_used_when || []),
     listSection(createElement, "Ikke egnet når", resource.not_for || []),
-    createElement("section", { class: "resource-preview-section" }, [
+    createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
       createElement("h4", { text: "Veiledning til coach" }),
       createElement("p", { text: resource.coach_guidance || "Ingen veiledning lagt inn ennå." })
     ]),
