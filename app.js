@@ -190,7 +190,9 @@ async function init() {
   const authType = urlParams.get("type") || hashParams.get("type");
   const authCode = urlParams.get("code");
   const tokenHash = urlParams.get("token_hash") || hashParams.get("token_hash");
-  const hasAuthTokens = hashParams.has("access_token") || hashParams.has("refresh_token") || urlParams.has("access_token") || urlParams.has("refresh_token");
+  const accessToken = hashParams.get("access_token") || urlParams.get("access_token");
+  const refreshToken = hashParams.get("refresh_token") || urlParams.get("refresh_token");
+  const hasAuthTokens = Boolean(accessToken || refreshToken);
   const isPasswordFlow = ["invite", "recovery"].includes(authType) || Boolean(authCode) || Boolean(tokenHash) || hasAuthTokens;
   const hasAuthCallback = Boolean(authCode) || Boolean(tokenHash) || hasAuthTokens;
 
@@ -217,6 +219,10 @@ async function init() {
     window.history.replaceState(null, "", window.location.pathname);
   } else if (authCode) {
     const { error } = await state.sb.auth.exchangeCodeForSession(authCode);
+    authError = error;
+    window.history.replaceState(null, "", window.location.pathname);
+  } else if (accessToken && refreshToken) {
+    const { error } = await state.sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
     authError = error;
     window.history.replaceState(null, "", window.location.pathname);
   }
@@ -1415,7 +1421,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-69")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-70")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
