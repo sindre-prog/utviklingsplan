@@ -483,7 +483,11 @@ function filterMenu(options, initialValue, ariaLabel, onChange) {
 
 function renderClients() {
   if (state.profile.role === "client") return navigate("plan", state.client?.id);
-  setHeader("Utviklingsplaner", "Klienter", [button("Inviter klient", "user-plus", () => openClientInvite())]);
+  setHeader("Utviklingsplaner", "Klienter", [
+    state.profile.role === "admin"
+      ? button("Legg til klient", "user-plus", () => openClientCreate())
+      : button("Inviter klient", "user-plus", () => openClientInvite())
+  ]);
   const content = $("#content");
   const visibleClients = getVisibleClients();
   const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
@@ -552,8 +556,8 @@ function clientGrid(clients) {
 
 function renderAdmin() {
   setHeader("Administrasjon", "Team og tilgang", [
-    button("Inviter coach", "user-round-plus", () => openCoachInvite()),
-    button("Inviter klient", "user-plus", () => openClientInvite()),
+    button("Legg til coach", "user-round-plus", () => openCoachCreate()),
+    button("Legg til klient", "user-plus", () => openClientCreate()),
     button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
   ]);
   const coachSearch = el("input", { class: "search", placeholder: "Søk coach" });
@@ -596,14 +600,22 @@ function renderAdmin() {
   $("#content").replaceChildren(
     el("section", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Team" }), el("h3", { text: "Coacher" })])
+        el("div", {}, [el("p", { class: "eyebrow", text: "Team" }), el("h3", { text: "Coacher" })]),
+        el("div", { class: "toolbar-actions" }, [
+          button("Legg til coach", "user-round-plus", () => openCoachCreate(), "ghost"),
+          button("Inviter coach", "mail-plus", () => openCoachInvite(), "ghost")
+        ])
       ]),
       el("div", { class: "filter-row admin-filter-row" }, [coachSearch]),
       coachTableSlot
     ]),
     el("section", { class: "panel list-panel" }, [
       el("div", { class: "toolbar" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })])
+        el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })]),
+        el("div", { class: "toolbar-actions" }, [
+          button("Legg til klient", "user-plus", () => openClientCreate(), "ghost"),
+          button("Inviter klient", "mail-plus", () => openClientInvite(), "ghost")
+        ])
       ]),
       el("div", { class: "filter-row admin-filter-row" }, [clientSearch, adminCoachFilter, adminSortFilter]),
       clientTableSlot
@@ -1063,6 +1075,21 @@ function parseJsonArray(value, fieldName) {
   }
 }
 
+function validateResourceForPublish(payload) {
+  const missing = [];
+  if (!payload.title) missing.push("tittel");
+  if (!payload.summary) missing.push("kort beskrivelse");
+  if (!payload.intended_outcome) missing.push("hva ressursen skal hjelpe med");
+  if (!payload.client_intro) missing.push("intro til klient");
+  if (!payload.coach_guidance) missing.push("veiledning til coach");
+  if (!Array.isArray(payload.content_json) || !payload.content_json.length) missing.push("minst én innholdsblokk");
+  if (payload.visibility === "client_assignable" && !payload.suggested_coach_note) missing.push("foreslått instruks fra coach");
+  if (payload.review_status === "draft") missing.push("faglig vurdering før publisering");
+  if (missing.length) {
+    throw new Error(`Kan ikke publisere før dette er fylt ut: ${missing.join(", ")}.`);
+  }
+}
+
 function parseResourceAdminPayload(values, currentResource = null) {
   const title = values.title.trim();
   const slug = (values.slug.trim() || resourceSlug(title));
@@ -1075,9 +1102,9 @@ function parseResourceAdminPayload(values, currentResource = null) {
     throw new Error("Varighet må være et positivt heltall.");
   }
 
-  const status = values.status || currentResource?.status || "published";
+  const status = values.status || currentResource?.status || "draft";
 
-  return {
+  const payload = {
     title,
     slug,
     summary: values.summary.trim(),
@@ -1106,6 +1133,8 @@ function parseResourceAdminPayload(values, currentResource = null) {
     last_reviewed_at: values.last_reviewed_at || null,
     tags: textLines(values.tags)
   };
+  if (payload.status === "published") validateResourceForPublish(payload);
+  return payload;
 }
 
 async function openResourceAdminEditor(resource = null) {
@@ -1183,9 +1212,9 @@ async function openResourceAdminEditor(resource = null) {
     inputSpec("estimated_duration", "Varighet i minutter", "number", resource?.estimated_duration || "", { min: "1" }),
     selectSpec("difficulty", "Vanskelighetsgrad", RESOURCE_DIFFICULTY_OPTIONS, resource?.difficulty || ""),
     selectSpec("default_context_types", "Standard kontekster", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"], true),
-    selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "published"),
+    selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "draft"),
     selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable"),
-    selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || (resource?.status === "published" ? "approved_for_pilot" : "draft")),
+    selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft"),
     inputSpec("language", "Språk", "text", resource?.language || "no"),
     textareaSpec("basis", "Faglig grunnlag", resource?.basis || "", { rows: "3" }),
     inputSpec("reviewed_by", "Vurdert av", "text", resource?.reviewed_by || ""),
@@ -1212,12 +1241,22 @@ async function openResourceAdminEditor(resource = null) {
 async function publishResource(resource) {
   const library = await ensureResourceLibrary();
   if (!library?.updateResource) return;
-  await library.updateResource(state.sb, resource.id, {
+  const payload = {
+    ...resource,
     status: "published",
     visibility: resource.visibility || "client_assignable",
     review_status: resource.review_status || "approved_for_pilot",
-    archived_at: null
-  }, resource.tags || []);
+    archived_at: null,
+    tags: resource.tags || []
+  };
+  validateResourceForPublish(payload);
+  await library.updateResource(state.sb, resource.id, {
+    status: payload.status,
+    visibility: payload.visibility,
+    review_status: payload.review_status,
+    archived_at: payload.archived_at,
+    tags: payload.tags
+  });
   await renderAdmin();
 }
 
@@ -1364,7 +1403,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-66")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-67")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1394,12 +1433,108 @@ function openSendResourceDrawer(resource) {
   openEntityDrawer(`Send ${resource.title}`, "Ressurs", [
     sectionSpec("Send ressurs", "Velg klient og legg ved en kort instruks. Ressursen legges i klientens coachingforløp."),
     selectSpec("clientId", "Klient", clients.map((client) => [client.id, client.name || client.email || "Uten navn"]), clients[0]?.id || ""),
+    customSpec(["contextType", "contextId"], createResourceContextPicker(resource, clients)),
     textareaSpec("coachNote", "Instruks til klient", resource.suggested_coach_note || "", {
       placeholder: "Skriv kort hvorfor du sender ressursen, og hva klienten bør bruke den til."
     })
   ], async (values) => {
     await sendResourceToClient(resource, values);
   });
+}
+
+function resourceDefaultContextTypes(resource) {
+  const values = Array.isArray(resource?.default_context_types) && resource.default_context_types.length
+    ? resource.default_context_types
+    : ["program"];
+  return new Set(["program", ...values]);
+}
+
+function createResourceContextPicker(resource, clients) {
+  const allowed = resourceDefaultContextTypes(resource);
+  const contextType = el("input", { type: "hidden", name: "contextType", value: "program" });
+  const contextId = el("input", { type: "hidden", name: "contextId", value: "" });
+  const picker = el("select", { class: "resource-admin-compact-select" });
+  const message = el("p", { class: "resource-admin-inline-help", text: "Velg hvor i forløpet ressursen hører hjemme. Bruk Forløp hvis den gjelder helheten." });
+  const wrapper = el("section", { class: "resource-admin-helper-card" }, [
+    el("strong", { text: "Kontekst" }),
+    picker,
+    contextType,
+    contextId,
+    message
+  ]);
+
+  const option = (type, id, label, disabled = false) => ({ type, id, label, disabled });
+  const buildOptions = (data) => {
+    const options = [option("program", "", "Forløp")];
+    if (allowed.has("focus_area")) {
+      (data?.areas || []).forEach((area) => {
+        options.push(option("focus_area", area.id, `Fokusområde: ${area.title || "Uten tittel"}`, !area.id));
+      });
+    }
+    if (allowed.has("session")) {
+      (data?.sessions || []).forEach((session) => {
+        options.push(option("session", session.id, `Samtale: ${session.focus || formatDate(session.session_date) || "Uten tittel"}`, !session.id));
+      });
+    }
+    if (allowed.has("experiment")) {
+      (data?.actions || []).forEach((action) => {
+        options.push(option("experiment", action.id, `Eksperiment: ${action.title || "Uten tittel"}`, !action.id));
+      });
+    }
+    if (allowed.has("reflection")) {
+      (data?.reflections || []).forEach((reflection) => {
+        const text = (reflection.body || "").trim();
+        options.push(option("reflection", reflection.id, `Refleksjon: ${text ? text.slice(0, 48) : formatDate(reflection.created_at) || "Uten tittel"}`, !reflection.id));
+      });
+    }
+    return options;
+  };
+
+  const syncValue = () => {
+    const selected = picker.selectedOptions[0];
+    contextType.value = selected?.dataset.contextType || "program";
+    contextId.value = selected?.value || "";
+  };
+
+  const renderOptions = (options) => {
+    picker.replaceChildren(...options.map((item) => el("option", {
+      value: item.id,
+      text: item.label,
+      disabled: item.disabled,
+      "data-context-type": item.type
+    })));
+    syncValue();
+  };
+
+  const refresh = async () => {
+    const selectedClientId = $("[name='clientId']", $("#drawer-form"))?.value || clients[0]?.id;
+    const client = clients.find((item) => item.id === selectedClientId);
+    if (!client) {
+      renderOptions([option("program", "", "Forløp")]);
+      return;
+    }
+    message.textContent = "Henter kontekst fra klientens forløp...";
+    try {
+      const data = await loadClientProgram(client);
+      renderOptions(buildOptions(data));
+      message.textContent = picker.options.length > 1
+        ? "Velg konkret kontekst, eller behold Forløp hvis ressursen gjelder helheten."
+        : "Denne ressursen sendes på forløpsnivå. Ingen egnet detaljkontekst er tilgjengelig ennå.";
+    } catch (error) {
+      renderOptions([option("program", "", "Forløp")]);
+      message.textContent = error.message || "Kunne ikke hente kontekst. Ressursen kan fortsatt sendes på forløpsnivå.";
+    }
+  };
+
+  picker.addEventListener("change", syncValue);
+  setTimeout(() => {
+    const clientSelect = $("[name='clientId']", $("#drawer-form"));
+    clientSelect?.addEventListener("change", refresh);
+    refresh();
+  }, 0);
+
+  renderOptions([option("program", "", "Forløp")]);
+  return wrapper;
 }
 
 function canShareResourceToClient(client) {
@@ -1423,7 +1558,8 @@ async function sendResourceToClient(resource, values) {
     resourceId: resource.id,
     clientId: client.id,
     programId: program.id,
-    contextType: "program",
+    contextType: values.contextType || "program",
+    contextId: values.contextId || null,
     coachNote: values.coachNote
   });
   delete state.programCache[client.id];
@@ -3380,11 +3516,30 @@ function openClientInvite() {
   ], inviteClient);
 }
 
+function openClientCreate() {
+  openEntityModal("Legg til klient", "Tilgang", [
+    sectionSpec("Klient uten innlogging", "Oppretter klient og coachingforløp med én gang. Bruk Inviter klient når klienten også skal få portaltilgang."),
+    inputSpec("name", "Navn"),
+    inputSpec("email", "E-post", "email"),
+    inputSpec("role", "Stilling"),
+    inputSpec("employer", "Arbeidsgiver"),
+    selectSpec("coachIds", "Coach(er)", state.coaches.map((coach) => [coach.id, coach.name]), state.coach ? [state.coach.id] : [], true)
+  ], createClient);
+}
+
 function openCoachInvite() {
   openEntityModal("Inviter coach", "Tilgang", [
     inputSpec("name", "Navn"),
     inputSpec("email", "E-post", "email")
   ], inviteCoach);
+}
+
+function openCoachCreate() {
+  openEntityModal("Legg til coach", "Team", [
+    sectionSpec("Coach uten innlogging", "Oppretter coach i oversikten. Bruk Inviter coach når coachen også skal få portaltilgang."),
+    inputSpec("name", "Navn"),
+    inputSpec("email", "E-post", "email")
+  ], createCoach);
 }
 
 function openCoachEdit(coach) {
@@ -3470,7 +3625,9 @@ function selectSpec(name, label, options, value = [], multiple = false) {
 }
 
 function customSpec(name, node) {
-  return { kind: "custom", name, node };
+  return Array.isArray(name)
+    ? { kind: "custom", names: name, node }
+    : { kind: "custom", name, node };
 }
 
 function choiceSpec(name, label, options, value = "") {
@@ -3517,6 +3674,13 @@ function collectSpecValues(specs, form) {
   specs.forEach((spec) => {
     if (spec.kind === "section") return;
     if (spec.kind === "custom") {
+      if (Array.isArray(spec.names)) {
+        spec.names.forEach((name) => {
+          const control = $(`[name='${name}']`, form);
+          if (control) values[name] = control.value.trim();
+        });
+        return;
+      }
       const control = spec.name ? $(`[name='${spec.name}']`, form) : null;
       if (control) values[spec.name] = control.value.trim();
       return;
@@ -3613,6 +3777,58 @@ $("#message-dialog").addEventListener("cancel", (event) => {
   state.messageResolve?.(false);
   state.messageResolve = null;
 });
+
+function entityCode(prefix, value = "") {
+  const base = String(value || prefix)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "o")
+    .replace(/å/g, "a")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 42) || prefix;
+  return `${prefix}-${base}-${Date.now().toString(36)}`;
+}
+
+async function createClient(values) {
+  const name = values.name?.trim();
+  if (!name) throw new Error("Navn må fylles ut.");
+  const { data: client, error } = await state.sb
+    .from("clients")
+    .insert({
+      name,
+      email: values.email || null,
+      role: values.role || null,
+      employer: values.employer || null,
+      coach_ids: values.coachIds || [],
+      code: entityCode("client", values.email || name)
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  const { error: programError } = await state.sb
+    .from("coaching_programs")
+    .insert({ client_id: client.id, status: "draft" });
+  if (programError) throw programError;
+  await reloadAndRender();
+}
+
+async function createCoach(values) {
+  const name = values.name?.trim();
+  if (!name) throw new Error("Navn må fylles ut.");
+  const { error } = await state.sb
+    .from("coaches")
+    .insert({
+      name,
+      email: values.email || null,
+      code: entityCode("coach", values.email || name)
+    });
+  if (error) throw error;
+  await reloadAndRender();
+}
 
 async function inviteClient(values) {
   const { data: { session } } = await state.sb.auth.getSession();

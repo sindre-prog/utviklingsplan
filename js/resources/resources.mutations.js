@@ -59,6 +59,7 @@ export async function createResource(supabaseClient, payload) {
 export async function updateResource(supabaseClient, resourceId, payload) {
   requireSupabaseClient(supabaseClient);
 
+  const shouldReplaceTags = Object.prototype.hasOwnProperty.call(payload, "tags");
   const { tags = [], ...resourcePayload } = payload;
   const { data, error } = await supabaseClient
     .from("resources")
@@ -68,7 +69,9 @@ export async function updateResource(supabaseClient, resourceId, payload) {
     .single();
 
   if (error) throw error;
-  await replaceResourceTags(supabaseClient, resourceId, tags);
+  if (shouldReplaceTags) {
+    await replaceResourceTags(supabaseClient, resourceId, tags);
+  }
   return data;
 }
 
