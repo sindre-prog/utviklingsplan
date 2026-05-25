@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-59";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-60";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {

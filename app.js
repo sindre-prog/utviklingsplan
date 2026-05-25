@@ -685,7 +685,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-59")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-60")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1082,9 +1082,9 @@ function getDirectionSpecs(plan) {
     },
     {
       key: "c_expect_client",
-      label: "Ditt ansvar",
-      subhead: "Mellom samtalene",
-      valueLabel: "Dette gjør du",
+      label: "Hva trenger du fra deg selv?",
+      subhead: "Din del",
+      valueLabel: "Dette vil du bidra med",
       value: plan.c_expect_client,
       helper: "Hva vil du prøve, observere eller forberede mellom samtalene?",
       placeholder: "Hva vil du prøve, observere eller forberede mellom samtalene?"
@@ -1170,8 +1170,8 @@ function directionSpecPreview(spec) {
   return spec.value || "";
 }
 
-function directionAccent(index = 0) {
-  return ["#e7e8ff", "#d7eaff", "#dff7d2", "#ffe1e1", "#ece6f0", "#dfe8dc"][index % 6];
+function directionAccent() {
+  return "var(--direction-orb-bg)";
 }
 
 function directionFieldContent(spec, value, editable) {
