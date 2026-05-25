@@ -1116,8 +1116,56 @@ function validateResourceForPublish(payload) {
   if (payload.visibility === "client_assignable" && !payload.suggested_coach_note) missing.push("foreslått instruks fra coach");
   if (payload.review_status === "draft") missing.push("faglig vurdering før publisering");
   if (missing.length) {
-    throw new Error(`Kan ikke publisere før dette er fylt ut: ${missing.join(", ")}.`);
+    throw new Error(`Mangler: ${missing.join(", ")}.`);
   }
+}
+
+function resourceReadinessItems(payload) {
+  const items = [
+    ["Tittel", Boolean(payload.title)],
+    ["Kort beskrivelse", Boolean(payload.summary)],
+    ["Hva ressursen skal hjelpe med", Boolean(payload.intended_outcome)],
+    ["Intro til klient", Boolean(payload.client_intro)],
+    ["Veiledning til coach", Boolean(payload.coach_guidance)],
+    ["Innholdsblokk", Array.isArray(payload.content_json) && payload.content_json.length > 0],
+    ["Foreslått instruks", payload.visibility !== "client_assignable" || Boolean(payload.suggested_coach_note)],
+    ["Faglig vurdering", payload.review_status && payload.review_status !== "draft"]
+  ];
+  return items.map(([label, done]) => ({ label, done }));
+}
+
+function createResourceReadinessPanel(getDraftResource) {
+  const list = el("div", { class: "resource-readiness-list" });
+  const summary = el("p", { class: "resource-admin-inline-help" });
+  const panel = el("section", { class: "resource-admin-helper-card resource-readiness-panel" }, [
+    el("strong", { text: "Publiseringsklar?" }),
+    summary,
+    list
+  ]);
+
+  const refresh = () => {
+    try {
+      const draft = getDraftResource();
+      const items = resourceReadinessItems(draft);
+      const missing = items.filter((item) => !item.done);
+      summary.textContent = missing.length
+        ? `Mangler: ${missing.map((item) => item.label).join(", ")}.`
+        : "Klar til publisering.";
+      list.replaceChildren(...items.map((item) => el("span", {
+        class: `resource-readiness-item ${item.done ? "is-done" : "is-missing"}`,
+        text: `${item.done ? "OK" : "Mangler"}: ${item.label}`
+      })));
+    } catch (error) {
+      summary.textContent = error.message || "Fyll ut feltene for å se hva som mangler.";
+      list.replaceChildren();
+    }
+  };
+  setTimeout(() => {
+    $("#drawer-form")?.addEventListener("input", refresh);
+    $("#drawer-form")?.addEventListener("change", refresh);
+    refresh();
+  }, 0);
+  return panel;
 }
 
 function parseResourceAdminPayload(values, currentResource = null) {
@@ -1154,7 +1202,7 @@ function parseResourceAdminPayload(values, currentResource = null) {
     coach_guidance: values.coach_guidance.trim() || null,
     client_intro: values.client_intro.trim() || null,
     suggested_coach_note: values.suggested_coach_note.trim() || null,
-    default_context_types: textLines(values.default_context_types),
+    default_context_types: Array.isArray(values.default_context_types) ? values.default_context_types : textLines(values.default_context_types),
     content_json: parseJsonArray(values.content_json, "Content JSON"),
     reflection_prompts: textLines(values.reflection_prompts),
     next_step_prompt: values.next_step_prompt.trim() || null,
@@ -1192,9 +1240,9 @@ async function openResourceAdminEditor(resource = null) {
     };
   };
 
-  const duplicateAction = resource?.id ? el("section", { class: "resource-admin-actions" }, [
+  const duplicateAction = resource?.id ? el("section", { class: "resource-admin-actions resource-admin-secondary-action" }, [
     el("div", {}, [
-      el("strong", { text: "Arbeidsflyt" }),
+      el("strong", { text: "Lag variant" }),
       el("p", { text: "Dupliser når du vil lage en variant med samme struktur uten å skrive alt på nytt." })
     ]),
     el("button", {
@@ -1207,7 +1255,7 @@ async function openResourceAdminEditor(resource = null) {
         $("#entity-drawer").close();
         await renderAdmin();
       }
-    }, [icon("copy"), el("span", { text: "Dupliser ressurs" })])
+    }, [icon("copy"), el("span", { text: "Dupliser" })])
   ]) : null;
 
   let blockEditor = null;
@@ -1222,7 +1270,7 @@ async function openResourceAdminEditor(resource = null) {
     inputSpec("title", "Tittel", "text", resource?.title || ""),
     textareaSpec("summary", "Kort beskrivelse", resource?.summary || "", { rows: "3" }),
     inputSpec("slug", "Slug", "text", resource?.slug || "", { placeholder: "genereres fra tittel hvis tom" }),
-    sectionSpec("Innhold", "Bygg ressursen med lesbare blokker og tilhørende refleksjon."),
+    sectionSpec("Innhold og filer", "Bygg ressursen med lesbare blokker, refleksjon og relevante filer."),
     customSpec("content_json", blockEditor),
     textareaSpec("reflection_prompts", "Refleksjonsspørsmål", (resource?.reflection_prompts || []).join("\n"), { rows: "5" }),
     textareaSpec("next_step_prompt", "Neste steg", resource?.next_step_prompt || "", { rows: "2" }),
@@ -1235,13 +1283,14 @@ async function openResourceAdminEditor(resource = null) {
     textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" }),
     textareaSpec("client_intro", "Intro til klient", resource?.client_intro || "", { rows: "4" }),
     textareaSpec("suggested_coach_note", "Foreslått instruks fra coach", resource?.suggested_coach_note || "", { rows: "3" }),
-    sectionSpec("Publisering og metadata", "Publiserte ressurser med synlighet «Kan sendes til klient» vises i Ressurser og kan deles av coach."),
+    customSpec("resource_readiness", createResourceReadinessPanel(getDraftResource)),
+    sectionSpec("Publisering og metadata", "Velg hvordan ressursen skal finnes og brukes i coachingflyten."),
     selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework"),
     selectSpec("format", "Format", RESOURCE_FORMAT_OPTIONS, resource?.format || "native"),
     selectSpec("phase", "Fase", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection"),
     inputSpec("estimated_duration", "Varighet i minutter", "number", resource?.estimated_duration || "", { min: "1" }),
     selectSpec("difficulty", "Vanskelighetsgrad", RESOURCE_DIFFICULTY_OPTIONS, resource?.difficulty || ""),
-    selectSpec("default_context_types", "Standard kontekster", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"], true),
+    checkboxGroupSpec("default_context_types", "Kan knyttes til", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"]),
     selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "draft"),
     selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable"),
     selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft"),
@@ -1393,11 +1442,16 @@ async function renderResources() {
           el("p", { class: "muted", text: "Prøv et annet søk eller fjern filtrene." })
         ])
     );
+    const shareableClients = getVisibleClients().filter((client) => canShareResourceToClient(client));
     previewSlot.replaceChildren(library.createResourcePreview(selected, {
       createElement: el,
       onOpenFile: openResourceFile,
       primaryAction: canShareResources() ? {
         label: "Send ressurs",
+        disabled: shareableClients.length === 0,
+        helpText: shareableClients.length
+          ? "Velg Send ressurs når du har vurdert at den passer klienten."
+          : "Du har ingen klienter med åpne forløp som kan motta ressurser ennå.",
         onClick: openSendResourceDrawer
       } : null
     }));
@@ -1433,7 +1487,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-72")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-73")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1461,7 +1515,8 @@ function openSendResourceDrawer(resource) {
   }
 
   openEntityDrawer(`Send ${resource.title}`, "Ressurs", [
-    sectionSpec("Send ressurs", "Velg klient og legg ved en kort instruks. Ressursen legges i klientens coachingforløp."),
+    customSpec("send_resource_basis", createSendResourceBasis(resource)),
+    sectionSpec("Send ressurs", "Velg klient, kontekst og en kort instruks. Ressursen legges i klientens coachingforløp."),
     selectSpec("clientId", "Klient", clients.map((client) => [client.id, client.name || client.email || "Uten navn"]), clients[0]?.id || ""),
     customSpec(["contextType", "contextId"], createResourceContextPicker(resource, clients)),
     textareaSpec("coachNote", "Instruks til klient", resource.suggested_coach_note || "", {
@@ -1470,6 +1525,24 @@ function openSendResourceDrawer(resource) {
   ], async (values) => {
     await sendResourceToClient(resource, values);
   });
+}
+
+function createSendResourceBasis(resource) {
+  const list = (title, items = []) => items.length ? el("div", { class: "send-resource-basis-list" }, [
+    el("strong", { text: title }),
+    el("ul", {}, items.map((item) => el("li", { text: item })))
+  ]) : null;
+
+  return el("section", { class: "resource-admin-helper-card send-resource-basis" }, [
+    el("strong", { text: "Vurder før sending" }),
+    resource.intended_outcome ? el("p", { text: resource.intended_outcome }) : null,
+    list("Best brukt når", resource.best_used_when || []),
+    list("Ikke egnet når", resource.not_for || []),
+    resource.suggested_coach_note ? el("div", { class: "send-resource-suggested-note" }, [
+      el("strong", { text: "Foreslått instruks" }),
+      el("p", { text: resource.suggested_coach_note })
+    ]) : null
+  ].filter(Boolean));
 }
 
 function resourceDefaultContextTypes(resource) {
@@ -1484,9 +1557,9 @@ function createResourceContextPicker(resource, clients) {
   const contextType = el("input", { type: "hidden", name: "contextType", value: "program" });
   const contextId = el("input", { type: "hidden", name: "contextId", value: "" });
   const picker = el("select", { class: "resource-admin-compact-select" });
-  const message = el("p", { class: "resource-admin-inline-help", text: "Velg hvor i forløpet ressursen hører hjemme. Bruk Forløp hvis den gjelder helheten." });
+  const message = el("p", { class: "resource-admin-inline-help", text: "Velg hvor ressursen skal lande hos klienten. Bruk Hele forløpet når ressursen ikke hører til én konkret samtale eller øvelse." });
   const wrapper = el("section", { class: "resource-admin-helper-card" }, [
-    el("strong", { text: "Kontekst" }),
+    el("strong", { text: "Hvor skal ressursen ligge?" }),
     picker,
     contextType,
     contextId,
@@ -1495,7 +1568,7 @@ function createResourceContextPicker(resource, clients) {
 
   const option = (type, id, label, disabled = false) => ({ type, id, label, disabled });
   const buildOptions = (data) => {
-    const options = [option("program", "", "Forløp")];
+    const options = [option("program", "", "Hele forløpet")];
     if (allowed.has("focus_area")) {
       (data?.areas || []).forEach((area) => {
         options.push(option("focus_area", area.id, `Fokusområde: ${area.title || "Uten tittel"}`, !area.id));
@@ -1548,10 +1621,10 @@ function createResourceContextPicker(resource, clients) {
       const data = await loadClientProgram(client);
       renderOptions(buildOptions(data));
       message.textContent = picker.options.length > 1
-        ? "Velg konkret kontekst, eller behold Forløp hvis ressursen gjelder helheten."
-        : "Denne ressursen sendes på forløpsnivå. Ingen egnet detaljkontekst er tilgjengelig ennå.";
+        ? "Velg en konkret plassering hvis det gjør ressursen lettere å forstå for klienten."
+        : "Denne ressursen sendes på forløpsnivå.";
     } catch (error) {
-      renderOptions([option("program", "", "Forløp")]);
+      renderOptions([option("program", "", "Hele forløpet")]);
       message.textContent = error.message || "Kunne ikke hente kontekst. Ressursen kan fortsatt sendes på forløpsnivå.";
     }
   };
@@ -1563,7 +1636,7 @@ function createResourceContextPicker(resource, clients) {
     refresh();
   }, 0);
 
-  renderOptions([option("program", "", "Forløp")]);
+  renderOptions([option("program", "", "Hele forløpet")]);
   return wrapper;
 }
 
@@ -2731,8 +2804,8 @@ function setSessions(values) {
 function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
   const intro = canWriteReflection
-    ? workspaceIntro("Arbeid mellom samtalene", "Ressurser og refleksjoner", "Her finner du ressurser coachen din har sendt, og refleksjoner du selv skriver underveis.")
-    : workspaceIntro("Oppfølging", "Ressurser og delte refleksjoner", "Her ser du ressursene som er delt med klienten, og refleksjoner klienten aktivt har valgt å dele.");
+    ? workspaceIntro("Arbeid mellom samtalene", "Ressurser og refleksjoner", "Øverst ligger det coachen har sendt til deg. Under kan du skrive egne refleksjoner, som alltid er private til du aktivt deler dem.")
+    : workspaceIntro("Oppfølging", "Ressurser og delte refleksjoner", "Øverst ligger ressursene som er sendt. Under vises bare refleksjoner klienten aktivt har delt med coach.");
   return el("div", { class: "reflection-space" }, [
     intro,
     resourcesFromCoachSection(data, canWriteReflection),
@@ -2762,10 +2835,10 @@ function resourcesFromCoachSection(data, canWriteReflection) {
       el("div", { class: "client-resources-head" }, [
         el("div", {}, [
           el("p", { class: "eyebrow", text: canWriteReflection ? "Fra coachen din" : "Delte ressurser" }),
-          el("h3", { text: canWriteReflection ? "Ressurser fra coach" : "Ressurser delt med klienten" }),
+          el("h3", { text: canWriteReflection ? "Fra coach" : "Fra coach til klient" }),
           el("p", { class: "muted", text: canWriteReflection
-            ? "Her finner du det coachen din har sendt til deg. Åpne en ressurs for å lese, bruke en øvelse eller skrive en refleksjon knyttet til den."
-            : "Her ser du ressursene som er delt i dette coachingforløpet." })
+            ? "Ressurser coachen har valgt for deg, med kort begrunnelse og eventuell instruks."
+            : "Ressurser som er delt i dette coachingforløpet, inkludert instruksen klienten ser." })
         ])
       ]),
       library.createClientResourceList(sharedResources, {
@@ -2872,7 +2945,7 @@ function reflectionComposer(data) {
     visibilityValue,
     el("div", { class: "field-pair" }, [
       el("div", { class: "visibility-control" }, [
-        el("p", { text: "Privat til du velger å dele." }),
+        el("p", { text: "Privat betyr bare deg. Del med coach betyr at coachen kan lese refleksjonen i forløpet." }),
         el("div", { class: "visibility-choice-row" }, [
           visibilityButton("private", "Privat"),
           visibilityButton("shared_with_coach", "Del med coach")
@@ -2963,7 +3036,7 @@ function reflectionInlineCard(reflection, data) {
   return el("article", { class: "ui-inline-editor content-card reflection-card reflection-card-edit" }, [
     el("div", { class: "field-pair" }, [
       el("div", { class: "visibility-control" }, [
-        el("p", { text: "Privat til du velger å dele." }),
+        el("p", { text: "Privat betyr bare deg. Del med coach betyr at coachen kan lese refleksjonen i forløpet." }),
         el("div", { class: "visibility-choice-row" }, [
           visibilityButton("private", "Privat"),
           visibilityButton("shared_with_coach", "Del med coach")
@@ -3646,6 +3719,10 @@ function selectSpec(name, label, options, value = [], multiple = false) {
   return { kind: "select", name, label, options, value, multiple };
 }
 
+function checkboxGroupSpec(name, label, options, value = []) {
+  return { kind: "checkbox-group", name, label, options, value: Array.isArray(value) ? value : [value].filter(Boolean) };
+}
+
 function customSpec(name, node) {
   return Array.isArray(name)
     ? { kind: "custom", names: name, node }
@@ -3675,6 +3752,15 @@ function renderSpec(spec) {
       select.append(el("option", { value, text: label, selected }));
     });
     return el("label", { text: spec.label }, [select]);
+  }
+  if (spec.kind === "checkbox-group") {
+    return el("fieldset", { class: "choice-field checkbox-group-field" }, [
+      el("legend", { text: spec.label }),
+      el("div", { class: "checkbox-pill-row" }, spec.options.map(([value, label]) => el("label", { class: "checkbox-pill" }, [
+        el("input", { type: "checkbox", name: spec.name, value, checked: spec.value.includes(value) }),
+        el("span", { text: label })
+      ])))
+    ]);
   }
   if (spec.kind === "choice") {
     return el("fieldset", { class: "choice-field" }, [
@@ -3708,7 +3794,9 @@ function collectSpecValues(specs, form) {
       return;
     }
     const control = $(`[name='${spec.name}']`, form);
-    if (spec.kind === "choice") {
+    if (spec.kind === "checkbox-group") {
+      values[spec.name] = $$(`[name='${spec.name}']:checked`, form).map((item) => item.value);
+    } else if (spec.kind === "choice") {
       values[spec.name] = $(`[name='${spec.name}']:checked`, form)?.value || "";
     } else {
       values[spec.name] = spec.multiple ? Array.from(control.selectedOptions).map((option) => option.value) : control.value.trim();

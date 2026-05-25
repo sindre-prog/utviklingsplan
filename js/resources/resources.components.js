@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-72";
+import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-73";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -31,6 +31,12 @@ function requireCreateElement(createElement) {
 
 function labelFor(map, value) {
   return map[value] || value || "";
+}
+
+function displayText(value, fallback = "") {
+  const text = String(value ?? "").trim();
+  if (!text || text.toLowerCase() === "null" || text.toLowerCase() === "undefined") return fallback;
+  return text;
 }
 
 function metaPills(createElement, resource) {
@@ -108,10 +114,12 @@ export function createResourcePreview(resource, options = {}) {
           createElement("button", {
             class: "button primary",
             type: "button",
+            disabled: primaryAction.disabled,
             onclick: () => primaryAction.onClick?.(resource)
           }, [
             createElement("span", { text: primaryAction.label || "Send ressurs" })
-          ])
+          ]),
+          primaryAction.helpText ? createElement("p", { class: "resource-preview-action-help", text: primaryAction.helpText }) : null
         ]) : null
       ])
     ]),
@@ -182,6 +190,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
     const resource = sharedResource.resource || {};
     const selected = selectedId === sharedResource.id;
     const contextText = resourceContextText(sharedResource);
+    const whySent = displayText(sharedResource.coach_note, displayText(resource.summary, "Ressursen er sendt fra coachen din."));
     return createElement("article", { class: `client-resource-row ${selected ? "is-open" : ""}` }, [
       createElement("button", {
         class: `client-resource-open ${selected ? "active" : ""}`,
@@ -194,9 +203,15 @@ export function createClientResourceList(sharedResources = [], options = {}) {
       }, [
         createElement("span", { class: "client-resource-main" }, [
           createElement("span", { class: "client-resource-meta" }, metaPills(createElement, resource)),
-          createElement("strong", { text: resource.title || "Ressurs" }),
-          createElement("span", { class: "client-resource-summary", text: sharedResource.coach_note || resource.summary || "" }),
-          contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null
+          createElement("strong", { text: displayText(resource.title, "Ressurs") }),
+          createElement("span", { class: "client-resource-why" }, [
+            createElement("span", { text: "Hvorfor sendt" }),
+            createElement("span", { text: whySent })
+          ]),
+          createElement("span", { class: "client-resource-footer" }, [
+            contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null,
+            createSharedResourceStatus(sharedResource.status, { createElement })
+          ].filter(Boolean))
         ]),
         createElement("span", { class: "client-resource-action", text: selected ? "Lukk" : "Åpne" })
       ].filter(Boolean)),
@@ -217,7 +232,7 @@ export function createClientResourceView(sharedResource, options = {}) {
   let saveButton = null;
   const note = createElement("textarea", {
     class: "ui-edit-control client-resource-note",
-    text: sharedResource?.client_note || "",
+    text: displayText(sharedResource?.client_note),
     placeholder: "Skriv en privat refleksjon. Ingenting deles før du velger det selv.",
     rows: "6",
     disabled: readOnly
@@ -246,8 +261,8 @@ export function createClientResourceView(sharedResource, options = {}) {
     createElement("header", { class: "client-resource-view-head" }, [
       createElement("div", { class: "client-resource-view-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs fra coach" }),
-        createElement("h3", { text: resource.title || "Ressurs" }),
-        createElement("p", { text: resource.client_intro || resource.summary || "" }),
+        createElement("h3", { text: displayText(resource.title, "Ressurs") }),
+        createElement("p", { text: displayText(resource.client_intro, displayText(resource.summary)) }),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
       ].filter(Boolean)),
       onClose ? createElement("button", {
@@ -260,9 +275,9 @@ export function createClientResourceView(sharedResource, options = {}) {
         }
       }) : null
     ]),
-    sharedResource?.coach_note ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
+    displayText(sharedResource?.coach_note) ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
       createElement("h4", { text: "Fra coach" }),
-      createElement("p", { text: sharedResource.coach_note })
+      createElement("p", { text: displayText(sharedResource.coach_note) })
     ]) : null,
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Innhold" }),
@@ -291,7 +306,7 @@ export function createClientResourceView(sharedResource, options = {}) {
       createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
       privateResponse ? createElement("p", { class: "muted", text: "Klienten har lagret en privat refleksjon som ikke er delt med coach." }) : note,
       readOnly || privateResponse ? null : createElement("div", { class: "visibility-control" }, [
-        createElement("p", { text: "Refleksjonen er privat til du velger å dele den med coach." }),
+        createElement("p", { text: "Privat betyr bare deg. Del med coach betyr at coachen kan lese refleksjonen i forløpet." }),
         createElement("div", { class: "visibility-choice-row" }, [
           createVisibilityButton("private", "Privat"),
           createVisibilityButton("shared_with_coach", "Del med coach")
