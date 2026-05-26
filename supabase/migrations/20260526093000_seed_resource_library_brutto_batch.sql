@@ -1,0 +1,468 @@
+-- Seed first brutto batch of resource library content.
+-- These resources are inserted as drafts on purpose: the source material is a
+-- working list, and nothing should become client-assignable before review.
+
+with seed_resources as (
+  select *
+  from jsonb_to_recordset($$[
+    {
+      "title": "Aksepter deg selv",
+      "slug": "aksepter-deg-selv",
+      "summary": "En kort selvmedfølelsesøvelse for krevende øyeblikk. Hjelper klienten å møte feil, motstand og ubehag med mer vennlighet og mindre selvkritikk.",
+      "type": "exercise",
+      "phase": "reflection",
+      "estimated_duration": 8,
+      "difficulty": "easy",
+      "intended_outcome": "Styrke selvmedfølelse og robusthet ved å normalisere vanskelige følelser og redusere skam eller hard selvkritikk.",
+      "best_used_when": ["klienten er hard mot seg selv", "tilbakeslag eller feil oppleves tungt", "klienten trenger emosjonell regulering før problemløsning", "selvkritikk hindrer læring"],
+      "not_for": ["akutt krise", "situasjoner der klienten trenger konkret risikovurdering eller beslutning først"],
+      "coach_guidance": "Bruk øvelsen som en kort regulerings- og perspektivøvelse. Ikke press klienten til positivitet. Målet er å anerkjenne ubehaget og skape litt mer rom for læring.",
+      "client_intro": "Feil og tilbakeslag er en naturlig del av det å være menneske. Denne øvelsen hjelper deg å møte deg selv med mer vennlighet når noe er vanskelig.",
+      "suggested_coach_note": "Bruk denne når du merker at du blir veldig hard mot deg selv. Les gjennom de tre stegene og skriv gjerne ned én setning du vil øve på å si til deg selv.",
+      "default_context_types": ["reflection", "session", "experiment"],
+      "content_json": [
+        { "type": "intro", "content": "Denne øvelsen er laget for å brukes på egen hånd når du går gjennom en vanskelig periode." },
+        { "type": "text", "heading": "Steg 1: Legg merke til øyeblikket", "content": "Tenk på en utfordrende situasjon du står i akkurat nå. Legg merke til følelsene og ubehaget som oppstår, uten å dømme dem." },
+        { "type": "worksheet", "fields": ["Dette er et øyeblikk med lidelse.", "Hva kjenner jeg i kroppen?", "Hva er den mest presise følelsen akkurat nå?"] },
+        { "type": "text", "heading": "Steg 2: Normaliser ubehaget", "content": "Minn deg selv på at lidelse, feil og usikkerhet er en del av livet. Du er ikke alene om å ha vanskelige perioder." },
+        { "type": "worksheet", "fields": ["Lidelse er en del av livet.", "Andre mennesker opplever dette også.", "Dette gjør meg ikke svak."] },
+        { "type": "text", "heading": "Steg 3: Møt deg selv vennlig", "content": "Spør hva du ville sagt til en god venn i samme situasjon, og prøv å rette noe av den samme omsorgen mot deg selv." },
+        { "type": "worksheet", "fields": ["Kan jeg være god mot meg selv?", "Hva trenger jeg akkurat nå?", "Hva er én raus og sann setning jeg kan si til meg selv?"] }
+      ],
+      "reflection_prompts": ["Hva skjer med deg når du møter situasjonen med mindre selvkritikk?", "Hva ville du sagt til en god venn i samme situasjon?", "Hva trenger du å minne deg selv på akkurat nå?"],
+      "next_step_prompt": "Velg én setning du kan bruke neste gang du merker hard selvkritikk.",
+      "basis": "Selvmedfølelse, emosjonell regulering og psykologisk fleksibilitet."
+    },
+    {
+      "title": "Omvend din indre kritiker",
+      "slug": "omvend-din-indre-kritiker",
+      "summary": "Et refleksjonsverktøy for å identifisere den indre kritikeren, utfordre påstandene den kommer med, og formulere en mer støttende indre stemme.",
+      "type": "exercise",
+      "phase": "reflection",
+      "estimated_duration": 20,
+      "difficulty": "medium",
+      "intended_outcome": "Hjelpe klienten å gjøre selvkritikk mer konkret, teste hvor sann den er, og utvikle en mer støttende og handlingsfremmende indre dialog.",
+      "best_used_when": ["selvkritikk hemmer prestasjon", "klienten unngår eksponering", "klienten har høyt prestasjonspress", "usikkerhet eller skam etter en hendelse"],
+      "not_for": ["akutt aktivering", "situasjoner hvor klienten trenger stabilisering før refleksjon"],
+      "coach_guidance": "Hold arbeidet konkret. Be klienten velge én situasjon og én kritisk tanke. Unngå generell personlighetsanalyse.",
+      "client_intro": "Mange har en indre stemme som kommenterer, vurderer og kritiserer. Denne ressursen hjelper deg å gjøre stemmen tydeligere og utvikle et mer støttende alternativ.",
+      "suggested_coach_note": "Velg en situasjon der den indre kritikeren er tydelig. Skriv ned hva stemmen sier, test hvor sant det er, og formuler en mer hjelpsom tanke.",
+      "default_context_types": ["reflection", "session", "focus_area"],
+      "content_json": [
+        { "type": "intro", "content": "Målet er ikke å fjerne all selvkritikk, men å møte deg selv med samme forståelse og oppmuntring som du ville gitt en god venn." },
+        { "type": "text", "heading": "1. Identifiser din indre kritiker", "content": "Skriv ned en situasjon der du har følt deg usikker, kritisert deg selv eller vært redd for å mislykkes." },
+        { "type": "worksheet", "fields": ["Hva sa din indre stemme?", "Hvilke ord eller fraser brukte den?", "Hvordan påvirket tankene følelsene og handlingene dine?"] },
+        { "type": "text", "heading": "2. Utfordre den indre kritikeren", "content": "Stopp opp og still noen kritiske spørsmål til tanken." },
+        { "type": "worksheet", "fields": ["Er dette en objektiv sannhet eller en subjektiv tolkning?", "Hva prøver denne tanken å beskytte meg mot?", "Hvilke bevis taler imot tanken?"] },
+        { "type": "text", "heading": "3. Skap din indre støttespiller", "content": "Formuler den negative tanken om til en mer konstruktiv og støttende tanke." },
+        { "type": "worksheet", "fields": ["Hva ville en god venn sagt?", "Hva er sant, men mer hjelpsomt?", "Hvilken setning kan hjelpe meg å handle klokere?"] }
+      ],
+      "reflection_prompts": ["Hva sier den indre kritikeren oftest?", "Hva forsøker den å beskytte deg mot?", "Hva blir mulig når du svarer den på en mer støttende måte?"],
+      "next_step_prompt": "Test én støttende formulering i en konkret situasjon denne uken.",
+      "basis": "Kognitiv restrukturering, selvmedfølelse og prestasjonspsykologi."
+    },
+    {
+      "title": "Mindfulness og pusteøvelser for stressregulering",
+      "slug": "mindfulness-pusteovelser-stressregulering",
+      "summary": "Fire enkle puste- og nærværsøvelser for rask stressregulering: fysiologisk sukk, 4-7-8-pust, boksånding og kroppsskanning.",
+      "type": "exercise",
+      "phase": "focus",
+      "estimated_duration": 10,
+      "difficulty": "easy",
+      "intended_outcome": "Gi klienten konkrete teknikker for å roe ned fysiologisk aktivering, gjenvinne fokus og skape mer handlingsrom i pressede situasjoner.",
+      "best_used_when": ["stressaktivering", "uro før samtale eller prestasjon", "behov for rask regulering", "klienten trenger lavterskelverktøy"],
+      "not_for": ["når pusteteknikker øker ubehag eller panikk", "situasjoner som krever umiddelbar praktisk handling"],
+      "coach_guidance": "Presenter dette som regulering, ikke som løsning på problemet. Be klienten teste teknikkene når aktiveringen er moderat før de brukes i krevende situasjoner.",
+      "client_intro": "Når vi opplever stress aktiveres kroppens alarmsystem. Bevisst pust og oppmerksomhet kan hjelpe kroppen tilbake mot mer ro og balanse.",
+      "suggested_coach_note": "Velg én av teknikkene og test den to ganger denne uken, gjerne før eller etter en situasjon som vanligvis skaper stress.",
+      "default_context_types": ["experiment", "reflection", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Bruk én teknikk av gangen. Målet er ikke å prestere riktig, men å legge merke til om kroppen får litt mer ro." },
+        { "type": "text", "heading": "1. Fysiologisk sukk", "content": "Ta en dyp innpust gjennom nesen. Rett før lungene er helt fulle, trekk inn litt ekstra luft. Pust deretter sakte og kontrollert ut gjennom munnen. Gjenta 2-3 ganger." },
+        { "type": "worksheet", "fields": ["Når kan denne teknikken være nyttig?", "Hva merker du i kroppen etterpå?"] },
+        { "type": "text", "heading": "2. 4-7-8-pusteteknikken", "content": "Pust inn gjennom nesen i 4 sekunder. Hold pusten i 7 sekunder. Pust sakte gjennom munnen i 8 sekunder. Gjenta 4 ganger." },
+        { "type": "text", "heading": "3. Boksånding", "content": "Pust inn i 4 sekunder, hold i 4 sekunder, pust ut i 4 sekunder, og hold ute i 4 sekunder. Gjenta 4-6 ganger." },
+        { "type": "text", "heading": "4. Kroppsskanning", "content": "Finn et rolig sted. Lukk øynene og flytt oppmerksomheten gradvis gjennom kroppen fra føtter til hode mens du observerer spenning og ubehag uten å dømme." }
+      ],
+      "reflection_prompts": ["Hvilken teknikk fungerte best for deg?", "Når i hverdagen kan du bruke den uten at det blir et stort prosjekt?", "Hva skjer med beslutningene dine når aktiveringen går litt ned?"],
+      "next_step_prompt": "Velg én teknikk og øv på den tre ganger før neste samtale.",
+      "basis": "Stressfysiologi, mindfulnessbasert stressreduksjon og pusteteknikker brukt i prestasjonspsykologi."
+    },
+    {
+      "title": "Tankefeller",
+      "slug": "tankefeller",
+      "summary": "Et oversiktsverktøy for vanlige kognitive forvrengninger som alt-eller-ingenting-tenkning, overgeneralisering, mentalt filter og å avvise det positive.",
+      "type": "framework",
+      "phase": "reflection",
+      "estimated_duration": 20,
+      "difficulty": "medium",
+      "intended_outcome": "Hjelpe klienten å oppdage gjentakende tankemønstre og justere tolkninger i mer realistisk og handlingsfremmende retning.",
+      "best_used_when": ["klienten setter seg fast i negative tolkninger", "sterke reaksjoner etter møter eller tilbakemeldinger", "selvkritikk", "høyt prestasjonspress"],
+      "not_for": ["akutt krise", "når klienten trenger praktisk avklaring før refleksjon"],
+      "coach_guidance": "Bruk listen som språk og sortering, ikke som diagnose. Velg maksimalt én eller to tankefeller per situasjon.",
+      "client_intro": "Tankene våre former hvordan vi opplever verden, tar beslutninger og møter andre mennesker. I krevende situasjoner kan vi bli fanget i mønstre som er for bastante, negative eller lite realistiske.",
+      "suggested_coach_note": "Les gjennom tankefellene og velg én konkret situasjon. Hvilken tankefelle kjenner du igjen, og hva ville vært en mer balansert tolkning?",
+      "default_context_types": ["reflection", "session", "focus_area"],
+      "content_json": [
+        { "type": "intro", "content": "Dette verktøyet er inspirert av prinsipper fra kognitiv atferdsterapi og brukes bredt i coaching, terapi og prestasjonsutvikling." },
+        { "type": "text", "heading": "01. Alt-eller-ingenting-tenkning", "content": "Du ser ting i sort-hvitt uten nyanser. Hvis noe ikke lykkes helt, tolkes det som mislykket." },
+        { "type": "worksheet", "fields": ["Eksempel: Jeg mislyktes totalt.", "Justering: Hva var delvis bra, delvis vanskelig og fortsatt mulig å forbedre?"] },
+        { "type": "text", "heading": "02. Overgeneralisering", "content": "Du tolker én negativ hendelse som bevis for et vedvarende mønster." },
+        { "type": "worksheet", "fields": ["Eksempel: Dette skjer alltid.", "Justering: Hvilke variasjoner finnes over tid?"] },
+        { "type": "text", "heading": "03. Mentalt filter", "content": "Du fokuserer på det negative og overser positive tegn, fremgang eller tilbakemeldinger." },
+        { "type": "text", "heading": "04. Å avvise det positive", "content": "Du forklarer bort det som faktisk gikk bra, slik at det ikke får telle." },
+        { "type": "text", "heading": "05. Å trekke konklusjoner", "content": "Du antar hva andre tenker eller hva som vil skje, uten nok informasjon." }
+      ],
+      "reflection_prompts": ["Hvilken tankefelle kjenner du oftest igjen?", "Hva blir konsekvensen når du tror på den?", "Hva er en mer presis og balansert tolkning?"],
+      "next_step_prompt": "Velg én tankefelle du vil følge med på den neste uken.",
+      "basis": "Kognitiv atferdsterapi og forskning på kognitive forvrengninger."
+    },
+    {
+      "title": "2-minuttersregelen",
+      "slug": "to-minuttersregelen",
+      "summary": "En enkel produktivitetsregel for små oppgaver: hvis noe tar under to minutter, gjør det med en gang i stedet for å lagre mental støy.",
+      "type": "exercise",
+      "phase": "experiment",
+      "estimated_duration": 5,
+      "difficulty": "easy",
+      "intended_outcome": "Redusere beslutningsfriksjon og mental støy ved å rydde unna små avklaringer raskt.",
+      "best_used_when": ["mange små oppgaver samler seg opp", "klienten føler mental støy", "innboksen eller oppgavelisten tapper energi", "prokrastinering på små avklaringer"],
+      "not_for": ["dyparbeid som krever skjerming", "oppgaver som egentlig bør delegeres eller planlegges", "når regelen blir en unnskyldning for å avbryte viktig arbeid"],
+      "coach_guidance": "Knytt regelen til tydelige grenser. Den skal redusere friksjon, ikke gjøre klienten konstant tilgjengelig.",
+      "client_intro": "Små uavklarte oppgaver skaper mental støy. 2-minuttersregelen hjelper deg å ta raske, enkle avklaringer uten å bruke unødvendig energi på å huske dem.",
+      "suggested_coach_note": "Test regelen i én avgrenset periode denne uken, for eksempel første 15 minutter av arbeidsdagen.",
+      "default_context_types": ["experiment", "focus_area"],
+      "content_json": [
+        { "type": "intro", "content": "Hvis en oppgave tar under to minutter og faktisk bør gjøres av deg, gjør den med en gang." },
+        { "type": "text", "heading": "Slik bruker du regelen", "content": "Gå gjennom små oppgaver eller meldinger. Spør: tar dette under to minutter, og er det riktig at jeg gjør det nå?" },
+        { "type": "worksheet", "fields": ["Gjør nå", "Deleger", "Planlegg", "Slett eller ignorer"] },
+        { "type": "reflection_questions", "questions": ["Hva fjernet mental støy?", "Hva burde ikke vært gjort med en gang?", "Hvilken grense trenger du for at regelen ikke skal stjele fokus?"] }
+      ],
+      "reflection_prompts": ["Hva gjorde du raskt som ellers ville blitt hengende?", "Når ble regelen nyttig?", "Når risikerte den å bli en distraksjon?"],
+      "next_step_prompt": "Bruk regelen i én kort, avgrenset ryddeøkt før neste samtale.",
+      "basis": "Getting Things Done og forskning på beslutningsfriksjon og oppmerksomhetsstyring."
+    },
+    {
+      "title": "Fokusblokkering",
+      "slug": "fokusblokkering",
+      "summary": "En praktisk metode for å beskytte konsentrasjon: del arbeid i fokuserte blokker med tydelig mål, avgrensning og pause.",
+      "type": "template",
+      "phase": "focus",
+      "estimated_duration": 25,
+      "difficulty": "easy",
+      "intended_outcome": "Hjelpe klienten å skjerme tid for krevende arbeid og redusere kostnaden ved stadige avbrytelser.",
+      "best_used_when": ["klienten har mange avbrytelser", "dyparbeid blir skjøvet ut", "krevende analyse eller skriving", "mye kontekstbytte"],
+      "not_for": ["akutte driftsperioder der tilgjengelighet må prioriteres", "oppgaver som krever tett samhandling hele tiden"],
+      "coach_guidance": "Start lavterskel: én blokk på 23-50 minutter. Avklar hva som skal skjermes, og hva som likevel kan avbryte.",
+      "client_intro": "Kognitivt krevende arbeid krever uavbrutt fokus. Fokusblokkering hjelper deg å skjerme tid til det som faktisk krever konsentrasjon.",
+      "suggested_coach_note": "Planlegg én fokusblokk før neste samtale. Velg oppgave, tidspunkt, avbrytelsesregler og hva som er godt nok resultat.",
+      "default_context_types": ["experiment", "focus_area"],
+      "content_json": [
+        { "type": "intro", "content": "Hjernen bruker tid på å komme tilbake til fokus etter avbrudd. Derfor kan en enkel blokk med skjermet tid gi uforholdsmessig stor effekt." },
+        { "type": "text", "heading": "Planlegg blokken", "content": "Velg én konkret oppgave og én avgrenset tidsperiode." },
+        { "type": "worksheet", "fields": ["Hva skal jeg jobbe med?", "Når starter og slutter blokken?", "Hva må være lukket eller skrudd av?", "Hva er et godt nok resultat?"] },
+        { "type": "text", "heading": "Evaluer etterpå", "content": "Bruk ett minutt etter blokken til å vurdere hva som fungerte og hva du vil justere neste gang." }
+      ],
+      "reflection_prompts": ["Hva gjorde det lettere å holde fokus?", "Hva avbrøt deg?", "Hva vil du gjøre annerledes i neste blokk?"],
+      "next_step_prompt": "Sett av én fokusblokk i kalenderen og behandle den som en avtale.",
+      "basis": "Forskning på oppmerksomhet, deep work og kostnaden ved kontekstbytte."
+    },
+    {
+      "title": "Pareto-prinsippet",
+      "slug": "pareto-prinsippet",
+      "summary": "Et prioriteringsverktøy for å identifisere hvilke få aktiviteter, relasjoner eller beslutninger som skaper størst effekt.",
+      "type": "framework",
+      "phase": "focus",
+      "estimated_duration": 15,
+      "difficulty": "medium",
+      "intended_outcome": "Hjelpe klienten å prioritere innsats mot det som har størst effekt, og redusere tid brukt på lavverdiarbeid.",
+      "best_used_when": ["for mange oppgaver", "uklar prioritering", "lederrollen blir reaktiv", "klienten trenger å velge bort"],
+      "not_for": ["situasjoner der kvalitet og risiko krever full gjennomgang", "relasjoner eller ansvar som ikke kan reduseres til effektivitet alene"],
+      "coach_guidance": "Bruk prinsippet som refleksjon, ikke matematisk sannhet. Let etter mønstre: hvilke få valg skaper mest verdi eller mest støy?",
+      "client_intro": "Pareto-prinsippet sier at en liten andel innsats ofte står for en stor andel resultater. I ledelse kan dette hjelpe deg å se hvor oppmerksomheten din gir størst effekt.",
+      "suggested_coach_note": "Bruk øvelsen på én arbeidsuke. Hva skapte mest verdi, og hva tok uforholdsmessig mye tid uten tilsvarende effekt?",
+      "default_context_types": ["focus_area", "reflection", "experiment"],
+      "content_json": [
+        { "type": "intro", "content": "Målet er ikke presis matematikk, men bedre prioritering." },
+        { "type": "text", "heading": "Øvelse", "content": "Gå gjennom ukens oppgaver og resultater." },
+        { "type": "worksheet", "fields": ["Hvilke 20 % av aktivitetene dine bidro mest til resultatene?", "Hvilke oppgaver tok mye tid, men ga lite effekt?", "Hva bør stoppes, delegeres eller automatiseres?"] },
+        { "type": "reflection_questions", "questions": ["Hva i kalenderen skaper mest verdi?", "Hva skaper mest støy?", "Hva kan du velge bort uten stor konsekvens?"] }
+      ],
+      "reflection_prompts": ["Hva er dine 20 % akkurat nå?", "Hva bruker du mye tid på med lav effekt?", "Hva bør du beskytte mer tid til?"],
+      "next_step_prompt": "Velg én lavverdiaktivitet du skal redusere før neste samtale.",
+      "basis": "Pareto-prinsippet og praktisk prioriteringsarbeid i ledelse og produktivitet."
+    },
+    {
+      "title": "Eisenhower-matrisen",
+      "slug": "eisenhower-matrisen",
+      "summary": "Et prioriteringsverktøy som sorterer oppgaver etter viktighet og hast, slik at klienten kan gjøre, planlegge, delegere eller fjerne mer bevisst.",
+      "type": "framework",
+      "phase": "focus",
+      "estimated_duration": 15,
+      "difficulty": "easy",
+      "intended_outcome": "Skape bedre oversikt over oppgaver og redusere reaktivitet ved å skille mellom hast og faktisk viktighet.",
+      "best_used_when": ["mange oppgaver konkurrerer", "klienten føler konstant tilgjengelighet", "uklar prioritering", "behov for delegering"],
+      "not_for": ["akutte kriser", "når prioritering må avklares politisk eller organisatorisk først"],
+      "coach_guidance": "Vær særlig oppmerksom på feltet viktig, men haster ikke. Det er ofte der utvikling, relasjoner og forebygging bor.",
+      "client_intro": "Det er lett å forveksle det som haster med det som faktisk er viktig. Eisenhower-matrisen hjelper deg å sortere oppgaver og ta klokere valg.",
+      "suggested_coach_note": "Fyll matrisen med oppgaver fra én konkret arbeidsuke. Velg deretter én ting å planlegge, én å delegere og én å fjerne.",
+      "default_context_types": ["focus_area", "experiment", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Sorter oppgavene dine i fire felt: viktig og haster, viktig men haster ikke, ikke viktig men haster, og ikke viktig og haster ikke." },
+        { "type": "worksheet", "fields": ["Viktig og haster: gjør dette nå", "Viktig, men haster ikke: planlegg tid", "Ikke viktig, men haster: deleger eller avklar", "Ikke viktig og haster ikke: fjern eller nedprioriter"] },
+        { "type": "reflection_questions", "questions": ["Hvor bruker du mest tid i dag?", "Hvilke oppgaver gir mest verdi over tid?", "Hva kan du slutte med uten stor konsekvens?"] }
+      ],
+      "reflection_prompts": ["Hva havner alltid i haster-feltet?", "Hva får for lite tid fordi det ikke haster?", "Hva bør delegeres eller fjernes?"],
+      "next_step_prompt": "Planlegg én konkret blokk for noe som er viktig, men ikke haster.",
+      "basis": "Eisenhower-matrisen og prinsipper for prioritering, selvledelse og beslutningstaking."
+    },
+    {
+      "title": "Karrieregrafen",
+      "slug": "karrieregrafen",
+      "summary": "En refleksjonsøvelse for å vurdere tilfredshet og utviklingsbehov på sentrale områder i karriere og lederrolle.",
+      "type": "worksheet",
+      "phase": "direction",
+      "estimated_duration": 30,
+      "difficulty": "medium",
+      "intended_outcome": "Gi klienten et visuelt og konkret utgangspunkt for samtale om karriere, balanse, motivasjon og utviklingsbehov.",
+      "best_used_when": ["oppstart av coachingforløp", "karrierevalg", "lav motivasjon", "behov for retning", "rolleendring"],
+      "not_for": ["når klienten trenger akutt beslutningsstøtte", "som eneste grunnlag for store karrierevalg"],
+      "coach_guidance": "Bruk grafen som samtalestarter. Ikke overtolk tallene; spør etter begrunnelser, mønstre og hva klienten ønsker å justere.",
+      "client_intro": "Karrieregrafen hjelper deg å se hvordan ulike deler av karrieren og lederrollen oppleves akkurat nå.",
+      "suggested_coach_note": "Gi hvert område en score fra 1 til 10 og skriv en kort begrunnelse. Ta med det du legger mest merke til inn i neste samtale.",
+      "default_context_types": ["program", "reflection", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Gå gjennom hvert område og vurder hvor fornøyd du er akkurat nå på en skala fra 1 til 10." },
+        { "type": "worksheet", "fields": ["Karriereprogresjon", "Inntekt", "Work/life balance", "Beliggenhet", "Bedriftskultur", "Muligheter for utvikling", "Frynsegoder", "Emosjonell tilknytning"] },
+        { "type": "reflection_questions", "questions": ["Hva forteller fordelingen deg om hvor du står i dag?", "Hvilke områder ønsker du å prioritere høyere fremover?", "Hvilket lite skritt kan du ta denne uken for å forbedre ett område?"] }
+      ],
+      "reflection_prompts": ["Hva scorer høyest og hvorfor?", "Hva scorer lavest og hvorfor?", "Hva ville gjort størst positiv forskjell akkurat nå?"],
+      "next_step_prompt": "Velg ett område du vil utforske nærmere i neste samtale.",
+      "basis": "Karriererefleksjon, livsdesign og coachingbasert mål- og verdikartlegging."
+    },
+    {
+      "title": "Livsgrafen",
+      "slug": "livsgrafen",
+      "summary": "En refleksjonsøvelse for å vurdere balanse og tilfredshet på viktige livsområder, og se hvilke områder som påvirker energi og retning.",
+      "type": "worksheet",
+      "phase": "direction",
+      "estimated_duration": 30,
+      "difficulty": "medium",
+      "intended_outcome": "Gi klienten et øyeblikksbilde av balanse i livet og identifisere områder som trenger oppmerksomhet eller justering.",
+      "best_used_when": ["oppstart av forløp", "uklar retning", "livsbalanse", "stress eller energitap", "overgangsfaser"],
+      "not_for": ["som presis måling av livskvalitet", "akutt krise eller helsefaglig vurdering"],
+      "coach_guidance": "Bruk magefølelse og refleksjon, ikke presisjon. Tallene er inngang til samtale, ikke fasit.",
+      "client_intro": "Livsgrafen gir et øyeblikksbilde av hvordan du har det på ulike områder i livet akkurat nå.",
+      "suggested_coach_note": "Gi hvert område en score fra 1 til 5 og skriv kort hvorfor. Se etter mønstre, ikke perfekte svar.",
+      "default_context_types": ["program", "reflection", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Start med å gi hvert område en vurdering fra 1 til 5. 1 betyr svært misfornøyd, 5 betyr svært tilfreds." },
+        { "type": "worksheet", "fields": ["Økonomi", "Helse", "Venner", "Kjærlighet", "Rekreasjon", "Åndelighet", "Karriere", "Personlig vekst"] },
+        { "type": "reflection_questions", "questions": ["Hva fungerer godt, og hvorfor?", "Hvilke områder trenger oppmerksomhet eller endring?", "Hvilke konkrete grep kan øke scoren på ett område?"] }
+      ],
+      "reflection_prompts": ["Hva er du mest fornøyd med akkurat nå?", "Hva tapper mest energi?", "Hva ville vært en liten positiv justering?"],
+      "next_step_prompt": "Velg ett livsområde hvor du vil gjøre én liten endring før neste samtale.",
+      "basis": "Coachingbasert livshjul/livsområdekartlegging og verdibasert refleksjon."
+    },
+    {
+      "title": "Prestasjonskognisjon",
+      "slug": "prestasjonskognisjon",
+      "summary": "Et arbeidsark for å kartlegge prestasjonshemmende og prestasjonsfremmende tanker i en konkret aktivitet eller situasjon.",
+      "type": "worksheet",
+      "phase": "reflection",
+      "estimated_duration": 20,
+      "difficulty": "medium",
+      "intended_outcome": "Hjelpe klienten å skille mellom tanker som hemmer prestasjon og tanker som fremmer bedre handling i konkrete situasjoner.",
+      "best_used_when": ["prestasjonspress", "presentasjoner", "vanskelige samtaler", "unngåelse", "selvtvil før viktige aktiviteter"],
+      "not_for": ["situasjoner der ferdighetstrening eller praktisk forberedelse er det primære behovet", "akutt emosjonell overveldelse"],
+      "coach_guidance": "Start med en konkret prestasjonssituasjon. Hvis klienten beskriver atferd i stedet for tanker, hjelp dem å finne tanken under atferden.",
+      "client_intro": "Tanker er ikke gode eller dårlige i seg selv. De kan likevel være mer eller mindre hjelpsomme i spesifikke prestasjonssituasjoner.",
+      "suggested_coach_note": "Velg én konkret prestasjonssituasjon. Lag to lister: tanker som hemmer deg, og tanker som hjelper deg å handle klokere.",
+      "default_context_types": ["reflection", "session", "experiment"],
+      "content_json": [
+        { "type": "intro", "content": "Beskriv prestasjonsområdet eller aktiviteten så spesifikt som mulig." },
+        { "type": "worksheet", "fields": ["Prestasjonsområde eller aktivitet", "Prestasjonshemmende tanker", "Prestasjonsfremmende tanker", "Eventuelle praktiske steg"] },
+        { "type": "reflection_questions", "questions": ["Hvilke tanker gjør deg mindre effektiv?", "Hvilke tanker hjelper deg å handle bedre?", "Hva er ett konkret praktisk steg?"] }
+      ],
+      "reflection_prompts": ["Hvilken tanke hemmer deg mest?", "Hvilken alternativ tanke er både realistisk og mer hjelpsom?", "Hva blir annerledes i handling når tanken endres?"],
+      "next_step_prompt": "Test én prestasjonsfremmende tanke i en konkret situasjon før neste samtale.",
+      "basis": "Prestasjonspsykologi, kognitiv restrukturering og coaching av mestringsatferd."
+    },
+    {
+      "title": "ABCDE-modellen for prestasjonsforbedring",
+      "slug": "abcde-modellen-prestasjonsforbedring",
+      "summary": "En prestasjonsrettet variant av ABCDE-modellen som viser hvordan aktivitet, tanker, konsekvenser og alternative vurderinger påvirker valg og prestasjon.",
+      "type": "framework",
+      "phase": "reflection",
+      "estimated_duration": 25,
+      "difficulty": "medium",
+      "intended_outcome": "Hjelpe klienten å forstå og forbedre prestasjon ved å se sammenhengen mellom situasjon, tanker, konsekvenser, alternative tanker og mer effektiv handling.",
+      "best_used_when": ["prestasjonspress", "lederutfordringer", "vanskelige samtaler", "teamansvar", "unngåelse eller overarbeid"],
+      "not_for": ["når praktisk kompetansegap er hovedutfordringen", "akutte kriser", "situasjoner som krever medisinsk eller terapeutisk oppfølging"],
+      "coach_guidance": "Bruk modellen på én konkret arbeidssituasjon. Hold fokus på prestasjon og valg, ikke generell personanalyse.",
+      "client_intro": "Når vi ønsker å prestere bedre, er det lett å fokusere på atferd alene. Men prestasjon påvirkes også av tankene som går gjennom oss før vi handler.",
+      "suggested_coach_note": "Bruk modellen på én konkret situasjon der du ønsker å prestere bedre. Fyll ut A til E med egne ord.",
+      "default_context_types": ["reflection", "session", "experiment"],
+      "content_json": [
+        { "type": "intro", "content": "ABCDE-modellen er et konkret verktøy for å forstå hvordan tanker påvirker prestasjon, følelser og valg." },
+        { "type": "text", "heading": "A – Aktivitet eller situasjon", "content": "Definer situasjonen tydelig. Hva skjer, hvor, når og med hvem?" },
+        { "type": "text", "heading": "B – Tanker som hindrer prestasjon", "content": "Skriv ned automatiske tanker som dukker opp, for eksempel antakelser, bekymringer eller indre kritikk." },
+        { "type": "text", "heading": "C – Konsekvenser", "content": "Beskriv hvordan tankene påvirker følelser, atferd og resultat." },
+        { "type": "text", "heading": "D – Tanker som fremmer prestasjon", "content": "Formuler alternative, mer realistiske og støttende perspektiver som hjelper deg å handle klokere." },
+        { "type": "text", "heading": "E – En mer effektiv tilnærming", "content": "Beskriv konkret hva du vil gjøre annerledes neste gang." },
+        { "type": "worksheet", "fields": ["A: Aktivitet eller situasjon", "B: Hindrende tanker", "C: Konsekvenser", "D: Fremmende tanker", "E: Mer effektiv handling"] }
+      ],
+      "reflection_prompts": ["Hvilke tanker trekker prestasjonen ned?", "Hva skjer når du formulerer et mer realistisk alternativ?", "Hva vil du gjøre annerledes neste gang?"],
+      "next_step_prompt": "Bruk A-E på én konkret prestasjonssituasjon før neste samtale.",
+      "basis": "ABCDE-modellen, kognitiv prestasjonspsykologi og coachingbasert atferdsendring."
+    }
+  ]$$::jsonb) as resource(
+    title text,
+    slug text,
+    summary text,
+    type text,
+    phase text,
+    estimated_duration integer,
+    difficulty text,
+    intended_outcome text,
+    best_used_when jsonb,
+    not_for jsonb,
+    coach_guidance text,
+    client_intro text,
+    suggested_coach_note text,
+    default_context_types jsonb,
+    content_json jsonb,
+    reflection_prompts jsonb,
+    next_step_prompt text,
+    basis text
+  )
+)
+insert into public.resources (
+  title,
+  slug,
+  summary,
+  type,
+  format,
+  phase,
+  visibility,
+  status,
+  review_status,
+  language,
+  estimated_duration,
+  difficulty,
+  intended_outcome,
+  best_used_when,
+  not_for,
+  coach_guidance,
+  client_intro,
+  suggested_coach_note,
+  default_context_types,
+  content_json,
+  reflection_prompts,
+  next_step_prompt,
+  basis,
+  reviewed_by,
+  last_reviewed_at,
+  archived_at
+)
+select
+  title,
+  slug,
+  summary,
+  type,
+  'native',
+  phase,
+  'client_assignable',
+  'draft',
+  'draft',
+  'no',
+  estimated_duration,
+  difficulty,
+  intended_outcome,
+  best_used_when,
+  not_for,
+  coach_guidance,
+  client_intro,
+  suggested_coach_note,
+  default_context_types,
+  content_json,
+  reflection_prompts,
+  next_step_prompt,
+  basis,
+  null,
+  null,
+  null
+from seed_resources
+on conflict (slug) do update
+set
+  title = excluded.title,
+  summary = excluded.summary,
+  type = excluded.type,
+  format = excluded.format,
+  phase = excluded.phase,
+  visibility = excluded.visibility,
+  status = excluded.status,
+  review_status = excluded.review_status,
+  language = excluded.language,
+  estimated_duration = excluded.estimated_duration,
+  difficulty = excluded.difficulty,
+  intended_outcome = excluded.intended_outcome,
+  best_used_when = excluded.best_used_when,
+  not_for = excluded.not_for,
+  coach_guidance = excluded.coach_guidance,
+  client_intro = excluded.client_intro,
+  suggested_coach_note = excluded.suggested_coach_note,
+  default_context_types = excluded.default_context_types,
+  content_json = excluded.content_json,
+  reflection_prompts = excluded.reflection_prompts,
+  next_step_prompt = excluded.next_step_prompt,
+  basis = excluded.basis,
+  reviewed_by = null,
+  last_reviewed_at = null,
+  archived_at = null,
+  updated_at = now();
+
+with seed_slugs as (
+  select jsonb_array_elements_text($$[
+    "aksepter-deg-selv",
+    "omvend-din-indre-kritiker",
+    "mindfulness-pusteovelser-stressregulering",
+    "tankefeller",
+    "to-minuttersregelen",
+    "fokusblokkering",
+    "pareto-prinsippet",
+    "eisenhower-matrisen",
+    "karrieregrafen",
+    "livsgrafen",
+    "prestasjonskognisjon",
+    "abcde-modellen-prestasjonsforbedring"
+  ]$$::jsonb) as slug
+)
+delete from public.resource_tags rt
+using public.resources r, seed_slugs s
+where rt.resource_id = r.id
+  and r.slug = s.slug;
+
+with seed_tags as (
+  select *
+  from jsonb_to_recordset($$[
+    { "slug": "aksepter-deg-selv", "tags": ["selvfølelse", "robusthet", "selvmedfølelse", "emosjonell regulering", "refleksjon"] },
+    { "slug": "omvend-din-indre-kritiker", "tags": ["selvkritikk", "selvfølelse", "robusthet", "prestasjon", "refleksjon"] },
+    { "slug": "mindfulness-pusteovelser-stressregulering", "tags": ["stress", "pust", "mindfulness", "regulering", "robusthet"] },
+    { "slug": "tankefeller", "tags": ["tankefeller", "kognitiv restrukturering", "refleksjon", "stress", "selvledelse"] },
+    { "slug": "to-minuttersregelen", "tags": ["produktivitet", "prioritering", "fokus", "gjennomføring"] },
+    { "slug": "fokusblokkering", "tags": ["fokus", "produktivitet", "prioritering", "dyparbeid"] },
+    { "slug": "pareto-prinsippet", "tags": ["prioritering", "produktivitet", "selvledelse", "beslutninger"] },
+    { "slug": "eisenhower-matrisen", "tags": ["prioritering", "beslutninger", "delegering", "selvledelse"] },
+    { "slug": "karrieregrafen", "tags": ["karriere", "retning", "balanse", "refleksjon"] },
+    { "slug": "livsgrafen", "tags": ["livsbalanse", "retning", "verdier", "refleksjon"] },
+    { "slug": "prestasjonskognisjon", "tags": ["prestasjon", "tanker", "selvledelse", "refleksjon"] },
+    { "slug": "abcde-modellen-prestasjonsforbedring", "tags": ["abcde", "prestasjon", "tanker", "refleksjon", "selvledelse"] }
+  ]$$::jsonb) as tag_group(slug text, tags jsonb)
+)
+insert into public.resource_tags (resource_id, tag)
+select r.id, tag_value.tag
+from seed_tags st
+join public.resources r on r.slug = st.slug
+cross join lateral jsonb_array_elements_text(st.tags) as tag_value(tag)
+on conflict (resource_id, tag) do nothing;
