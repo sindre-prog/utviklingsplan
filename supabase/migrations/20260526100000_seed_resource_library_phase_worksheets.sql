@@ -1,0 +1,421 @@
+-- Seed phase worksheet batch from the Word brutto list.
+-- Inserted as drafts so each resource can be reviewed and polished before use.
+
+with seed_resources as (
+  select *
+  from jsonb_to_recordset($$[
+    {
+      "title": "Forventningskontrakt",
+      "slug": "forventningskontrakt",
+      "summary": "Et arbeidsverktøy for å gjøre implisitte forventninger eksplisitte før utviklingsarbeidet starter. Brukes til å avklare resultatforventninger, ønsket lederatferd, arbeidsform og forpliktelser.",
+      "type": "worksheet",
+      "phase": "direction",
+      "estimated_duration": 35,
+      "difficulty": "medium",
+      "intended_outcome": "Skape felles forståelse av hva som skal bli annerledes, hvordan utvikling skal vurderes, og hva leder, leders leder og coach forplikter seg til.",
+      "best_used_when": ["oppstart av coachingforløp", "uklare forventninger", "trekantsamtale", "leder og leders leder har ulike bilder av rollen", "utvikling må gjøres målbar"],
+      "not_for": ["når mandatet allerede er tydelig og avklart", "som erstatning for nødvendige lederavklaringer utenfor coachingrommet"],
+      "coach_guidance": "Bruk verktøyet tidlig. Hold samtalen konkret: hva skal være annerledes i praksis, hvem har ansvar for hva, og hvordan ser effekt ut?",
+      "client_intro": "Mange lederutfordringer handler ikke om evner, men om uklare forventninger. Denne kontrakten hjelper deg å gjøre forventningene tydelige før utviklingsarbeidet starter.",
+      "suggested_coach_note": "Fyll ut forventningskontrakten med fokus på konkrete tegn på effekt, ønsket atferd og hva hver part forplikter seg til.",
+      "default_context_types": ["program", "session", "reflection"],
+      "content_json": [
+        { "type": "intro", "content": "Forventningskontrakten skaper felles retning og reduserer risikoen for misforståelser i utviklingsarbeidet." },
+        { "type": "text", "heading": "Hva skal avklares?", "content": "Når kontrakten er ferdig, skal det være tydelig hva leders leder forventer, hva lederen selv forplikter seg til, hva coach bidrar med, og hvordan fremdrift vurderes." },
+        { "type": "worksheet", "fields": ["Hvilke resultater skal være annerledes etter utviklingsløpet?", "Hva bør være forbedret i praksis?", "Hva vil være tydelige tegn på effekt?", "Hva ønsker du selv å få til?", "Hva vil du prioritere annerledes?", "Hva vil du bli tydeligere på?"] },
+        { "type": "text", "heading": "Atferd og praksis", "content": "Avklar hvilken lederatferd som ønskes mer av, hva som kan reduseres, og hva som bør bli tydeligere." },
+        { "type": "worksheet", "fields": ["Hvilken lederatferd ønsker leders leder mer av?", "Hvilken atferd vil du teste?", "Hva vil være krevende å endre?", "Hva trenger du støtte til?", "Hvordan vil coach og klient jobbe med atferd i praksis?"] },
+        { "type": "text", "heading": "Forpliktelse", "content": "Avklar hvordan dere skal jobbe, hva som forventes mellom samlinger, og hva hver part forplikter seg til." },
+        { "type": "worksheet", "fields": ["Hva er lederens ansvar?", "Hva er coachens ansvar?", "Hva er leders leder sitt ansvar?", "Leder forplikter seg til", "Leders leder forplikter seg til", "Coach forplikter seg til"] }
+      ],
+      "reflection_prompts": ["Hva er tydeligere etter at forventningene er skrevet ned?", "Hvor kan det fortsatt oppstå misforståelser?", "Hva er det viktigste tegnet på at utviklingsarbeidet virker?"],
+      "next_step_prompt": "Bruk kontrakten som grunnlag for neste trekantsamtale eller oppfølgingssamtale.",
+      "basis": "Psykologiske kontrakter, rolleavklaring og organisasjonspsykologi."
+    },
+    {
+      "title": "Interessentkart",
+      "slug": "interessentkart",
+      "summary": "Et kartleggingsverktøy for å se hvem som påvirker lederrollen, hvilke forventninger som finnes, og hvor det kan oppstå relasjonell friksjon.",
+      "type": "worksheet",
+      "phase": "direction",
+      "estimated_duration": 30,
+      "difficulty": "medium",
+      "intended_outcome": "Gi klienten en strukturert oversikt over nøkkelinteressenter, forventninger, påvirkningskraft og nødvendig relasjonell strategi.",
+      "best_used_when": ["lederrollen formes av mange interessenter", "uklare forventninger", "relasjonell risiko", "prioritering av samhandling", "ny rolle eller nytt mandat"],
+      "not_for": ["som politisk analyse uten kobling til egen praksis", "når klienten først trenger emosjonell stabilisering eller konfliktavklaring"],
+      "coach_guidance": "Hold kartet handlingsorientert. Hvem påvirker måloppnåelsen, hvilke forventninger kolliderer, og hvilke samtaler bør tas?",
+      "client_intro": "Lederrollen utøves ikke i et vakuum. Den formes av relasjoner, forventninger og maktforhold. Interessentkartet hjelper deg å se dette tydeligere.",
+      "suggested_coach_note": "Fyll ut kartet med de viktigste interessentene rundt rollen din. Se særlig etter forventninger som kan kollidere eller skape friksjon.",
+      "default_context_types": ["program", "focus_area", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Interessentkartet gir oversikt over hvem som påvirker rollen mest, hvem du er avhengig av, og hvor relasjonell risiko ligger." },
+        { "type": "text", "heading": "Identifiser interessenter", "content": "List opp sentrale personer og grupper som påvirker rollen eller måloppnåelsen din." },
+        { "type": "worksheet", "fields": ["Interessent", "Påvirker min måloppnåelse", "Kan blokkere min fremdrift", "Har høy formell makt", "Har høy uformell makt"] },
+        { "type": "text", "heading": "Forventninger og krav", "content": "For hver nøkkelinteressent: avklar hva de forventer av deg, hva du forventer av dem, og hvor det kan oppstå misforståelser." },
+        { "type": "worksheet", "fields": ["Hva forventer de av meg?", "Hva forventer jeg av dem?", "Hvor kan det oppstå misforståelser?"] },
+        { "type": "text", "heading": "Prioriter handling", "content": "Vurder påvirkningskraft og avhengighet, og velg hvilke relasjonelle grep som bør tas først." },
+        { "type": "worksheet", "fields": ["Hvem må jeg prioritere høyere?", "Hvilken samtale bør tas?", "Hva bør avklares?", "Hva kan skape friksjon hvis det ikke håndteres?"] }
+      ],
+      "reflection_prompts": ["Hvem påvirker rollen din mest akkurat nå?", "Hvor er forventningene uklare?", "Hvilken relasjonell handling vil gi størst effekt?"],
+      "next_step_prompt": "Velg én interessent du vil avklare forventninger med før neste samtale.",
+      "basis": "Interessentanalyse, rolleforståelse og relasjonell ledelse."
+    },
+    {
+      "title": "Mandatkort",
+      "slug": "mandatkort",
+      "summary": "Et arbeidsverktøy for å tydeliggjøre hva lederrollen faktisk skal levere på, hvilket handlingsrom som finnes, og hva som må avklares.",
+      "type": "worksheet",
+      "phase": "direction",
+      "estimated_duration": 40,
+      "difficulty": "medium",
+      "intended_outcome": "Gjøre ansvar, beslutningsmyndighet, forventninger og handlingsrom eksplisitt slik at utviklingsarbeidet blir mer konkret.",
+      "best_used_when": ["uklart mandat", "ny lederrolle", "stress knyttet til ansvar", "dobbeltarbeid eller stopp i beslutninger", "behov for tydeligere rolleavklaring"],
+      "not_for": ["som erstatning for formell mandatavklaring med leder", "når problemet primært er ressurser eller organisasjonsstruktur uten handlingsrom"],
+      "coach_guidance": "Skill mellom formelt mandat og reelt mandat. Utforsk hvor klienten tar for mye ansvar, unngår ansvar eller mangler beslutningsrom.",
+      "client_intro": "Uklare mandater skaper stress og friksjon. Mandatkortet hjelper deg å gjøre rollen eksplisitt slik den faktisk må utøves.",
+      "suggested_coach_note": "Fyll ut mandatkortet med vekt på ansvar, beslutninger, handlingsrom og hva som må avklares med leder eller team.",
+      "default_context_types": ["program", "focus_area", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Mandatkortet gjør rollen konkret: hva du er ansvarlig for, hva du ikke er ansvarlig for, hva du kan beslutte, og hva som må forankres." },
+        { "type": "text", "heading": "Formelt mandat", "content": "Start med det uttalte og avtalefestede mandatet." },
+        { "type": "worksheet", "fields": ["Hva er formålet med rollen din?", "Hvilke resultater er du eksplisitt ansvarlig for?", "Hvilke mål måles du på?", "Hvem evaluerer din prestasjon?", "Hva forventes levert på kort og lang sikt?"] },
+        { "type": "text", "heading": "Reelt mandat", "content": "Utforsk hvordan mandatet faktisk utøves i praksis." },
+        { "type": "worksheet", "fields": ["Hvilke beslutninger kan du ta alene?", "Hvilke beslutninger må forankres?", "Hvor oppstår uklarhet i ansvar?", "Hvor tar du ansvar som egentlig ikke er ditt?", "Hvor unngår du ansvar som egentlig er ditt?"] },
+        { "type": "text", "heading": "Handlingsrom og avklaring", "content": "Mandat uten handlingsrom blir symbolsk ansvar. Avklar hva som begrenser deg og hva som må skje nå." },
+        { "type": "worksheet", "fields": ["Hvor har du faktisk frihet til å handle?", "Hva begrenser deg mest?", "Dette er jeg ansvarlig for", "Dette kan jeg beslutte", "Dette må avklares", "Hvilke samtaler må tas?"] }
+      ],
+      "reflection_prompts": ["Hva er tydeligere om rollen din nå?", "Hvor har du tatt ansvar som ikke egentlig er ditt?", "Hva må avklares for at du skal bruke handlingsrommet bedre?"],
+      "next_step_prompt": "Velg én mandatavklaring du skal ta med leder, team eller coach.",
+      "basis": "Rolle- og mandatforståelse fra organisasjonspsykologi og praktisk lederarbeid."
+    },
+    {
+      "title": "Refleksjonsjournal",
+      "slug": "refleksjonsjournal",
+      "summary": "En struktur for løpende lederrefleksjon som hjelper klienten å omsette erfaringer til læring, mønstergjenkjenning og justert praksis.",
+      "type": "template",
+      "phase": "reflection",
+      "estimated_duration": 10,
+      "difficulty": "easy",
+      "intended_outcome": "Gjøre refleksjon til en del av lederarbeidet mellom samtalene og skape bedre grunnlag for læring og justering.",
+      "best_used_when": ["mellom coachingsamtaler", "etter krevende samtaler", "etter viktige beslutninger", "når gamle mønstre dukker opp", "for å gjøre progresjon synlig"],
+      "not_for": ["som rapporteringskrav", "hvis klienten begynner å skrive langt og perfekt i stedet for kort og nyttig"],
+      "coach_guidance": "Hold terskelen lav. Det viktigste er at refleksjonen skjer tett på situasjonen og kan brukes i neste samtale.",
+      "client_intro": "Lederutvikling skjer når erfaringer bearbeides og brukes. Journalen hjelper deg å se hva som skjedde, hva du gjorde, og hva du vil justere neste gang.",
+      "suggested_coach_note": "Bruk journalen kort etter en konkret situasjon eller som ukentlig oppsummering. Ta med ett mønster eller én justering til neste samtale.",
+      "default_context_types": ["reflection", "program", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Dette er et arbeidsverktøy for løpende justering, ikke et dokument som skal skrives pent eller langt." },
+        { "type": "text", "heading": "Når bruke journalen?", "content": "Bruk den etter krevende samtaler, viktige beslutninger, situasjoner hvor du merker gammel atferd, eller når du vil følge egen utvikling over tid." },
+        { "type": "worksheet", "fields": ["Situasjon", "Hva gjorde jeg?", "Hva fungerte?", "Hva kunne vært gjort annerledes?", "Kobling til utviklingsplan", "Justering til neste gang"] },
+        { "type": "text", "heading": "Ukentlig refleksjon", "content": "Bruk denne delen for å se mønstre på tvers av uken." },
+        { "type": "worksheet", "fields": ["Hva har preget uken min som leder?", "Hvor brukte jeg tiden riktig?", "Hvor brukte jeg tiden mindre godt?", "Når var jeg mest tydelig?", "Hva sier uken om utviklingsområdene mine?", "Hva trenger jeg å gjøre annerledes neste uke?", "Hva vil jeg ta med inn i neste samtale?"] }
+      ],
+      "reflection_prompts": ["Hvilket mønster ser du tydeligere nå?", "Hva vil du gjøre annerledes neste gang?", "Hva bør coachen vite før neste samtale?"],
+      "next_step_prompt": "Velg én situasjon denne uken og fyll ut journalen innen 24 timer.",
+      "basis": "Voksenlæring, profesjonsutvikling og refleksiv praksis."
+    },
+    {
+      "title": "Prioriteringsrammeverk",
+      "slug": "prioriteringsrammeverk",
+      "summary": "Et rammeverk for å velge riktig utviklingsfokus når kartleggingen viser flere mulige områder enn det er realistisk å jobbe med samtidig.",
+      "type": "framework",
+      "phase": "focus",
+      "estimated_duration": 25,
+      "difficulty": "medium",
+      "intended_outcome": "Hjelpe klient og coach å prioritere 2-3 utviklingsområder med tydelig strategisk betydning, reelt utviklingsgap og handlingsrom.",
+      "best_used_when": ["flere mulige utviklingsområder", "behov for avgrensning", "360-tilbakemeldinger skal oversettes til fokus", "utviklingsplan skal prioriteres"],
+      "not_for": ["som ren organisasjonsanalyse", "områder klienten ikke kan påvirke gjennom egen atferd, prioritering eller kommunikasjon"],
+      "coach_guidance": "Vær streng på avgrensning. Utviklingsområder bør handle om klientens egen praksis, ikke bare om kultur, struktur eller andre personers atferd.",
+      "client_intro": "Lederutvikling krever avgrensning. Dette rammeverket hjelper deg å velge hvilke utviklingsområder som skal løftes nå, og hva som settes på vent.",
+      "suggested_coach_note": "List opp mulige utviklingsområder og vurder dem mot strategisk betydning, reelt utviklingsgap og eget handlingsrom.",
+      "default_context_types": ["focus_area", "program", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Når for mange områder prioriteres samtidig, reduseres både kvalitet og effekt. Målet er å velge 2-3 områder med tydelig retning." },
+        { "type": "text", "heading": "Identifiser mulige områder", "content": "List opp aktuelle områder fra tilbakemeldinger, egen refleksjon, personlighetsprofil, leders forventninger og organisatorisk kontekst." },
+        { "type": "worksheet", "fields": ["Mulig utviklingsområde", "Kilde eller observasjon", "Hvorfor kan dette være viktig?", "Ikke vurder ennå - bare identifiser"] },
+        { "type": "text", "heading": "Vurder mot tre kriterier", "content": "Prioriter områder som både er strategisk viktige, representerer et reelt utviklingsgap og ligger innenfor eget handlingsrom." },
+        { "type": "worksheet", "fields": ["Strategisk betydning", "Reelt utviklingsgap", "Innenfor eget handlingsrom", "Prioriteres nå eller settes på vent?"] }
+      ],
+      "reflection_prompts": ["Hvilke 2-3 områder bør prioriteres nå?", "Hva velger du bevisst bort?", "Hvor har du faktisk handlingsrom?"],
+      "next_step_prompt": "Velg maksimalt tre utviklingsområder som skal inn i utviklingsplanen.",
+      "basis": "Målprioritering, lederutvikling og atferdsendring."
+    },
+    {
+      "title": "Utviklingsplan",
+      "slug": "utviklingsplan-arbeidsark",
+      "summary": "Et arbeidsdokument som oversetter kartlegging og forventningsavklaring til konkrete utviklingsmål, handlinger, indikatorer og oppfølging.",
+      "type": "worksheet",
+      "phase": "focus",
+      "estimated_duration": 45,
+      "difficulty": "medium",
+      "intended_outcome": "Gjøre utviklingsarbeidet konkret og forpliktende ved å avklare mål, handlinger, tidsfrister, bevis på fremgang, hindringer og vedlikehold.",
+      "best_used_when": ["etter kartlegging", "etter forventningsavklaring", "når utviklingsområder er prioritert", "før fase med eksperimenter og oppfølging"],
+      "not_for": ["før retning og prioriteringer er avklart", "hvis planen blir for omfattende til å brukes aktivt"],
+      "coach_guidance": "Ikke la planen bli en ønskeliste. Avgrens til 2-3 områder, knytt hvert mål til konkrete handlinger og avklar hvordan fremgang skal observeres.",
+      "client_intro": "Utviklingsplanen oversetter innsikt til forpliktende praksis. Den skal brukes aktivt i samtaler og mellom samtaler, og justeres underveis.",
+      "suggested_coach_note": "Fyll ut planen med maksimalt 2-3 utviklingsområder. Vær konkret på handling, tidsfrist og tegn på fremgang.",
+      "default_context_types": ["program", "focus_area", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Mange utviklingsløp stopper ved refleksjon. Denne planen skal sikre at utviklingsarbeidet faktisk påvirker beslutninger, prioriteringer og atferd i hverdagen." },
+        { "type": "text", "heading": "Utviklingsmål", "content": "Beskriv målene konkret og vurder hvordan fremgang skal kunne observeres." },
+        { "type": "worksheet", "fields": ["Hva er dine utviklingsmål?", "Når skal målene være realisert?", "Hvordan kan du bevise at prestasjonen har økt?", "Nivå på prestasjon i dag", "Ønsket nivå på prestasjon i fremtiden"] },
+        { "type": "text", "heading": "Handling og forpliktelse", "content": "Oversett målene til konkrete handlinger med tidsfrist, fordeler og støtte for forpliktelse." },
+        { "type": "worksheet", "fields": ["Konkrete handlinger", "Tidsfrist", "Fordeler ved å nå målet", "Belønninger eller positivt selvsnakk", "Hindringer", "Løsninger"] },
+        { "type": "text", "heading": "Opprettholdelse", "content": "Avklar hva som må gjøres for å holde på forbedringen når målet er nådd." },
+        { "type": "worksheet", "fields": ["Hva må opprettholdes?", "Hva må følges opp?", "Hva kan få deg til å falle tilbake?", "Hvordan skal planen justeres underveis?"] }
+      ],
+      "reflection_prompts": ["Hvilke mål er viktigst akkurat nå?", "Hva skal du konkret gjøre annerledes?", "Hvordan vil du vite at utviklingen virker?"],
+      "next_step_prompt": "Velg første konkrete handling med tidsfrist før neste samtale.",
+      "basis": "Atferdsendring, målsetting og prestasjonspsykologi."
+    },
+    {
+      "title": "Atferdseksperiment",
+      "slug": "atferdseksperiment",
+      "summary": "Et verktøy for å teste ny praksis i reelle situasjoner og lære av hva som faktisk skjer når klienten prøver en konkret atferdsendring.",
+      "type": "exercise",
+      "phase": "experiment",
+      "estimated_duration": 20,
+      "difficulty": "medium",
+      "intended_outcome": "Flytte utvikling fra refleksjon til handling ved å teste små, konkrete atferdsendringer systematisk.",
+      "best_used_when": ["ny atferd skal prøves i praksis", "klienten trenger eksperiment fremfor mer refleksjon", "gamle mønstre skal utfordres", "utviklingsplan skal omsettes til handling"],
+      "not_for": ["situasjoner med høy risiko uten forberedelse", "når klienten ikke har definert hvilken atferd som skal testes"],
+      "coach_guidance": "Gjør eksperimentet lite nok til å gjennomføres. Skill mellom hva som skal testes, hvilken tanke som kan hjelpe, og hva klienten faktisk lærte.",
+      "client_intro": "Utvikling skjer når ny atferd prøves ut i situasjoner som betyr noe. Dette verktøyet hjelper deg å teste små endringer systematisk.",
+      "suggested_coach_note": "Velg én konkret situasjon og én konkret atferd du vil teste. Etterpå vurderer du hva som skjedde, hva som fungerte og hva du justerer.",
+      "default_context_types": ["experiment", "focus_area", "reflection"],
+      "content_json": [
+        { "type": "intro", "content": "Atferdseksperimenter brukes for å flytte utvikling fra refleksjon til handling." },
+        { "type": "text", "heading": "Hva skal testes?", "content": "Definer hvilken konkret atferd du vil gjøre annerledes, og i hvilken situasjon den skal testes." },
+        { "type": "worksheet", "fields": ["Hvilken konkret atferd vil jeg gjøre annerledes?", "Situasjon hvor jeg skal teste dette"] },
+        { "type": "text", "heading": "Hva kan hjelpe?", "content": "Velg en tanke eller påminnelse som gjør det lettere å gjennomføre ønsket atferd i situasjonen." },
+        { "type": "worksheet", "fields": ["Hvilken tanke vil gjøre det lettere å gjennomføre?", "Hva minner jeg meg selv på i situasjonen?", "Hvilken konkret handling skal jeg gjøre?"] },
+        { "type": "text", "heading": "Resultat og læring", "content": "Etterpå vurderer du hva som faktisk skjedde, hva som fungerte og hva du vil justere neste gang." },
+        { "type": "worksheet", "fields": ["Hva skjedde faktisk?", "Hva fungerte?", "Hva var konsekvensen?", "Hva justerer jeg neste gang?"] }
+      ],
+      "reflection_prompts": ["Hva lærte du av å teste atferden i praksis?", "Hva ble annerledes enn forventet?", "Hva vil du justere neste gang?"],
+      "next_step_prompt": "Planlegg ett lite atferdseksperiment i en konkret situasjon før neste samtale.",
+      "basis": "Prestasjonspsykologi, atferdseksperimenter og erfaringsbasert læring."
+    },
+    {
+      "title": "Belastningssjekk",
+      "slug": "belastningssjekk",
+      "summary": "En kort ukentlig kapasitetskalibrering for å se hva som gir energi, hva som tapper energi, og hvilke tegn på overbelastning som bør tas på alvor.",
+      "type": "reflection",
+      "phase": "observation",
+      "estimated_duration": 5,
+      "difficulty": "easy",
+      "intended_outcome": "Hjelpe klienten å oppdage belastningsmønstre tidlig og gjøre små justeringer før kapasiteten blir for lav.",
+      "best_used_when": ["høyt arbeidspress", "ukentlig oppfølging", "risiko for overbelastning", "klienten blir mer reaktiv eller unngående", "prioriteringer må justeres"],
+      "not_for": ["som medisinsk vurdering", "hvis klienten trenger akutt helsehjelp eller arbeidsmiljøtiltak"],
+      "coach_guidance": "Bruk sjekken kort og praktisk. Se etter mønstre over tid: energi, tappere, reaktivitet og konkrete justeringer.",
+      "client_intro": "Belastningssjekken tar 3-5 minutter og hjelper deg å kalibrere kapasitet, energi og justeringer for neste uke.",
+      "suggested_coach_note": "Bruk denne én gang i uken. Skriv kort, og velg én konkret justering for neste uke.",
+      "default_context_types": ["reflection", "program", "experiment"],
+      "content_json": [
+        { "type": "intro", "content": "Brukes én gang i uken om du ønsker. Tar 3-5 minutter." },
+        { "type": "text", "heading": "Energi og belastning", "content": "Se etter hva som ga energi, og hva som tappet mer enn det ga." },
+        { "type": "worksheet", "fields": ["Energistatus denne uken", "Hvilke oppgaver eller situasjoner ga energi?", "Hva kjennetegner dem?", "Hvilke situasjoner tok mer enn de ga?", "Var det volum, konflikt, uklarhet eller noe annet?"] },
+        { "type": "text", "heading": "Tegn på overbelastning", "content": "Legg merke til konkrete tegn på at kapasiteten er presset." },
+        { "type": "worksheet", "fields": ["Blitt mer reaktiv enn vanlig", "Utsatt beslutninger", "Blitt kortere i tonen", "Unngått krevende samtaler", "Redusert kvalitet i forberedelser"] },
+        { "type": "text", "heading": "Justering for neste uke", "content": "Velg én justering som kan redusere belastning eller gi mer presis prioritering." },
+        { "type": "worksheet", "fields": ["Hva må bort, ned eller delegeres?", "Hva må prioriteres tydeligere?", "Hva trenger jeg å avklare?", "Én konkret justering"] }
+      ],
+      "reflection_prompts": ["Hva ga mest energi denne uken?", "Hva tappet mer enn det burde?", "Hva er ett tydelig tegn på at belastningen er for høy?"],
+      "next_step_prompt": "Velg én konkret justering for neste uke.",
+      "basis": "Stressregulering, kapasitetsstyring og bærekraftig prestasjon."
+    },
+    {
+      "title": "Observasjonsoppdrag",
+      "slug": "observasjonsoppdrag",
+      "summary": "Et kort oppdrag for å observere egen lederatferd i sanntid før, under og etter en konkret situasjon.",
+      "type": "exercise",
+      "phase": "observation",
+      "estimated_duration": 15,
+      "difficulty": "easy",
+      "intended_outcome": "Øke bevisstheten om automatiske mønstre i reelle situasjoner uten at klienten først må korrigere eller prestere annerledes.",
+      "best_used_when": ["klienten skal bli mer bevisst i sanntid", "før atferdseksperiment", "gamle mønstre skal observeres", "møter, beslutninger eller krevende samtaler"],
+      "not_for": ["når klienten trenger å handle umiddelbart og ikke har kapasitet til observasjon", "som evaluering av prestasjon alene"],
+      "coach_guidance": "Legg vekt på observasjon fremfor korrigering. Målet er å se mønsteret tydeligere før det endres.",
+      "client_intro": "Velg én konkret situasjon hvor du bevisst observerer deg selv i lederrollen. Ikke korriger først. Observer.",
+      "suggested_coach_note": "Bruk oppdraget i én konkret situasjon. Noter intensjon før, observasjoner underveis og én justering etterpå.",
+      "default_context_types": ["experiment", "reflection", "session"],
+      "content_json": [
+        { "type": "intro", "content": "Velg et møte, en beslutning, en krevende samtale eller en prioritering der du vil observere deg selv i sanntid." },
+        { "type": "text", "heading": "Før situasjonen", "content": "Sett en kort intensjon og legg merke til hva du vanligvis gjør automatisk." },
+        { "type": "worksheet", "fields": ["Dato og kontekst", "Hva er min intensjon?", "Hva pleier jeg å gjøre automatisk?", "Hva vil jeg spesielt legge merke til?"] },
+        { "type": "text", "heading": "Under og etter", "content": "Observer hva som skjer når presset øker, og skriv kort etterpå hva du faktisk gjorde." },
+        { "type": "worksheet", "fields": ["Hva skjer i meg når presset øker?", "Hvordan endrer tempo, stemme eller kropp seg?", "Lytter jeg, eller forbereder jeg svar?", "Hva gjorde jeg faktisk?", "Hva fungerte?", "Hvor så jeg gamle mønstre?", "Én konkret justering jeg tester neste gang"] }
+      ],
+      "reflection_prompts": ["Hva la du merke til i sanntid?", "Hvor så du gamle mønstre?", "Hva vil du teste neste gang?"],
+      "next_step_prompt": "Velg én situasjon denne uken hvor du kun skal observere egen lederatferd.",
+      "basis": "Selvobservasjon, metakognisjon og erfaringsbasert lederutvikling."
+    },
+    {
+      "title": "Situasjonsanalyse",
+      "slug": "situasjonsanalyse-tolkning-og-handlingsvalg",
+      "summary": "Et analyseverktøy for å skille mellom situasjon, umiddelbar tolkning, konsekvens, alternative tolkninger og justert handling.",
+      "type": "worksheet",
+      "phase": "reflection",
+      "estimated_duration": 20,
+      "difficulty": "medium",
+      "intended_outcome": "Hjelpe klienten å forstå hvordan tolkninger påvirker følelser, atferd, beslutninger og handlingsvalg i konkrete situasjoner.",
+      "best_used_when": ["etter krevende situasjoner", "sterke reaksjoner", "tolkninger låser handlingsrom", "klienten vil justere respons neste gang"],
+      "not_for": ["akutt emosjonell krise", "når situasjonen først må faktaundersøkes eller avklares praktisk"],
+      "coach_guidance": "Hold analysen konkret. Start med observerbar situasjon før tolkning. Ikke hopp rett til råd eller løsning.",
+      "client_intro": "Denne analysen hjelper deg å skille hva som faktisk skjedde fra hvordan du tolket situasjonen, og hva du kan gjøre annerledes neste gang.",
+      "suggested_coach_note": "Bruk analysen på én konkret situasjon. Skriv først hva som skjedde, deretter tolkning, konsekvens og en justert handling.",
+      "default_context_types": ["reflection", "session", "experiment"],
+      "content_json": [
+        { "type": "intro", "content": "Situasjonsanalyse hjelper deg å skille mellom fakta, tolkning, konsekvens og justert handling." },
+        { "type": "worksheet", "fields": ["Situasjon: Hva skjedde konkret?", "Hvem var involvert?", "Hva ble sagt eller gjort?", "Hva var rammen?", "Min umiddelbare tolkning: Hva tenkte jeg?", "Hva antok jeg?", "Hva tok jeg for gitt?", "Konsekvens: Hvordan påvirket tolkningen følelser, atferd, beslutninger og utfall?", "Alternative tolkninger", "Justert handling neste gang"] }
+      ],
+      "reflection_prompts": ["Hva var fakta, og hva var tolkning?", "Hvilke andre forklaringer kan være like plausible?", "Hva vil du gjøre annerledes neste gang?"],
+      "next_step_prompt": "Velg én justert handling du vil teste neste gang en lignende situasjon oppstår.",
+      "basis": "Kognitiv refleksjon, emosjonell regulering og handlingslæring."
+    }
+  ]$$::jsonb) as resource(
+    title text,
+    slug text,
+    summary text,
+    type text,
+    phase text,
+    estimated_duration integer,
+    difficulty text,
+    intended_outcome text,
+    best_used_when jsonb,
+    not_for jsonb,
+    coach_guidance text,
+    client_intro text,
+    suggested_coach_note text,
+    default_context_types jsonb,
+    content_json jsonb,
+    reflection_prompts jsonb,
+    next_step_prompt text,
+    basis text
+  )
+)
+insert into public.resources (
+  title,
+  slug,
+  summary,
+  type,
+  format,
+  phase,
+  visibility,
+  status,
+  review_status,
+  language,
+  estimated_duration,
+  difficulty,
+  intended_outcome,
+  best_used_when,
+  not_for,
+  coach_guidance,
+  client_intro,
+  suggested_coach_note,
+  default_context_types,
+  content_json,
+  reflection_prompts,
+  next_step_prompt,
+  basis,
+  reviewed_by,
+  last_reviewed_at,
+  archived_at
+)
+select
+  title,
+  slug,
+  summary,
+  type,
+  'native',
+  phase,
+  'client_assignable',
+  'draft',
+  'draft',
+  'no',
+  estimated_duration,
+  difficulty,
+  intended_outcome,
+  best_used_when,
+  not_for,
+  coach_guidance,
+  client_intro,
+  suggested_coach_note,
+  default_context_types,
+  content_json,
+  reflection_prompts,
+  next_step_prompt,
+  basis,
+  null,
+  null,
+  null
+from seed_resources
+on conflict (slug) do update
+set
+  title = excluded.title,
+  summary = excluded.summary,
+  type = excluded.type,
+  format = excluded.format,
+  phase = excluded.phase,
+  visibility = excluded.visibility,
+  status = excluded.status,
+  review_status = excluded.review_status,
+  language = excluded.language,
+  estimated_duration = excluded.estimated_duration,
+  difficulty = excluded.difficulty,
+  intended_outcome = excluded.intended_outcome,
+  best_used_when = excluded.best_used_when,
+  not_for = excluded.not_for,
+  coach_guidance = excluded.coach_guidance,
+  client_intro = excluded.client_intro,
+  suggested_coach_note = excluded.suggested_coach_note,
+  default_context_types = excluded.default_context_types,
+  content_json = excluded.content_json,
+  reflection_prompts = excluded.reflection_prompts,
+  next_step_prompt = excluded.next_step_prompt,
+  basis = excluded.basis,
+  reviewed_by = null,
+  last_reviewed_at = null,
+  archived_at = null,
+  updated_at = now();
+
+with seed_slugs as (
+  select jsonb_array_elements_text($$[
+    "forventningskontrakt",
+    "interessentkart",
+    "mandatkort",
+    "refleksjonsjournal",
+    "prioriteringsrammeverk",
+    "utviklingsplan-arbeidsark",
+    "atferdseksperiment",
+    "belastningssjekk",
+    "observasjonsoppdrag",
+    "situasjonsanalyse-tolkning-og-handlingsvalg"
+  ]$$::jsonb) as slug
+)
+delete from public.resource_tags rt
+using public.resources r, seed_slugs s
+where rt.resource_id = r.id
+  and r.slug = s.slug;
+
+with seed_tags as (
+  select *
+  from jsonb_to_recordset($$[
+    { "slug": "forventningskontrakt", "tags": ["forventninger", "rolleavklaring", "retning", "trekantsamtale", "lederutvikling"] },
+    { "slug": "interessentkart", "tags": ["interessenter", "relasjoner", "forventninger", "retning", "lederrolle"] },
+    { "slug": "mandatkort", "tags": ["mandat", "rolleavklaring", "ansvar", "beslutninger", "retning"] },
+    { "slug": "refleksjonsjournal", "tags": ["refleksjon", "læring", "lederutvikling", "progresjon"] },
+    { "slug": "prioriteringsrammeverk", "tags": ["prioritering", "fokus", "utviklingsområder", "handlingsrom"] },
+    { "slug": "utviklingsplan-arbeidsark", "tags": ["utviklingsplan", "mål", "handling", "oppfølging", "fokus"] },
+    { "slug": "atferdseksperiment", "tags": ["eksperiment", "atferd", "praksis", "læring", "prestasjon"] },
+    { "slug": "belastningssjekk", "tags": ["belastning", "kapasitet", "stress", "prioritering", "observasjon"] },
+    { "slug": "observasjonsoppdrag", "tags": ["observasjon", "selvledelse", "lederatferd", "sanntid"] },
+    { "slug": "situasjonsanalyse-tolkning-og-handlingsvalg", "tags": ["situasjonsanalyse", "tolkning", "handling", "refleksjon", "selvledelse"] }
+  ]$$::jsonb) as tag_group(slug text, tags jsonb)
+)
+insert into public.resource_tags (resource_id, tag)
+select r.id, tag_value.tag
+from seed_tags st
+join public.resources r on r.slug = st.slug
+cross join lateral jsonb_array_elements_text(st.tags) as tag_value(tag)
+on conflict (resource_id, tag) do nothing;
