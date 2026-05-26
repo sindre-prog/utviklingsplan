@@ -1,11 +1,11 @@
 :root {
   --md-sys-color-primary: #24351b;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #e8def8;
+  --md-sys-color-primary-container: #e8eef7;
   --md-sys-color-on-primary-container: #000000;
   --md-sys-color-secondary: #4d5f7c;
-  --md-sys-color-secondary-container: #e8def8;
-  --md-sys-color-tertiary-container: #e7e8ff;
+  --md-sys-color-secondary-container: #eef2f7;
+  --md-sys-color-tertiary-container: #f5f7fb;
   --md-sys-color-error: #ba1a1a;
   --md-sys-color-surface: #ffffff;
   --md-sys-color-surface-dim: #f5f5f5;
@@ -13,8 +13,8 @@
   --md-sys-color-surface-container-low: #ffffff;
   --md-sys-color-surface-container: #f7f7f7;
   --md-sys-color-surface-container-high: #f1f1f1;
-  --md-sys-color-outline: #cac4d0;
-  --md-sys-color-outline-variant: #e7e0ec;
+  --md-sys-color-outline: #c9c6c0;
+  --md-sys-color-outline-variant: #e8e4dd;
   --md-sys-color-on-surface: #000000;
   --md-sys-color-on-surface-variant: #49454f;
   --md-filled-button-container-color: #000000;
@@ -39,7 +39,7 @@
   --hero: var(--md-sys-color-tertiary-container);
   --menu-pill-bg: #f6f3ec;
   --subtle-accent: var(--md-sys-color-secondary-container);
-  --subtle-accent-soft: #fbf8ff;
+  --subtle-accent-soft: #f7f9fc;
   --attention-accent: #abd7ff;
   --direction-orb-bg: var(--md-sys-color-secondary-container);
   --status-success: #386a20;
@@ -49,7 +49,7 @@
   --status-danger-container: #ffe1e1;
   --accent: var(--subtle-accent);
   --accent-soft: var(--subtle-accent-soft);
-  --accent-line: #d8cfe5;
+  --accent-line: #b8c6da;
   --danger: var(--md-sys-color-error);
   --ok: var(--status-success);
   --card-border: var(--md-sys-color-outline-variant);
@@ -220,7 +220,7 @@ input, textarea, select {
 }
 textarea { min-height: 82px; line-height: 1.5; resize: vertical; }
 input, textarea, select { -webkit-text-size-adjust: 100%; }
-input:focus, textarea:focus, select:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px rgba(232,222,248,.46); }
+input:focus, textarea:focus, select:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px rgba(77,95,124,.12); }
 .button, .icon-button, .text-button {
   border: 0;
   display: inline-flex;
@@ -749,7 +749,7 @@ tr:last-child td { border-bottom: 0; }
   height: 52px;
   border-radius: 999px;
   background: var(--accent);
-  box-shadow: 0 0 0 20px rgba(232,222,248,.38);
+  box-shadow: 0 0 0 20px rgba(77,95,124,.10);
 }
 .resource-preview-title {
   display: grid;
@@ -3438,9 +3438,7 @@ tr:last-child td { border-bottom: 0; }
     flex: 0 0 auto;
   }
   .save-strip {
-    right: 14px;
-    bottom: max(14px, env(safe-area-inset-bottom));
-    padding: 7px 10px;
+    display: none;
   }
 }
 
@@ -4594,15 +4592,15 @@ textarea.ui-edit-control {
 
 /* Batch 3 visual system consolidation */
 :root {
-  --brand-cream: #f6f3ec;
-  --brand-lavender: #e8def8;
-  --brand-lavender-soft: #fbf8ff;
-  --brand-sky: #e7e8ff;
+  --brand-cream: #f5f2eb;
+  --brand-blue: #4d5f7c;
+  --brand-blue-soft: #f5f7fb;
+  --brand-blue-tint: #e8eef7;
   --brand-ink: #000000;
   --surface-quiet: #fafafa;
-  --surface-tint-warm: #fbf8f0;
-  --surface-tint-cool: #f7f7ff;
-  --line-quiet: #ebe6ef;
+  --surface-tint-warm: #faf8f2;
+  --surface-tint-cool: #f7f9fc;
+  --line-quiet: #e8e4dd;
   --button-radius: 999px;
   --container-radius: 8px;
 }
@@ -4610,7 +4608,7 @@ textarea.ui-edit-control {
 .app-shell::before {
   display: block;
   height: 330px;
-  background: linear-gradient(180deg, var(--brand-sky) 0%, var(--brand-cream) 100%);
+  background: var(--brand-blue-soft);
 }
 
 .topline {
@@ -4733,8 +4731,8 @@ textarea:focus,
 select:focus,
 .ui-edit-control:focus,
 .ui-title-input:focus {
-  border-color: var(--line-strong);
-  box-shadow: 0 0 0 4px rgba(232,222,248,.42);
+  border-color: #9fb0c8;
+  box-shadow: 0 0 0 4px rgba(77,95,124,.12);
 }
 
 .panel,
@@ -4801,15 +4799,15 @@ select:focus,
 }
 
 .metric-card--klienter {
-  background: linear-gradient(135deg, #fff 0%, var(--surface-tint-warm) 100%);
+  background: var(--surface-tint-warm);
 }
 
 .metric-card--coacher {
-  background: linear-gradient(135deg, #fff 0%, var(--brand-lavender-soft) 100%);
+  background: var(--brand-blue-soft);
 }
 
 .metric-card--selskaper {
-  background: linear-gradient(135deg, #fff 0%, var(--surface-tint-cool) 100%);
+  background: var(--surface-tint-cool);
 }
 
 .resource-library-head,
@@ -4821,8 +4819,8 @@ select:focus,
 }
 
 .resource-card.active {
-  border-color: var(--line-strong);
-  background: var(--brand-lavender-soft);
+  border-color: #b8c6da;
+  background: var(--brand-blue-soft);
 }
 
 .resource-preview-section--support {
@@ -4885,7 +4883,73 @@ select:focus,
 
 .client-resource-open.active,
 .client-resource-response {
-  background: var(--brand-lavender-soft);
+  background: var(--brand-blue-soft);
+}
+
+.direction-editor-panel {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--line-quiet);
+  border-radius: var(--container-radius);
+  background: #fff;
+}
+
+.direction-editor-head {
+  display: grid;
+  gap: 8px;
+  align-items: start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line-quiet);
+}
+
+.direction-editor-head h3 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.direction-editor-notice {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #e6d7a3;
+  border-radius: var(--container-radius);
+  background: var(--status-warning-container);
+  color: rgba(0,0,0,.72);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.direction-field.is-selected {
+  border-color: #b8c6da;
+  background: var(--brand-blue-soft);
+}
+
+.direction-field.is-selected::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--brand-blue);
+}
+
+.direction-editor-panel .direction-edit {
+  gap: 16px;
+}
+
+.direction-editor-panel .ui-inline-editor {
+  padding: 0;
+  border: 0;
+}
+
+.direction-editor-panel .direction-edit-fields {
+  gap: 14px;
+}
+
+.direction-editor-panel .ui-edit-control {
+  min-height: 150px;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 .visibility-choice.active,
@@ -4955,8 +5019,21 @@ select:focus,
   .ui-section-card,
   .resource-preview,
   .client-resource-view,
-  .reflection-composer {
+  .reflection-composer,
+  .direction-editor-panel {
     padding: 18px;
+  }
+
+  .direction-editor-head {
+    grid-template-columns: 1fr;
+  }
+
+  .direction-editor-head h3 {
+    font-size: 24px;
+  }
+
+  .direction-editor-panel .ui-edit-control {
+    min-height: 168px;
   }
 
   .metric-card {

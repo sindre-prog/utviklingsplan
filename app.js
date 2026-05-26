@@ -111,6 +111,7 @@ const state = {
   confirmResolve: null,
   messageResolve: null,
   directionEditKey: null,
+  directionEditNotice: "",
   inlineEditKey: null,
   selectedFocusIndex: 0,
   selectedSessionIndex: 0,
@@ -1489,7 +1490,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-74")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-75")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1765,7 +1766,10 @@ async function renderPlan(activePane = "direction") {
   ]);
 
   const editable = canEditProgram(client);
-  if (editable) form.addEventListener("input", () => markDirty());
+  if (editable) form.addEventListener("input", (event) => {
+    if (event.target.closest(".ui-inline-editor")) return;
+    markDirty();
+  });
   $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]), ...(editable ? [saveStrip(true)] : []));
   if (!editable) setFormReadonly(form);
   setupWorkspaceTabs();
@@ -1797,7 +1801,10 @@ function renderCachedProgram(activePane = "direction") {
     ])
   ]);
   const editable = canEditProgram(client);
-  if (editable) form.addEventListener("input", () => markDirty());
+  if (editable) form.addEventListener("input", (event) => {
+    if (event.target.closest(".ui-inline-editor")) return;
+    markDirty();
+  });
   $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]), ...(editable ? [saveStrip(true)] : []));
   if (!editable) setFormReadonly(form);
   setupWorkspaceTabs();
@@ -1979,22 +1986,26 @@ function hiddenPlanState(plan) {
 function directionWorkspace(client, plan) {
   const editable = canEditProgram(client);
   const directionSpecs = getDirectionSpecs(plan);
+  const activeSpec = editable && state.directionEditKey
+    ? directionSpecs.find((spec) => spec.key === state.directionEditKey)
+    : null;
   const firstName = (client.name || "du").split(" ")[0];
   const status = directionStatus(plan);
   return el("section", { class: "ui-workspace direction-simple" }, [
     pageIntro(status.label, `Hei, ${firstName}. La oss avklare retningen.`, "Fyll ut det viktigste for coachingforløpet: hva du vil jobbe med, hvordan du merker fremgang, og hva du trenger fra coachen din.", [], status.tone),
+    activeSpec ? directionEditPanel(activeSpec) : null,
     el("div", { class: "ui-card-grid direction-card-grid" }, [
-      ...directionSpecs.map((spec, index) => directionCard(spec, editable, client, index))
+      ...directionSpecs.map((spec, index) => directionCard(spec, editable, client, index, activeSpec?.key === spec.key))
     ]),
     coachingFrame()
-  ]);
+  ].filter(Boolean));
 }
 
-function directionCard(spec, editable, client, index = 0) {
+function directionCard(spec, editable, client, index = 0, isActive = false) {
   const value = directionSpecPreview(spec);
   const isFrame = Boolean(spec.fields);
   return el("article", {
-    class: `ui-field-card direction-field-card direction-field ${value ? "has-value" : "is-empty"} ${isFrame ? "wide" : ""}`,
+    class: `ui-field-card direction-field-card direction-field ${value ? "has-value" : "is-empty"} ${isFrame ? "wide" : ""} ${isActive ? "is-selected" : ""}`,
     "data-direction-key": spec.key,
     style: `--direction-accent:${directionAccent(index)}`
   }, [
@@ -2191,6 +2202,20 @@ function directionValueContent(spec) {
   return el("p", { text: spec.value });
 }
 
+function directionEditPanel(spec) {
+  return el("section", { class: "direction-editor-panel", "data-direction-editor": spec.key }, [
+    el("div", { class: "direction-editor-head" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Rediger retning" }),
+        el("h3", { text: spec.label }),
+        el("p", { class: "muted", text: spec.helper })
+      ])
+    ]),
+    el("p", { class: `direction-editor-notice ${state.directionEditNotice ? "" : "hidden"}`, text: state.directionEditNotice }),
+    directionEditContent(spec)
+  ]);
+}
+
 function coachingFrame() {
   const items = [
     ["lock-keyhole", "Konfidensialitet", "Det du deler i coachingrommet behandles konfidensielt."],
@@ -2208,24 +2233,35 @@ function coachingFrame() {
 
 async function activateDirectionEdit(spec) {
   if (state.directionEditKey && state.directionEditKey !== spec.key) {
-    await showAppMessage("Lagre eller avbryt først", "Bare ett Retning-felt kan redigeres om gangen.");
+    const activeSpec = getDirectionSpecs(collectPlan()).find((item) => item.key === state.directionEditKey);
+    if (activeSpec && directionEditorHasChanges(activeSpec)) {
+      state.directionEditNotice = "Du har ulagrede endringer. Lagre eller avbryt før du redigerer et annet felt.";
+      const panel = $("[data-direction-editor]");
+      if (panel) {
+        const notice = $(".direction-editor-notice", panel);
+        if (notice) {
+          notice.textContent = state.directionEditNotice;
+          notice.classList.remove("hidden");
+        }
+        panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      return;
+    }
+    state.directionEditNotice = "";
+    state.directionEditKey = spec.key;
+    await reloadProgramAndRender("direction");
+    scrollDirectionEditorIntoView();
     return;
   }
-  const field = $(`[data-direction-key='${spec.key}']`);
-  if (!field) return;
+  state.directionEditNotice = "";
   state.directionEditKey = spec.key;
-  field.classList.add("is-editing");
-  field.replaceChildren(directionEditContent(spec));
-  refreshIcons();
+  await reloadProgramAndRender("direction");
+  scrollDirectionEditorIntoView();
 }
 
 function directionEditContent(spec) {
   const fields = spec.fields || [spec];
   return el("div", { class: "ui-inline-editor direction-edit" }, [
-    el("div", { class: "ui-inline-editor-head direction-field-label" }, [
-      el("h4", { text: spec.label }),
-      el("p", { text: spec.helper })
-    ]),
     el("div", { class: "ui-inline-editor-fields direction-edit-fields" }, fields.map((field) => (
       el("label", { text: field.label || spec.label }, [
         el("textarea", {
@@ -2239,6 +2275,7 @@ function directionEditContent(spec) {
     el("div", { class: "ui-inline-editor-actions direction-edit-actions" }, [
       el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: async () => {
         state.directionEditKey = null;
+        state.directionEditNotice = "";
         await reloadProgramAndRender("direction");
       }}),
       el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => {
@@ -2246,6 +2283,7 @@ function directionEditContent(spec) {
           setPlanValue(field.key, $(`[name='inline-${field.key}']`)?.value || "");
         });
         state.directionEditKey = null;
+        state.directionEditNotice = "";
         markDirty();
         const saved = await savePlan();
         if (!saved) return;
@@ -2253,6 +2291,20 @@ function directionEditContent(spec) {
       }})
     ])
   ]);
+}
+
+function directionEditorHasChanges(spec) {
+  const fields = spec.fields || [spec];
+  return fields.some((field) => {
+    const current = $(`[name='inline-${field.key}']`)?.value || "";
+    return current !== (field.value || "");
+  });
+}
+
+function scrollDirectionEditorIntoView() {
+  requestAnimationFrame(() => {
+    $("[data-direction-editor]")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 function setPlanValue(name, value) {
