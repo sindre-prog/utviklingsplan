@@ -944,8 +944,8 @@ tr:last-child td { border-bottom: 0; }
   min-height: 48px;
   align-items: center;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface-subtle);
+  border-radius: var(--card-radius);
+  background: #fff;
   padding: 13px 15px;
   color: rgba(0,0,0,.78);
   font-size: 14px;
@@ -965,10 +965,21 @@ tr:last-child td { border-bottom: 0; }
 }
 
 .resource-reflection-prompt-list li {
-  border-radius: var(--card-radius);
-  background: var(--wash);
-  padding: 12px 14px;
-  color: rgba(0,0,0,.72);
+  position: relative;
+  padding: 0 0 0 18px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.resource-reflection-prompt-list li::before {
+  content: "";
+  position: absolute;
+  top: .74em;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.28);
 }
 .resource-files {
   display: grid;

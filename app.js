@@ -73,11 +73,12 @@ const RESOURCE_FILE_TYPE_OPTIONS = [
 const RESOURCE_BLOCK_TYPE_LABELS = {
   intro: "Intro",
   text: "Tekstseksjon",
-  worksheet: "Worksheet-felt",
-  reflection_questions: "Refleksjonsspørsmål",
+  worksheet: "Arbeidsfelt i ressursen",
+  reflection_questions: "Refleksjonsspørsmål (eldre blokk)",
   illustration: "Illustrasjon",
   download: "Nedlasting"
 };
+const RESOURCE_BLOCK_ADD_TYPES = ["intro", "text", "worksheet", "illustration", "download"];
 const RESOURCE_DIFFICULTY_OPTIONS = [
   ["", "Ikke satt"],
   ["easy", "Enkel"],
@@ -798,7 +799,7 @@ function jsonText(value, fallback = []) {
 
 function createResourceBlock(type = "text") {
   if (type === "intro") return { type: "intro", content: "" };
-  if (type === "worksheet") return { type: "worksheet", heading: "", fields: [""] };
+  if (type === "worksheet") return { type: "worksheet", heading: "Arbeidsark", fields: [""] };
   if (type === "reflection_questions") return { type: "reflection_questions", questions: [""] };
   if (type === "illustration") return { type: "illustration", file_id: "", storage_path: "", display_name: "", key: "" };
   if (type === "download") return { type: "download", label: "", file_url: "" };
@@ -843,7 +844,8 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
   });
   const list = el("div", { class: "resource-block-editor-list" });
   const addSelect = el("select", { class: "resource-admin-compact-select" });
-  Object.entries(RESOURCE_BLOCK_TYPE_LABELS).forEach(([value, label]) => {
+  RESOURCE_BLOCK_ADD_TYPES.forEach((value) => {
+    const label = RESOURCE_BLOCK_TYPE_LABELS[value] || value;
     addSelect.append(el("option", { value, text: label }));
   });
 
@@ -1279,7 +1281,7 @@ async function openResourceAdminEditor(resource = null) {
     inputSpec("slug", "Slug", "text", resource?.slug || "", { placeholder: "genereres fra tittel hvis tom" }),
     sectionSpec("Innhold og filer", "Bygg ressursen med lesbare blokker, refleksjon og relevante filer."),
     customSpec("content_json", blockEditor),
-    textareaSpec("reflection_prompts", "Refleksjonsspørsmål", (resource?.reflection_prompts || []).join("\n"), { rows: "5" }),
+    textareaSpec("reflection_prompts", "Spørsmål til klientens refleksjon etter ressursen", (resource?.reflection_prompts || []).join("\n"), { rows: "5" }),
     textareaSpec("next_step_prompt", "Neste steg", resource?.next_step_prompt || "", { rows: "2" }),
     customSpec("resource_files", createResourceFileManager(resource, library, { onFilesChange: refreshBlocks })),
     customSpec("resource_preview", createResourceAdminPreview(library, getDraftResource)),
@@ -1494,7 +1496,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-80")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-81")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
