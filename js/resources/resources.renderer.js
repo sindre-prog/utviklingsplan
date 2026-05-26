@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-76";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-77";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {
@@ -105,13 +105,23 @@ export function renderResourceBlock(block, options = {}) {
 
 function findIllustrationFile(block, files = []) {
   if (!block) return null;
-  return files.find((file) => (
+  const illustrationFiles = files.filter((file) => file.file_type === "illustration");
+  const selectedFile = illustrationFiles.find((file) => (
     file.file_type === "illustration" &&
     (
       (block.file_id && file.id === block.file_id) ||
       (block.storage_path && file.storage_path === block.storage_path)
     )
-  )) || null;
+  ));
+  if (selectedFile) return selectedFile;
+
+  const hasExplicitLegacyKey = Boolean(String(block.key || "").trim());
+  const hasExplicitFileReference = Boolean(block.file_id || block.storage_path);
+  if (!hasExplicitLegacyKey && !hasExplicitFileReference && illustrationFiles.length === 1) {
+    return illustrationFiles[0];
+  }
+
+  return null;
 }
 
 export function renderReflectionPrompts(prompts = [], options = {}) {
