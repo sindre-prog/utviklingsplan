@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-78";
+import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-79";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -63,7 +63,7 @@ function resourceContextText(sharedResource) {
 }
 
 function visibleResourceFiles(resource) {
-  return (resource.files || []).filter((file) => file.file_type !== "cover_image");
+  return (resource.files || []).filter((file) => !["cover_image", "illustration"].includes(file.file_type));
 }
 
 function listSection(createElement, title, items = []) {
@@ -237,7 +237,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
 }
 
 export function createClientResourceView(sharedResource, options = {}) {
-  const { createElement, onClose, onSave, onOpenFile = null, readOnly = false } = options;
+  const { createElement, onSave, onOpenFile = null, readOnly = false } = options;
   requireCreateElement(createElement);
 
   const resource = sharedResource?.resource || {};
@@ -280,16 +280,7 @@ export function createClientResourceView(sharedResource, options = {}) {
         createElement("h3", { text: displayText(resource.title, "Ressurs") }),
         ...paragraphs(createElement, "client-resource-view-lead", resource.client_intro, displayText(resource.summary)),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
-      ].filter(Boolean)),
-      onClose ? createElement("button", {
-        class: "button ghost client-resource-close",
-        type: "button",
-        text: "Lukk",
-        onclick: (event) => {
-          event.preventDefault();
-          onClose();
-        }
-      }) : null
+      ].filter(Boolean))
     ]),
     displayText(sharedResource?.coach_note) ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
       createElement("h4", { text: "Fra coach" }),

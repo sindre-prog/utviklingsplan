@@ -868,18 +868,25 @@ tr:last-child td { border-bottom: 0; }
 
 .resource-block--illustration.has-file {
   align-content: center;
-  background: #fff;
-  gap: 0;
+  border: 0;
+  background: transparent;
+  gap: 18px;
   padding: 0;
+  margin: 14px 0 22px;
+  overflow: visible;
 }
 
 .resource-illustration-image {
   display: block;
   width: 100%;
   max-width: none;
-  max-height: 460px;
+  max-height: none;
   object-fit: contain;
   border-radius: 0;
+}
+
+.resource-block--illustration.has-file .resource-file-open {
+  justify-self: center;
 }
 
 .resource-block--illustration p {
@@ -1326,55 +1333,68 @@ tr:last-child td { border-bottom: 0; }
 .client-resource-view {
   position: relative;
   display: grid;
-  gap: 20px;
+  gap: 30px;
   margin-top: 0;
   border: 0;
   border-radius: 0 0 var(--card-radius) var(--card-radius);
   background: #fff;
-  padding: 22px 24px 24px;
+  padding: 34px 32px 32px;
   box-shadow: none;
 }
 
 .client-resource-view-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
   align-items: start;
 }
 
 .client-resource-view-title {
   display: grid;
   align-content: center;
-  gap: 10px;
+  gap: 16px;
 }
 
 .client-resource-view-title h3 {
   margin: 0;
-  font-size: 26px;
+  font-size: 38px;
   font-weight: 500;
-  line-height: 1.14;
+  line-height: 1.08;
 }
 
 .client-resource-view-title p:not(.eyebrow) {
   margin: 0;
-  max-width: 720px;
+  max-width: 760px;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 500;
-  line-height: 1.55;
-}
-
-.client-resource-close {
-  justify-self: end;
-  min-height: 36px;
-  padding: 0 16px;
+  line-height: 1.62;
 }
 
 .client-coach-note {
-  border: 1px solid var(--line);
-  border-radius: var(--card-radius);
-  background: var(--wash);
-  padding: 16px;
+  border: 0;
+  border-left: 3px solid var(--brand-blue);
+  border-radius: 0;
+  background: var(--brand-blue-soft);
+  padding: 16px 18px;
+}
+
+.client-resource-view .resource-preview-section {
+  gap: 18px;
+}
+
+.client-resource-view .resource-preview-section > p,
+.client-resource-view .resource-block__content,
+.client-resource-view .resource-preview-section > ul {
+  max-width: 900px;
+}
+
+.client-resource-view .resource-preview-section h4 {
+  font-size: 17px;
+}
+
+.client-resource-view .resource-block__heading {
+  font-size: 18px;
 }
 
 .client-resource-response {
