@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-79";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-80";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {
@@ -51,7 +51,7 @@ function renderResourceStep(textBlock, worksheetBlock, options = {}) {
   return createElement("section", { class: "resource-block resource-block--step" }, [
     ...(textBlock.heading ? [textNode(createElement, "h3", "resource-block__heading", textBlock.heading)] : []),
     ...textParagraphs(createElement, "resource-block__content", textBlock.content),
-    renderList(createElement, "resource-block__fields", worksheetBlock.fields || [])
+    renderWorksheetFields(createElement, worksheetBlock.fields || [])
   ]);
 }
 
@@ -99,7 +99,8 @@ export function renderResourceBlock(block, options = {}) {
       }
     case RESOURCE_BLOCK_TYPES.worksheet:
       return createElement("section", { class: "resource-block resource-block--worksheet" }, [
-        renderList(createElement, "resource-block__fields", block.fields || [])
+        ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
+        renderWorksheetFields(createElement, block.fields || [])
       ]);
     case RESOURCE_BLOCK_TYPES.reflectionQuestions:
       return createElement("section", { class: "resource-block resource-block--reflection-questions" }, [
@@ -113,6 +114,18 @@ export function renderResourceBlock(block, options = {}) {
         "data-block-type": block.type || "unknown"
       });
   }
+}
+
+function renderWorksheetFields(createElement, fields = []) {
+  const visibleFields = (Array.isArray(fields) ? fields : [])
+    .map((field) => String(field || "").trim())
+    .filter(Boolean);
+
+  return createElement("div", { class: "resource-block__fields" }, visibleFields.map((field) => (
+    createElement("div", { class: "resource-block__field" }, [
+      createElement("span", { text: field })
+    ])
+  )));
 }
 
 function findIllustrationFile(block, files = []) {

@@ -798,7 +798,7 @@ function jsonText(value, fallback = []) {
 
 function createResourceBlock(type = "text") {
   if (type === "intro") return { type: "intro", content: "" };
-  if (type === "worksheet") return { type: "worksheet", fields: [""] };
+  if (type === "worksheet") return { type: "worksheet", heading: "", fields: [""] };
   if (type === "reflection_questions") return { type: "reflection_questions", questions: [""] };
   if (type === "illustration") return { type: "illustration", file_id: "", storage_path: "", display_name: "", key: "" };
   if (type === "download") return { type: "download", label: "", file_url: "" };
@@ -810,7 +810,7 @@ function normalizeResourceBlocks(blocks = []) {
     if (!block || typeof block !== "object") return createResourceBlock("text");
     const type = block.type || "text";
     if (type === "intro") return { type, content: block.content || "" };
-    if (type === "worksheet") return { type, fields: Array.isArray(block.fields) ? block.fields : [] };
+    if (type === "worksheet") return { type, heading: block.heading || "", fields: Array.isArray(block.fields) ? block.fields : [] };
     if (type === "reflection_questions") return { type, questions: Array.isArray(block.questions) ? block.questions : [] };
     if (type === "illustration") return {
       type,
@@ -861,7 +861,10 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
       return [el("textarea", { rows: "3", text: block.content || "", placeholder: "Kort intro til ressursen", oninput: (event) => patchBlock(index, { content: event.target.value }) })];
     }
     if (block.type === "worksheet") {
-      return [el("textarea", { rows: "4", text: (block.fields || []).join("\n"), placeholder: "Ett felt per linje", oninput: (event) => patchBlock(index, { fields: lineArray(event.target.value) }) })];
+      return [
+        el("input", { type: "text", value: block.heading || "", placeholder: "Overskrift, f.eks. Arbeidsark", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
+        el("textarea", { rows: "4", text: (block.fields || []).join("\n"), placeholder: "Ett felt per linje", oninput: (event) => patchBlock(index, { fields: lineArray(event.target.value) }) })
+      ];
     }
     if (block.type === "reflection_questions") {
       return [el("textarea", { rows: "4", text: (block.questions || []).join("\n"), placeholder: "Ett spørsmål per linje", oninput: (event) => patchBlock(index, { questions: lineArray(event.target.value) }) })];
@@ -1491,7 +1494,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-79")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-80")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
