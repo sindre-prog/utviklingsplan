@@ -110,8 +110,6 @@ const state = {
   drawer: null,
   confirmResolve: null,
   messageResolve: null,
-  directionEditKey: null,
-  directionEditNotice: "",
   inlineEditKey: null,
   selectedFocusIndex: 0,
   selectedSessionIndex: 0,
@@ -1490,7 +1488,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-75")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-76")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1960,10 +1958,6 @@ function clientWorkspaceTabs(_data, activePane = "direction") {
 function setupWorkspaceTabs() {
   $$(".workspace-tab").forEach((tab) => {
     tab.addEventListener("click", async () => {
-      if (state.directionEditKey) {
-        await showAppMessage("Lagre eller avbryt først", "Du har et åpent Retning-felt. Lagre eller avbryt før du går videre.");
-        return;
-      }
       if (state.inlineEditKey) {
         await showAppMessage("Lagre eller avbryt først", "Du har et åpent felt. Lagre eller avbryt før du går videre.");
         return;
@@ -1986,26 +1980,22 @@ function hiddenPlanState(plan) {
 function directionWorkspace(client, plan) {
   const editable = canEditProgram(client);
   const directionSpecs = getDirectionSpecs(plan);
-  const activeSpec = editable && state.directionEditKey
-    ? directionSpecs.find((spec) => spec.key === state.directionEditKey)
-    : null;
   const firstName = (client.name || "du").split(" ")[0];
   const status = directionStatus(plan);
   return el("section", { class: "ui-workspace direction-simple" }, [
     pageIntro(status.label, `Hei, ${firstName}. La oss avklare retningen.`, "Fyll ut det viktigste for coachingforløpet: hva du vil jobbe med, hvordan du merker fremgang, og hva du trenger fra coachen din.", [], status.tone),
-    activeSpec ? directionEditPanel(activeSpec) : null,
     el("div", { class: "ui-card-grid direction-card-grid" }, [
-      ...directionSpecs.map((spec, index) => directionCard(spec, editable, client, index, activeSpec?.key === spec.key))
+      ...directionSpecs.map((spec, index) => directionCard(spec, editable, client, index))
     ]),
     coachingFrame()
   ].filter(Boolean));
 }
 
-function directionCard(spec, editable, client, index = 0, isActive = false) {
+function directionCard(spec, editable, client, index = 0) {
   const value = directionSpecPreview(spec);
   const isFrame = Boolean(spec.fields);
   return el("article", {
-    class: `ui-field-card direction-field-card direction-field ${value ? "has-value" : "is-empty"} ${isFrame ? "wide" : ""} ${isActive ? "is-selected" : ""}`,
+    class: `ui-field-card direction-field-card direction-field ${value ? "has-value" : "is-empty"} ${isFrame ? "wide" : ""}`,
     "data-direction-key": spec.key,
     style: `--direction-accent:${directionAccent(index)}`
   }, [
@@ -2030,7 +2020,7 @@ function getDirectionSpecs(plan) {
       iconName: "target",
       label: "Hva vil du oppnå?",
       subhead: "Retning for forløpet",
-      valueLabel: "Ditt mål",
+      valueLabel: "Hva ønsker du at coachingforløpet skal hjelpe deg med?",
       value: plan.c_purpose,
       helper: "Hva ønsker du at coachingforløpet skal hjelpe deg med?",
       placeholder: "Hva ønsker du at coachingforløpet skal hjelpe deg med?"
@@ -2040,7 +2030,7 @@ function getDirectionSpecs(plan) {
       iconName: "activity",
       label: "Hvordan vil du merke fremgang?",
       subhead: "Konkret effekt",
-      valueLabel: "Tegn på fremgang",
+      valueLabel: "Hva vil du, coachen din eller andre merke hvis dette begynner å virke?",
       value: plan.c_success,
       helper: "Hva vil du, coachen din eller andre merke hvis dette begynner å virke?",
       placeholder: "Hva vil du, coachen din eller andre merke hvis dette begynner å virke?"
@@ -2048,9 +2038,9 @@ function getDirectionSpecs(plan) {
     {
       key: "c_expect_client",
       iconName: "user-check",
-      label: "Hva trenger du fra deg selv?",
-      subhead: "Din del",
-      valueLabel: "Dette vil du bidra med",
+      label: "Hva krever dette av deg?",
+      subhead: "Dine egne forpliktelser til prosessen",
+      valueLabel: "Hva vil du prøve, observere eller forberede mellom samtalene?",
       value: plan.c_expect_client,
       helper: "Hva vil du prøve, observere eller forberede mellom samtalene?",
       placeholder: "Hva vil du prøve, observere eller forberede mellom samtalene?"
@@ -2060,7 +2050,7 @@ function getDirectionSpecs(plan) {
       iconName: "messages-square",
       label: "Hva trenger du fra coachen?",
       subhead: "Coachens bidrag",
-      valueLabel: "Dette ber du coachen bidra med",
+      valueLabel: "Hva trenger du at coachen bidrar med, utfordrer deg på eller følger opp?",
       value: plan.c_expect_coach,
       helper: "Hva trenger du at coachen bidrar med, utfordrer deg på eller følger opp?",
       placeholder: "Hva trenger du at coachen bidrar med, utfordrer deg på eller følger opp?"
@@ -2070,7 +2060,7 @@ function getDirectionSpecs(plan) {
       iconName: "shield-check",
       label: "Rammer for samarbeidet",
       subhead: "Praktiske og trygge rammer",
-      valueLabel: "Dette skal være avklart",
+      valueLabel: "Hva bør være avklart om tid, rolle, konfidensialitet og hva som ligger utenfor coachingens mandat?",
       helper: "Hva bør være avklart om tid, rolle, konfidensialitet og hva som ligger utenfor coachingens mandat?",
       fields: [
         {
@@ -2092,7 +2082,7 @@ function getDirectionSpecs(plan) {
       iconName: "network",
       label: "Hvem og hva påvirker forløpet?",
       subhead: "Kontekst rundt deg",
-      valueLabel: "Viktig kontekst",
+      valueLabel: "Hvilke personer, roller, team eller forventninger påvirker det du jobber med?",
       value: plan.c_context,
       helper: "Hvilke personer, roller, team eller forventninger påvirker det du jobber med?",
       placeholder: "Hvilke personer, roller, team eller forventninger påvirker det du jobber med?"
@@ -2158,7 +2148,6 @@ function directionFieldContent(spec, value, editable) {
       el("span", { class: "ui-field-kicker direction-card-kicker", text: spec.valueLabel || "Din formulering" }),
       value ? directionValueContent(spec) : el("p", { class: "ui-empty-text direction-empty", text: "Ikke fylt ut ennå" })
     ]),
-    el("p", { class: "ui-field-helper direction-card-helper", text: spec.placeholder || spec.helper }),
     editable ? el("button", {
       class: "ui-field-action direction-edit-trigger",
       type: "button",
@@ -2202,20 +2191,6 @@ function directionValueContent(spec) {
   return el("p", { text: spec.value });
 }
 
-function directionEditPanel(spec) {
-  return el("section", { class: "direction-editor-panel", "data-direction-editor": spec.key }, [
-    el("div", { class: "direction-editor-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Rediger retning" }),
-        el("h3", { text: spec.label }),
-        el("p", { class: "muted", text: spec.helper })
-      ])
-    ]),
-    el("p", { class: `direction-editor-notice ${state.directionEditNotice ? "" : "hidden"}`, text: state.directionEditNotice }),
-    directionEditContent(spec)
-  ]);
-}
-
 function coachingFrame() {
   const items = [
     ["lock-keyhole", "Konfidensialitet", "Det du deler i coachingrommet behandles konfidensielt."],
@@ -2232,78 +2207,25 @@ function coachingFrame() {
 }
 
 async function activateDirectionEdit(spec) {
-  if (state.directionEditKey && state.directionEditKey !== spec.key) {
-    const activeSpec = getDirectionSpecs(collectPlan()).find((item) => item.key === state.directionEditKey);
-    if (activeSpec && directionEditorHasChanges(activeSpec)) {
-      state.directionEditNotice = "Du har ulagrede endringer. Lagre eller avbryt før du redigerer et annet felt.";
-      const panel = $("[data-direction-editor]");
-      if (panel) {
-        const notice = $(".direction-editor-notice", panel);
-        if (notice) {
-          notice.textContent = state.directionEditNotice;
-          notice.classList.remove("hidden");
-        }
-        panel.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-      return;
-    }
-    state.directionEditNotice = "";
-    state.directionEditKey = spec.key;
+  const fields = spec.fields || [spec];
+  openEntityModal(spec.label, "Retning", fields.map((field) => (
+    textareaSpec(field.key, spec.fields ? field.label : spec.valueLabel || field.label || spec.label, field.value || "", {
+      rows: spec.fields ? "5" : "7",
+      placeholder: field.placeholder || spec.placeholder || spec.helper
+    })
+  )), async (values) => {
+    fields.forEach((field) => setPlanValue(field.key, values[field.key] || ""));
+    markDirty();
+    const saved = await savePlan();
+    if (!saved) throw new Error("Kunne ikke lagre retningen.");
     await reloadProgramAndRender("direction");
-    scrollDirectionEditorIntoView();
-    return;
-  }
-  state.directionEditNotice = "";
-  state.directionEditKey = spec.key;
-  await reloadProgramAndRender("direction");
-  scrollDirectionEditorIntoView();
-}
-
-function directionEditContent(spec) {
-  const fields = spec.fields || [spec];
-  return el("div", { class: "ui-inline-editor direction-edit" }, [
-    el("div", { class: "ui-inline-editor-fields direction-edit-fields" }, fields.map((field) => (
-      el("label", { text: field.label || spec.label }, [
-        el("textarea", {
-          class: "ui-edit-control",
-          name: `inline-${field.key}`,
-          text: field.value || "",
-          placeholder: field.placeholder || spec.placeholder || spec.helper
-        })
-      ])
-    ))),
-    el("div", { class: "ui-inline-editor-actions direction-edit-actions" }, [
-      el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: async () => {
-        state.directionEditKey = null;
-        state.directionEditNotice = "";
-        await reloadProgramAndRender("direction");
-      }}),
-      el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => {
-        fields.forEach((field) => {
-          setPlanValue(field.key, $(`[name='inline-${field.key}']`)?.value || "");
-        });
-        state.directionEditKey = null;
-        state.directionEditNotice = "";
-        markDirty();
-        const saved = await savePlan();
-        if (!saved) return;
-        await reloadProgramAndRender("direction");
-      }})
-    ])
-  ]);
-}
-
-function directionEditorHasChanges(spec) {
-  const fields = spec.fields || [spec];
-  return fields.some((field) => {
-    const current = $(`[name='inline-${field.key}']`)?.value || "";
-    return current !== (field.value || "");
-  });
-}
-
-function scrollDirectionEditorIntoView() {
-  requestAnimationFrame(() => {
-    $("[data-direction-editor]")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, {
+    panelClass: "direction-modal-panel",
+    afterOpen: () => {
+      const firstField = $("#modal-fields textarea");
+      firstField?.focus();
+      firstField?.setSelectionRange(firstField.value.length, firstField.value.length);
+    }
   });
 }
 
@@ -3721,6 +3643,8 @@ function openClientEdit(client) {
 
 function openEntityModal(title, kicker, specs, onSave, options = {}) {
   state.modal = { specs, onSave, ...options };
+  const modalPanel = $("#entity-form");
+  modalPanel.className = `modal-panel ${options.panelClass || ""}`.trim();
   $("#modal-title").textContent = title;
   $("#modal-kicker").textContent = kicker;
   $("#modal-message").textContent = "";
@@ -3738,6 +3662,7 @@ function openEntityModal(title, kicker, specs, onSave, options = {}) {
   }
   $("#entity-modal").showModal();
   refreshIcons();
+  if (typeof options.afterOpen === "function") requestAnimationFrame(options.afterOpen);
 }
 
 function openEntityDrawer(title, kicker, specs, onSave, options = {}) {
