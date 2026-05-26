@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-77";
+import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-78";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -75,6 +75,22 @@ function listSection(createElement, title, items = []) {
   ]);
 }
 
+function paragraphs(createElement, className, value, fallback = "") {
+  const text = displayText(value, fallback);
+  const lines = text
+    .split(/\n{2,}|\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (lines.length ? lines : [fallback].filter(Boolean)).map((line) => (
+    createElement("p", { class: className, text: line })
+  ));
+}
+
+function fileActionLabel(file) {
+  return file?.file_type === "illustration" ? "Last ned illustrasjon" : "Åpne";
+}
+
 export function createResourceCard(resource, options = {}) {
   const { createElement, onSelect, selected = false } = options;
   requireCreateElement(createElement);
@@ -108,7 +124,7 @@ export function createResourcePreview(resource, options = {}) {
       createElement("div", { class: "resource-preview-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs" }),
         createElement("h3", { text: resource.title }),
-        createElement("p", { text: resource.client_intro || resource.summary || "" }),
+        ...paragraphs(createElement, "resource-preview-lead", resource.client_intro || resource.summary || ""),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource)),
         primaryAction ? createElement("div", { class: "resource-preview-actions" }, [
           createElement("button", {
@@ -125,13 +141,13 @@ export function createResourcePreview(resource, options = {}) {
     ]),
     createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
       createElement("h4", { text: "Hva ressursen skal hjelpe med" }),
-      createElement("p", { text: resource.intended_outcome || "Ikke definert ennå." })
+      ...paragraphs(createElement, "", resource.intended_outcome, "Ikke definert ennå.")
     ]),
     listSection(createElement, "Best brukt når", resource.best_used_when || []),
     listSection(createElement, "Ikke egnet når", resource.not_for || []),
     createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
       createElement("h4", { text: "Veiledning til coach" }),
-      createElement("p", { text: resource.coach_guidance || "Ingen veiledning lagt inn ennå." })
+      ...paragraphs(createElement, "", resource.coach_guidance, "Ingen veiledning lagt inn ennå.")
     ]),
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Innhold" }),
@@ -155,7 +171,7 @@ export function createResourcePreview(resource, options = {}) {
               class: "button ghost resource-file-open",
               type: "button",
               onclick: () => onOpenFile(file)
-            }, [createElement("span", { text: "Åpne" })]) : createElement("small", { text: file.storage_path })
+            }, [createElement("span", { text: fileActionLabel(file) })]) : createElement("small", { text: file.storage_path })
           ])
         )))
         : createElement("p", { class: "muted", text: "Ingen filer registrert." })
@@ -262,7 +278,7 @@ export function createClientResourceView(sharedResource, options = {}) {
       createElement("div", { class: "client-resource-view-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs fra coach" }),
         createElement("h3", { text: displayText(resource.title, "Ressurs") }),
-        createElement("p", { text: displayText(resource.client_intro, displayText(resource.summary)) }),
+        ...paragraphs(createElement, "client-resource-view-lead", resource.client_intro, displayText(resource.summary)),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
       ].filter(Boolean)),
       onClose ? createElement("button", {
@@ -277,7 +293,7 @@ export function createClientResourceView(sharedResource, options = {}) {
     ]),
     displayText(sharedResource?.coach_note) ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
       createElement("h4", { text: "Fra coach" }),
-      createElement("p", { text: displayText(sharedResource.coach_note) })
+      ...paragraphs(createElement, "", sharedResource.coach_note)
     ]) : null,
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Innhold" }),
@@ -299,7 +315,7 @@ export function createClientResourceView(sharedResource, options = {}) {
           class: "button ghost resource-file-open",
           type: "button",
           onclick: () => onOpenFile(file)
-        }, [createElement("span", { text: "Åpne" })]) : null
+        }, [createElement("span", { text: fileActionLabel(file) })]) : null
       ])))
     ]) : null,
     createElement("section", { class: "resource-preview-section client-resource-response" }, [

@@ -868,7 +868,8 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
     }
     if (block.type === "illustration") {
       const illustrations = (getFiles() || []).filter((file) => file.file_type === "illustration");
-      const selectedValue = block.file_id || block.storage_path || "";
+      const explicitValue = block.file_id || block.storage_path || "";
+      const selectedValue = explicitValue || (illustrations.length === 1 ? illustrations[0].id || illustrations[0].storage_path : "");
       const select = el("select", {
         value: selectedValue,
         onchange: (event) => {
@@ -896,8 +897,10 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
       });
       return [
         select,
-        illustrations.length
-          ? el("p", { class: "resource-admin-inline-help", text: "Velg en opplastet illustrasjon. Nye illustrasjoner legges til under Filer og bilder." })
+        illustrations.length === 1 && !explicitValue
+          ? el("p", { class: "resource-admin-inline-help", text: "Én illustrasjon er lastet opp og brukes automatisk i preview. Velg den her hvis du vil lagre koblingen eksplisitt." })
+          : illustrations.length
+            ? el("p", { class: "resource-admin-inline-help", text: "Velg hvilken opplastet illustrasjon denne blokken skal vise. Nye illustrasjoner legges til under Filer og bilder." })
           : el("p", { class: "resource-admin-inline-help", text: "Last opp en fil med type Illustrasjon under Filer og bilder, og velg den her etterpå." }),
         el("details", { class: "resource-admin-advanced" }, [
           el("summary", { text: "Avansert: bruk gammel illustrasjonsnøkkel" }),
@@ -1488,7 +1491,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-77")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-78")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1760,6 +1763,9 @@ async function renderPlan(activePane = "direction") {
     ]),
     el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, "data-pane": "reflections" }, [
       reflectionsWorkspace(data)
+    ]),
+    el("section", { class: `workspace-pane ${activePane === "resources" ? "active" : ""}`, "data-pane": "resources" }, [
+      coachResourcesWorkspace(data)
     ])
   ]);
 
@@ -1796,6 +1802,9 @@ function renderCachedProgram(activePane = "direction") {
     ]),
     el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, "data-pane": "reflections" }, [
       reflectionsWorkspace(data)
+    ]),
+    el("section", { class: `workspace-pane ${activePane === "resources" ? "active" : ""}`, "data-pane": "resources" }, [
+      coachResourcesWorkspace(data)
     ])
   ]);
   const editable = canEditProgram(client);
@@ -1948,11 +1957,22 @@ function clientWorkspaceTabs(_data, activePane = "direction") {
     ["sessions", "Samtaler"],
     ["reflections", "Refleksjon"]
   ];
-  return el("div", { class: "workspace-tabs" }, items.map(([pane, label]) => el("button", {
-    class: `workspace-tab ${pane === activePane ? "active" : ""}`,
-    type: "button",
-    "data-tab": pane
-  }, [el("span", { text: label })])));
+  const resourceItem = ["resources", "Ressurser fra din coach"];
+  const [resourcePane, resourceLabel] = resourceItem;
+  return el("div", { class: "workspace-tabs" }, [
+    el("div", { class: "workspace-tab-group workspace-tab-group-main" }, items.map(([pane, label]) => el("button", {
+      class: `workspace-tab ${pane === activePane ? "active" : ""}`,
+      type: "button",
+      "data-tab": pane
+    }, [el("span", { text: label })]))),
+    el("div", { class: "workspace-tab-group workspace-tab-group-aside" }, [
+      el("button", {
+        class: `workspace-tab workspace-tab-resource ${resourcePane === activePane ? "active" : ""}`,
+        type: "button",
+        "data-tab": resourcePane
+      }, [el("span", { text: resourceLabel })])
+    ])
+  ]);
 }
 
 function setupWorkspaceTabs() {
@@ -2780,11 +2800,10 @@ function setSessions(values) {
 function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
   const intro = canWriteReflection
-    ? workspaceIntro("Arbeid mellom samtalene", "Ressurser og refleksjoner", "Øverst ligger det coachen har sendt til deg. Under kan du skrive egne refleksjoner, som alltid er private til du aktivt deler dem.")
-    : workspaceIntro("Oppfølging", "Ressurser og delte refleksjoner", "Øverst ligger ressursene som er sendt. Under vises bare refleksjoner klienten aktivt har delt med coach.");
+    ? workspaceIntro("Arbeid mellom samtalene", "Refleksjoner", "Skriv egne refleksjoner underveis i forløpet. De er private med mindre du aktivt velger å dele dem med coach.")
+    : workspaceIntro("Oppfølging", "Delte refleksjoner", "Her vises bare refleksjoner klienten aktivt har delt med coach.");
   return el("div", { class: "reflection-space" }, [
     intro,
-    resourcesFromCoachSection(data, canWriteReflection),
     canWriteReflection ? reflectionComposer(data) : null,
     el("section", { class: "panel document-panel reflection-log-section" }, [
       el("div", { class: "reflection-log-head" }, [
@@ -2796,6 +2815,17 @@ function reflectionsWorkspace(data) {
       ]),
       reflectionsList(data.reflections, data, canWriteReflection)
     ])
+  ].filter(Boolean));
+}
+
+function coachResourcesWorkspace(data) {
+  const canWriteReflection = state.profile.role === "client";
+  const intro = canWriteReflection
+    ? workspaceIntro("Fra coachen din", "Ressurser fra din coach", "Her ligger ressurser, øvelser og arbeidsark coachen har sendt til deg. De kan brukes på tvers av hele forløpet.")
+    : workspaceIntro("Delte ressurser", "Ressurser fra coach", "Her vises ressursene som er sendt i dette coachingforløpet, inkludert instruksen klienten ser.");
+  return el("div", { class: "reflection-space client-resource-space" }, [
+    intro,
+    resourcesFromCoachSection(data, canWriteReflection)
   ].filter(Boolean));
 }
 

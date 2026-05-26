@@ -863,19 +863,23 @@ tr:last-child td { border-bottom: 0; }
   border-radius: var(--card-radius);
   background: var(--hero);
   margin: 2px 0 8px;
+  overflow: hidden;
 }
 
 .resource-block--illustration.has-file {
   align-content: center;
   background: #fff;
+  gap: 0;
+  padding: 0;
 }
 
 .resource-illustration-image {
   display: block;
-  width: min(100%, 520px);
-  max-height: 360px;
+  width: 100%;
+  max-width: none;
+  max-height: 460px;
   object-fit: contain;
-  border-radius: var(--card-radius);
+  border-radius: 0;
 }
 
 .resource-block--illustration p {
@@ -1509,18 +1513,32 @@ tr:last-child td { border-bottom: 0; }
 .workspace-tabs {
   display: flex;
   flex-wrap: nowrap;
-  gap: 6px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-  width: fit-content;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  width: 100%;
   max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 .workspace-tabs::-webkit-scrollbar { display: none; }
+.workspace-tab-group {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.workspace-tab-group-aside {
+  margin-left: auto;
+}
+
 .workspace-tab {
   flex: 0 0 auto;
   border: 0;
@@ -1536,6 +1554,9 @@ tr:last-child td { border-bottom: 0; }
   font-weight: 800;
 }
 .workspace-tab.active { background: var(--menu-pill-bg); color: #000; }
+.workspace-tab-resource {
+  color: #1e3a5f;
+}
 .workspace-pane { display: none; }
 .workspace-pane.active { display: grid; gap: 30px; }
 .direction-stack { display: grid; gap: 16px; }
@@ -3233,9 +3254,10 @@ tr:last-child td { border-bottom: 0; }
   .workspace-tabs {
     width: 100%;
     justify-content: flex-start;
-    padding: 5px;
-    border-radius: 18px;
     scroll-snap-type: x mandatory;
+  }
+  .workspace-tab-group-aside {
+    margin-left: auto;
   }
   .workspace-tab {
     scroll-snap-align: start;
@@ -3560,13 +3582,18 @@ select:focus {
 }
 
 .workspace-tabs {
-  width: fit-content;
+  width: 100%;
   margin: 0;
-  padding: 4px;
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: 999px;
-  background: var(--md-sys-color-surface-container-lowest);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   box-shadow: none;
+}
+
+.workspace-tab-group {
+  border-color: var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-lowest);
 }
 
 .workspace-tab {
@@ -4987,16 +5014,23 @@ select:focus,
   }
 
   .workspace-tabs {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .workspace-tab-group {
     gap: 2px;
-    overflow: visible;
+  }
+
+  .workspace-tab-group-aside {
+    margin-left: 0;
   }
 
   .workspace-tab {
-    min-width: 0;
+    min-width: max-content;
     justify-content: center;
-    padding-inline: 6px;
+    padding-inline: 10px;
     text-align: center;
   }
 

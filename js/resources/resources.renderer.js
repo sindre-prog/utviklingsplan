@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-77";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-78";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {
@@ -8,6 +8,16 @@ function assertElementFactory(createElement) {
 
 function textNode(createElement, tag, className, text) {
   return createElement(tag, { class: className, text: text || "" });
+}
+
+function textParagraphs(createElement, className, text) {
+  const paragraphs = String(text || "")
+    .split(/\n{2,}|\r?\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  if (!paragraphs.length) return [textNode(createElement, "p", className, "")];
+  return paragraphs.map((paragraph) => textNode(createElement, "p", className, paragraph));
 }
 
 function renderList(createElement, className, items = []) {
@@ -40,7 +50,7 @@ function renderResourceStep(textBlock, worksheetBlock, options = {}) {
 
   return createElement("section", { class: "resource-block resource-block--step" }, [
     ...(textBlock.heading ? [textNode(createElement, "h3", "resource-block__heading", textBlock.heading)] : []),
-    textNode(createElement, "p", "resource-block__content", textBlock.content),
+    ...textParagraphs(createElement, "resource-block__content", textBlock.content),
     renderList(createElement, "resource-block__fields", worksheetBlock.fields || [])
   ]);
 }
@@ -55,11 +65,13 @@ export function renderResourceBlock(block, options = {}) {
 
   switch (block.type) {
     case RESOURCE_BLOCK_TYPES.intro:
-      return textNode(createElement, "p", "resource-block resource-block--intro", block.content);
+      return createElement("section", { class: "resource-block resource-block--intro" }, (
+        textParagraphs(createElement, "resource-block__content", block.content)
+      ));
     case RESOURCE_BLOCK_TYPES.text:
       return createElement("section", { class: "resource-block resource-block--text" }, [
         ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
-        textNode(createElement, "p", "resource-block__content", block.content)
+        ...textParagraphs(createElement, "resource-block__content", block.content)
       ]);
     case RESOURCE_BLOCK_TYPES.illustration:
       {
@@ -77,12 +89,12 @@ export function renderResourceBlock(block, options = {}) {
               "data-storage-path": file.storage_path
             })
             : createElement("span", { class: "resource-illustration-orb" }),
-          createElement("p", { text: label }),
+          file ? null : createElement("p", { text: label }),
           file && onOpenFile ? createElement("button", {
             class: "button ghost resource-file-open",
             type: "button",
             onclick: () => onOpenFile(file)
-          }, [createElement("span", { text: "Åpne illustrasjon" })]) : null
+          }, [createElement("span", { text: "Last ned illustrasjon" })]) : null
         ].filter(Boolean));
       }
     case RESOURCE_BLOCK_TYPES.worksheet:
