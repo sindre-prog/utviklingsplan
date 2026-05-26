@@ -111,6 +111,9 @@ for each row
 execute function public.enforce_single_admin_profile();
 
 drop policy if exists "clients_admin_manage" on public.clients;
+drop policy if exists "clients_admin_insert" on public.clients;
+drop policy if exists "clients_admin_update" on public.clients;
+drop policy if exists "clients_admin_delete" on public.clients;
 
 create policy "clients_admin_insert"
 on public.clients
