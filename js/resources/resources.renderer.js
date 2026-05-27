@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-81";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-82";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {
@@ -73,6 +73,11 @@ export function renderResourceBlock(block, options = {}) {
         ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
         ...textParagraphs(createElement, "resource-block__content", block.content)
       ]);
+    case RESOURCE_BLOCK_TYPES.callout:
+      return createElement("section", { class: `resource-block resource-block--callout resource-block--callout-${block.tone || "note"}` }, [
+        ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
+        ...textParagraphs(createElement, "resource-block__content", block.content)
+      ]);
     case RESOURCE_BLOCK_TYPES.illustration:
       {
         const file = findIllustrationFile(block, resourceFiles);
@@ -107,7 +112,25 @@ export function renderResourceBlock(block, options = {}) {
         renderList(createElement, "resource-block__questions", block.questions || [])
       ]);
     case RESOURCE_BLOCK_TYPES.download:
-      return textNode(createElement, "p", "resource-block resource-block--download", block.label);
+      {
+        const file = findDownloadFile(block, resourceFiles);
+        const label = block.label || file?.display_name || block.display_name || "Last ned fil";
+        return createElement("section", { class: "resource-block resource-block--download" }, [
+          createElement("div", { class: "resource-download-card" }, [
+            createElement("div", {}, [
+              createElement("h3", { class: "resource-block__heading", text: label }),
+              createElement("p", { class: "resource-block__content", text: file?.display_name || block.display_name || "Nedlastbar fil" })
+            ]),
+            onOpenFile && file ? createElement("button", {
+              class: "button ghost resource-file-open",
+              type: "button",
+              onclick: () => onOpenFile(file)
+            }, [
+              createElement("span", { text: file.file_type === "printable" ? "Last ned PDF" : "Last ned vedlegg" })
+            ]) : null
+          ].filter(Boolean))
+        ]);
+      }
     default:
       return createElement("div", {
         class: "resource-block resource-block--unsupported",
@@ -147,6 +170,16 @@ function findIllustrationFile(block, files = []) {
   }
 
   return null;
+}
+
+function findDownloadFile(block, files = []) {
+  if (!block) return null;
+  const downloadableFiles = files.filter((file) => ["printable", "attachment"].includes(file.file_type));
+  return downloadableFiles.find((file) => (
+    (block.file_id && file.id === block.file_id) ||
+    (block.storage_path && file.storage_path === block.storage_path) ||
+    (block.file_url && file.storage_path === block.file_url)
+  )) || null;
 }
 
 export function renderReflectionPrompts(prompts = [], options = {}) {

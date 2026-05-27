@@ -1,4 +1,4 @@
-import { renderReflectionPrompts, renderResourceContentBlocks } from "./resources.renderer.js?v=polish-81";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-82";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -63,7 +63,14 @@ function resourceContextText(sharedResource) {
 }
 
 function visibleResourceFiles(resource) {
-  return (resource.files || []).filter((file) => !["cover_image", "illustration"].includes(file.file_type));
+  const referencedDownloads = new Set((resource.content_json || [])
+    .filter((block) => block?.type === "download")
+    .flatMap((block) => [block.file_id, block.storage_path, block.file_url].filter(Boolean)));
+  return (resource.files || []).filter((file) => (
+    !["cover_image", "illustration"].includes(file.file_type) &&
+    !referencedDownloads.has(file.id) &&
+    !referencedDownloads.has(file.storage_path)
+  ));
 }
 
 function listSection(createElement, title, items = []) {
@@ -88,7 +95,10 @@ function paragraphs(createElement, className, value, fallback = "") {
 }
 
 function fileActionLabel(file) {
-  return file?.file_type === "illustration" ? "Last ned illustrasjon" : "Åpne";
+  if (file?.file_type === "illustration") return "Last ned illustrasjon";
+  if (file?.file_type === "printable") return "Last ned PDF";
+  if (file?.file_type === "attachment") return "Last ned vedlegg";
+  return "Åpne";
 }
 
 export function createResourceCard(resource, options = {}) {
@@ -157,25 +167,19 @@ export function createResourcePreview(resource, options = {}) {
         onOpenFile
       }))
     ]),
-    createElement("section", { class: "resource-preview-section" }, [
-      createElement("h4", { text: "Refleksjonsspørsmål" }),
-      createElement("div", { class: "resource-reflection-prompts" }, renderReflectionPrompts(resource.reflection_prompts || [], { createElement }))
-    ]),
-    createElement("section", { class: "resource-preview-section" }, [
-      createElement("h4", { text: "Filer og illustrasjoner" }),
-      files.length
-        ? createElement("ul", { class: "resource-files" }, files.map((file) => (
-          createElement("li", {}, [
-            createElement("span", { text: file.display_name }),
-            onOpenFile ? createElement("button", {
-              class: "button ghost resource-file-open",
-              type: "button",
-              onclick: () => onOpenFile(file)
-            }, [createElement("span", { text: fileActionLabel(file) })]) : createElement("small", { text: file.storage_path })
-          ])
-        )))
-        : createElement("p", { class: "muted", text: "Ingen filer registrert." })
-    ])
+    files.length ? createElement("section", { class: "resource-preview-section" }, [
+      createElement("h4", { text: "Filer" }),
+      createElement("ul", { class: "resource-files" }, files.map((file) => (
+        createElement("li", {}, [
+          createElement("span", { text: file.display_name }),
+          onOpenFile ? createElement("button", {
+            class: "button ghost resource-file-open",
+            type: "button",
+            onclick: () => onOpenFile(file)
+          }, [createElement("span", { text: fileActionLabel(file) })]) : createElement("small", { text: file.storage_path })
+        ])
+      )))
+    ]) : null
   ].filter(Boolean));
 }
 
@@ -293,10 +297,6 @@ export function createClientResourceView(sharedResource, options = {}) {
         resourceFiles: resource.files || [],
         onOpenFile
       }))
-    ]),
-    createElement("section", { class: "resource-preview-section" }, [
-      createElement("h4", { text: "Refleksjonsspørsmål" }),
-      createElement("div", { class: "resource-reflection-prompts" }, renderReflectionPrompts(resource.reflection_prompts || [], { createElement }))
     ]),
     files.length ? createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Filer" }),

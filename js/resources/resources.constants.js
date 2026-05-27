@@ -72,6 +72,7 @@ export const CLIENT_VISIBILITIES = Object.freeze({
 export const RESOURCE_BLOCK_TYPES = Object.freeze({
   intro: "intro",
   text: "text",
+  callout: "callout",
   illustration: "illustration",
   worksheet: "worksheet",
   reflectionQuestions: "reflection_questions",
