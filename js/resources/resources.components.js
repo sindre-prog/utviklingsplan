@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-83";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-84";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -93,6 +93,19 @@ function paragraphs(createElement, className, value, fallback = "") {
   return (lines.length ? lines : [fallback].filter(Boolean)).map((line) => (
     createElement("p", { class: className, text: line })
   ));
+}
+
+function normalizeComparableText(value = "") {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function sameVisibleText(first = "", second = "") {
+  const a = normalizeComparableText(first);
+  const b = normalizeComparableText(second);
+  return Boolean(a && b && a === b);
 }
 
 function fileActionLabel(file) {
@@ -211,7 +224,8 @@ export function createClientResourceList(sharedResources = [], options = {}) {
     const resource = sharedResource.resource || {};
     const selected = selectedId === sharedResource.id;
     const contextText = resourceContextText(sharedResource);
-    const whySent = displayText(sharedResource.coach_note, displayText(resource.summary, "Ressursen er sendt fra coachen din."));
+    const coachNote = displayText(sharedResource.coach_note);
+    const whySent = sameVisibleText(coachNote, resource.client_intro) || sameVisibleText(coachNote, resource.summary) ? "" : coachNote;
     return createElement("article", { class: `client-resource-row ${selected ? "is-open" : ""}` }, [
       createElement("button", {
         class: `client-resource-open ${selected ? "active" : ""}`,
@@ -225,15 +239,15 @@ export function createClientResourceList(sharedResources = [], options = {}) {
         createElement("span", { class: "client-resource-main" }, [
           createElement("span", { class: "client-resource-meta" }, metaPills(createElement, resource)),
           createElement("strong", { text: displayText(resource.title, "Ressurs") }),
-          createElement("span", { class: "client-resource-why" }, [
+          whySent ? createElement("span", { class: "client-resource-why" }, [
             createElement("span", { text: "Hvorfor sendt" }),
             createElement("span", { text: whySent })
-          ]),
+          ]) : null,
           createElement("span", { class: "client-resource-footer" }, [
             contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null,
             createSharedResourceStatus(sharedResource.status, { createElement })
           ].filter(Boolean))
-        ]),
+        ].filter(Boolean)),
         createElement("span", { class: "client-resource-action", text: selected ? "Lukk" : "Åpne" })
       ].filter(Boolean)),
       selected && typeof renderSelected === "function" ? renderSelected(sharedResource) : null
@@ -247,6 +261,10 @@ export function createClientResourceView(sharedResource, options = {}) {
 
   const resource = sharedResource?.resource || {};
   const files = visibleResourceFiles(resource);
+  const coachNote = displayText(sharedResource?.coach_note);
+  const showCoachNote = Boolean(coachNote) &&
+    !sameVisibleText(coachNote, resource.client_intro) &&
+    !sameVisibleText(coachNote, resource.summary);
   const privateResponse = readOnly && sharedResource?.client_note_is_private;
   let clientVisibility = sharedResource?.client_visibility === "shared_with_coach" ? "shared_with_coach" : "private";
   let saveStatus = null;
@@ -287,9 +305,9 @@ export function createClientResourceView(sharedResource, options = {}) {
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
       ].filter(Boolean))
     ]),
-    displayText(sharedResource?.coach_note) ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
+    showCoachNote ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
       createElement("h4", { text: "Fra coach" }),
-      ...paragraphs(createElement, "", sharedResource.coach_note)
+      ...paragraphs(createElement, "", coachNote)
     ]) : null,
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Innhold" }),

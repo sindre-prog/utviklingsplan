@@ -811,7 +811,7 @@ function createResourceBlock(type = "text") {
   if (type === "model_cards") return { type: "model_cards", heading: "", cards: [{ title: "", body: "" }, { title: "", body: "" }] };
   if (type === "quote") return { type: "quote", quote: "", attribution: "" };
   if (type === "worksheet") return { type: "worksheet", heading: "Arbeidsark", fields: [""] };
-  if (type === "reflection_questions") return { type: "reflection_questions", questions: [""] };
+  if (type === "reflection_questions") return { type: "reflection_questions", heading: "Refleksjonsspørsmål", questions: [""] };
   if (type === "illustration") return { type: "illustration", file_id: "", storage_path: "", display_name: "", key: "" };
   if (type === "download") return { type: "download", label: "", file_url: "" };
   return { type: "text", heading: "", content: "" };
@@ -830,7 +830,7 @@ function normalizeResourceBlocks(blocks = []) {
     };
     if (type === "quote") return { type, quote: block.quote || block.content || "", attribution: block.attribution || "" };
     if (type === "worksheet") return { type, heading: block.heading || "", fields: Array.isArray(block.fields) ? block.fields : [] };
-    if (type === "reflection_questions") return { type, questions: Array.isArray(block.questions) ? block.questions : [] };
+    if (type === "reflection_questions") return { type, heading: block.heading || "Refleksjonsspørsmål", questions: Array.isArray(block.questions) ? block.questions : [] };
     if (type === "illustration") return {
       type,
       file_id: block.file_id || "",
@@ -966,7 +966,10 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
       ];
     }
     if (block.type === "reflection_questions") {
-      return [el("textarea", { rows: "4", text: (block.questions || []).join("\n"), placeholder: "Ett spørsmål per linje", oninput: (event) => patchBlock(index, { questions: lineArray(event.target.value) }) })];
+      return [
+        el("input", { type: "text", value: block.heading || "Refleksjonsspørsmål", placeholder: "Overskrift", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
+        el("textarea", { rows: "4", text: (block.questions || []).join("\n"), placeholder: "Ett spørsmål per linje", oninput: (event) => patchBlock(index, { questions: lineArray(event.target.value) }) })
+      ];
     }
     if (block.type === "illustration") {
       const illustrations = (getFiles() || []).filter((file) => file.file_type === "illustration");
@@ -1269,33 +1272,43 @@ function parseJsonArray(value, fieldName) {
   }
 }
 
-function validateResourceForPublish(payload) {
+function hasPublishableContent(payload, files = []) {
+  return (Array.isArray(payload.content_json) && payload.content_json.length > 0) ||
+    (Array.isArray(files) && files.some((file) => !file.archived_at));
+}
+
+function validateResourceForPublish(payload, files = []) {
   const missing = [];
   if (!payload.title) missing.push("tittel");
   if (!payload.summary) missing.push("kort beskrivelse");
-  if (!payload.intended_outcome) missing.push("hva ressursen skal hjelpe med");
+  if (!payload.type) missing.push("type");
+  if (!payload.phase) missing.push("fase");
   if (!payload.client_intro) missing.push("intro til klient");
-  if (!payload.coach_guidance) missing.push("veiledning til coach");
-  if (!Array.isArray(payload.content_json) || !payload.content_json.length) missing.push("minst én innholdsblokk");
-  if (payload.visibility === "client_assignable" && !payload.suggested_coach_note) missing.push("foreslått instruks fra coach");
-  if (payload.review_status === "draft") missing.push("faglig vurdering før publisering");
+  if (!hasPublishableContent(payload, files)) missing.push("minst én innholdsblokk, fil eller illustrasjon");
   if (missing.length) {
     throw new Error(`Mangler: ${missing.join(", ")}.`);
   }
 }
 
 function resourceReadinessItems(payload) {
+  const files = payload.files || [];
   const items = [
-    ["Tittel", Boolean(payload.title)],
-    ["Kort beskrivelse", Boolean(payload.summary)],
-    ["Hva ressursen skal hjelpe med", Boolean(payload.intended_outcome)],
-    ["Intro til klient", Boolean(payload.client_intro)],
-    ["Veiledning til coach", Boolean(payload.coach_guidance)],
-    ["Innholdsblokk", Array.isArray(payload.content_json) && payload.content_json.length > 0],
-    ["Foreslått instruks", payload.visibility !== "client_assignable" || Boolean(payload.suggested_coach_note)],
-    ["Faglig vurdering", payload.review_status && payload.review_status !== "draft"]
+    ["minimum", "Tittel", Boolean(payload.title)],
+    ["minimum", "Type", Boolean(payload.type)],
+    ["minimum", "Fase", Boolean(payload.phase)],
+    ["minimum", "Kort beskrivelse", Boolean(payload.summary)],
+    ["minimum", "Intro til klient", Boolean(payload.client_intro)],
+    ["minimum", "Innhold, fil eller illustrasjon", hasPublishableContent(payload, files)],
+    ["recommended", "Hva ressursen skal hjelpe med", Boolean(payload.intended_outcome)],
+    ["recommended", "Best brukt når", Array.isArray(payload.best_used_when) && payload.best_used_when.length > 0],
+    ["recommended", "Ikke egnet når", Array.isArray(payload.not_for) && payload.not_for.length > 0],
+    ["recommended", "Veiledning til coach", Boolean(payload.coach_guidance)],
+    ["recommended", "Forslag til sendemelding", Boolean(payload.suggested_coach_note)],
+    ["recommended", "Tags", Array.isArray(payload.tags) && payload.tags.length > 0],
+    ["quality", "Faglig vurdering", payload.review_status && payload.review_status !== "draft"],
+    ["quality", "Faglig grunnlag", Boolean(payload.basis)]
   ];
-  return items.map(([label, done]) => ({ label, done }));
+  return items.map(([group, label, done]) => ({ group, label, done }));
 }
 
 function createResourceReadinessPanel(getDraftResource) {
@@ -1311,13 +1324,17 @@ function createResourceReadinessPanel(getDraftResource) {
     try {
       const draft = getDraftResource();
       const items = resourceReadinessItems(draft);
-      const missing = items.filter((item) => !item.done);
-      summary.textContent = missing.length
-        ? `Mangler: ${missing.map((item) => item.label).join(", ")}.`
-        : "Klar til publisering.";
+      const minimumMissing = items.filter((item) => item.group === "minimum" && !item.done);
+      const recommendedMissing = items.filter((item) => item.group === "recommended" && !item.done);
+      const qualityMissing = items.filter((item) => item.group === "quality" && !item.done);
+      summary.textContent = minimumMissing.length
+        ? `Kan ikke publiseres ennå. Mangler: ${minimumMissing.map((item) => item.label).join(", ")}.`
+        : recommendedMissing.length || qualityMissing.length
+          ? "Kan publiseres. Noe anbefalt innhold og faglig metadata mangler fortsatt."
+          : "Klar til publisering og godt utfylt.";
       list.replaceChildren(...items.map((item) => el("span", {
-        class: `resource-readiness-item ${item.done ? "is-done" : "is-missing"}`,
-        text: `${item.done ? "OK" : "Mangler"}: ${item.label}`
+        class: `resource-readiness-item resource-readiness-item--${item.group} ${item.done ? "is-done" : "is-missing"}`,
+        text: `${item.done ? "OK" : item.group === "minimum" ? "Mangler" : "Anbefalt"}: ${item.label}`
       })));
     } catch (error) {
       summary.textContent = error.message || "Fyll ut feltene for å se hva som mangler.";
@@ -1332,7 +1349,8 @@ function createResourceReadinessPanel(getDraftResource) {
   return panel;
 }
 
-function parseResourceAdminPayload(values, currentResource = null) {
+function parseResourceAdminPayload(values, currentResource = null, options = {}) {
+  const { validatePublished = true } = options;
   const title = values.title.trim();
   const slug = (values.slug.trim() || resourceSlug(title));
   if (!title) throw new Error("Tittel må fylles ut.");
@@ -1375,7 +1393,7 @@ function parseResourceAdminPayload(values, currentResource = null) {
     last_reviewed_at: values.last_reviewed_at || null,
     tags: textLines(values.tags)
   };
-  if (payload.status === "published") validateResourceForPublish(payload);
+  if (validatePublished && payload.status === "published") validateResourceForPublish(payload, currentResource?.files || []);
   return payload;
 }
 
@@ -1399,7 +1417,7 @@ async function openResourceAdminEditor(resource = null) {
     };
     return {
       ...resource,
-      ...parseResourceAdminPayload(values, resource),
+      ...parseResourceAdminPayload(values, resource, { validatePublished: false }),
       files: resource?.files || []
     };
   };
@@ -1445,7 +1463,7 @@ async function openResourceAdminEditor(resource = null) {
     textareaSpec("not_for", "Ikke egnet når", (resource?.not_for || []).join("\n"), { rows: "4" }),
     textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" }),
     textareaSpec("client_intro", "Intro til klient", resource?.client_intro || "", { rows: "4" }),
-    textareaSpec("suggested_coach_note", "Foreslått instruks fra coach", resource?.suggested_coach_note || "", { rows: "3" }),
+    textareaSpec("suggested_coach_note", "Forslag til melding når ressursen sendes", resource?.suggested_coach_note || "", { rows: "3", placeholder: "Prefylles i Send ressurs. Coach kan redigere før klienten ser teksten." }),
     customSpec("resource_readiness", createResourceReadinessPanel(getDraftResource)),
     sectionSpec("Publisering og metadata", "Velg hvordan ressursen skal finnes og brukes i coachingflyten."),
     selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework"),
@@ -1491,7 +1509,7 @@ async function publishResource(resource) {
     archived_at: null,
     tags: resource.tags || []
   };
-  validateResourceForPublish(payload);
+  validateResourceForPublish(payload, resource.files || []);
   await library.updateResource(state.sb, resource.id, {
     status: payload.status,
     visibility: payload.visibility,
@@ -1650,7 +1668,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-83")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-84")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1679,10 +1697,10 @@ function openSendResourceDrawer(resource) {
 
   openEntityDrawer(`Send ${resource.title}`, "Ressurs", [
     customSpec("send_resource_basis", createSendResourceBasis(resource)),
-    sectionSpec("Send ressurs", "Velg klient, kontekst og en kort instruks. Ressursen legges i klientens coachingforløp."),
+    sectionSpec("Send ressurs", "Velg klient, kontekst og en kort melding. Ressursen legges i klientens coachingforløp."),
     selectSpec("clientId", "Klient", clients.map((client) => [client.id, client.name || client.email || "Uten navn"]), clients[0]?.id || ""),
     customSpec(["contextType", "contextId"], createResourceContextPicker(resource, clients)),
-    textareaSpec("coachNote", "Instruks til klient", resource.suggested_coach_note || "", {
+    textareaSpec("coachNote", "Melding til klient", resource.suggested_coach_note || "", {
       placeholder: "Skriv kort hvorfor du sender ressursen, og hva klienten bør bruke den til."
     })
   ], async (values) => {
@@ -1702,7 +1720,7 @@ function createSendResourceBasis(resource) {
     list("Best brukt når", resource.best_used_when || []),
     list("Ikke egnet når", resource.not_for || []),
     resource.suggested_coach_note ? el("div", { class: "send-resource-suggested-note" }, [
-      el("strong", { text: "Foreslått instruks" }),
+      el("strong", { text: "Forslag til sendemelding" }),
       el("p", { text: resource.suggested_coach_note })
     ]) : null
   ].filter(Boolean));

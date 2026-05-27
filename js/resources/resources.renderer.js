@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-83";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-84";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {
@@ -124,6 +124,7 @@ export function renderResourceBlock(block, options = {}) {
       ]);
     case RESOURCE_BLOCK_TYPES.reflectionQuestions:
       return createElement("section", { class: "resource-block resource-block--reflection-questions" }, [
+        textNode(createElement, "h3", "resource-block__heading", block.heading || "Refleksjonsspørsmål"),
         renderList(createElement, "resource-block__questions", block.questions || [])
       ]);
     case RESOURCE_BLOCK_TYPES.download:
