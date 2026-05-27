@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-82";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-83";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {
@@ -78,6 +78,21 @@ export function renderResourceBlock(block, options = {}) {
         ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
         ...textParagraphs(createElement, "resource-block__content", block.content)
       ]);
+    case RESOURCE_BLOCK_TYPES.modelCards:
+      return createElement("section", { class: "resource-block resource-block--model-cards" }, [
+        ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
+        createElement("div", { class: "resource-model-card-grid" }, normalizeCards(block.cards).map((card) => (
+          createElement("article", { class: "resource-model-card" }, [
+            ...(card.title ? [createElement("h4", { text: card.title })] : []),
+            ...(card.body ? textParagraphs(createElement, "resource-block__content", card.body) : [])
+          ])
+        )))
+      ]);
+    case RESOURCE_BLOCK_TYPES.quote:
+      return createElement("figure", { class: "resource-block resource-block--quote" }, [
+        createElement("blockquote", { text: block.quote || "" }),
+        block.attribution ? createElement("figcaption", { text: block.attribution }) : null
+      ].filter(Boolean));
     case RESOURCE_BLOCK_TYPES.illustration:
       {
         const file = findIllustrationFile(block, resourceFiles);
@@ -118,8 +133,8 @@ export function renderResourceBlock(block, options = {}) {
         return createElement("section", { class: "resource-block resource-block--download" }, [
           createElement("div", { class: "resource-download-card" }, [
             createElement("div", {}, [
-              createElement("h3", { class: "resource-block__heading", text: label }),
-              createElement("p", { class: "resource-block__content", text: file?.display_name || block.display_name || "Nedlastbar fil" })
+              createElement("span", { class: "resource-download-kicker", text: file?.file_type === "attachment" ? "Vedlegg" : "PDF" }),
+              createElement("h3", { class: "resource-block__heading", text: label })
             ]),
             onOpenFile && file ? createElement("button", {
               class: "button ghost resource-file-open",
@@ -151,6 +166,16 @@ function renderWorksheetFields(createElement, fields = []) {
   )));
 }
 
+function normalizeCards(cards = []) {
+  return (Array.isArray(cards) ? cards : [])
+    .map((card) => ({
+      title: String(card?.title || "").trim(),
+      body: String(card?.body || card?.content || "").trim()
+    }))
+    .filter((card) => card.title || card.body)
+    .slice(0, 4);
+}
+
 function findIllustrationFile(block, files = []) {
   if (!block) return null;
   const illustrationFiles = files.filter((file) => file.file_type === "illustration");
@@ -178,7 +203,8 @@ function findDownloadFile(block, files = []) {
   return downloadableFiles.find((file) => (
     (block.file_id && file.id === block.file_id) ||
     (block.storage_path && file.storage_path === block.storage_path) ||
-    (block.file_url && file.storage_path === block.file_url)
+    (block.file_url && file.storage_path === block.file_url) ||
+    (block.display_name && file.display_name === block.display_name)
   )) || null;
 }
 

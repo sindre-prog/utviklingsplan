@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-82";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-83";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -65,11 +65,12 @@ function resourceContextText(sharedResource) {
 function visibleResourceFiles(resource) {
   const referencedDownloads = new Set((resource.content_json || [])
     .filter((block) => block?.type === "download")
-    .flatMap((block) => [block.file_id, block.storage_path, block.file_url].filter(Boolean)));
+    .flatMap((block) => [block.file_id, block.storage_path, block.file_url, block.display_name].filter(Boolean)));
   return (resource.files || []).filter((file) => (
     !["cover_image", "illustration"].includes(file.file_type) &&
     !referencedDownloads.has(file.id) &&
-    !referencedDownloads.has(file.storage_path)
+    !referencedDownloads.has(file.storage_path) &&
+    !referencedDownloads.has(file.display_name)
   ));
 }
 

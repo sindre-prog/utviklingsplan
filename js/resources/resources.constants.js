@@ -73,6 +73,8 @@ export const RESOURCE_BLOCK_TYPES = Object.freeze({
   intro: "intro",
   text: "text",
   callout: "callout",
+  modelCards: "model_cards",
+  quote: "quote",
   illustration: "illustration",
   worksheet: "worksheet",
   reflectionQuestions: "reflection_questions",

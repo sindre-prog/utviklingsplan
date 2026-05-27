@@ -74,12 +74,14 @@ const RESOURCE_BLOCK_TYPE_LABELS = {
   intro: "Intro",
   text: "Tekstseksjon",
   callout: "Callout",
+  model_cards: "Modellkort",
+  quote: "Sitat",
   worksheet: "Arbeidsfelt i ressursen",
   reflection_questions: "Refleksjonsspørsmål",
   illustration: "Illustrasjon",
   download: "Nedlasting"
 };
-const RESOURCE_BLOCK_ADD_TYPES = ["intro", "text", "callout", "worksheet", "reflection_questions", "illustration", "download"];
+const RESOURCE_BLOCK_ADD_TYPES = ["intro", "text", "callout", "model_cards", "quote", "worksheet", "reflection_questions", "illustration", "download"];
 const RESOURCE_CALLOUT_TONES = [
   ["note", "Nøytral"],
   ["coach", "Coach-kommentar"],
@@ -806,6 +808,8 @@ function jsonText(value, fallback = []) {
 function createResourceBlock(type = "text") {
   if (type === "intro") return { type: "intro", content: "" };
   if (type === "callout") return { type: "callout", tone: "note", heading: "Merk", content: "" };
+  if (type === "model_cards") return { type: "model_cards", heading: "", cards: [{ title: "", body: "" }, { title: "", body: "" }] };
+  if (type === "quote") return { type: "quote", quote: "", attribution: "" };
   if (type === "worksheet") return { type: "worksheet", heading: "Arbeidsark", fields: [""] };
   if (type === "reflection_questions") return { type: "reflection_questions", questions: [""] };
   if (type === "illustration") return { type: "illustration", file_id: "", storage_path: "", display_name: "", key: "" };
@@ -819,6 +823,12 @@ function normalizeResourceBlocks(blocks = []) {
     const type = block.type || "text";
     if (type === "intro") return { type, content: block.content || "" };
     if (type === "callout") return { type, tone: block.tone || "note", heading: block.heading || "", content: block.content || "" };
+    if (type === "model_cards") return {
+      type,
+      heading: block.heading || "",
+      cards: normalizeModelCards(block.cards)
+    };
+    if (type === "quote") return { type, quote: block.quote || block.content || "", attribution: block.attribution || "" };
     if (type === "worksheet") return { type, heading: block.heading || "", fields: Array.isArray(block.fields) ? block.fields : [] };
     if (type === "reflection_questions") return { type, questions: Array.isArray(block.questions) ? block.questions : [] };
     if (type === "illustration") return {
@@ -845,6 +855,38 @@ function lineArray(value) {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function normalizeModelCards(cards = []) {
+  return (Array.isArray(cards) ? cards : [])
+    .map((card) => ({
+      title: String(card?.title || "").trim(),
+      body: String(card?.body || card?.content || "").trim()
+    }))
+    .filter((card) => card.title || card.body)
+    .slice(0, 4);
+}
+
+function modelCardsToText(cards = []) {
+  return normalizeModelCards(cards)
+    .map((card) => `${card.title}${card.title && card.body ? " | " : ""}${card.body}`)
+    .join("\n");
+}
+
+function textToModelCards(value = "") {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [title, ...bodyParts] = line.split("|");
+      return {
+        title: (title || "").trim(),
+        body: bodyParts.join("|").trim()
+      };
+    })
+    .filter((card) => card.title || card.body)
+    .slice(0, 4);
 }
 
 function createResourceBlockEditor(initialBlocks = [], options = {}) {
@@ -903,6 +945,24 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
         el("input", { type: "text", value: block.heading || "", placeholder: "Overskrift, f.eks. Merk", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
         el("textarea", { rows: "4", text: block.content || "", placeholder: "Kort tekst som skal løftes frem", oninput: (event) => patchBlock(index, { content: event.target.value }) }),
         toneSelect
+      ];
+    }
+    if (block.type === "model_cards") {
+      return [
+        el("input", { type: "text", value: block.heading || "", placeholder: "Valgfri overskrift", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
+        el("textarea", {
+          rows: "5",
+          text: modelCardsToText(block.cards || []),
+          placeholder: "Ett kort per linje: Tittel | Forklaring",
+          oninput: (event) => patchBlock(index, { cards: textToModelCards(event.target.value) })
+        }),
+        el("p", { class: "resource-admin-inline-help", text: "Bruk 2-4 kort. Eksempel: Affektiv motivasjon | Lede fordi det gir mening og energi." })
+      ];
+    }
+    if (block.type === "quote") {
+      return [
+        el("textarea", { rows: "3", text: block.quote || "", placeholder: "Sitat eller setning som skal løftes frem", oninput: (event) => patchBlock(index, { quote: event.target.value }) }),
+        el("input", { type: "text", value: block.attribution || "", placeholder: "Valgfri kilde eller kontekst", oninput: (event) => patchBlock(index, { attribution: event.target.value }) })
       ];
     }
     if (block.type === "reflection_questions") {
@@ -1590,7 +1650,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-82")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-83")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
