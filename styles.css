@@ -10594,3 +10594,277 @@ details.coaching-frame > .coaching-frame-body > article p {
     padding-inline: 12px;
   }
 }
+
+/* Platform consistency v4: shared focus model and master/detail grammar */
+.sidebar,
+.topline {
+  border-bottom: 0;
+}
+
+.focus-hub {
+  min-width: 0;
+}
+
+.focus-view-tabs {
+  width: fit-content;
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--neutral-50);
+}
+
+.focus-view-tab {
+  min-height: 42px;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--platform-muted);
+  font: inherit;
+  font-size: var(--type-support);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.focus-view-tab:hover {
+  color: var(--platform-ink);
+  background: #fff;
+}
+
+.focus-view-tab.active {
+  color: var(--platform-ink);
+  background: var(--platform-paper);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+}
+
+.focus-hub-panel {
+  display: none;
+  min-width: 0;
+}
+
+.focus-hub-panel.active {
+  display: block;
+}
+
+.workspace-split-view,
+.leadership-workbench,
+.focus-workbench,
+.sessions-workbench {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.leadership-workbench-empty,
+.focus-workbench-empty {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-master-rail,
+.leadership-track-list,
+.focus-picker,
+.session-rail {
+  position: sticky;
+  top: 154px;
+  min-width: 0;
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
+}
+
+.workspace-master-head,
+.leadership-track-head,
+.focus-picker-head,
+.session-rail-head {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--platform-line);
+  background: var(--platform-paper);
+}
+
+.workspace-master-head strong {
+  color: var(--platform-ink);
+  font-size: var(--type-meta);
+  font-weight: 750;
+}
+
+.workspace-master-head span {
+  color: var(--platform-muted);
+  font-size: var(--type-meta);
+  font-weight: 700;
+}
+
+.workspace-master-row,
+.leadership-track-row,
+.focus-nav-item,
+.session-nav-item {
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--platform-line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.workspace-master-row:last-of-type,
+.leadership-track-row:last-of-type,
+.focus-nav-item:last-of-type,
+.session-nav-item:last-of-type {
+  border-bottom: 0;
+}
+
+.workspace-master-row.active,
+.leadership-track-row.active,
+.focus-nav-item.active,
+.session-nav-item.active {
+  background: var(--platform-info-soft);
+  box-shadow: inset 3px 0 0 var(--platform-info-line);
+}
+
+.workspace-master-button,
+.leadership-track-open,
+.focus-nav-button,
+.session-nav-button {
+  width: 100%;
+  min-width: 0;
+  min-height: 96px;
+  padding: 16px;
+  text-align: left;
+}
+
+.workspace-detail-surface,
+.leadership-detail-card,
+.focus-detail-card,
+.session-detail-card {
+  position: static;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 28px;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
+  box-shadow: none;
+}
+
+.competency-workspace {
+  max-width: none;
+}
+
+.focus-master,
+.focus-detail-wrap,
+.focus-detail,
+.leadership-detail-wrap,
+.leadership-detail,
+.session-detail-wrap,
+.session-detail {
+  min-width: 0;
+}
+
+.focus-add-card {
+  border-top: 0;
+  border-radius: 0;
+}
+
+.workspace-detail-surface h3,
+.leadership-detail-card h3,
+.focus-detail-card h3,
+.session-detail-card h3 {
+  font-family: var(--font-body);
+  font-size: 26px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.focus-detail-label,
+.ui-field-card label,
+.session-detail-block .workspace-kicker,
+.competency-plan-step .workspace-kicker {
+  font-size: var(--type-meta);
+  font-weight: 750;
+  line-height: 1.35;
+  letter-spacing: .06em;
+}
+
+.focus-detail-text,
+.ui-field-card .focus-detail-text,
+.session-detail-block p,
+.competency-plan-step p {
+  font-size: var(--type-body);
+  line-height: 1.55;
+}
+
+.workspace-master-button svg,
+.workspace-detail-surface svg,
+.ui-add-action svg,
+.ui-button svg,
+.icon-button svg {
+  stroke-width: 1.8;
+}
+
+@media (max-width: 900px) {
+  .workspace-split-view,
+  .leadership-workbench,
+  .focus-workbench,
+  .sessions-workbench {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .workspace-master-rail,
+  .leadership-track-list,
+  .focus-picker,
+  .session-rail {
+    position: static;
+    width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .nav-list {
+    border-top: 0;
+  }
+
+  .workspace-tab-group-main .workspace-tab,
+  .focus-view-tab {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .focus-view-tabs {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-detail-surface,
+  .leadership-detail-card,
+  .focus-detail-card,
+  .session-detail-card {
+    padding: 20px 16px;
+  }
+
+  .workspace-detail-surface h3,
+  .leadership-detail-card h3,
+  .focus-detail-card h3,
+  .session-detail-card h3 {
+    font-size: 23px;
+  }
+}
