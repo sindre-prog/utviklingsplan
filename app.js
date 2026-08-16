@@ -720,8 +720,8 @@ function adminTable(title, headers, rows) {
   return el("div", { class: "table-wrap", "aria-label": title }, [
     el("table", {}, [
       el("thead", {}, [el("tr", {}, headers.map((head) => el("th", { text: head })))]),
-      el("tbody", {}, rows.length ? rows.map((row) => el("tr", {}, row.map((cell) => {
-        const td = el("td");
+      el("tbody", {}, rows.length ? rows.map((row) => el("tr", {}, row.map((cell, index) => {
+        const td = el("td", { "data-label": headers[index] || "Handlinger" });
         if (cell instanceof Node) td.append(cell);
         else td.textContent = cell;
         return td;
@@ -3368,11 +3368,24 @@ function sessionsWorkbench(sessions, data, editable) {
 }
 
 function sessionRail(sessions, detail, editable, data) {
+  const mobilePicker = el("select", {
+    class: "session-mobile-picker-select",
+    "aria-label": "Velg samtale",
+    onchange: (event) => {
+      const index = Number(event.currentTarget.value);
+      selectSessionCard(sessions[index], index, detail, editable, data);
+    }
+  }, sessions.map((session, index) => el("option", {
+    value: String(index),
+    selected: index === (state.selectedSessionIndex || 0),
+    text: `${session.date ? formatDate(session.date) : `Samtale ${index + 1}`} - ${session.focus || "Samtale uten tittel"}`
+  })));
   return el("div", { class: "session-rail" }, [
     el("header", { class: "session-rail-head" }, [
       el("strong", { text: "Samtaleloggen" }),
       el("span", { class: "ui-meta", text: `${sessions.length} ${sessions.length === 1 ? "samtale" : "samtaler"}` })
     ]),
+    el("label", { class: "session-mobile-picker", text: "Velg samtale" }, [mobilePicker]),
     el("div", { class: "session-rail-list" }, sessions.map((session, index) => {
       const progress = sessionProgress(session);
       return el("article", { class: `session-nav-item ${index === (state.selectedSessionIndex || 0) ? "active" : ""}` }, [
@@ -3393,6 +3406,8 @@ function selectSessionCard(session, index, detail, editable, data) {
   const cards = $$(".session-nav-item", detail.closest(".sessions-workbench"));
   state.selectedSessionIndex = index;
   cards.forEach((node, itemIndex) => node.classList.toggle("active", itemIndex === index));
+  const mobilePicker = $(".session-mobile-picker-select", detail.closest(".sessions-workbench"));
+  if (mobilePicker) mobilePicker.value = String(index);
   detail.replaceChildren(sessionDetail(session, index, editable, data));
   refreshIcons();
 }
