@@ -1,5 +1,5 @@
 -- Leadership competency foundation.
--- Adds å first-class competency library and selected competency tracks for leadership development plans.
+-- Adds a first-class competency library and selected competency tracks for leadership development plans.
 
 create table if not exists public.leadership_competencies (
   id uuid not null default gen_random_uuid(),
@@ -8,7 +8,7 @@ create table if not exists public.leadership_competencies (
   title_en text,
   category text not null,
   summary text not null default ''::text,
-  source text not null default 'raeder-originål'::text,
+  source text not null default 'raeder-original'::text,
   sort_order integer not null default 0,
   is_active boolean not null default true,
   content_json jsonb not null default '{}'::jsonb,
@@ -78,8 +78,8 @@ alter table public.shared_resources
     'reflection'::text
   ]));
 
-alter table public.leadership_competencies enåble row level security;
-alter table public.program_competencies enåble row level security;
+alter table public.leadership_competencies enable row level security;
+alter table public.program_competencies enable row level security;
 
 revoke all on table public.leadership_competencies from anon;
 revoke all on table public.program_competencies from anon;
@@ -129,8 +129,8 @@ for select
 to authenticated
 using (is_active or public.current_profile_role() = 'admin');
 
-drop policy if exists "leadership_competencies_admin_manåge" on public.leadership_competencies;
-create policy "leadership_competencies_admin_manåge"
+drop policy if exists "leadership_competencies_admin_manage" on public.leadership_competencies;
+create policy "leadership_competencies_admin_manage"
 on public.leadership_competencies
 as permissive
 for all
@@ -190,7 +190,7 @@ values
     10,
     jsonb_build_object(
       'signals', jsonb_build_array('Er tydelig på budskap og hensikt.', 'Tilpasser form og kanal til mottaker.', 'Lytter aktivt for å forstå før det svares.'),
-      'obstacles', jsonb_build_array('For mye detalj uten tydelig hovedpoeng.', 'Uklart hvem kommunikasjonen er for.', 'For lite rom for sporsmål og reaksjoner.'),
+      'obstacles', jsonb_build_array('For mye detalj uten tydelig hovedpoeng.', 'Uklart hvem kommunikasjonen er for.', 'For lite rom for spørsmål og reaksjoner.'),
       'practices', jsonb_build_array('Start viktige samtaler med ett tydelig hovedbudskap.', 'Be mottaker oppsummere hva de tar med seg.', 'Test om skriftlig og muntlig budskap peker samme vei.')
     )
   ),
@@ -204,7 +204,7 @@ values
     jsonb_build_object(
       'signals', jsonb_build_array('Forstår interessene til dem som skal påvirkes.', 'Knytter forslag til felles mål.', 'Bygger allianser tidlig.'),
       'obstacles', jsonb_build_array('Argumenterer for tidlig.', 'Undervurderer motstand eller usikkerhet.', 'Snakker mest til egne behov.'),
-      'practices', jsonb_build_array('Kartlegg tre interessenter for et viktig initiativ.', 'Spørsmål før råd før du presenterer løsningen.', 'Avklar hva hver part trenger for å si ja.')
+      'practices', jsonb_build_array('Kartlegg tre interessenter for et viktig initiativ.', 'Still spørsmål før du gir råd og presenterer løsningen.', 'Avklar hva hver part trenger for å si ja.')
     )
   ),
   (
@@ -290,7 +290,7 @@ values
     'Endringsledelse',
     'Change Implementation',
     'change_complexity',
-    'Gjør endring forståelig, praktisk og mulig å handle på for dem som beres av den.',
+    'Gjør endring forståelig, praktisk og mulig å handle på for dem som berøres av den.',
     90,
     jsonb_build_object(
       'signals', jsonb_build_array('Forklarer hvorfor endringen trengs.', 'Ser både saklige og emosjonelle reaksjoner.', 'Skaper korte læringssløyfer.'),
@@ -307,7 +307,7 @@ values
     100,
     jsonb_build_object(
       'signals', jsonb_build_array('Holder avtaler og forklarer avvik.', 'Er åpen om usikkerhet når det er relevant.', 'Tar ansvar for egen effekt på andre.'),
-      'obstacles', jsonb_build_array('Overlover eller blir uklar.', 'Tar lite eierskap når noe går galt.', 'Virker utilgjengelig i viktige perioder.'),
+      'obstacles', jsonb_build_array('Lover for mye eller blir uklar.', 'Tar lite eierskap når noe går galt.', 'Virker utilgjengelig i viktige perioder.'),
       'practices', jsonb_build_array('Følg opp en liten avtale raskt.', 'Si tydelig hva du vet og ikke vet.', 'Spør hva andre trenger for å ha tillit til prosessen.')
     )
   ),
