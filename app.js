@@ -1673,7 +1673,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-89")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-90")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1697,7 +1697,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-89")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-90")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -1980,7 +1980,7 @@ async function renderPlan(activePane = "direction") {
     if (event.target.closest(".ui-inline-editor")) return;
     markDirty();
   });
-  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]), ...(editable ? [saveStrip(true)] : []));
+  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]));
   if (!editable) setFormReadonly(form);
   setupWorkspaceTabs();
   refreshIcons();
@@ -2018,7 +2018,7 @@ function renderCachedProgram(activePane = "direction") {
     if (event.target.closest(".ui-inline-editor")) return;
     markDirty();
   });
-  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]), ...(editable ? [saveStrip(true)] : []));
+  $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]));
   if (!editable) setFormReadonly(form);
   setupWorkspaceTabs();
   refreshIcons();
@@ -2422,7 +2422,7 @@ function directionStatus(plan) {
   }
   return {
     tone: "ready",
-    label: "Lagret",
+    label: "Retning avklart",
     text: "Kontrakten er tydelig nok til å velge fokusområder og starte praksisarbeidet.",
     action: "Gå videre"
   };
@@ -3605,22 +3605,25 @@ function reflectionsWorkspace(data) {
   const intro = canWriteReflection
     ? workspaceIntro("Refleksjon", "Legg merke til det som skjer mellom samtalene", "Skriv kort når noe overrasker deg, gjentar seg eller blir tydeligere. Refleksjonen er privat til du selv velger å dele den.")
     : workspaceIntro("Refleksjon", "Det klienten har valgt å dele", "Her vises bare refleksjoner klienten aktivt har delt i coachingforløpet.");
+  const log = el("section", { class: "reflection-log-section" }, [
+    el("div", { class: "reflection-log-head" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: canWriteReflection ? "Journal" : "Delt med coach" }),
+        el("h3", { text: canWriteReflection ? "Siste refleksjoner" : "Delte refleksjoner" }),
+        el("p", { class: "muted", text: canWriteReflection
+          ? "Se tilbake på det du har lagt merke til underveis."
+          : "Refleksjoner klienten ønsker å utforske sammen." })
+      ]),
+      el("span", { class: "reflection-count", text: String(data.reflections.length) })
+    ]),
+    reflectionsList(data.reflections, data, canWriteReflection)
+  ]);
   return el("div", { class: "platform-page reflection-space" }, [
     intro,
-    canWriteReflection ? reflectionComposer(data) : null,
-    el("section", { class: "reflection-log-section" }, [
-      el("div", { class: "reflection-log-head" }, [
-        el("div", {}, [
-          el("p", { class: "eyebrow", text: canWriteReflection ? "Journal" : "Delt med coach" }),
-          el("h3", { text: canWriteReflection ? "Siste refleksjoner" : "Delte refleksjoner" }),
-          el("p", { class: "muted", text: canWriteReflection
-            ? "Se tilbake på det du har lagt merke til underveis."
-            : "Refleksjoner klienten ønsker å utforske sammen." })
-        ]),
-        el("span", { class: "reflection-count", text: String(data.reflections.length) })
-      ]),
-      reflectionsList(data.reflections, data, canWriteReflection)
-    ])
+    el("div", { class: `reflection-workspace-grid ${canWriteReflection ? "" : "is-readonly"}` }, [
+      canWriteReflection ? reflectionComposer(data) : null,
+      log
+    ].filter(Boolean))
   ].filter(Boolean));
 }
 
@@ -4154,12 +4157,6 @@ function experimentRow(action, data, editable) {
       icon("chevron-right")
     ].filter(Boolean))
   ].filter(Boolean));
-}
-
-function saveStrip(editable = true) {
-  return el("div", { class: "save-strip" }, [
-    el("span", { class: "save-status", id: "save-status", text: editable ? "Lagret" : "Lesetilgang" })
-  ]);
 }
 
 function setFormReadonly(form) {
