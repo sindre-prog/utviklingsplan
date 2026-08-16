@@ -1673,7 +1673,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-86")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-87")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1697,7 +1697,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-86")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-87")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2547,9 +2547,10 @@ function leadershipWorkbench(data, editable) {
 }
 
 function leadershipSelectedList(items, detail, data, editable) {
-  return el("div", { class: "leadership-master leadership-track-list" }, items.map((item, index) => {
+  const rows = items.map((item, index) => {
     const active = item.id === state.selectedCompetencyId || (!state.selectedCompetencyId && index === 0);
-    const note = item.desired_behavior || item.competency?.summary || item.summary || "Legg til hva denne kompetansen skal bety i praksis.";
+    const completion = leadershipCompletion(item, data);
+    const note = item.desired_behavior || item.competency?.summary || item.summary || "Ikke påbegynt";
     return el("article", { class: `leadership-track-row ${active ? "active" : ""}` }, [
       el("button", {
         class: "leadership-track-open",
@@ -2563,99 +2564,180 @@ function leadershipSelectedList(items, detail, data, editable) {
           refreshIcons();
         }
       }, [
-        el("span", { class: "leadership-track-index", text: String(index + 1) }),
+        el("span", { class: "leadership-track-index", "aria-hidden": "true" }, [icon(completion.count === completion.total ? "check" : "compass")]),
         el("span", { class: "leadership-track-main" }, [
-          el("span", { class: "ui-meta type-chip", text: item.categoryLabel || "Kompetanse" }),
-          el("strong", { text: item.title || "Kompetanse" }),
+          el("span", { class: "leadership-track-heading" }, [
+            el("strong", { text: item.title || "Kompetanse" }),
+            el("small", { text: `${completion.count}/${completion.total}` })
+          ]),
           contentPreview(note, "Hva vil du utvikle?", 2)
-        ])
+        ]),
+        icon("chevron-right")
       ])
     ]);
-  }));
+  });
+  return el("div", { class: "leadership-master leadership-track-list" }, [
+    el("div", { class: "leadership-track-head" }, [
+      el("strong", { text: "Valgte kompetanser" }),
+      el("span", { text: `${items.length}/3` })
+    ]),
+    ...rows
+  ]);
 }
 
 function leadershipDetail(item, data, editable) {
   const content = item.competency?.content || {};
   const actions = data.actions.filter((action) => action.program_competency_id === item.id && !isExperimentClosed(action.status));
-  return el("section", { class: "ui-object-card content-card leadership-detail-card" }, [
-    el("div", { class: "focus-detail-titlebar leadership-detail-titlebar" }, [
-      el("div", { class: "focus-detail-heading" }, [
-        el("span", { class: "focus-detail-meta" }, [
-          el("span", { class: "eyebrow", text: "Valgt kompetanse" }),
+  const completion = leadershipCompletion(item, data);
+  const missingStep = [
+    ["desired_behavior", "Avklar hva du vil utvikle"],
+    ["current_pattern", "Velg en konkret øvingsarena"],
+    ["obstacles", "Sett ord på det som kan stå i veien"]
+  ].find(([fieldKey]) => !(item[fieldKey] || "").trim());
+  const nextLabel = missingStep?.[1] || (!actions.length ? "Planlegg første eksperiment" : "Følg opp eksperimentet");
+  const nextHandler = missingStep
+    ? () => openLeadershipFieldEditor(item, missingStep[0])
+    : !actions.length
+      ? () => createCompetencyAction(data, item)
+      : () => editAction(actions[0], data);
+
+  return el("section", { class: "leadership-detail-card competency-workspace" }, [
+    el("header", { class: "competency-workspace-head" }, [
+      el("div", { class: "competency-workspace-heading" }, [
+        el("span", { class: "competency-context" }, [
+          el("span", { class: "workspace-kicker", text: "Valgt kompetanse" }),
           item.categoryLabel ? el("span", { class: "ui-meta type-chip", text: item.categoryLabel }) : null
         ].filter(Boolean)),
         el("h3", { text: item.title || "Kompetanse" }),
         item.summary ? el("p", { class: "muted leadership-summary", text: item.summary }) : null
       ]),
-      editable ? el("span", { class: "row-tools" }, [
-        iconAction("Fjern kompetanse", "trash-2", () => removeLeadershipCompetency(item), "danger")
-      ]) : null
+      editable ? iconAction("Fjern kompetanse", "trash-2", () => removeLeadershipCompetency(item), "danger") : null
     ].filter(Boolean)),
-    leadershipGuidance(content),
-    el("div", { class: "leadership-detail-workspace" }, [
-      leadershipDetailBlock(item, "Hva er målet?", item.desired_behavior, "Hva skal bli tydeligere i måten du leder, kommuniserer eller følger opp andre?", "desired_behavior", editable, "primary"),
-      leadershipDetailBlock(item, "Når skal dette merkes?", item.current_pattern, "Hvilke møter, relasjoner eller beslutninger er gode øvingsarenaer?", "current_pattern", editable),
-      leadershipDetailBlock(item, "Hva står i veien?", item.obstacles, "Hvilke vaner, situasjoner eller reaksjoner kan hindre deg?", "obstacles", editable)
-    ]),
-    el("div", { class: "detail-divider" }),
-    el("div", { class: "experiment-section-head" }, [
+    el("section", { class: "competency-next-step" }, [
+      el("span", { class: "competency-next-icon", "aria-hidden": "true" }, [icon(completion.count === completion.total ? "circle-check" : "arrow-right")]),
       el("div", {}, [
-        el("h4", { text: "Eksperimenter knyttet til kompetansen" }),
-        el("p", { text: "Små adferdsforsøk som gjør kompetansen trenbar i konkrete situasjoner." })
+        el("span", { class: "workspace-kicker", text: completion.count === completion.total ? "Planen er klar" : "Anbefalt neste steg" }),
+        el("strong", { text: nextLabel })
       ]),
-      editable ? addAction("Legg til eksperiment", () => createCompetencyAction(data, item)) : null
+      editable ? el("button", { class: "ui-button ui-button-filled", type: "button", text: completion.count === completion.total ? "Åpne" : "Fortsett", onclick: nextHandler }) : null
     ].filter(Boolean)),
-    actions.length ? el("div", { class: "experiment-list" }, actions.map((action) => experimentRow(action, data, editable))) :
-      el("p", { class: "content-card-body is-empty", text: "Ingen eksperimenter lagt til ennå." })
+    el("section", { class: "competency-plan" }, [
+      el("header", { class: "competency-plan-head" }, [
+        el("div", {}, [
+          el("h4", { text: "Din utviklingsplan" }),
+          el("p", { text: "Gjør kompetansen konkret nok til å kunne øves på i arbeidshverdagen." })
+        ]),
+        el("div", { class: "competency-progress-copy" }, [
+          el("strong", { text: `${completion.count} av ${completion.total}` }),
+          el("span", { text: "avklart" })
+        ])
+      ]),
+      el("div", { class: "competency-progress-track", role: "progressbar", "aria-label": "Fremdrift i utviklingsplanen", "aria-valuemin": "0", "aria-valuemax": String(completion.total), "aria-valuenow": String(completion.count) }, [
+        el("span", { style: `width:${completion.percent}%` })
+      ]),
+      el("div", { class: "competency-plan-list" }, [
+        leadershipPlanStep(item, 1, "Målbilde", "Hva vil du gjøre annerledes?", item.desired_behavior, "Beskriv den konkrete atferden du vil utvikle.", "desired_behavior", editable),
+        leadershipPlanStep(item, 2, "Øvingsarena", "Hvor skal det merkes?", item.current_pattern, "Velg møter, relasjoner eller beslutninger der du kan øve.", "current_pattern", editable),
+        leadershipPlanStep(item, 3, "Hindringer", "Hva kan stå i veien?", item.obstacles, "Sett ord på vaner, situasjoner eller reaksjoner som kan hindre deg.", "obstacles", editable),
+        leadershipExperimentStep(item, data, actions, editable)
+      ])
+    ]),
+    leadershipGuidance(content, item.title)
   ].filter(Boolean));
 }
 
-function leadershipGuidance(content = {}) {
+function leadershipCompletion(item, data) {
+  const actionCount = (data.actions || []).filter((action) => action.program_competency_id === item.id && !isExperimentClosed(action.status)).length;
+  const count = [item.desired_behavior, item.current_pattern, item.obstacles].filter((value) => (value || "").trim()).length + (actionCount ? 1 : 0);
+  const total = 4;
+  return { count, total, percent: Math.round((count / total) * 100) };
+}
+
+function openLeadershipFieldEditor(item, fieldKey) {
+  state.inlineEditKey = `competency:${item.id}:${fieldKey}`;
+  state.selectedCompetencyId = item.id;
+  renderCachedProgram("work");
+}
+
+function leadershipGuidance(content = {}, title = "kompetansen") {
   const signals = content.signals || [];
   const obstacles = content.obstacles || [];
   const practices = content.practices || [];
   if (!signals.length && !obstacles.length && !practices.length) return null;
-  const list = (title, items) => items.length ? el("section", {}, [
-    el("h4", { text: title }),
+  const list = (sectionTitle, iconName, items) => items.length ? el("section", {}, [
+    el("div", { class: "competency-reference-title" }, [icon(iconName), el("h4", { text: sectionTitle })]),
     el("ul", {}, items.slice(0, 5).map((item) => el("li", { text: item })))
   ]) : null;
-  return el("div", { class: "leadership-guidance" }, [
-    list("Høy ytelse kan se ut som", signals),
-    list("Typiske hindringer", obstacles),
-    list("Prøv nå", practices)
-  ].filter(Boolean));
+  return el("details", { class: "competency-reference" }, [
+    el("summary", {}, [
+      el("span", { class: "competency-reference-icon", "aria-hidden": "true" }, [icon("book-open")]),
+      el("span", {}, [
+        el("strong", { text: `Om ${String(title || "kompetansen").toLowerCase()}` }),
+        el("small", { text: "Se kjennetegn, vanlige hindringer og mulige øvingsgrep" })
+      ]),
+      icon("chevron-down")
+    ]),
+    el("div", { class: "leadership-guidance" }, [
+      list("God praksis kan se slik ut", "gauge", signals),
+      list("Typiske hindringer", "triangle-alert", obstacles),
+      list("Mulige øvingsgrep", "sparkles", practices)
+    ].filter(Boolean))
+  ]);
 }
 
-function leadershipDetailBlock(item, label, value, emptyText, fieldKey, editable = false, variant = "") {
+function leadershipPlanStep(item, number, eyebrow, label, value, emptyText, fieldKey, editable = false) {
   const text = (value || "").trim();
   const editKey = `competency:${item.id}:${fieldKey}`;
   if (editable && state.inlineEditKey === editKey) {
-    return inlineTextAreaBlock({
-      className: `leadership-detail-block ${variant}`,
-      label,
-      value: text,
-      placeholder: emptyText,
-      onCancel: () => {
-        state.inlineEditKey = null;
-        renderCachedProgram("work");
-      },
-      onSave: async (nextValue) => {
-        await updateLeadershipCompetencyField(item.id, fieldKey, nextValue);
-      }
-    });
+    const textarea = el("textarea", { class: "ui-edit-control competency-step-textarea", text, placeholder: emptyText });
+    return el("article", { class: "competency-plan-step is-editing" }, [
+      el("span", { class: "competency-step-marker", text: String(number) }),
+      el("div", { class: "competency-step-content" }, [
+        el("span", { class: "workspace-kicker", text: eyebrow }),
+        el("strong", { text: label }),
+        textarea,
+        el("div", { class: "ui-inline-editor-actions" }, [
+          el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: () => {
+            state.inlineEditKey = null;
+            renderCachedProgram("work");
+          }}),
+          el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: () => updateLeadershipCompetencyField(item.id, fieldKey, textarea.value) })
+        ])
+      ])
+    ]);
   }
-  return el("article", { class: `ui-field-card leadership-detail-block ${variant} ${text ? "" : "is-empty"}` }, [
-    el("p", { class: "focus-detail-label", text: label }),
-    el("p", { class: "focus-detail-text", text: text || emptyText }),
+  return el("article", { class: `competency-plan-step ${text ? "is-complete" : "is-empty"}` }, [
+    el("span", { class: "competency-step-marker", "aria-hidden": "true" }, [text ? icon("check") : el("span", { text: String(number) })]),
+    el("div", { class: "competency-step-content" }, [
+      el("span", { class: "workspace-kicker", text: eyebrow }),
+      el("strong", { text: label }),
+      el("p", { text: text || emptyText })
+    ]),
     editable ? el("button", {
-      class: "ui-field-action field-inline-action",
+      class: "competency-step-action",
       type: "button",
-      text: text ? "Rediger" : "Legg til",
-      onclick: () => {
-        state.inlineEditKey = editKey;
-        renderCachedProgram("work");
-      }
-    }) : null
+      "aria-label": `${text ? "Rediger" : "Legg til"} ${eyebrow.toLowerCase()}`,
+      onclick: () => openLeadershipFieldEditor(item, fieldKey)
+    }, [el("span", { text: text ? "Rediger" : "Legg til" }), icon(text ? "pencil" : "plus")]) : null
+  ].filter(Boolean));
+}
+
+function leadershipExperimentStep(item, data, actions, editable) {
+  return el("article", { class: `competency-plan-step competency-experiment-step ${actions.length ? "is-complete" : "is-empty"}` }, [
+    el("span", { class: "competency-step-marker", "aria-hidden": "true" }, [actions.length ? icon("check") : el("span", { text: "4" })]),
+    el("div", { class: "competency-step-content" }, [
+      el("span", { class: "workspace-kicker", text: "Eksperiment" }),
+      el("strong", { text: actions.length ? "Prøv det i praksis" : "Planlegg første forsøk" }),
+      actions.length
+        ? el("div", { class: "experiment-list competency-experiment-list" }, actions.map((action) => experimentRow(action, data, editable)))
+        : el("p", { text: "Gjør et lite adferdsforsøk i en konkret arbeidssituasjon." })
+    ]),
+    editable ? el("button", {
+      class: "competency-step-action",
+      type: "button",
+      "aria-label": actions.length ? "Legg til et nytt eksperiment" : "Legg til eksperiment",
+      onclick: () => createCompetencyAction(data, item)
+    }, [el("span", { text: actions.length ? "Nytt" : "Legg til" }), icon("plus")]) : null
   ].filter(Boolean));
 }
 

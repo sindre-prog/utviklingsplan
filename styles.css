@@ -6836,3 +6836,696 @@ h3,
     width: 100%;
   }
 }
+
+/* Competency workspace v3: compact, guided and task-oriented */
+.leadership-workspace-stack {
+  min-width: 0;
+}
+
+.leadership-workbench {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.leadership-track-list {
+  position: sticky;
+  top: 154px;
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.leadership-track-head {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--platform-line);
+}
+
+.leadership-track-head strong {
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.leadership-track-head span {
+  color: var(--platform-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.leadership-track-row {
+  border: 0;
+  border-bottom: 1px solid var(--platform-line);
+  border-radius: 0;
+}
+
+.leadership-track-row:last-child {
+  border-bottom: 0;
+}
+
+.leadership-track-row.active {
+  background: var(--platform-blue);
+  box-shadow: inset 3px 0 0 var(--platform-blue-line);
+}
+
+.leadership-track-open {
+  min-height: 104px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  gap: 12px;
+  align-items: start;
+  padding: 16px 14px;
+}
+
+.leadership-track-open > svg {
+  width: 16px;
+  height: 16px;
+  align-self: center;
+  color: #8d878b;
+}
+
+.leadership-track-index {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--platform-line-strong);
+  border-radius: 50%;
+  background: #fff;
+  color: #536679;
+}
+
+.leadership-track-index svg {
+  width: 15px;
+  height: 15px;
+}
+
+.leadership-track-main {
+  gap: 6px;
+}
+
+.leadership-track-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.leadership-track-main strong {
+  color: var(--platform-ink);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.leadership-track-heading small {
+  color: var(--platform-muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.leadership-track-main .content-card-body {
+  color: var(--platform-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.leadership-detail-wrap,
+.leadership-detail {
+  min-width: 0;
+}
+
+.competency-workspace {
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.competency-workspace-head {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 6px 2px 22px;
+  border-bottom: 1px solid var(--platform-line);
+}
+
+.competency-workspace-heading {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.competency-context {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.competency-context .workspace-kicker {
+  color: var(--platform-muted);
+}
+
+.competency-workspace h3 {
+  margin: 0;
+  color: var(--platform-ink);
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 500;
+  line-height: 1.05;
+}
+
+.competency-workspace .leadership-summary {
+  max-width: 720px;
+  color: var(--platform-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.competency-workspace-head .icon-button {
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  color: #8d878b;
+}
+
+.competency-workspace-head .icon-button:hover {
+  border-color: var(--platform-line);
+  background: #fff;
+  color: var(--platform-ink);
+}
+
+.competency-next-step {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  background: var(--platform-blue);
+}
+
+.competency-next-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #48617d;
+}
+
+.competency-next-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.competency-next-step > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.competency-next-step strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.competency-next-step .ui-button {
+  min-height: 40px;
+  padding-inline: 18px;
+}
+
+.competency-plan {
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.competency-plan-head {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px 14px;
+}
+
+.competency-plan-head > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.competency-plan-head h4 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.competency-plan-head p {
+  margin: 0;
+  color: var(--platform-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.competency-progress-copy {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  white-space: nowrap;
+}
+
+.competency-progress-copy strong {
+  font-size: 13px;
+}
+
+.competency-progress-copy span {
+  color: var(--platform-muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.competency-progress-track {
+  height: 3px;
+  overflow: hidden;
+  background: #ece9e4;
+}
+
+.competency-progress-track span {
+  height: 100%;
+  display: block;
+  background: #4f657d;
+  transition: width .2s ease;
+}
+
+.competency-plan-list {
+  display: grid;
+}
+
+.competency-plan-step {
+  min-width: 0;
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  padding: 18px 20px;
+  border-top: 1px solid var(--platform-line);
+  background: #fff;
+}
+
+.competency-plan-step.is-empty {
+  background: #fcfbf9;
+}
+
+.competency-plan-step.is-editing {
+  background: #fff;
+  box-shadow: inset 3px 0 0 #4f657d;
+}
+
+.competency-step-marker {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--platform-line-strong);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--platform-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.competency-plan-step.is-complete .competency-step-marker {
+  border-color: #b8d7a8;
+  background: var(--platform-success);
+  color: #315725;
+}
+
+.competency-step-marker svg {
+  width: 15px;
+  height: 15px;
+}
+
+.competency-step-content {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.competency-step-content > strong {
+  color: var(--platform-ink);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.competency-step-content > p {
+  max-width: 650px;
+  margin: 2px 0 0;
+  color: var(--platform-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.competency-plan-step.is-empty .competency-step-content > p {
+  color: #8c868a;
+}
+
+.competency-step-action {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #4d494c;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.competency-step-action:hover {
+  background: var(--platform-active);
+  color: var(--platform-ink);
+}
+
+.competency-step-action svg {
+  width: 15px;
+  height: 15px;
+}
+
+.competency-step-textarea {
+  min-height: 110px;
+  margin-top: 8px;
+  border-color: var(--platform-line-strong);
+  background: #fff;
+}
+
+.competency-plan-step .ui-inline-editor-actions {
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+
+.competency-experiment-step {
+  min-height: 126px;
+}
+
+.competency-experiment-list {
+  gap: 0;
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+}
+
+.competency-experiment-list .experiment-row {
+  border: 0;
+  border-bottom: 1px solid var(--platform-line);
+  border-radius: 0;
+  background: #fff;
+}
+
+.competency-experiment-list .experiment-row:last-child {
+  border-bottom: 0;
+}
+
+.competency-experiment-list .experiment-open {
+  min-height: 72px;
+  padding: 12px 14px;
+}
+
+.competency-reference {
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.competency-reference summary {
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.competency-reference summary::-webkit-details-marker {
+  display: none;
+}
+
+.competency-reference summary:hover {
+  background: #faf9f7;
+}
+
+.competency-reference-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--platform-active);
+  color: #5f595d;
+}
+
+.competency-reference-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.competency-reference summary > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.competency-reference summary strong {
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.competency-reference summary small {
+  overflow: hidden;
+  color: var(--platform-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.competency-reference summary > svg {
+  width: 17px;
+  height: 17px;
+  color: #8d878b;
+  transition: transform .2s ease;
+}
+
+.competency-reference[open] summary > svg {
+  transform: rotate(180deg);
+}
+
+.competency-reference .leadership-guidance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 0;
+  border-top: 1px solid var(--platform-line);
+  border-radius: 0;
+  background: #faf9f7;
+}
+
+.competency-reference .leadership-guidance section {
+  min-width: 0;
+  padding: 18px;
+}
+
+.competency-reference .leadership-guidance section + section {
+  border-left: 1px solid var(--platform-line);
+}
+
+.competency-reference-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.competency-reference-title svg {
+  width: 16px;
+  height: 16px;
+  color: #526981;
+}
+
+.competency-reference-title h4 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.competency-reference .leadership-guidance ul {
+  gap: 8px;
+}
+
+.competency-reference .leadership-guidance li {
+  color: var(--platform-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 980px) {
+  .leadership-workbench {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .leadership-track-list {
+    position: static;
+    display: flex;
+    overflow-x: auto;
+    border-right: 1px solid var(--platform-line);
+  }
+
+  .leadership-track-head {
+    flex: 0 0 180px;
+    border-right: 1px solid var(--platform-line);
+    border-bottom: 0;
+  }
+
+  .leadership-track-row {
+    flex: 0 0 264px;
+    border-right: 1px solid var(--platform-line);
+    border-bottom: 0;
+  }
+
+  .leadership-track-row.active {
+    box-shadow: inset 0 -3px 0 var(--platform-blue-line);
+  }
+
+  .competency-workspace {
+    max-width: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .leadership-workbench {
+    gap: 14px;
+  }
+
+  .leadership-track-list {
+    margin-inline: -16px;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .leadership-track-head {
+    display: none;
+  }
+
+  .leadership-track-row {
+    flex-basis: min(250px, 78vw);
+  }
+
+  .leadership-track-open {
+    min-height: 92px;
+    padding: 14px;
+  }
+
+  .competency-workspace {
+    gap: 12px;
+  }
+
+  .competency-workspace-head {
+    gap: 14px;
+    padding: 4px 0 18px;
+  }
+
+  .competency-context {
+    flex-wrap: wrap;
+  }
+
+  .competency-workspace h3 {
+    font-size: 32px;
+  }
+
+  .competency-workspace .leadership-summary {
+    font-size: 14px;
+  }
+
+  .competency-next-step {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .competency-next-step .ui-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .competency-next-step strong {
+    white-space: normal;
+  }
+
+  .competency-plan-head {
+    min-height: 0;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .competency-plan-head p {
+    max-width: 240px;
+  }
+
+  .competency-plan-step {
+    min-height: 108px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .competency-step-action {
+    grid-column: 2;
+    width: fit-content;
+    padding-left: 0;
+  }
+
+  .competency-experiment-list {
+    margin-right: -2px;
+  }
+
+  .competency-reference summary {
+    padding: 14px;
+  }
+
+  .competency-reference .leadership-guidance {
+    grid-template-columns: 1fr;
+  }
+
+  .competency-reference .leadership-guidance section + section {
+    border-top: 1px solid var(--platform-line);
+    border-left: 0;
+  }
+}
