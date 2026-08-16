@@ -441,9 +441,14 @@ function navigate(view, clientId = null) {
   refreshIcons();
 }
 
-function setHeader(kicker, title, actions = []) {
+function setHeader(kicker, title, actions = [], description = "") {
   $("#view-kicker").textContent = kicker;
   $("#view-title").textContent = title;
+  const descriptionNode = $("#view-description");
+  if (descriptionNode) {
+    descriptionNode.textContent = description;
+    descriptionNode.hidden = !description;
+  }
   $("#topline-actions").replaceChildren(...actions);
 }
 
@@ -453,6 +458,17 @@ function metric(label, value, iconName, help) {
     el("div", { class: "meta-row" }, [el("span", { class: "badge", text: label }), icon(iconName)]),
     el("h2", { text: value }),
     el("p", { class: "muted", text: help })
+  ]);
+}
+
+function mainStat(label, value, detail, iconName) {
+  return el("div", { class: "main-stat" }, [
+    el("span", { class: "main-stat-icon", "aria-hidden": "true" }, [icon(iconName)]),
+    el("div", { class: "main-stat-copy" }, [
+      el("strong", { text: value }),
+      el("span", { text: label }),
+      el("small", { text: detail })
+    ])
   ]);
 }
 
@@ -531,7 +547,12 @@ function filterMenu(options, initialValue, ariaLabel, onChange) {
 function renderClients() {
   if (state.profile.role === "client") return navigate("plan", state.client?.id);
   const createInviteAction = (variant = "primary") => button("Inviter klient", variant === "ghost" ? "mail-plus" : "user-plus", () => openClientInvite(), variant);
-  setHeader("Utviklingsplaner", "Klienter", canInviteClient() ? [createInviteAction()] : []);
+  setHeader(
+    "Klientarbeid",
+    "Klienter",
+    canInviteClient() ? [createInviteAction()] : [],
+    "Følg utviklingsforløp, neste samtale og det som trenger oppmerksomhet."
+  );
   const content = $("#content");
   const visibleClients = getVisibleClients();
   const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
@@ -556,18 +577,26 @@ function renderClients() {
   ], "name", "Sorter klienter", render);
   search.addEventListener("input", render);
   content.replaceChildren(
-    el("div", { class: "grid three summary-grid page-summary" }, [
-      metric("Klienter", String(visibleClients.length), "users", state.profile.role === "admin" ? "Klienter med utviklingsplaner" : "Dine klientforløp"),
-      metric("Coacher", String(filterCoaches.length), "user-round-check", state.profile.role === "admin" ? "Coacher med tilgang til klientforløp" : "Coach knyttet til dine klienter"),
-      metric("Selskaper", String(companyCount), "building-2", "Arbeidsgivere registrert på klienter")
-    ]),
-    el("div", { class: "panel list-panel" }, [
-      el("div", { class: "toolbar" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Arbeidsflate" }), el("h3", { text: "Klientoversikt" })]),
-        ...(canInviteClient() ? [createInviteAction("ghost")] : [])
+    el("main", { class: "main-area main-clients-area" }, [
+      el("section", { class: "main-summary-strip", "aria-label": "Nøkkeltall" }, [
+        mainStat("Klienter", String(visibleClients.length), state.profile.role === "admin" ? "i plattformen" : "aktive forbindelser", "users"),
+        mainStat("Coacher", String(filterCoaches.length), state.profile.role === "admin" ? "med klienttilgang" : "i ditt arbeidsrom", "user-round-check"),
+        mainStat("Selskaper", String(companyCount), "representert", "building-2")
       ]),
-      el("div", { class: "filter-row client-filter-row" }, [search, coachFilter, sortFilter]),
-      results
+      el("section", { class: "panel list-panel main-section main-client-section" }, [
+        el("div", { class: "toolbar main-section-head" }, [
+          el("div", {}, [
+            el("p", { class: "eyebrow", text: "Utviklingsforløp" }),
+            el("h2", { text: "Klientoversikt" }),
+            el("p", { class: "muted", text: "Åpne en klient for å arbeide videre med retning, kompetanser, samtaler og refleksjon." })
+          ]),
+          el("span", { class: "ui-meta", text: `${visibleClients.length} totalt` })
+        ]),
+        el("div", { class: "main-control-bar" }, [
+          el("div", { class: "filter-row client-filter-row" }, [search, coachFilter, sortFilter])
+        ]),
+        results
+      ]),
     ])
   );
   render();
@@ -575,36 +604,47 @@ function renderClients() {
 
 function clientGrid(clients) {
   if (!clients.length) return el("p", { class: "muted", text: "Ingen klienter å vise ennå." });
-  return el("div", { class: "grid three" }, clients.map((client) => {
+  return el("div", { class: "client-list" }, clients.map((client) => {
     const program = state.programSummaries[client.id];
     const canOpen = canOpenClient(client);
     const activated = isClientActivated(client);
     const hasConsent = hasClientConsent(client);
+    const name = client.name || "Uten navn";
+    const nextSession = program?.nextSessionDate ? formatDate(program.nextSessionDate) : "Ikke planlagt";
     return el("button", {
-      class: `card client-card ${canOpen ? "" : "is-locked"}`,
+      class: `client-list-row ${canOpen ? "" : "is-locked"}`,
       disabled: !canOpen,
       title: canOpen ? "Åpne utviklingsplan" : "Kun oversikt. Du er ikke coach for denne klienten.",
       onclick: () => openClientPlan(client)
     }, [
-      el("p", { class: "eyebrow", text: "Klient" }),
-      el("h3", { text: client.name || "Uten navn" }),
-      el("p", { class: "muted", text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" }),
-      el("p", { class: "card-subline", text: coachNames(client) ? `Coach: ${coachNames(client)}` : client.email || "" }),
-      el("div", { class: "meta-row" }, [
-        el("span", { class: `badge ${activated ? "ok" : "warn"}`, text: activated ? "Aktivert" : "Ikke aktivert" }),
-        el("span", { class: `badge ${hasConsent ? "ok" : "warn"}`, text: hasConsent ? "Samtykke gitt" : "Mangler samtykke" }),
-        el("span", { class: "badge", text: program?.sessionCount === 1 ? "1 samtale" : `${program?.sessionCount || 0} samtaler` })
-      ])
+      el("span", { class: "client-list-avatar", text: name.slice(0, 1).toUpperCase() }),
+      el("span", { class: "client-list-primary" }, [
+        el("strong", { text: name }),
+        el("small", { text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" })
+      ]),
+      el("span", { class: "client-list-detail" }, [
+        el("small", { text: "Coach" }),
+        el("strong", { text: coachNames(client) || "Ikke tildelt" })
+      ]),
+      el("span", { class: "client-list-detail" }, [
+        el("small", { text: "Neste samtale" }),
+        el("strong", { text: nextSession })
+      ]),
+      el("span", { class: "client-list-status" }, [
+        el("span", { class: `status-dot ${activated && hasConsent ? "is-ready" : "is-pending"}` }),
+        el("span", { text: activated ? (hasConsent ? "Klar" : "Mangler samtykke") : "Venter på aktivering" }),
+        el("small", { text: program?.sessionCount === 1 ? "1 samtale" : `${program?.sessionCount || 0} samtaler` })
+      ]),
+      icon("chevron-right")
     ]);
   }));
 }
 
 function renderAdmin() {
-  setHeader("Administrasjon", "Team og tilgang", [
+  setHeader("Plattform", "Administrasjon", [
     button("Inviter coach", "user-round-plus", () => openCoachInvite()),
-    button("Inviter klient", "user-plus", () => openClientInvite()),
-    button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
-  ]);
+    button("Inviter klient", "user-plus", () => openClientInvite(), "ghost")
+  ], "Administrer mennesker, tilganger og innhold uten å åpne fortrolig klientarbeid.");
   const coachSearch = el("input", { class: "search", placeholder: "Søk coach" });
   const clientSearch = el("input", { class: "search", placeholder: "Søk klient, coach eller arbeidsgiver" });
   const coachTableSlot = el("div");
@@ -642,9 +682,14 @@ function renderAdmin() {
   ], "name", "Sorter klienter", renderClientsTable);
   coachSearch.addEventListener("input", renderCoaches);
   clientSearch.addEventListener("input", renderClientsTable);
-  $("#content").replaceChildren(
-    el("section", { class: "panel list-panel" }, [
-      el("div", { class: "toolbar" }, [
+  $("#content").replaceChildren(el("main", { class: "main-area admin-area" }, [
+    el("section", { class: "main-summary-strip", "aria-label": "Administrasjonsoversikt" }, [
+      mainStat("Coacher", String(state.coaches.length), "med plattformtilgang", "user-round-check"),
+      mainStat("Klienter", String(state.clients.length), "registrert", "users"),
+      mainStat("Tilgang", "Rollebasert", "fortrolig innhold er skjermet", "shield-check")
+    ]),
+    el("section", { class: "panel list-panel main-section admin-section" }, [
+      el("div", { class: "toolbar main-section-head" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Team" }), el("h3", { text: "Coacher" })]),
         el("div", { class: "toolbar-actions" }, [
           button("Inviter coach", "mail-plus", () => openCoachInvite(), "ghost")
@@ -653,8 +698,8 @@ function renderAdmin() {
       el("div", { class: "filter-row admin-filter-row" }, [coachSearch]),
       coachTableSlot
     ]),
-    el("section", { class: "panel list-panel" }, [
-      el("div", { class: "toolbar" }, [
+    el("section", { class: "panel list-panel main-section admin-section" }, [
+      el("div", { class: "toolbar main-section-head" }, [
         el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })]),
         el("div", { class: "toolbar-actions" }, [
           button("Inviter klient", "mail-plus", () => openClientInvite(), "ghost")
@@ -665,7 +710,7 @@ function renderAdmin() {
       clientTableSlot
     ]),
     resourceAdminSlot
-  );
+  ]));
   renderCoaches();
   renderClientsTable();
   renderResourceAdminSection(resourceAdminSlot);
@@ -693,8 +738,8 @@ function actionGroup(actions) {
 }
 
 async function renderResourceAdminSection(slot) {
-  slot.replaceChildren(el("section", { class: "panel list-panel" }, [
-    el("div", { class: "toolbar" }, [
+  slot.replaceChildren(el("section", { class: "panel list-panel main-section admin-section" }, [
+    el("div", { class: "toolbar main-section-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fagbibliotek" }),
         el("h3", { text: "Ressurser" }),
@@ -766,8 +811,8 @@ async function renderResourceAdminSection(slot) {
   };
 
   search.addEventListener("input", renderTable);
-  slot.replaceChildren(el("section", { class: "panel list-panel" }, [
-    el("div", { class: "toolbar" }, [
+  slot.replaceChildren(el("section", { class: "panel list-panel main-section admin-section" }, [
+    el("div", { class: "toolbar main-section-head" }, [
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fagbibliotek" }),
         el("h3", { text: "Ressurser" }),
@@ -1544,7 +1589,12 @@ async function renderResources() {
     return;
   }
 
-  setHeader("Ressursbibliotek", "Ressurser", []);
+  setHeader(
+    "Fagbibliotek",
+    "Ressurser",
+    [],
+    "Finn, vurder og del faglige ressurser som støtter arbeidet mellom samtalene."
+  );
   const content = $("#content");
   content.replaceChildren(el("section", { class: "panel empty-state" }, [
     el("p", { class: "eyebrow", text: "Ressurser" }),
@@ -1647,20 +1697,23 @@ async function renderResources() {
 
   search.addEventListener("input", render);
 
-  content.replaceChildren(el("section", { class: "resource-library" }, [
-    el("div", { class: "resource-library-head" }, [
+  content.replaceChildren(el("main", { class: "main-area resources-area" }, [
+    el("section", { class: "resource-library main-section" }, [
+    el("div", { class: "resource-library-head main-section-head" }, [
       el("div", {}, [
-        el("p", { class: "eyebrow", text: "Pilot" }),
-        el("h3", { text: "Bibliotek for coach" }),
-        el("p", { class: "muted", text: "Finn, vurder og send ressurser som støtte i coachingarbeidet." })
+        el("p", { class: "eyebrow", text: "Publisert innhold" }),
+        el("h2", { text: "Bibliotek" }),
+        el("p", { class: "muted", text: `${resources.length} ressurser tilgjengelig for vurdering og deling.` })
       ])
     ]),
-    el("div", { class: "filter-row resource-filter-row" }, [search, phaseFilter, typeFilter]),
+    el("div", { class: "main-control-bar" }, [
+      el("div", { class: "filter-row resource-filter-row" }, [search, phaseFilter, typeFilter])
+    ]),
     el("div", { class: "resource-library-grid" }, [
       el("aside", { class: "resource-library-list-panel" }, [listSlot]),
       previewSlot
     ])
-  ]));
+  ])]));
   render();
 }
 
@@ -1673,7 +1726,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-90")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-91")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1697,7 +1750,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-90")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-91")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
