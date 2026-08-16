@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-89";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-96";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -131,7 +131,7 @@ export function createResourceCard(resource, options = {}) {
 }
 
 export function createResourcePreview(resource, options = {}) {
-  const { createElement, primaryAction = null, onOpenFile = null } = options;
+  const { createElement, primaryAction = null, onOpenFile = null, audience = "coach" } = options;
   requireCreateElement(createElement);
   const files = visibleResourceFiles(resource || {});
 
@@ -163,16 +163,29 @@ export function createResourcePreview(resource, options = {}) {
         ]) : null
       ])
     ]),
-    createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
-      createElement("h4", { text: "Hva ressursen skal hjelpe med" }),
-      ...paragraphs(createElement, "", resource.intended_outcome, "Ikke definert ennå.")
-    ]),
-    listSection(createElement, "Best brukt når", resource.best_used_when || []),
-    listSection(createElement, "Ikke egnet når", resource.not_for || []),
-    createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
-      createElement("h4", { text: "Veiledning til coach" }),
-      ...paragraphs(createElement, "", resource.coach_guidance, "Ingen veiledning lagt inn ennå.")
-    ]),
+    audience === "coach" ? createElement("details", { class: "resource-coach-guidance", open: true }, [
+      createElement("summary", {}, [
+        createElement("span", {}, [
+          createElement("strong", { text: "Før du deler" }),
+          createElement("small", { text: "Vurdering og veiledning for coach" })
+        ])
+      ]),
+      createElement("div", { class: "resource-coach-guidance-grid" }, [
+        createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
+          createElement("h4", { text: "Hva ressursen skal hjelpe med" }),
+          ...paragraphs(createElement, "", resource.intended_outcome, "Ikke definert ennå.")
+        ]),
+        listSection(createElement, "Best brukt når", resource.best_used_when || []),
+        listSection(createElement, "Ikke egnet når", resource.not_for || []),
+        createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
+          createElement("h4", { text: "Veiledning til coach" }),
+          ...paragraphs(createElement, "", resource.coach_guidance, "Ingen veiledning lagt inn ennå.")
+        ])
+      ].filter(Boolean))
+    ]) : null,
+    audience === "coach" ? createElement("div", { class: "resource-client-preview-label" }, [
+      createElement("span", { text: "Dette ser klienten" })
+    ]) : null,
     createElement("section", { class: "resource-preview-section" }, [
       createElement("h4", { text: "Innhold" }),
       createElement("div", { class: "resource-content" }, renderResourceContentBlocks(resource.content_json || [], {
@@ -193,7 +206,15 @@ export function createResourcePreview(resource, options = {}) {
           }, [createElement("span", { text: fileActionLabel(file) })]) : createElement("small", { text: file.storage_path })
         ])
       )))
-    ]) : null
+    ]) : null,
+    resource.next_step_prompt ? createElement("section", { class: "resource-next-step" }, [
+      createElement("span", { class: "resource-next-step-icon", text: "→" }),
+      createElement("div", {}, [
+        createElement("strong", { text: "Neste steg" }),
+        ...paragraphs(createElement, "", resource.next_step_prompt)
+      ])
+    ]) : null,
+    (resource.reflection_prompts || []).length ? listSection(createElement, "Tenk videre", resource.reflection_prompts) : null
   ].filter(Boolean));
 }
 
@@ -206,6 +227,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
     createElement,
     onOpen,
     renderSelected,
+    createIcon = null,
     selectedId = null,
     emptyTitle = "Ingen ressurser fra coach ennå",
     emptyText = "Når coachen sender en ressurs, vises den her."
@@ -248,7 +270,9 @@ export function createClientResourceList(sharedResources = [], options = {}) {
             createSharedResourceStatus(sharedResource.status, { createElement })
           ].filter(Boolean))
         ].filter(Boolean)),
-        createElement("span", { class: "client-resource-action", text: selected ? "Lukk" : "Åpne" })
+        createElement("span", { class: "client-resource-action", title: selected ? "Valgt ressurs" : "Åpne ressurs" }, [
+          createIcon ? createIcon("chevron-right") : createElement("span", { text: "›" })
+        ])
       ].filter(Boolean)),
       selected && typeof renderSelected === "function" ? renderSelected(sharedResource) : null
     ].filter(Boolean));
@@ -328,6 +352,14 @@ export function createClientResourceView(sharedResource, options = {}) {
         }, [createElement("span", { text: fileActionLabel(file) })]) : null
       ])))
     ]) : null,
+    resource.next_step_prompt ? createElement("section", { class: "resource-next-step" }, [
+      createElement("span", { class: "resource-next-step-icon", text: "→" }),
+      createElement("div", {}, [
+        createElement("strong", { text: "Neste steg" }),
+        ...paragraphs(createElement, "", resource.next_step_prompt)
+      ])
+    ]) : null,
+    (resource.reflection_prompts || []).length ? listSection(createElement, "Spørsmål å tenke videre på", resource.reflection_prompts) : null,
     createElement("section", { class: "resource-preview-section client-resource-response" }, [
       createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
       privateResponse ? createElement("p", { class: "muted", text: "Klienten har lagret en privat refleksjon som ikke er delt med coach." }) : note,

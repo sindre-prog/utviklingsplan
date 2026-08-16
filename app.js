@@ -774,7 +774,7 @@ async function renderResourceAdminSection(slot) {
   }
 
   const search = el("input", { class: "search", placeholder: "Søk ressurs, type eller tag" });
-  const tableSlot = el("div");
+  const tableSlot = el("div", { class: "resource-admin-list" });
   const statusFilter = filterMenu([
     { value: "all", label: "Alle statuser" },
     { value: "draft", label: "Utkast" },
@@ -797,18 +797,43 @@ async function renderResourceAdminSection(slot) {
       ].filter(Boolean).join(" ").toLowerCase();
       return matchesStatus && (!query || haystack.includes(query));
     });
-    tableSlot.replaceChildren(adminTable("Ressurser", ["Tittel", "Type", "Fase", "Status", "Tags", ""], filtered.map((resource) => [
-      resource.title || "-",
-      resourceLabel(RESOURCE_TYPE_OPTIONS, resource.type),
-      resourceLabel(RESOURCE_PHASE_OPTIONS, resource.phase),
-      resourceLabel(RESOURCE_STATUS_OPTIONS, resource.status),
-      (resource.tags || []).join(", ") || "-",
-      actionGroup([
-        ...(resource.status === "draft" ? [["Publiser", () => publishResource(resource)]] : []),
-        ["Rediger", () => openResourceAdminEditor(resource)],
-        [resource.status === "archived" ? "Reaktiver" : "Arkiver", () => toggleResourceArchive(resource)]
-      ])
-    ])));
+    tableSlot.replaceChildren(...(filtered.length ? filtered.map((resource) => {
+      const readiness = resourceReadinessItems(resource);
+      const missing = readiness.filter((item) => item.group === "minimum" && !item.done).length;
+      const statusLabel = resourceLabel(RESOURCE_STATUS_OPTIONS, resource.status);
+      return el("article", { class: `resource-admin-row status-${resource.status || "draft"}` }, [
+        el("button", { class: "resource-admin-row-main", type: "button", onclick: () => openResourceAdminEditor(resource) }, [
+          el("span", { class: "resource-admin-row-icon" }, [icon(resource.type === "worksheet" ? "clipboard-list" : "book-open")]),
+          el("span", { class: "resource-admin-row-copy" }, [
+            el("span", { class: "resource-admin-row-title", text: resource.title || "Uten tittel" }),
+            el("span", { class: "resource-admin-row-summary", text: resource.summary || "Kort beskrivelse mangler." }),
+            el("span", { class: "resource-admin-row-meta" }, [
+              el("span", { class: `resource-status-pill status-${resource.status || "draft"}`, text: statusLabel }),
+              el("span", { text: resourceLabel(RESOURCE_TYPE_OPTIONS, resource.type) }),
+              el("span", { text: resourceLabel(RESOURCE_PHASE_OPTIONS, resource.phase) })
+            ])
+          ]),
+          el("span", { class: `resource-readiness-compact ${missing ? "is-missing" : "is-ready"}` }, [
+            icon(missing ? "circle-alert" : "circle-check"),
+            el("span", { text: missing ? `${missing} obligatoriske felt mangler` : "Klar til publisering" })
+          ]),
+          icon("chevron-right")
+        ]),
+        el("div", { class: "resource-admin-row-actions" }, [
+          ...(resource.status === "draft" ? [button("Publiser", "send", () => publishResource(resource), "secondary")] : []),
+          el("button", {
+            class: "icon-button",
+            type: "button",
+            title: resource.status === "archived" ? "Reaktiver" : "Arkiver",
+            onclick: () => toggleResourceArchive(resource)
+          }, [icon(resource.status === "archived" ? "rotate-ccw" : "archive")])
+        ])
+      ]);
+    }) : [el("section", { class: "empty-state resource-admin-empty" }, [
+      el("h3", { text: "Ingen ressurser funnet" }),
+      el("p", { class: "muted", text: "Prøv et annet søk eller en annen status." })
+    ])]));
+    refreshIcons();
   };
 
   search.addEventListener("input", renderTable);
@@ -817,7 +842,7 @@ async function renderResourceAdminSection(slot) {
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fagbibliotek" }),
         el("h3", { text: "Ressurser" }),
-        el("p", { class: "muted", text: "Administrer pilotressurser, innholdsblokker, bilder og filer. Publiserte ressurser vises i Ressurser." })
+        el("p", { class: "muted", text: "Opprett, kvalitetssikre og publiser innhold som coacher kan dele med klienter." })
       ]),
       button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
     ]),
@@ -1164,7 +1189,11 @@ function createResourceAdminPreview(library, getResourceDraft) {
   const previewSlot = el("div", { class: "resource-admin-preview-slot" });
   const renderPreview = () => {
     try {
-      previewSlot.replaceChildren(library.createResourcePreview(getResourceDraft(), { createElement: el, onOpenFile: openResourceFile }));
+      previewSlot.replaceChildren(library.createResourcePreview(getResourceDraft(), {
+        createElement: el,
+        onOpenFile: openResourceFile,
+        audience: "client"
+      }));
       hydrateResourceMedia(previewSlot);
       refreshIcons();
     } catch (error) {
@@ -1174,17 +1203,32 @@ function createResourceAdminPreview(library, getResourceDraft) {
   const wrapper = el("section", { class: "resource-admin-preview" }, [
     el("div", { class: "resource-admin-preview-head" }, [
       el("div", {}, [
-        el("strong", { text: "Forhåndsvisning" }),
-        el("p", { text: "Viser omtrent hvordan ressursen leses i biblioteket." })
+        el("strong", { text: "Dette ser klienten" }),
+        el("p", { text: "Forhåndsvisningen oppdateres mens du skriver." })
       ]),
       el("button", { class: "button secondary", type: "button", onclick: renderPreview }, [
         icon("refresh-cw"),
-        el("span", { text: "Oppdater preview" })
+        el("span", { text: "Oppdater" })
       ])
     ]),
     previewSlot
   ]);
-  setTimeout(renderPreview, 0);
+  setTimeout(() => {
+    let timer = null;
+    const schedulePreview = () => {
+      clearTimeout(timer);
+      timer = setTimeout(renderPreview, 180);
+    };
+    const form = $("#drawer-form");
+    if (form?._resourcePreviewHandler) {
+      form.removeEventListener("input", form._resourcePreviewHandler);
+      form.removeEventListener("change", form._resourcePreviewHandler);
+    }
+    if (form) form._resourcePreviewHandler = schedulePreview;
+    form?.addEventListener("input", schedulePreview);
+    form?.addEventListener("change", schedulePreview);
+    renderPreview();
+  }, 0);
   return wrapper;
 }
 
@@ -1393,8 +1437,14 @@ function createResourceReadinessPanel(getDraftResource) {
     }
   };
   setTimeout(() => {
-    $("#drawer-form")?.addEventListener("input", refresh);
-    $("#drawer-form")?.addEventListener("change", refresh);
+    const form = $("#drawer-form");
+    if (form?._resourceReadinessHandler) {
+      form.removeEventListener("input", form._resourceReadinessHandler);
+      form.removeEventListener("change", form._resourceReadinessHandler);
+    }
+    if (form) form._resourceReadinessHandler = refresh;
+    form?.addEventListener("input", refresh);
+    form?.addEventListener("change", refresh);
     refresh();
   }, 0);
   return panel;
@@ -1406,7 +1456,6 @@ function parseResourceAdminPayload(values, currentResource = null, options = {})
   const slug = (values.slug.trim() || resourceSlug(title));
   if (!title) throw new Error("Tittel må fylles ut.");
   if (!slug) throw new Error("Slug må fylles ut.");
-  if (!values.summary.trim()) throw new Error("Summary må fylles ut.");
 
   const estimatedDuration = values.estimated_duration ? Number(values.estimated_duration) : null;
   if (estimatedDuration !== null && (!Number.isInteger(estimatedDuration) || estimatedDuration <= 0)) {
@@ -1498,47 +1547,86 @@ async function openResourceAdminEditor(resource = null) {
     onChange: () => {}
   });
 
-  specs = [
-    sectionSpec("Grunninfo", "Start med det coach og klient faktisk ser først."),
-    inputSpec("title", "Tittel", "text", resource?.title || ""),
-    textareaSpec("summary", "Kort beskrivelse", resource?.summary || "", { rows: "3" }),
-    inputSpec("slug", "Slug", "text", resource?.slug || "", { placeholder: "genereres fra tittel hvis tom" }),
-    sectionSpec("Innhold og filer", "Bygg ressursen med lesbare blokker, refleksjon og relevante filer."),
-    customSpec("content_json", blockEditor),
-    textareaSpec("next_step_prompt", "Neste steg", resource?.next_step_prompt || "", { rows: "2" }),
-    customSpec("resource_files", createResourceFileManager(resource, library, { onFilesChange: refreshBlocks })),
-    customSpec("resource_preview", createResourceAdminPreview(library, getDraftResource)),
-    sectionSpec("Bruk i coaching", "Hjelper coachen å velge riktig ressurs og bruke den presist."),
-    textareaSpec("intended_outcome", "Hva ressursen skal hjelpe med", resource?.intended_outcome || "", { rows: "3" }),
-    textareaSpec("best_used_when", "Best brukt når", (resource?.best_used_when || []).join("\n"), { rows: "4" }),
-    textareaSpec("not_for", "Ikke egnet når", (resource?.not_for || []).join("\n"), { rows: "4" }),
-    textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" }),
-    textareaSpec("client_intro", "Intro til klient", resource?.client_intro || "", { rows: "4" }),
-    textareaSpec("suggested_coach_note", "Forslag til melding når ressursen sendes", resource?.suggested_coach_note || "", { rows: "3", placeholder: "Prefylles i Send ressurs. Coach kan redigere før klienten ser teksten." }),
-    customSpec("resource_readiness", createResourceReadinessPanel(getDraftResource)),
-    sectionSpec("Publisering og metadata", "Velg hvordan ressursen skal finnes og brukes i coachingflyten."),
-    selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework"),
-    selectSpec("format", "Format", RESOURCE_FORMAT_OPTIONS, resource?.format || "native"),
-    selectSpec("phase", "Fase", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection"),
-    inputSpec("estimated_duration", "Varighet i minutter", "number", resource?.estimated_duration || "", { min: "1" }),
-    selectSpec("difficulty", "Vanskelighetsgrad", RESOURCE_DIFFICULTY_OPTIONS, resource?.difficulty || ""),
-    checkboxGroupSpec("default_context_types", "Kan knyttes til", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"]),
-    selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "draft"),
-    selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable"),
-    selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft"),
-    inputSpec("language", "Språk", "text", resource?.language || "no"),
-    textareaSpec("basis", "Faglig grunnlag", resource?.basis || "", { rows: "3" }),
-    inputSpec("reviewed_by", "Vurdert av", "text", resource?.reviewed_by || ""),
-    inputSpec("last_reviewed_at", "Sist vurdert", "date", resource?.last_reviewed_at || ""),
-    textareaSpec("tags", "Tags", (resource?.tags || []).join(", "), { rows: "2" }),
-    ...(duplicateAction ? [customSpec("resource_actions", duplicateAction)] : [])
+  const fieldNames = [
+    "title", "summary", "slug", "content_json", "next_step_prompt", "reflection_prompts",
+    "intended_outcome", "best_used_when", "not_for", "coach_guidance", "client_intro",
+    "suggested_coach_note", "type", "format", "phase", "estimated_duration", "difficulty",
+    "default_context_types", "status", "visibility", "review_status", "language", "basis",
+    "reviewed_by", "last_reviewed_at", "tags"
   ];
+  const editorSection = (title, text, fields, options = {}) => {
+    const body = el("div", { class: "resource-editor-section-body" }, fields.map((field) => field instanceof Node ? field : renderSpec(field)));
+    if (options.collapsible) {
+      return el("details", { class: "resource-editor-section resource-editor-section--details", open: options.open }, [
+        el("summary", {}, [
+          el("span", {}, [el("strong", { text: title }), el("small", { text })]),
+          icon("chevron-down")
+        ]),
+        body
+      ]);
+    }
+    return el("section", { class: "resource-editor-section" }, [
+      el("div", { class: "resource-editor-section-head" }, [el("strong", { text: title }), el("p", { text })]),
+      body
+    ]);
+  };
+  const editorMain = el("div", { class: "resource-editor-main" }, [
+    createResourceReadinessPanel(getDraftResource),
+    editorSection("Det klienten ser", "Gi ressursen en tydelig inngang og et konkret neste steg.", [
+      inputSpec("title", "Tittel", "text", resource?.title || ""),
+      textareaSpec("summary", "Kort beskrivelse", resource?.summary || "", { rows: "2", placeholder: "Én kort setning som gjør ressursen lett å velge." }),
+      textareaSpec("client_intro", "Introduksjon til klient", resource?.client_intro || "", { rows: "3", placeholder: "Hvorfor er dette relevant, og hvordan bør ressursen brukes?" }),
+      textareaSpec("next_step_prompt", "Anbefalt neste steg", resource?.next_step_prompt || "", { rows: "2", placeholder: "Hva bør klienten gjøre etter å ha lest?" }),
+      textareaSpec("reflection_prompts", "Refleksjonsspørsmål", (resource?.reflection_prompts || []).join("\n"), { rows: "3", placeholder: "Ett spørsmål per linje" })
+    ]),
+    editorSection("Innhold", "Bygg opp leseflyten med korte, tydelige innholdsblokker.", [
+      customSpec("content_json", blockEditor),
+      customSpec("resource_files", createResourceFileManager(resource, library, { onFilesChange: refreshBlocks }))
+    ]),
+    editorSection("Bruk i coaching", "Dette er arbeidsinformasjon for coachen og vises ikke til klienten.", [
+      textareaSpec("intended_outcome", "Hva ressursen skal hjelpe med", resource?.intended_outcome || "", { rows: "3" }),
+      textareaSpec("best_used_when", "Best brukt når", (resource?.best_used_when || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" }),
+      textareaSpec("not_for", "Ikke egnet når", (resource?.not_for || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" }),
+      textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" }),
+      textareaSpec("suggested_coach_note", "Forslag til sendemelding", resource?.suggested_coach_note || "", { rows: "3", placeholder: "Coachen kan redigere teksten før sending." })
+    ], { collapsible: true, open: true }),
+    editorSection("Publisering og metadata", "Brukes til filtrering, kvalitetssikring og synlighet.", [
+      el("div", { class: "resource-editor-field-grid" }, [
+        renderSpec(selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework")),
+        renderSpec(selectSpec("phase", "Fase", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection")),
+        renderSpec(selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "draft")),
+        renderSpec(selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable")),
+        renderSpec(inputSpec("estimated_duration", "Varighet i minutter", "number", resource?.estimated_duration || "", { min: "1" })),
+        renderSpec(selectSpec("difficulty", "Vanskelighetsgrad", RESOURCE_DIFFICULTY_OPTIONS, resource?.difficulty || ""))
+      ]),
+      checkboxGroupSpec("default_context_types", "Kan knyttes til", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"]),
+      textareaSpec("tags", "Tags", (resource?.tags || []).join(", "), { rows: "2" }),
+      el("div", { class: "resource-editor-field-grid" }, [
+        renderSpec(selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft")),
+        renderSpec(inputSpec("reviewed_by", "Vurdert av", "text", resource?.reviewed_by || "")),
+        renderSpec(inputSpec("last_reviewed_at", "Sist vurdert", "date", resource?.last_reviewed_at || "")),
+        renderSpec(inputSpec("language", "Språk", "text", resource?.language || "no"))
+      ]),
+      textareaSpec("basis", "Faglig grunnlag", resource?.basis || "", { rows: "3" }),
+      inputSpec("slug", "Slug", "text", resource?.slug || "", { placeholder: "Genereres automatisk fra tittelen" }),
+      el("input", { type: "hidden", name: "format", value: resource?.format || "native" })
+    ], { collapsible: true }),
+    duplicateAction
+  ].filter(Boolean));
+  const editorWorkspace = el("div", { class: "resource-editor-workspace" }, [
+    editorMain,
+    el("aside", { class: "resource-editor-preview" }, [createResourceAdminPreview(library, getDraftResource)])
+  ]);
+  specs = [customSpec(fieldNames, editorWorkspace)];
   openEntityDrawer(isNew ? "Ny ressurs" : resource.title, "Fagbibliotek", specs, async (values) => {
     const payload = parseResourceAdminPayload(values, resource);
     if (isNew) await library.createResource(state.sb, payload);
     else await library.updateResource(state.sb, resource.id, payload);
     await renderAdmin();
-  }, resource?.id ? {
+  }, {
+    panelClass: "resource-editor-drawer",
+    saveLabel: isNew || resource?.status === "draft" ? "Lagre utkast" : "Lagre endringer",
+    ...(resource?.id ? {
     dangerLabel: resource.status === "archived" ? "Reaktiver" : "Arkiver",
     onDanger: async () => {
       if (resource.status === "archived") await library.reactivateResource(state.sb, resource.id, "draft");
@@ -1546,7 +1634,8 @@ async function openResourceAdminEditor(resource = null) {
       await renderAdmin();
       return true;
     }
-  } : {});
+    } : {})
+  });
 }
 
 async function publishResource(resource) {
@@ -1633,6 +1722,14 @@ async function renderResources() {
   const search = el("input", { class: "search", placeholder: "Søk etter tema, ressurs eller tag" });
   const listSlot = el("div", { class: "resource-list" });
   const previewSlot = el("div", { class: "resource-preview-slot" });
+  const mobilePicker = el("select", {
+    class: "resource-mobile-picker",
+    "aria-label": "Velg ressurs",
+    onchange: (event) => {
+      const resource = resources.find((item) => item.slug === event.target.value);
+      if (resource) selectResource(resource);
+    }
+  });
 
   const phaseFilter = filterMenu([
     { value: "all", label: "Alle faser" },
@@ -1666,6 +1763,11 @@ async function renderResources() {
       state.selectedResourceSlug = filtered[0]?.slug || resources[0]?.slug || null;
     }
     const selected = resources.find((resource) => resource.slug === state.selectedResourceSlug) || filtered[0] || null;
+    mobilePicker.replaceChildren(...filtered.map((resource) => el("option", {
+      value: resource.slug,
+      text: resource.title,
+      selected: selected?.slug === resource.slug
+    })));
     listSlot.replaceChildren(
       filtered.length
         ? el("div", { class: "resource-card-list" }, filtered.map((resource) => library.createResourceCard(resource, {
@@ -1708,7 +1810,7 @@ async function renderResources() {
       ])
     ]),
     el("div", { class: "main-control-bar" }, [
-      el("div", { class: "filter-row resource-filter-row" }, [search, phaseFilter, typeFilter])
+      el("div", { class: "filter-row resource-filter-row" }, [search, phaseFilter, typeFilter, mobilePicker])
     ]),
     el("div", { class: "resource-library-grid" }, [
       el("aside", { class: "resource-library-list-panel" }, [listSlot]),
@@ -1727,7 +1829,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-91")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-96")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1778,16 +1880,29 @@ function openSendResourceDrawer(resource) {
     return;
   }
 
-  openEntityDrawer(`Send ${resource.title}`, "Ressurs", [
+  const resourceSummary = el("section", { class: "send-resource-summary" }, [
+    el("span", { class: "send-resource-summary-icon" }, [icon("book-open")]),
+    el("div", {}, [
+      el("span", { class: "eyebrow", text: "Ressursen klienten mottar" }),
+      el("strong", { text: resource.title }),
+      el("p", { text: resource.client_intro || resource.summary || "" })
+    ])
+  ]);
+  openEntityDrawer(`Del ressurs`, "Fagbibliotek", [
+    customSpec("send_resource_summary", resourceSummary),
     customSpec("send_resource_basis", createSendResourceBasis(resource)),
-    sectionSpec("Send ressurs", "Velg klient, kontekst og en kort melding. Ressursen legges i klientens coachingforløp."),
+    sectionSpec("Mottaker og plassering", "Velg hvem som skal få ressursen og hvor den hører hjemme i forløpet."),
     selectSpec("clientId", "Klient", clients.map((client) => [client.id, client.name || client.email || "Uten navn"]), clients[0]?.id || ""),
     customSpec(["contextType", "contextId"], createResourceContextPicker(resource, clients)),
-    textareaSpec("coachNote", "Melding til klient", resource.suggested_coach_note || "", {
+    sectionSpec("Personlig melding", "Forklar kort hvorfor du sender ressursen. Denne teksten vises tydelig for klienten."),
+    textareaSpec("coachNote", "Melding fra deg", resource.suggested_coach_note || "", {
       placeholder: "Skriv kort hvorfor du sender ressursen, og hva klienten bør bruke den til."
     })
   ], async (values) => {
     await sendResourceToClient(resource, values);
+  }, {
+    panelClass: "send-resource-drawer",
+    saveLabel: "Send ressurs"
   });
 }
 
@@ -1797,16 +1912,20 @@ function createSendResourceBasis(resource) {
     el("ul", {}, items.map((item) => el("li", { text: item })))
   ]) : null;
 
-  return el("section", { class: "resource-admin-helper-card send-resource-basis" }, [
-    el("strong", { text: "Vurder før sending" }),
-    resource.intended_outcome ? el("p", { text: resource.intended_outcome }) : null,
-    list("Best brukt når", resource.best_used_when || []),
-    list("Ikke egnet når", resource.not_for || []),
-    resource.suggested_coach_note ? el("div", { class: "send-resource-suggested-note" }, [
-      el("strong", { text: "Forslag til sendemelding" }),
-      el("p", { text: resource.suggested_coach_note })
-    ]) : null
-  ].filter(Boolean));
+  return el("details", { class: "send-resource-basis" }, [
+    el("summary", {}, [
+      el("span", {}, [
+        el("strong", { text: "Vurdering for coach" }),
+        el("small", { text: "Når ressursen passer og ikke passer" })
+      ]),
+      icon("chevron-down")
+    ]),
+    el("div", { class: "send-resource-basis-body" }, [
+      resource.intended_outcome ? el("p", { text: resource.intended_outcome }) : null,
+      list("Best brukt når", resource.best_used_when || []),
+      list("Ikke egnet når", resource.not_for || [])
+    ].filter(Boolean))
+  ]);
 }
 
 function resourceDefaultContextTypes(resource) {
@@ -3906,6 +4025,44 @@ function resourcesFromCoachSection(data, canWriteReflection) {
   const section = el("section", { class: "client-resources-section" });
   const renderSection = () => {
     const selected = sharedResources.find((item) => item.id === state.selectedSharedResourceId) || null;
+    const mobilePicker = el("select", {
+      class: "client-resource-picker",
+      "aria-label": "Velg ressurs",
+      onchange: (event) => {
+        const next = sharedResources.find((item) => item.id === event.target.value);
+        if (next && next.id !== state.selectedSharedResourceId) openSharedResource(next, canWriteReflection, renderSection);
+      }
+    }, [
+      el("option", { value: "", text: "Velg ressurs", selected: !selected }),
+      ...sharedResources.map((item) => el("option", {
+        value: item.id,
+        text: item.resource?.title || "Ressurs",
+        selected: selected?.id === item.id
+      }))
+    ]);
+    const list = library.createClientResourceList(sharedResources, {
+      createElement: el,
+      createIcon: icon,
+      selectedId: selected?.id || null,
+      onOpen: (sharedResource) => openSharedResource(sharedResource, canWriteReflection, renderSection),
+      emptyText: canWriteReflection
+        ? "Når coachen sender en ressurs, vises den her."
+        : "Ingen ressurser er sendt i dette forløpet ennå."
+    });
+    const detail = selected ? library.createClientResourceView(selected, {
+      createElement: el,
+      readOnly: !canWriteReflection,
+      onOpenFile: openResourceFile,
+      onSave: (resource, values) => saveSharedResourceReflection(resource, values, renderSection)
+    }) : el("section", { class: "client-resource-detail-empty" }, [
+      el("span", { class: "client-resource-detail-empty-icon" }, [icon("book-open")]),
+      el("div", {}, [
+        el("h3", { text: sharedResources.length ? "Velg en ressurs" : "Ingen ressurser ennå" }),
+        el("p", { class: "muted", text: sharedResources.length
+          ? "Velg fra listen for å lese innholdet og arbeide videre."
+          : canWriteReflection ? "Når coachen deler noe med deg, samles det her." : "Ingen ressurser er sendt i dette forløpet." })
+      ])
+    ]);
     section.replaceChildren(
       el("div", { class: "client-resources-head" }, [
         el("div", {}, [
@@ -3917,24 +4074,11 @@ function resourcesFromCoachSection(data, canWriteReflection) {
         ]),
         el("span", { class: "resource-count", text: String(sharedResources.length) })
       ]),
-      library.createClientResourceList(sharedResources, {
-        createElement: el,
-        selectedId: selected?.id || null,
-        onOpen: (sharedResource) => openSharedResource(sharedResource, canWriteReflection, renderSection),
-        renderSelected: (sharedResource) => library.createClientResourceView(sharedResource, {
-          createElement: el,
-          readOnly: !canWriteReflection,
-          onOpenFile: openResourceFile,
-          onClose: () => {
-            state.selectedSharedResourceId = null;
-            renderSection();
-          },
-          onSave: (resource, values) => saveSharedResourceReflection(resource, values, renderSection)
-        }),
-        emptyText: canWriteReflection
-          ? "Når coachen sender en ressurs, vises den her."
-          : "Ingen ressurser er sendt i dette forløpet ennå."
-      })
+      mobilePicker,
+      el("div", { class: "client-resource-workbench" }, [
+        el("aside", { class: "client-resource-rail" }, [list]),
+        el("div", { class: "client-resource-detail" }, [detail])
+      ])
     );
     hydrateResourceMedia(section);
   };
@@ -3944,12 +4088,6 @@ function resourcesFromCoachSection(data, canWriteReflection) {
 }
 
 async function openSharedResource(sharedResource, canWriteReflection, renderSection = null) {
-  if (state.selectedSharedResourceId === sharedResource.id) {
-    state.selectedSharedResourceId = null;
-    renderSection?.();
-    return;
-  }
-
   state.selectedSharedResourceId = sharedResource.id;
   renderSection?.();
 
@@ -4774,10 +4912,14 @@ function openEntityModal(title, kicker, specs, onSave, options = {}) {
 
 function openEntityDrawer(title, kicker, specs, onSave, options = {}) {
   state.drawer = { specs, onSave, ...options };
+  const drawerPanel = $("#drawer-form");
+  drawerPanel.className = `drawer-panel ${options.panelClass || ""}`.trim();
   $("#drawer-title").textContent = title;
   $("#drawer-kicker").textContent = kicker;
   $("#drawer-message").textContent = "";
   $("#drawer-fields").replaceChildren(...specs.map(renderSpec));
+  const saveLabel = $("#drawer-save span");
+  if (saveLabel) saveLabel.textContent = options.saveLabel || "Lagre";
   const dangerSlot = $("#drawer-danger-slot");
   if (dangerSlot) {
     if (options.onDanger) {
@@ -4791,6 +4933,7 @@ function openEntityDrawer(title, kicker, specs, onSave, options = {}) {
   }
   $("#entity-drawer").showModal();
   refreshIcons();
+  if (typeof options.afterOpen === "function") requestAnimationFrame(options.afterOpen);
 }
 
 function inputSpec(name, label, type = "text", value = "", attrs = {}) {
@@ -4870,8 +5013,13 @@ function collectSpecValues(specs, form) {
     if (spec.kind === "custom") {
       if (Array.isArray(spec.names)) {
         spec.names.forEach((name) => {
-          const control = $(`[name='${name}']`, form);
-          if (control) values[name] = control.value.trim();
+          const controls = $$(`[name='${name}']`, form);
+          if (!controls.length) return;
+          if (controls.some((control) => control.type === "checkbox")) {
+            values[name] = controls.filter((control) => control.checked).map((control) => control.value);
+          } else {
+            values[name] = controls[0].value.trim();
+          }
         });
         return;
       }
