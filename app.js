@@ -2711,35 +2711,25 @@ function leadershipDetail(item, data, editable) {
       ]),
       editable ? iconAction("Fjern kompetanse", "trash-2", () => removeLeadershipCompetency(item), "danger") : null
     ].filter(Boolean)),
-    el("section", { class: "competency-next-step" }, [
-      el("span", { class: "competency-next-icon", "aria-hidden": "true" }, [icon(completion.count === completion.total ? "circle-check" : "arrow-right")]),
-      el("div", {}, [
-        el("span", { class: "workspace-kicker", text: completion.count === completion.total ? "Planen er klar" : "Anbefalt neste steg" }),
-        el("strong", { text: nextLabel })
-      ]),
-      editable ? el("button", { class: "ui-button ui-button-filled", type: "button", text: completion.count === completion.total ? "Åpne" : "Fortsett", onclick: nextHandler }) : null
-    ].filter(Boolean)),
-    el("section", { class: "competency-plan" }, [
-      el("header", { class: "competency-plan-head" }, [
-        el("div", {}, [
-          el("h4", { text: "Din utviklingsplan" }),
-          el("p", { text: "Gjør kompetansen konkret nok til å kunne øves på i arbeidshverdagen." })
-        ]),
-        el("div", { class: "competency-progress-copy" }, [
-          el("strong", { text: `${completion.count} av ${completion.total}` }),
-          el("span", { text: "avklart" })
-        ])
-      ]),
-      el("div", { class: "competency-progress-track", role: "progressbar", "aria-label": "Fremdrift i utviklingsplanen", "aria-valuemin": "0", "aria-valuemax": String(completion.total), "aria-valuenow": String(completion.count) }, [
-        el("span", { style: `width:${completion.percent}%` })
-      ]),
-      el("div", { class: "competency-plan-list" }, [
+    workspaceNextStep({
+      complete: completion.count === completion.total,
+      label: nextLabel,
+      actionLabel: completion.count === completion.total ? "Åpne" : "Fortsett",
+      onAction: nextHandler,
+      editable
+    }),
+    workspacePlan({
+      title: "Din utviklingsplan",
+      description: "Gjør kompetansen konkret nok til å kunne øves på i arbeidshverdagen.",
+      count: completion.count,
+      total: completion.total,
+      steps: [
         leadershipPlanStep(item, 1, "Målbilde", "Hva vil du gjøre annerledes?", item.desired_behavior, "Beskriv den konkrete atferden du vil utvikle.", "desired_behavior", editable),
         leadershipPlanStep(item, 2, "Øvingsarena", "Hvor skal det merkes?", item.current_pattern, "Velg møter, relasjoner eller beslutninger der du kan øve.", "current_pattern", editable),
         leadershipPlanStep(item, 3, "Hindringer", "Hva kan stå i veien?", item.obstacles, "Sett ord på vaner, situasjoner eller reaksjoner som kan hindre deg.", "obstacles", editable),
         leadershipExperimentStep(item, data, actions, editable)
-      ])
-    ]),
+      ]
+    }),
     leadershipGuidance(content, item.title)
   ].filter(Boolean));
 }
@@ -2749,6 +2739,89 @@ function leadershipCompletion(item, data) {
   const count = [item.desired_behavior, item.current_pattern, item.obstacles].filter((value) => (value || "").trim()).length + (actionCount ? 1 : 0);
   const total = 4;
   return { count, total, percent: Math.round((count / total) * 100) };
+}
+
+function workspaceNextStep({ complete = false, label, helper = "", actionLabel = "Fortsett", onAction = null, editable = false }) {
+  return el("section", { class: "competency-next-step workspace-next-step" }, [
+    el("span", { class: "competency-next-icon", "aria-hidden": "true" }, [icon(complete ? "circle-check" : "arrow-right")]),
+    el("div", {}, [
+      el("span", { class: "workspace-kicker", text: complete ? "Planen er klar" : "Anbefalt neste steg" }),
+      el("strong", { text: label }),
+      helper ? el("p", { class: "workspace-next-helper", text: helper }) : null
+    ].filter(Boolean)),
+    editable && onAction ? el("button", { class: "ui-button ui-button-filled", type: "button", text: actionLabel, onclick: onAction }) : null
+  ].filter(Boolean));
+}
+
+function workspacePlan({ title, description, count, total, steps }) {
+  const percent = total ? Math.round((count / total) * 100) : 0;
+  return el("section", { class: "competency-plan workspace-plan" }, [
+    el("header", { class: "competency-plan-head" }, [
+      el("div", {}, [
+        el("h4", { text: title }),
+        el("p", { text: description })
+      ]),
+      el("div", { class: "competency-progress-copy" }, [
+        el("strong", { text: `${count} av ${total}` }),
+        el("span", { text: "avklart" })
+      ])
+    ]),
+    el("div", { class: "competency-progress-track", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(count) }, [
+      el("span", { style: `width:${percent}%` })
+    ]),
+    el("div", { class: "competency-plan-list workspace-plan-list" }, steps)
+  ]);
+}
+
+function workspacePlanStep({ number, eyebrow, label, value = "", emptyText, editable = false, isEditing = false, onEdit = null, onCancel = null, onSave = null, secondaryAction = null }) {
+  const text = (value || "").trim();
+  if (editable && isEditing) {
+    const textarea = el("textarea", { class: "ui-edit-control competency-step-textarea", text, placeholder: emptyText });
+    return el("article", { class: "competency-plan-step workspace-plan-step is-editing" }, [
+      el("span", { class: "competency-step-marker", text: String(number) }),
+      el("div", { class: "competency-step-content" }, [
+        el("span", { class: "workspace-kicker", text: eyebrow }),
+        el("strong", { text: label }),
+        textarea,
+        el("div", { class: "ui-inline-editor-actions" }, [
+          el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: () => onCancel?.() }),
+          el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: () => onSave?.(textarea.value) })
+        ])
+      ])
+    ]);
+  }
+  return el("article", { class: `competency-plan-step workspace-plan-step ${text ? "is-complete" : "is-empty"}` }, [
+    el("span", { class: "competency-step-marker", "aria-hidden": "true" }, [text ? icon("check") : el("span", { text: String(number) })]),
+    el("div", { class: "competency-step-content" }, [
+      el("span", { class: "workspace-kicker", text: eyebrow }),
+      el("strong", { text: label }),
+      el("p", { text: text || emptyText })
+    ]),
+    editable ? el("div", { class: "workspace-step-actions" }, [
+      secondaryAction && text ? el("button", { class: "competency-step-action", type: "button", onclick: secondaryAction.onClick }, [
+        el("span", { text: secondaryAction.label }), icon(secondaryAction.icon || "flask-conical")
+      ]) : null,
+      el("button", { class: "competency-step-action", type: "button", onclick: () => onEdit?.() }, [
+        el("span", { text: text ? "Rediger" : "Legg til" }), icon(text ? "pencil" : "plus")
+      ])
+    ].filter(Boolean)) : null
+  ].filter(Boolean));
+}
+
+function workspaceExperimentStep({ number, actions = [], data, editable = false, onCreate, emptyLabel = "Planlegg første forsøk", completeLabel = "Prøv det i praksis", emptyText = "Gjør et lite adferdsforsøk i en konkret arbeidssituasjon." }) {
+  return el("article", { class: `competency-plan-step workspace-plan-step competency-experiment-step ${actions.length ? "is-complete" : "is-empty"}` }, [
+    el("span", { class: "competency-step-marker", "aria-hidden": "true" }, [actions.length ? icon("check") : el("span", { text: String(number) })]),
+    el("div", { class: "competency-step-content" }, [
+      el("span", { class: "workspace-kicker", text: "Eksperiment" }),
+      el("strong", { text: actions.length ? completeLabel : emptyLabel }),
+      actions.length
+        ? el("div", { class: "experiment-list competency-experiment-list" }, actions.map((action) => experimentRow(action, data, editable)))
+        : el("p", { text: emptyText })
+    ]),
+    editable ? el("button", { class: "competency-step-action", type: "button", onclick: onCreate }, [
+      el("span", { text: actions.length ? "Nytt" : "Legg til" }), icon("plus")
+    ]) : null
+  ].filter(Boolean));
 }
 
 function openLeadershipFieldEditor(item, fieldKey) {
@@ -2784,59 +2857,21 @@ function leadershipGuidance(content = {}, title = "kompetansen") {
 }
 
 function leadershipPlanStep(item, number, eyebrow, label, value, emptyText, fieldKey, editable = false) {
-  const text = (value || "").trim();
   const editKey = `competency:${item.id}:${fieldKey}`;
-  if (editable && state.inlineEditKey === editKey) {
-    const textarea = el("textarea", { class: "ui-edit-control competency-step-textarea", text, placeholder: emptyText });
-    return el("article", { class: "competency-plan-step is-editing" }, [
-      el("span", { class: "competency-step-marker", text: String(number) }),
-      el("div", { class: "competency-step-content" }, [
-        el("span", { class: "workspace-kicker", text: eyebrow }),
-        el("strong", { text: label }),
-        textarea,
-        el("div", { class: "ui-inline-editor-actions" }, [
-          el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: () => {
-            state.inlineEditKey = null;
-            renderCachedProgram("work");
-          }}),
-          el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: () => updateLeadershipCompetencyField(item.id, fieldKey, textarea.value) })
-        ])
-      ])
-    ]);
-  }
-  return el("article", { class: `competency-plan-step ${text ? "is-complete" : "is-empty"}` }, [
-    el("span", { class: "competency-step-marker", "aria-hidden": "true" }, [text ? icon("check") : el("span", { text: String(number) })]),
-    el("div", { class: "competency-step-content" }, [
-      el("span", { class: "workspace-kicker", text: eyebrow }),
-      el("strong", { text: label }),
-      el("p", { text: text || emptyText })
-    ]),
-    editable ? el("button", {
-      class: "competency-step-action",
-      type: "button",
-      "aria-label": `${text ? "Rediger" : "Legg til"} ${eyebrow.toLowerCase()}`,
-      onclick: () => openLeadershipFieldEditor(item, fieldKey)
-    }, [el("span", { text: text ? "Rediger" : "Legg til" }), icon(text ? "pencil" : "plus")]) : null
-  ].filter(Boolean));
+  return workspacePlanStep({
+    number, eyebrow, label, value, emptyText, editable,
+    isEditing: state.inlineEditKey === editKey,
+    onEdit: () => openLeadershipFieldEditor(item, fieldKey),
+    onCancel: () => {
+      state.inlineEditKey = null;
+      renderCachedProgram("work");
+    },
+    onSave: (nextValue) => updateLeadershipCompetencyField(item.id, fieldKey, nextValue)
+  });
 }
 
 function leadershipExperimentStep(item, data, actions, editable) {
-  return el("article", { class: `competency-plan-step competency-experiment-step ${actions.length ? "is-complete" : "is-empty"}` }, [
-    el("span", { class: "competency-step-marker", "aria-hidden": "true" }, [actions.length ? icon("check") : el("span", { text: "4" })]),
-    el("div", { class: "competency-step-content" }, [
-      el("span", { class: "workspace-kicker", text: "Eksperiment" }),
-      el("strong", { text: actions.length ? "Prøv det i praksis" : "Planlegg første forsøk" }),
-      actions.length
-        ? el("div", { class: "experiment-list competency-experiment-list" }, actions.map((action) => experimentRow(action, data, editable)))
-        : el("p", { text: "Gjør et lite adferdsforsøk i en konkret arbeidssituasjon." })
-    ]),
-    editable ? el("button", {
-      class: "competency-step-action",
-      type: "button",
-      "aria-label": actions.length ? "Legg til et nytt eksperiment" : "Legg til eksperiment",
-      onclick: () => createCompetencyAction(data, item)
-    }, [el("span", { text: actions.length ? "Nytt" : "Legg til" }), icon("plus")]) : null
-  ].filter(Boolean));
+  return workspaceExperimentStep({ number: 4, actions, data, editable, onCreate: () => createCompetencyAction(data, item) });
 }
 
 function leadershipEmptyState(data, editable) {
@@ -3226,12 +3261,19 @@ function focusList(items, editable, data, detail) {
     ]),
     ...items.map(({ area, index }, itemIndex) => el("article", { class: `focus-nav-item workspace-master-row ${itemIndex === (state.selectedFocusIndex || 0) ? "active" : ""}` }, [
       el("button", { class: "focus-nav-button workspace-master-button", type: "button", onclick: (event) => selectFocusCard(event.currentTarget, { area, index, itemIndex }, data, editable, detail) }, [
-        el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) }),
-        el("span", { class: "ui-stack-sm focus-nav-copy" }, [
-          el("span", { class: "focus-nav-label", text: `Fokusoppdrag ${index + 1}` }),
-          el("strong", { class: "focus-nav-title", text: area.title || "Bevegelsesønske" }),
-          contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 3)
-        ])
+        el("span", { class: "leadership-track-index workspace-master-marker", "aria-hidden": "true" }, [icon("briefcase-business")]),
+        el("span", { class: "leadership-track-main workspace-master-main" }, [
+          el("span", { class: "leadership-track-heading workspace-master-heading" }, [
+            el("strong", { text: area.title || "Fokusoppdrag uten tittel" }),
+            el("small", { text: `${focusCompletion(area, data).count}/4` })
+          ]),
+          el("span", { class: "workspace-master-meta" }, [
+            el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) }),
+            el("span", { text: `Fokusoppdrag ${index + 1}` })
+          ]),
+          contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 2)
+        ]),
+        icon("chevron-right")
       ])
     ].filter(Boolean))),
     editable ? el("button", { class: "ui-add-row focus-add-card", type: "button", onclick: () => addFocusArea() }, [
@@ -3252,39 +3294,86 @@ function selectFocusCard(buttonNode, item, data, editable, detail) {
 
 function focusDetail({ area, index }, data, editable) {
   const actions = data.actions.filter((action) => action.development_area_id === area.id && !isExperimentClosed(action.status));
-  return el("section", { class: "ui-object-card content-card focus-detail-card workspace-detail-surface" }, [
-    el("div", { class: "focus-detail-titlebar" }, [
-      el("div", { class: "focus-detail-heading" }, [
-        el("span", { class: "focus-detail-meta" }, [
-          el("span", { class: "eyebrow", text: `Fokusoppdrag ${index + 1}` }),
+  const completion = focusCompletion(area, data);
+  const missingStep = [
+    ["movement", "Avklar hva du ønsker å flytte", "Hva skal bli annerledes når oppdraget lykkes?"],
+    ["typicalSituations", "Velg hvor arbeidet skal merkes", "Hvilken situasjon, leveranse eller relasjon er den viktigste arenaen?"],
+    ["progressSigns", "Bestem hvordan du vil merke fremgang", "Velg et konkret tegn som gjør utviklingen synlig."]
+  ].find(([fieldKey]) => !((fieldKey === "movement" ? area.movement || area.description : area[fieldKey]) || "").trim());
+  const nextLabel = missingStep?.[1] || (!actions.length ? "Planlegg første eksperiment" : "Følg opp eksperimentet");
+  const nextHelper = missingStep?.[2] || (!actions.length ? "Gjør neste steg lite nok til å prøve i en faktisk arbeidssituasjon." : "Åpne forsøket og noter hva du har lært.");
+  const nextHandler = missingStep
+    ? () => openFocusField(index, missingStep[0])
+    : !actions.length
+      ? () => createAction(data, area.id)
+      : () => editAction(actions[0], data);
+  return el("section", { class: "focus-detail-card competency-workspace workspace-detail-surface" }, [
+    el("header", { class: "competency-workspace-head" }, [
+      el("div", { class: "competency-workspace-heading" }, [
+        el("span", { class: "competency-context" }, [
+          el("span", { class: "workspace-kicker", text: `Fokusoppdrag ${index + 1}` }),
           el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) })
         ]),
         editableTitle({
           className: "focus-title-edit",
           title: area.title || "Gi fokusoppdraget et navn",
           empty: !area.title,
+          editable,
           editKey: `focus:${index}:title`,
           value: area.title || "",
           placeholder: "Gi fokusoppdraget et kort navn.",
           onSave: async (nextValue) => saveFocusField(index, "title", nextValue)
         })
       ]),
-      editable ? el("span", { class: "row-tools" }, [
-        iconAction("Slett fokus", "trash-2", () => deleteFocusArea(index), "danger")
-      ]) : null
+      editable ? iconAction("Slett fokusoppdrag", "trash-2", () => deleteFocusArea(index), "danger") : null
     ].filter(Boolean)),
-    focusDetailWorkspace(area, index, editable),
-    el("div", { class: "detail-divider" }),
-    el("div", { class: "experiment-section-head" }, [
-      el("div", {}, [
-        el("h4", { text: "Ting du vil prøve i praksis" }),
-        el("p", { text: "Små handlinger eller justeringer du vil teste mellom samtalene." })
-      ]),
-      editable ? addAction("Legg til eksperiment", () => createAction(data, area.id)) : null
-    ].filter(Boolean)),
-    actions.length ? el("div", { class: "experiment-list" }, actions.map((action) => experimentRow(action, data, editable))) :
-      el("p", { class: "content-card-body is-empty", text: "Ingen eksperimenter lagt til ennå." })
+    workspaceNextStep({
+      complete: completion.count === completion.total,
+      label: nextLabel,
+      helper: nextHelper,
+      actionLabel: completion.count === completion.total ? "Åpne" : "Fortsett",
+      onAction: nextHandler,
+      editable
+    }),
+    workspacePlan({
+      title: "Arbeidsplan for fokusoppdraget",
+      description: "Gjør oppdraget konkret nok til å kunne prioriteres, prøves og følges opp.",
+      count: completion.count,
+      total: completion.total,
+      steps: [
+        focusPlanStep(area, index, 1, "Målbilde", "Hva ønsker du skal bli annerledes?", area.movement || area.description, "Beskriv hva som skal flytte seg eller bli tydeligere.", "movement", editable),
+        focusPlanStep(area, index, 2, "Arbeidsarena", "Hvor skal dette merkes?", area.typicalSituations, "Velg prosjektet, leveransen, møtet eller relasjonen der du skal arbeide med dette.", "typicalSituations", editable),
+        focusPlanStep(area, index, 3, "Fremgang", "Hvordan vil du merke bevegelse?", area.progressSigns, "Velg et konkret tegn på at arbeidet beveger seg i riktig retning.", "progressSigns", editable),
+        workspaceExperimentStep({ number: 4, actions, data, editable, onCreate: () => createAction(data, area.id) })
+      ]
+    })
   ]);
+}
+
+function focusCompletion(area, data) {
+  const actionCount = (data.actions || []).filter((action) => action.development_area_id === area.id && !isExperimentClosed(action.status)).length;
+  const count = [area.movement || area.description, area.typicalSituations, area.progressSigns].filter((value) => (value || "").trim()).length + (actionCount ? 1 : 0);
+  return { count, total: 4, percent: Math.round((count / 4) * 100) };
+}
+
+function openFocusField(index, fieldKey) {
+  state.inlineEditKey = `focus:${index}:${fieldKey}`;
+  state.selectedFocusIndex = index;
+  renderCachedProgram("work");
+}
+
+function focusPlanStep(area, index, number, eyebrow, label, value, emptyText, fieldKey, editable) {
+  const editKey = `focus:${index}:${fieldKey}`;
+  return workspacePlanStep({
+    number, eyebrow, label, value, emptyText, editable,
+    isEditing: state.inlineEditKey === editKey,
+    onEdit: () => openFocusField(index, fieldKey),
+    onCancel: () => {
+      state.inlineEditKey = null;
+      renderCachedProgram("work");
+    },
+    onSave: (nextValue) => saveFocusField(index, fieldKey, nextValue)
+  });
 }
 
 function focusDetailWorkspace(area, index, editable) {
@@ -3353,7 +3442,12 @@ function addAction(label, handler) {
   ]);
 }
 
-function editableTitle({ className = "", title, empty = false, editKey, value = "", placeholder = "", onSave }) {
+function editableTitle({ className = "", title, empty = false, editable = true, editKey, value = "", placeholder = "", onSave }) {
+  if (!editable) {
+    return el("div", { class: `ui-editable-title ${className}` }, [
+      el("h3", { class: empty ? "is-empty" : "", text: title })
+    ]);
+  }
   if (state.inlineEditKey === editKey) {
     const input = el("input", { class: "ui-title-input", value, placeholder });
     return el("div", { class: `ui-title-editor ${className}` }, [
@@ -3418,15 +3512,22 @@ function sessionRail(sessions, detail, editable, data) {
     ]),
     el("label", { class: "session-mobile-picker", text: "Velg samtale" }, [mobilePicker]),
     el("div", { class: "session-rail-list" }, sessions.map((session, index) => {
-      const progress = sessionProgress(session);
+      const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id && !isExperimentClosed(action.status));
+      const progress = sessionProgress(session, linkedActions);
       return el("article", { class: `session-nav-item workspace-master-row ${index === (state.selectedSessionIndex || 0) ? "active" : ""}` }, [
         el("button", { class: "session-nav-button workspace-master-button", type: "button", onclick: () => selectSessionCard(session, index, detail, editable, data) }, [
-          el("span", { class: "session-nav-date", text: session.date ? formatDate(session.date) : `Samtale ${index + 1}` }),
-          el("strong", { class: "session-nav-title", text: session.focus || "Samtale uten tittel" }),
-          el("span", { class: "session-nav-progress" }, [
-            el("span", { class: "session-nav-progress-track" }, [el("span", { style: `width:${progress.percent}%` })]),
-            el("small", { text: `${progress.completed}/5` })
-          ])
+          el("span", { class: "leadership-track-index workspace-master-marker", "aria-hidden": "true" }, [icon("messages-square")]),
+          el("span", { class: "leadership-track-main workspace-master-main" }, [
+            el("span", { class: "leadership-track-heading workspace-master-heading" }, [
+              el("strong", { text: session.focus || "Samtale uten tittel" }),
+              el("small", { text: `${progress.completed}/5` })
+            ]),
+            el("span", { class: "workspace-master-meta" }, [
+              el("span", { text: session.date ? formatDate(session.date) : `Samtale ${index + 1}` })
+            ]),
+            contentPreview(session.goal, "Hva skal samtalen hjelpe med?", 2)
+          ]),
+          icon("chevron-right")
         ])
       ]);
     }))
@@ -3445,90 +3546,76 @@ function selectSessionCard(session, index, detail, editable, data) {
 
 function sessionDetail(session, index, editable, data = null) {
   const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id && !isExperimentClosed(action.status));
-  const progress = sessionProgress(session);
+  const progress = sessionProgress(session, linkedActions);
   const nextField = sessionNextField(session);
-  return el("section", { class: "session-detail-card workspace-detail-surface" }, [
-    el("div", { class: "session-detail-titlebar" }, [
-      el("div", { class: "session-detail-heading" }, [
-        el("span", { class: "session-detail-meta" }, [
-          el("span", { class: "eyebrow", text: `Samtale ${index + 1}` }),
-          session.date ? el("span", { class: "ui-meta", text: formatDate(session.date) }) : null
+  const nextLabel = nextField?.label || (!linkedActions.length ? "Gjør neste steg om til et lite eksperiment" : "Følg opp eksperimentet");
+  const nextHelper = nextField?.helper || (!linkedActions.length ? "Knytt handlingen til en situasjon og bestem hva du vil se etter." : "Åpne forsøket og noter hva du har lært.");
+  const nextHandler = nextField
+    ? () => openSessionField(index, nextField.key)
+    : !linkedActions.length
+      ? () => createActionFromSessionNextStep(index, session.actions || "")
+      : () => editAction(linkedActions[0], data);
+  return el("section", { class: "session-detail-card competency-workspace workspace-detail-surface" }, [
+    el("header", { class: "competency-workspace-head" }, [
+      el("div", { class: "competency-workspace-heading" }, [
+        el("span", { class: "competency-context" }, [
+          el("span", { class: "workspace-kicker", text: `Samtale ${index + 1}` }),
+          session.date ? el("span", { class: "ui-meta type-chip", text: formatDate(session.date) }) : null
         ].filter(Boolean)),
         editableTitle({
           className: "session-title-edit",
           title: session.focus || "Gi samtalen en tittel",
           empty: !session.focus,
+          editable,
           editKey: `session:${index}:focus`,
           value: session.focus || "",
           placeholder: "Gi samtalen en kort tittel.",
           onSave: async (nextValue) => saveSessionField(index, "focus", nextValue)
         })
       ]),
-      editable ? el("span", { class: "row-tools" }, [
-        iconAction("Slett samtale", "trash-2", () => deleteSession(index), "danger")
-      ]) : null
+      editable ? iconAction("Slett samtale", "trash-2", () => deleteSession(index), "danger") : null
     ].filter(Boolean)),
-    el("div", { class: "session-next-step" }, [
-      el("span", { class: "session-next-icon", "aria-hidden": "true" }, [icon(nextField ? "arrow-right" : "check")]),
-      el("div", {}, [
-        el("span", { class: "eyebrow", text: nextField ? "Neste steg" : "Samtalen er landet" }),
-        el("strong", { text: nextField ? nextField.label : "Gjør neste steg om til et lite eksperiment" }),
-        el("p", { text: nextField ? nextField.helper : "Knytt handling til en situasjon og bestem hva du vil se etter." })
-      ]),
-      editable ? el("button", {
-        class: "ui-button ui-button-filled",
-        type: "button",
-        text: nextField ? "Fortsett" : "Lag eksperiment",
-        onclick: () => nextField ? openSessionField(index, nextField.key) : createActionFromSessionNextStep(index, session.actions || "")
-      }) : null
-    ].filter(Boolean)),
-    el("div", { class: "session-progress-summary" }, [
-      el("span", { text: `${progress.completed} av 5 felt utfylt` }),
-      el("span", { class: "session-progress-track", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": "5", "aria-valuenow": String(progress.completed) }, [
-        el("span", { style: `width:${progress.percent}%` })
-      ])
-    ]),
-    el("div", { class: "session-detail-workspace" }, [
-      el("section", { class: "session-phase" }, [
-        el("header", { class: "session-phase-head" }, [
-          el("span", { text: "1" }),
-          el("div", {}, [el("strong", { text: "Før samtalen" }), el("p", { text: "Bestem hva samtalen skal hjelpe dere videre med." })])
-        ]),
-        sessionDetailBlock("Hva er viktig i denne samtalen?", session.goal, "Hva håper dere å forstå, avklare eller komme videre på?", "goal", index, editable, "primary")
-      ]),
-      el("section", { class: "session-phase" }, [
-        el("header", { class: "session-phase-head" }, [
-          el("span", { text: "2" }),
-          el("div", {}, [el("strong", { text: "Etter samtalen" }), el("p", { text: "Fang innsikten mens den fortsatt er fersk." })])
-        ]),
-        el("div", { class: "session-detail-grid" }, [
-          sessionDetailBlock("Det som ble tydelig", session.notes, "Hva forstår du annerledes nå?", "notes", index, editable),
-          sessionDetailBlock("Neste steg i praksis", session.actions, "Hva skal prøves, undersøkes eller følges opp?", "actions", index, editable),
-          sessionDetailBlock("Viktig å ta med videre", session.reflection, "Hva bør huskes eller tas opp igjen senere?", "reflection", index, editable)
-        ])
-      ])
-    ]),
-    el("div", { class: "detail-divider" }),
-    el("div", { class: "experiment-section-head" }, [
-      el("div", {}, [
-        el("h4", { text: "Eksperimenter fra samtalen" }),
-        el("p", { text: "Gjør neste steg lite nok til å prøve i en konkret situasjon." })
-      ]),
-      editable ? addAction("Legg til eksperiment", () => createActionFromSessionNextStep(index, session.actions || "")) : null
-    ].filter(Boolean)),
-    linkedActions.length
-      ? el("div", { class: "experiment-list" }, linkedActions.map((action) => experimentRow(action, data, editable)))
-      : el("div", { class: "session-experiment-empty" }, [
-        el("span", { "aria-hidden": "true" }, [icon("flask-conical")]),
-        el("p", { text: "Ingen eksperimenter er koblet til denne samtalen ennå." })
-      ])
+    workspaceNextStep({
+      complete: progress.completed === 5,
+      label: nextLabel,
+      helper: nextHelper,
+      actionLabel: progress.completed === 5 ? "Åpne" : "Fortsett",
+      onAction: nextHandler,
+      editable
+    }),
+    workspacePlan({
+      title: "Samtaleplan",
+      description: "Forbered retning, fang innsikten og gjør neste steg prøvbart i hverdagen.",
+      count: progress.completed,
+      total: 5,
+      steps: [
+        sessionPlanStep(session, index, 1, "Før samtalen", "Hva skal samtalen hjelpe med?", session.goal, "Hva håper dere å forstå, avklare eller komme videre på?", "goal", editable),
+        sessionPlanStep(session, index, 2, "Innsikt", "Hva ble tydelig?", session.notes, "Fang den viktigste innsikten mens den fortsatt er fersk.", "notes", editable),
+        sessionPlanStep(session, index, 3, "Neste steg", "Hva skal prøves eller følges opp?", session.actions, "Beskriv den konkrete handlingen som skal skje etter samtalen.", "actions", editable, {
+          label: "Gjør til eksperiment",
+          icon: "flask-conical",
+          onClick: () => createActionFromSessionNextStep(index, session.actions || "")
+        }),
+        sessionPlanStep(session, index, 4, "Læring", "Hva skal tas med videre?", session.reflection, "Hva bør huskes eller tas opp igjen i en senere samtale?", "reflection", editable),
+        workspaceExperimentStep({
+          number: 5,
+          actions: linkedActions,
+          data,
+          editable,
+          onCreate: () => createActionFromSessionNextStep(index, session.actions || ""),
+          emptyLabel: "Planlegg første forsøk",
+          completeLabel: "Eksperimenter fra samtalen",
+          emptyText: "Gjør neste steg lite nok til å prøve i en konkret situasjon."
+        })
+      ]
+    })
   ].filter(Boolean));
 }
 
-function sessionProgress(session = {}) {
-  const values = [session.focus, session.goal, session.notes, session.actions, session.reflection];
-  const completed = values.filter((value) => (value || "").trim()).length;
-  return { completed, percent: Math.round((completed / values.length) * 100) };
+function sessionProgress(session = {}, linkedActions = []) {
+  const values = [session.goal, session.notes, session.actions, session.reflection];
+  const completed = values.filter((value) => (value || "").trim()).length + (linkedActions.length ? 1 : 0);
+  return { completed, percent: Math.round((completed / 5) * 100) };
 }
 
 function sessionNextField(session = {}) {
@@ -3544,6 +3631,20 @@ function sessionNextField(session = {}) {
 function openSessionField(index, fieldKey) {
   state.inlineEditKey = `session:${index}:${fieldKey}`;
   renderCachedProgram("sessions");
+}
+
+function sessionPlanStep(session, index, number, eyebrow, label, value, emptyText, fieldKey, editable, secondaryAction = null) {
+  const editKey = `session:${index}:${fieldKey}`;
+  return workspacePlanStep({
+    number, eyebrow, label, value, emptyText, editable, secondaryAction,
+    isEditing: state.inlineEditKey === editKey,
+    onEdit: () => openSessionField(index, fieldKey),
+    onCancel: () => {
+      state.inlineEditKey = null;
+      renderCachedProgram("sessions");
+    },
+    onSave: (nextValue) => saveSessionField(index, fieldKey, nextValue)
+  });
 }
 
 function sessionDetailBlock(label, value, emptyText, fieldKey = "", index = 0, editable = false, variant = "") {
