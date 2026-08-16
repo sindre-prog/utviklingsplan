@@ -7529,3 +7529,423 @@ h3,
     border-left: 0;
   }
 }
+
+/* Platform foundations v3: brand color roles, white canvas and type hierarchy */
+:root {
+  --brand-cream: #fef8ee;
+  --brand-coral: #ffa6a6;
+  --brand-lavender: #e7e8ff;
+  --brand-black: #000000;
+
+  --neutral-950: #171517;
+  --neutral-800: #302d30;
+  --neutral-700: #4f4b4f;
+  --neutral-600: #686368;
+  --neutral-500: #817c81;
+  --neutral-400: #aaa5aa;
+  --neutral-300: #cfcccf;
+  --neutral-200: #e6e4e6;
+  --neutral-100: #f4f3f4;
+  --neutral-50: #fafafa;
+
+  --platform-bg: #ffffff;
+  --platform-paper: #ffffff;
+  --platform-ink: var(--neutral-950);
+  --platform-body: var(--neutral-800);
+  --platform-muted: var(--neutral-600);
+  --platform-faint: var(--neutral-500);
+  --platform-line: var(--neutral-200);
+  --platform-line-strong: var(--neutral-300);
+  --platform-active: var(--brand-cream);
+  --platform-info: var(--brand-lavender);
+  --platform-info-soft: #f7f7ff;
+  --platform-info-line: #c9cbed;
+  --platform-danger: #8b2424;
+  --platform-danger-soft: #fff3f3;
+  --platform-success: #e8f5e4;
+
+  --ink: var(--platform-ink);
+  --muted: var(--platform-muted);
+  --faint: var(--platform-faint);
+  --line: var(--platform-line);
+  --line-strong: var(--platform-line-strong);
+  --paper: var(--platform-paper);
+  --app-bg: var(--platform-bg);
+  --surface-subtle: var(--neutral-50);
+  --wash: var(--neutral-50);
+  --wash-strong: var(--neutral-100);
+  --panel: var(--platform-paper);
+  --hero: var(--platform-paper);
+  --menu-pill-bg: var(--platform-active);
+  --subtle-accent: var(--platform-info-soft);
+  --subtle-accent-soft: var(--platform-info-soft);
+  --accent: var(--platform-info-soft);
+  --accent-soft: var(--platform-info-soft);
+  --accent-line: var(--platform-info-line);
+  --direction-orb-bg: var(--platform-info-soft);
+  --status-warning-container: var(--brand-cream);
+  --status-danger-container: var(--platform-danger-soft);
+
+  --type-page-title: 40px;
+  --type-section-title: 30px;
+  --type-module-title: 20px;
+  --type-card-title: 17px;
+  --type-body-large: 17px;
+  --type-body: 15px;
+  --type-field-value: 16px;
+  --type-label: 14px;
+  --type-support: 14px;
+  --type-meta: 12px;
+}
+
+body,
+.app-shell,
+.topline {
+  color: var(--platform-body);
+  background: var(--platform-bg);
+}
+
+body {
+  font-size: var(--type-body);
+  line-height: 1.55;
+}
+
+h1,
+h2,
+.ui-page-intro h3,
+.workspace-intro h2 {
+  color: var(--brand-black);
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+h3,
+h4,
+.card h3,
+.modal-head h3,
+.drawer-head h3,
+.leadership-detail-card h3 {
+  color: var(--platform-ink);
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+
+h1,
+#view-title {
+  font-size: var(--type-page-title);
+  line-height: 1.08;
+}
+
+h2,
+.ui-page-intro h3,
+.workspace-intro h2 {
+  font-size: var(--type-section-title);
+  line-height: 1.16;
+}
+
+h3,
+.section-title {
+  font-size: var(--type-module-title);
+  line-height: 1.3;
+}
+
+.sidebar,
+.topline,
+.workspace-tabs,
+.platform-surface,
+.panel,
+.card,
+.ui-card,
+.ui-section-card,
+.ui-field-card,
+.content-card,
+.table-wrap,
+.modal-panel,
+.drawer-panel,
+.leadership-track-list,
+.competency-plan,
+.competency-reference {
+  background: var(--platform-paper);
+}
+
+.sidebar,
+.topline {
+  border-color: var(--platform-line);
+}
+
+.nav-item:hover,
+.workspace-tab:hover,
+.competency-reference summary:hover,
+.competency-step-action:hover {
+  background: var(--neutral-50);
+}
+
+.nav-item.active,
+.workspace-tab.active,
+.ui-add-icon,
+.competency-reference-icon {
+  background: var(--platform-active);
+}
+
+.workspace-kicker,
+.eyebrow,
+.content-card-label,
+.session-detail-label,
+.focus-detail-label,
+.session-nav-date,
+.focus-nav-label,
+.ui-field-kicker {
+  color: var(--platform-muted);
+  font-size: var(--type-meta);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.workspace-intro p.muted,
+.ui-page-intro .muted,
+.ui-page-intro p:not(.eyebrow),
+.portal-subtitle {
+  color: var(--platform-muted);
+  font-size: var(--type-body);
+  line-height: 1.6;
+}
+
+.content-card-title,
+.focus-nav-title,
+.session-nav-title,
+.ui-field-title h3 {
+  color: var(--platform-ink);
+  font-size: var(--type-card-title);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.content-card-body,
+.focus-detail-text,
+.session-detail-text,
+.ui-field-body p,
+.ui-field-card .focus-detail-text,
+.ui-field-card .session-detail-text,
+.direction-field-value p {
+  color: var(--platform-body);
+  font-size: var(--type-body);
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.focus-detail-block.primary .focus-detail-text,
+.session-detail-block.primary .session-detail-text,
+.direction-field-value p {
+  font-size: var(--type-field-value);
+}
+
+.content-card-meta,
+.ui-meta,
+.competency-progress-copy span {
+  color: var(--platform-muted);
+  font-size: var(--type-meta);
+  line-height: 1.4;
+}
+
+.muted,
+.ui-field-title p,
+.ui-field-helper,
+.direction-field-label p,
+.direction-edit .direction-field-label p,
+.ui-inline-editor-head p {
+  color: var(--platform-muted);
+}
+
+label,
+.drawer-panel label,
+.modal-panel label,
+.direction-edit-fields label {
+  gap: 8px;
+  color: var(--platform-muted);
+  font-size: var(--type-label);
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+input,
+textarea,
+select,
+.ui-edit-control {
+  min-height: 48px;
+  border-color: var(--platform-line-strong);
+  background: var(--platform-paper);
+  color: var(--platform-ink);
+  font-size: var(--type-field-value);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+input::placeholder,
+textarea::placeholder,
+.ui-edit-control::placeholder {
+  color: var(--neutral-500);
+  opacity: 1;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+.ui-edit-control:focus,
+.ui-title-input:focus {
+  border-color: var(--platform-ink);
+  box-shadow: 0 0 0 3px var(--brand-lavender);
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--brand-black);
+  outline-offset: 2px;
+}
+
+.button.primary,
+.ui-button-filled {
+  background: var(--brand-black);
+  color: #ffffff;
+}
+
+.button.secondary,
+.ui-button-tonal {
+  border-color: var(--platform-line-strong);
+  background: var(--brand-cream);
+  color: var(--platform-ink);
+}
+
+.button.destructive,
+.modal-danger-button {
+  border-color: var(--brand-coral);
+  background: #ffffff;
+  color: var(--platform-danger);
+}
+
+.button.destructive:hover,
+.modal-danger-button:hover {
+  border-color: var(--brand-coral);
+  background: var(--platform-danger-soft);
+}
+
+.ui-status-pill.missing,
+.status-danger {
+  border-color: var(--brand-coral);
+  background: var(--platform-danger-soft);
+  color: var(--platform-danger);
+}
+
+.ui-status-pill.partial,
+.status-warning {
+  border-color: #eadcc3;
+  background: var(--brand-cream);
+  color: var(--platform-body);
+}
+
+.leadership-track-row.active,
+.focus-nav-item.active,
+.session-nav-item.active,
+.resource-card.active,
+.client-resource-open.active {
+  border-color: var(--platform-info-line);
+  background: var(--platform-info-soft);
+  box-shadow: inset 3px 0 0 var(--platform-info-line);
+}
+
+.competency-next-step {
+  border-color: var(--platform-info-line);
+  background: var(--platform-info-soft);
+}
+
+.competency-next-icon {
+  background: var(--brand-lavender);
+  color: var(--platform-ink);
+}
+
+.competency-progress-track span {
+  background: var(--platform-ink);
+}
+
+.competency-plan-step.is-empty,
+.competency-reference .leadership-guidance {
+  background: var(--neutral-50);
+}
+
+.competency-workspace h3 {
+  font-size: var(--type-section-title);
+  line-height: 1.16;
+}
+
+.competency-workspace .leadership-summary {
+  color: var(--platform-muted);
+  font-size: var(--type-body);
+  line-height: 1.6;
+}
+
+.competency-plan-head h4,
+.competency-step-content > strong,
+.competency-next-step strong {
+  color: var(--platform-ink);
+  font-size: var(--type-label);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.competency-step-content > p,
+.competency-plan-head p {
+  color: var(--platform-muted);
+  font-size: var(--type-support);
+  line-height: 1.55;
+}
+
+.competency-step-action,
+.ui-button,
+.button,
+.ui-add-action,
+.workspace-tab,
+.nav-item {
+  font-size: var(--type-label);
+}
+
+@media (max-width: 700px) {
+  :root {
+    --type-page-title: 34px;
+    --type-section-title: 27px;
+    --type-module-title: 19px;
+    --type-body-large: 16px;
+  }
+
+  body {
+    font-size: var(--type-body);
+  }
+
+  .workspace-intro p.muted,
+  .ui-page-intro .muted,
+  .ui-page-intro p:not(.eyebrow),
+  .portal-subtitle,
+  .competency-workspace .leadership-summary {
+    font-size: var(--type-body);
+  }
+
+  .leadership-track-row.active {
+    box-shadow: inset 0 -3px 0 var(--platform-info-line);
+  }
+}
+
+@media (max-width: 520px) {
+  .topline-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .topline-actions .button {
+    min-height: 44px;
+    white-space: normal;
+  }
+}

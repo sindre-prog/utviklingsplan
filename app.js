@@ -1673,7 +1673,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-87")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-88")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1697,7 +1697,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-87")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-88")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
