@@ -1750,7 +1750,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-91")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-92")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2832,6 +2832,10 @@ function openCompetencyChooser(data) {
   const competencies = data.leadershipCompetencies || [];
   const selectedItems = data.programCompetencies || [];
   const selectedIds = new Set(selectedItems.map((item) => item.competency_id));
+  const availableCategories = new Set(competencies.map((item) => item.category));
+  if (state.competencyChooserCategory !== "all" && !availableCategories.has(state.competencyChooserCategory)) {
+    state.competencyChooserCategory = "all";
+  }
   const firstPreview = competencies.find((item) => item.id === state.previewCompetencyId)
     || competencies.find((item) => !selectedIds.has(item.id))
     || competencies[0];
@@ -2847,12 +2851,33 @@ function openCompetencyChooser(data) {
   refreshIcons();
 }
 
+function normalizeCompetencySearch(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function competencySearchText(competency) {
+  const contentValues = Object.values(competency.content || {}).flatMap((value) => Array.isArray(value) ? value : [value]);
+  return normalizeCompetencySearch([
+    competency.title,
+    competency.title_en,
+    competency.summary,
+    competency.categoryLabel,
+    ...contentValues
+  ].filter(Boolean).join(" "));
+}
+
 function competencyChooserLayout(data, competencies, selectedIds) {
   const selectedCount = selectedIds.size;
-  const categoryOptions = [["all", "Alle"], ...Array.from(new Map(competencies.map((item) => [item.category, item.categoryLabel || "Andre"]))).entries()];
-  const categoryRow = el("div", { class: "competency-filter-row", "aria-label": "Filtrer kompetanser" });
+  const categoryOrder = ["foundation", "self_capacity", "relationships_influence", "team_people", "execution_decisions", "strategy_business_change", "derailer"];
+  const categoryOptions = [["all", "Alle utviklingsområder"], ...Array.from(new Map(competencies.map((item) => [item.category, item.categoryLabel || "Andre"])).entries())
+    .sort(([a], [b]) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b))];
   const list = el("div", { class: "competency-browser-list" });
   const preview = el("aside", { class: "competency-browser-preview" });
+  const resultCount = el("span", { text: `${competencies.length} kompetanser` });
   const search = el("input", {
     class: "competency-search",
     type: "search",
@@ -2860,13 +2885,37 @@ function competencyChooserLayout(data, competencies, selectedIds) {
     placeholder: "Søk etter kompetanse",
     "aria-label": "Søk i kompetansebiblioteket"
   });
+  const categorySelect = el("select", {
+    class: "competency-category-select",
+    "aria-label": "Filtrer etter utviklingsområde"
+  }, categoryOptions.map(([value, label]) => el("option", { value, text: label })));
+  categorySelect.value = state.competencyChooserCategory;
+  const resetButton = el("button", {
+    class: "competency-filter-reset",
+    type: "button",
+    title: "Nullstill søk og filter",
+    onclick: () => {
+      state.competencyChooserQuery = "";
+      state.competencyChooserCategory = "all";
+      search.value = "";
+      categorySelect.value = "all";
+      paint();
+      search.focus();
+    }
+  }, [icon("rotate-ccw"), el("span", { text: "Nullstill" })]);
   const browser = el("section", { class: "competency-browser" }, [
     el("div", { class: "competency-browser-tools" }, [
       el("div", { class: "competency-search-wrap" }, [icon("search"), search]),
-      categoryRow
+      el("div", { class: "competency-filter-controls" }, [
+        el("label", { class: "competency-category-field" }, [
+          el("span", { text: "Utviklingsområde" }),
+          el("div", { class: "competency-category-select-wrap" }, [categorySelect, icon("chevron-down")])
+        ]),
+        resetButton
+      ])
     ]),
     el("div", { class: "competency-browser-count" }, [
-      el("span", { text: "Kompetanser" }),
+      resultCount,
       el("span", { class: "ui-meta", text: `${selectedCount}/3 valgt` })
     ]),
     list
@@ -2874,24 +2923,16 @@ function competencyChooserLayout(data, competencies, selectedIds) {
   const layout = el("div", { class: "competency-chooser-layout" }, [browser, preview]);
 
   const paint = () => {
-    const query = state.competencyChooserQuery.trim().toLowerCase();
+    const query = normalizeCompetencySearch(state.competencyChooserQuery);
     const filtered = competencies.filter((item) => {
       const matchesCategory = state.competencyChooserCategory === "all" || item.category === state.competencyChooserCategory;
-      const haystack = [item.title, item.title_en, item.summary, item.categoryLabel].filter(Boolean).join(" ").toLowerCase();
-      return matchesCategory && (!query || haystack.includes(query));
+      return matchesCategory && (!query || competencySearchText(item).includes(query));
     });
     const current = filtered.find((item) => item.id === state.previewCompetencyId) || filtered[0] || null;
     if (current) state.previewCompetencyId = current.id;
 
-    categoryRow.replaceChildren(...categoryOptions.map(([value, label]) => el("button", {
-      class: `competency-filter ${state.competencyChooserCategory === value ? "active" : ""}`,
-      type: "button",
-      text: label,
-      onclick: () => {
-        state.competencyChooserCategory = value;
-        paint();
-      }
-    })));
+    resultCount.textContent = `${filtered.length} av ${competencies.length} kompetanser`;
+    resetButton.hidden = !query && state.competencyChooserCategory === "all";
 
     list.replaceChildren(...(filtered.length
       ? filtered.map((competency) => competencyBrowserRow(competency, selectedIds, current?.id === competency.id, () => {
@@ -2902,7 +2943,13 @@ function competencyChooserLayout(data, competencies, selectedIds) {
       : [el("div", { class: "competency-browser-empty" }, [
         icon("search-x"),
         el("strong", { text: "Ingen kompetanser passer filteret" }),
-        el("p", { class: "muted", text: "Prøv et annet søk eller velg Alle." })
+        el("p", { class: "muted", text: "Prøv et annet søk eller nullstill filteret." }),
+        el("button", {
+          class: "ui-button ui-button-outlined",
+          type: "button",
+          text: "Nullstill",
+          onclick: () => resetButton.click()
+        })
       ])]));
 
     preview.replaceChildren(current
@@ -2916,6 +2963,10 @@ function competencyChooserLayout(data, competencies, selectedIds) {
 
   search.addEventListener("input", () => {
     state.competencyChooserQuery = search.value;
+    paint();
+  });
+  categorySelect.addEventListener("change", () => {
+    state.competencyChooserCategory = categorySelect.value;
     paint();
   });
   paint();
@@ -2933,6 +2984,7 @@ function competencyBrowserRow(competency, selectedIds, active, onOpen) {
   }, [
     el("span", { class: "competency-row-icon", "aria-hidden": "true" }, [icon(selected ? "check" : "compass")]),
     el("span", { class: "competency-row-copy" }, [
+      el("span", { class: "competency-row-category", text: competency.categoryLabel || "Lederkompetanse" }),
       el("span", { class: "competency-row-title" }, [
         el("strong", { text: competency.title || "Kompetanse" }),
         selected ? el("small", { text: "Valgt" }) : null
@@ -2947,9 +2999,13 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
   const content = competency.content || {};
   const selected = selectedIds.has(competency.id);
   const maxReached = selectedCount >= 3 && !selected;
-  const previewList = (title, iconName, items) => items?.length ? el("section", { class: "competency-preview-section" }, [
+  const previewList = (title, iconName, items, tone = "") => items?.length ? el("section", { class: `competency-preview-section ${tone}`.trim() }, [
     el("div", { class: "competency-preview-section-title" }, [icon(iconName), el("h4", { text: title })]),
     el("ul", {}, items.slice(0, 5).map((item) => el("li", { text: item })))
+  ]) : null;
+  const contextBlock = (title, iconName, copy) => copy ? el("section", { class: "competency-context-block" }, [
+    el("div", { class: "competency-context-label" }, [icon(iconName), el("h4", { text: title })]),
+    el("p", { text: copy })
   ]) : null;
   const chooseAction = () => el("button", {
     class: "ui-button ui-button-filled competency-select-action",
@@ -2972,19 +3028,23 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
       chooseAction()
     ]),
     competency.summary ? el("p", { class: "competency-preview-summary", text: competency.summary }) : null,
-    el("div", { class: "competency-preview-sections" }, [
-      previewList("God praksis kan se slik ut", "gauge", content.signals),
-      previewList("Typiske hindringer", "triangle-alert", content.obstacles),
-      previewList("Mulige øvingsgrep", "sparkles", content.practices)
+    el("div", { class: "competency-context-grid" }, [
+      contextBlock("Relevant når", "target", content.choose_when),
+      contextBlock("Skille mot nærliggende kompetanser", "split", content.distinction)
     ].filter(Boolean)),
-    el("section", { class: "competency-preview-reflection" }, [
-      el("div", { class: "competency-preview-section-title" }, [icon("message-circle-question"), el("h4", { text: "Tenk gjennom før du velger" })]),
-      el("ul", {}, [
-        el("li", { text: `Hvor vil ${String(competency.title || "denne kompetansen").toLowerCase()} gjøre størst forskjell akkurat nå?` }),
-        el("li", { text: "Hvilken feedback eller erfaring peker på at dette er viktig?" }),
-        el("li", { text: "Hvilken konkret situasjon kan brukes som første øvingsarena?" })
-      ])
-    ]),
+    el("div", { class: "competency-preview-sections" }, [
+      previewList("God praksis", "gauge", content.signals, "good-practice"),
+      previewList("Underbruk", "arrow-down", content.underuse ? [content.underuse] : content.obstacles, "underuse"),
+      previewList("Overbruk", "arrow-up", content.overuse ? [content.overuse] : [], "overuse")
+    ].filter(Boolean)),
+    content.experiment || content.practices?.length ? el("section", { class: "competency-practice-block" }, [
+      el("span", { class: "competency-practice-icon", "aria-hidden": "true" }, [icon("sparkles")]),
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Prøv i praksis" }),
+        el("p", { class: "competency-practice-copy", text: content.experiment || content.practices.join(" ") }),
+        content.evidence ? el("p", { class: "competency-evidence" }, [el("strong", { text: "Tegn på effekt: " }), el("span", { text: content.evidence })]) : null
+      ].filter(Boolean))
+    ]) : null,
     el("footer", { class: "competency-preview-footer" }, [
       el("span", { class: "muted", text: selected ? "Denne kompetansen ligger allerede i utviklingsplanen." : maxReached ? "Fjern en valgt kompetanse for å gjøre plass." : "Valget kan endres senere." }),
       chooseAction()

@@ -1,4 +1,4 @@
-import { LEADERSHIP_COMPETENCY_CATEGORIES } from "./leadership.constants.js?v=polish-89";
+import { LEADERSHIP_COMPETENCY_CATEGORIES } from "./leadership.constants.js?v=polish-92";
 
 function requireSupabaseClient(supabaseClient) {
   if (!supabaseClient || typeof supabaseClient.from !== "function") {
@@ -8,13 +8,29 @@ function requireSupabaseClient(supabaseClient) {
 
 function normalizeContentJson(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { signals: [], obstacles: [], practices: [] };
+    return {
+      choose_when: "",
+      distinction: "",
+      signals: [],
+      obstacles: [],
+      practices: [],
+      underuse: "",
+      overuse: "",
+      experiment: "",
+      evidence: ""
+    };
   }
   return {
     ...value,
+    choose_when: typeof value.choose_when === "string" ? value.choose_when : "",
+    distinction: typeof value.distinction === "string" ? value.distinction : "",
     signals: Array.isArray(value.signals) ? value.signals : [],
     obstacles: Array.isArray(value.obstacles) ? value.obstacles : [],
-    practices: Array.isArray(value.practices) ? value.practices : []
+    practices: Array.isArray(value.practices) ? value.practices : [],
+    underuse: typeof value.underuse === "string" ? value.underuse : "",
+    overuse: typeof value.overuse === "string" ? value.overuse : "",
+    experiment: typeof value.experiment === "string" ? value.experiment : "",
+    evidence: typeof value.evidence === "string" ? value.evidence : ""
   };
 }
 
