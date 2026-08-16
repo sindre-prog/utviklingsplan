@@ -128,6 +128,9 @@ const state = {
   resourceLibraryPromise: null,
   leadershipLibraryPromise: null,
   selectedCompetencyId: null,
+  previewCompetencyId: null,
+  competencyChooserQuery: "",
+  competencyChooserCategory: "all",
   passwordSessionUserId: null
 };
 
@@ -1670,7 +1673,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-85")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-86")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1694,7 +1697,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-85")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-86")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2176,23 +2179,16 @@ function clientWorkspaceTabs(data = {}, activePane = "direction") {
     ["direction", "Retning"],
     ["work", data.competenciesAvailable ? "Kompetanser" : "Fokusområder"],
     ["sessions", "Samtaler"],
-    ["reflections", "Refleksjon"]
+    ["reflections", "Refleksjon"],
+    ["resources", "Ressurser"]
   ];
-  const resourceItem = ["resources", "Ressurser fra din coach"];
-  const [resourcePane, resourceLabel] = resourceItem;
   return el("div", { class: "workspace-tabs" }, [
     el("div", { class: "workspace-tab-group workspace-tab-group-main" }, items.map(([pane, label]) => el("button", {
       class: `workspace-tab ${pane === activePane ? "active" : ""}`,
       type: "button",
-      "data-tab": pane
-    }, [el("span", { text: label })]))),
-    el("div", { class: "workspace-tab-group workspace-tab-group-aside" }, [
-      el("button", {
-        class: `workspace-tab workspace-tab-resource ${resourcePane === activePane ? "active" : ""}`,
-        type: "button",
-        "data-tab": resourcePane
-      }, [el("span", { text: resourceLabel })])
-    ])
+      "data-tab": pane,
+      "aria-selected": pane === activePane ? "true" : "false"
+    }, [el("span", { text: label })])))
   ]);
 }
 
@@ -2204,6 +2200,7 @@ function setupWorkspaceTabs() {
         return;
       }
       $$(".workspace-tab").forEach((item) => item.classList.toggle("active", item === tab));
+      $$(".workspace-tab").forEach((item) => item.setAttribute("aria-selected", item === tab ? "true" : "false"));
       $$(".workspace-pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === tab.dataset.tab));
     });
   });
@@ -2223,10 +2220,12 @@ function directionWorkspace(client, plan) {
   const directionSpecs = getDirectionSpecs(plan);
   const firstName = (client.name || "du").split(" ")[0];
   const status = directionStatus(plan);
-  return el("section", { class: "ui-workspace direction-simple" }, [
+  return el("section", { class: "platform-page ui-workspace direction-simple" }, [
     pageIntro(status.label, `Hei, ${firstName}. La oss avklare retningen.`, "Fyll ut det viktigste for coachingforløpet: hva du vil jobbe med, hvordan du merker fremgang, og hva du trenger fra coachen din.", [], status.tone),
-    el("div", { class: "ui-card-grid direction-card-grid" }, [
-      ...directionSpecs.map((spec, index) => directionCard(spec, editable, client, index))
+    el("section", { class: "platform-surface platform-surface-padded" }, [
+      el("div", { class: "ui-card-grid direction-card-grid" }, [
+        ...directionSpecs.map((spec, index) => directionCard(spec, editable, client, index))
+      ])
     ]),
     coachingFrame()
   ].filter(Boolean));
@@ -2509,19 +2508,16 @@ function workWorkspace(client, data, plan) {
 function leadershipWorkspace(client, data, plan) {
   const editable = canEditProgram(client);
   const selectedItems = data.programCompetencies || [];
-  return el("div", { class: "work-stack leadership-stack" }, [
-    el("section", { class: "panel document-panel leadership-panel" }, [
-      leadershipIntro(editable, selectedItems.length),
-      leadershipWorkbench(data, editable),
-      leadershipLibrarySection(data, editable),
-      areasEditor(plan.areas)
-    ])
+  return el("div", { class: "platform-page work-stack leadership-stack" }, [
+    leadershipIntro(data, editable, selectedItems.length),
+    leadershipWorkbench(data, editable),
+    areasEditor(plan.areas)
   ]);
 }
 
-function leadershipIntro(editable = false, selectedCount = 0) {
-  return workspaceIntro("Kompetanser", "Velg lederkompetanser å utvikle.", "Start med inntil tre kompetanser. Konkretiser ønsket adferd, hva som står i veien, og hvilke små eksperimenter som skal prøves i hverdagen.", [
-    editable ? addAction(selectedCount ? "Legg til kompetanse" : "Velg kompetanse", () => scrollToLeadershipLibrary()) : null
+function leadershipIntro(data, editable = false, selectedCount = 0) {
+  return workspaceIntro("Kompetanser", "Lederkompetanser du utvikler", "Velg inntil tre kompetanser og gjør dem konkrete gjennom mål, øvingsarenaer og små eksperimenter i arbeidshverdagen.", [
+    editable ? addAction(selectedCount ? "Utforsk flere kompetanser" : "Velg kompetanser", () => openCompetencyChooser(data)) : null
   ].filter(Boolean), "accent");
 }
 
@@ -2529,9 +2525,9 @@ function leadershipWorkbench(data, editable) {
   const selectedItems = data.programCompetencies || [];
   if (!selectedItems.length) {
     return el("div", { class: "leadership-workspace-stack" }, [
-      el("div", { class: "leadership-workbench leadership-workbench-empty" }, [
+      el("div", { class: "platform-surface leadership-workbench leadership-workbench-empty" }, [
         el("div", { class: "leadership-master" }, [
-          leadershipEmptyState(editable)
+          leadershipEmptyState(data, editable)
         ])
       ])
     ]);
@@ -2543,7 +2539,7 @@ function leadershipWorkbench(data, editable) {
     leadershipDetail(selected, data, editable)
   ]);
   return el("div", { class: "leadership-workspace-stack" }, [
-    el("div", { class: "leadership-workbench" }, [
+    el("div", { class: "platform-surface leadership-workbench" }, [
       leadershipSelectedList(selectedItems, detail, data, editable),
       el("div", { class: "leadership-detail-wrap" }, [detail])
     ])
@@ -2663,65 +2659,182 @@ function leadershipDetailBlock(item, label, value, emptyText, fieldKey, editable
   ].filter(Boolean));
 }
 
-function leadershipEmptyState(editable) {
+function leadershipEmptyState(data, editable) {
   return el("section", { class: "focus-empty-state leadership-empty-state" }, [
-    el("p", { class: "eyebrow", text: "Kompetanser" }),
-    el("h3", { text: "Velg første lederkompetanse" }),
-    el("p", { class: "muted", text: "Bruk kompetansebiblioteket som støtte når du skal gjøre utviklingsmålet mer konkret og lettere å øve på." }),
-    editable ? addAction("Velg kompetanse", () => scrollToLeadershipLibrary()) : null
+    el("span", { class: "empty-state-icon", "aria-hidden": "true" }, [icon("compass")]),
+    el("p", { class: "eyebrow", text: "Kompetansebibliotek" }),
+    el("h3", { text: "Finn kompetansen som betyr mest nå" }),
+    el("p", { class: "muted", text: "Utforsk hva hver kompetanse innebærer før du velger. Du kan starte med én og legge til flere senere." }),
+    editable ? addAction("Utforsk kompetanser", () => openCompetencyChooser(data)) : null
   ].filter(Boolean));
 }
 
-function leadershipLibrarySection(data, editable) {
+function openCompetencyChooser(data) {
+  const dialog = $("#competency-chooser");
+  const content = $("#competency-chooser-content");
+  if (!dialog || !content) return;
+
+  const competencies = data.leadershipCompetencies || [];
   const selectedItems = data.programCompetencies || [];
   const selectedIds = new Set(selectedItems.map((item) => item.competency_id));
-  const groups = groupCompetencies(data.leadershipCompetencies || []);
-  return el("section", { class: "leadership-library-section", id: "leadership-library" }, [
-    el("div", { class: "leadership-library-head" }, [
-      el("div", {}, [
-        el("h3", { text: "Kompetansebibliotek" }),
-        el("p", { class: "muted", text: "Velg få kompetanser om gangen. Biblioteket er strukturert etter utviklingsområder for ledere." })
-      ]),
-      el("span", { class: "ui-status-pill", text: `${selectedItems.length}/3 valgt` })
-    ]),
-    el("div", { class: "leadership-category-list" }, groups.map(([category, items]) => el("section", { class: "leadership-category-group" }, [
-      el("h4", { text: category }),
-      el("div", { class: "leadership-choice-list" }, items.map((competency) => leadershipChoiceRow(competency, selectedIds, selectedItems.length, editable, data)))
-    ])))
-  ]);
+  const firstPreview = competencies.find((item) => item.id === state.previewCompetencyId)
+    || competencies.find((item) => !selectedIds.has(item.id))
+    || competencies[0];
+  state.previewCompetencyId = firstPreview?.id || null;
+
+  content.replaceChildren(competencyChooserLayout(data, competencies, selectedIds));
+  const closeButton = $("#competency-chooser-close");
+  closeButton.onclick = () => dialog.close();
+  dialog.onclick = (event) => {
+    if (event.target === dialog) dialog.close();
+  };
+  if (!dialog.open) dialog.showModal();
+  refreshIcons();
 }
 
-function leadershipChoiceRow(competency, selectedIds, selectedCount, editable, data) {
-  const selected = selectedIds.has(competency.id);
-  const disabled = !editable || selected || selectedCount >= 3;
-  return el("button", {
-    class: `leadership-choice-row ${selected ? "selected" : ""}`,
-    type: "button",
-    disabled,
-    onclick: () => selectLeadershipCompetency(data, competency)
-  }, [
-    el("span", { class: `leadership-choice-check ${selected ? "checked" : ""}` }, [
-      icon(selected ? "check" : "plus")
-    ]),
-    el("span", { class: "leadership-choice-main" }, [
-      el("strong", { text: competency.title || "Kompetanse" }),
-      competency.summary ? el("span", { text: competency.summary }) : null
-    ].filter(Boolean))
-  ]);
-}
-
-function groupCompetencies(items) {
-  const groups = new Map();
-  items.forEach((item) => {
-    const label = item.categoryLabel || "Andre kompetanser";
-    if (!groups.has(label)) groups.set(label, []);
-    groups.get(label).push(item);
+function competencyChooserLayout(data, competencies, selectedIds) {
+  const selectedCount = selectedIds.size;
+  const categoryOptions = [["all", "Alle"], ...Array.from(new Map(competencies.map((item) => [item.category, item.categoryLabel || "Andre"]))).entries()];
+  const categoryRow = el("div", { class: "competency-filter-row", "aria-label": "Filtrer kompetanser" });
+  const list = el("div", { class: "competency-browser-list" });
+  const preview = el("aside", { class: "competency-browser-preview" });
+  const search = el("input", {
+    class: "competency-search",
+    type: "search",
+    value: state.competencyChooserQuery,
+    placeholder: "Søk etter kompetanse",
+    "aria-label": "Søk i kompetansebiblioteket"
   });
-  return [...groups.entries()];
+  const browser = el("section", { class: "competency-browser" }, [
+    el("div", { class: "competency-browser-tools" }, [
+      el("div", { class: "competency-search-wrap" }, [icon("search"), search]),
+      categoryRow
+    ]),
+    el("div", { class: "competency-browser-count" }, [
+      el("span", { text: "Kompetanser" }),
+      el("span", { class: "ui-meta", text: `${selectedCount}/3 valgt` })
+    ]),
+    list
+  ]);
+  const layout = el("div", { class: "competency-chooser-layout" }, [browser, preview]);
+
+  const paint = () => {
+    const query = state.competencyChooserQuery.trim().toLowerCase();
+    const filtered = competencies.filter((item) => {
+      const matchesCategory = state.competencyChooserCategory === "all" || item.category === state.competencyChooserCategory;
+      const haystack = [item.title, item.title_en, item.summary, item.categoryLabel].filter(Boolean).join(" ").toLowerCase();
+      return matchesCategory && (!query || haystack.includes(query));
+    });
+    const current = filtered.find((item) => item.id === state.previewCompetencyId) || filtered[0] || null;
+    if (current) state.previewCompetencyId = current.id;
+
+    categoryRow.replaceChildren(...categoryOptions.map(([value, label]) => el("button", {
+      class: `competency-filter ${state.competencyChooserCategory === value ? "active" : ""}`,
+      type: "button",
+      text: label,
+      onclick: () => {
+        state.competencyChooserCategory = value;
+        paint();
+      }
+    })));
+
+    list.replaceChildren(...(filtered.length
+      ? filtered.map((competency) => competencyBrowserRow(competency, selectedIds, current?.id === competency.id, () => {
+        state.previewCompetencyId = competency.id;
+        layout.classList.add("show-preview");
+        paint();
+      }))
+      : [el("div", { class: "competency-browser-empty" }, [
+        icon("search-x"),
+        el("strong", { text: "Ingen kompetanser passer filteret" }),
+        el("p", { class: "muted", text: "Prøv et annet søk eller velg Alle." })
+      ])]));
+
+    preview.replaceChildren(current
+      ? competencyPreview(current, data, selectedIds, selectedCount, () => layout.classList.remove("show-preview"))
+      : el("div", { class: "competency-preview-empty" }, [
+        el("h3", { text: "Velg en kompetanse i listen" }),
+        el("p", { class: "muted", text: "Informasjonen vises her før du bestemmer deg." })
+      ]));
+    refreshIcons();
+  };
+
+  search.addEventListener("input", () => {
+    state.competencyChooserQuery = search.value;
+    paint();
+  });
+  paint();
+
+  return layout;
 }
 
-function scrollToLeadershipLibrary() {
-  $("#leadership-library")?.scrollIntoView({ behavior: "smooth", block: "start" });
+function competencyBrowserRow(competency, selectedIds, active, onOpen) {
+  const selected = selectedIds.has(competency.id);
+  return el("button", {
+    class: `competency-browser-row ${active ? "active" : ""} ${selected ? "selected" : ""}`,
+    type: "button",
+    "aria-current": active ? "true" : "false",
+    onclick: onOpen
+  }, [
+    el("span", { class: "competency-row-icon", "aria-hidden": "true" }, [icon(selected ? "check" : "compass")]),
+    el("span", { class: "competency-row-copy" }, [
+      el("span", { class: "competency-row-title" }, [
+        el("strong", { text: competency.title || "Kompetanse" }),
+        selected ? el("small", { text: "Valgt" }) : null
+      ].filter(Boolean)),
+      el("span", { text: competency.summary || "Les mer om kompetansen." })
+    ]),
+    icon("chevron-right")
+  ]);
+}
+
+function competencyPreview(competency, data, selectedIds, selectedCount, onBack) {
+  const content = competency.content || {};
+  const selected = selectedIds.has(competency.id);
+  const maxReached = selectedCount >= 3 && !selected;
+  const previewList = (title, iconName, items) => items?.length ? el("section", { class: "competency-preview-section" }, [
+    el("div", { class: "competency-preview-section-title" }, [icon(iconName), el("h4", { text: title })]),
+    el("ul", {}, items.slice(0, 5).map((item) => el("li", { text: item })))
+  ]) : null;
+  const chooseAction = () => el("button", {
+    class: "ui-button ui-button-filled competency-select-action",
+    type: "button",
+    disabled: selected || maxReached,
+    onclick: async () => {
+      $("#competency-chooser")?.close();
+      await selectLeadershipCompetency(data, competency);
+    }
+  }, [icon(selected ? "check" : "plus"), el("span", { text: selected ? "Allerede valgt" : maxReached ? "Maks tre valgt" : "Velg denne kompetansen" })]);
+
+  return el("article", { class: "competency-preview-card" }, [
+    el("button", { class: "competency-preview-back mobile-only", type: "button", onclick: onBack }, [icon("arrow-left"), el("span", { text: "Til biblioteket" })]),
+    el("header", { class: "competency-preview-head" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: competency.categoryLabel || "Lederkompetanse" }),
+        el("h2", { text: competency.title || "Kompetanse" }),
+        competency.title_en ? el("p", { class: "competency-english-title", text: competency.title_en }) : null
+      ]),
+      chooseAction()
+    ]),
+    competency.summary ? el("p", { class: "competency-preview-summary", text: competency.summary }) : null,
+    el("div", { class: "competency-preview-sections" }, [
+      previewList("God praksis kan se slik ut", "gauge", content.signals),
+      previewList("Typiske hindringer", "triangle-alert", content.obstacles),
+      previewList("Mulige øvingsgrep", "sparkles", content.practices)
+    ].filter(Boolean)),
+    el("section", { class: "competency-preview-reflection" }, [
+      el("div", { class: "competency-preview-section-title" }, [icon("message-circle-question"), el("h4", { text: "Tenk gjennom før du velger" })]),
+      el("ul", {}, [
+        el("li", { text: `Hvor vil ${String(competency.title || "denne kompetansen").toLowerCase()} gjøre størst forskjell akkurat nå?` }),
+        el("li", { text: "Hvilken feedback eller erfaring peker på at dette er viktig?" }),
+        el("li", { text: "Hvilken konkret situasjon kan brukes som første øvingsarena?" })
+      ])
+    ]),
+    el("footer", { class: "competency-preview-footer" }, [
+      el("span", { class: "muted", text: selected ? "Denne kompetansen ligger allerede i utviklingsplanen." : maxReached ? "Fjern en valgt kompetanse for å gjøre plass." : "Valget kan endres senere." }),
+      chooseAction()
+    ])
+  ].filter(Boolean));
 }
 
 async function selectLeadershipCompetency(data, competency) {
@@ -2799,8 +2912,10 @@ function createCompetencyAction(data, item) {
 function pageIntro(kicker, title, text, actions = [], tone = "") {
   return el("header", { class: "ui-page-intro workspace-intro" }, [
     el("div", {}, [
-      el("span", { class: `ui-status-pill ${tone}`, text: kicker }),
-      el("h3", { text: title }),
+      tone
+        ? el("span", { class: `ui-status-pill ${tone}`, text: kicker })
+        : el("p", { class: "workspace-kicker", text: kicker }),
+      el("h2", { text: title }),
       el("p", { class: "muted", text })
     ]),
     actions.length ? el("div", { class: "ui-page-actions workspace-intro-actions" }, actions) : null
@@ -3017,7 +3132,7 @@ function editableTitle({ className = "", title, empty = false, editKey, value = 
 
 function sessionsWorkspace(sessions, data) {
   const editable = canEditProgram(getCurrentClient());
-  return el("section", { class: "panel document-panel sessions-stack" }, [
+  return el("section", { class: "platform-page sessions-stack" }, [
     workspaceIntro("Samtaler", "Forbered og land samtalene.", "Bruk samtalene til å sortere det viktigste, forstå hva som skjer og velge hva du vil gjøre videre.", [
       editable ? addAction("Opprett samtale", () => addSession()) : null
     ].filter(Boolean)),
@@ -3317,7 +3432,7 @@ function reflectionsWorkspace(data) {
   const intro = canWriteReflection
     ? workspaceIntro("Arbeid mellom samtalene", "Refleksjoner", "Skriv egne refleksjoner underveis i forløpet. De er private med mindre du aktivt velger å dele dem med coach.")
     : workspaceIntro("Oppfølging", "Delte refleksjoner", "Her vises bare refleksjoner klienten aktivt har delt med coach.");
-  return el("div", { class: "reflection-space" }, [
+  return el("div", { class: "platform-page reflection-space" }, [
     intro,
     canWriteReflection ? reflectionComposer(data) : null,
     el("section", { class: "panel document-panel reflection-log-section" }, [
@@ -3338,7 +3453,7 @@ function coachResourcesWorkspace(data) {
   const intro = canWriteReflection
     ? workspaceIntro("Fra coachen din", "Ressurser fra din coach", "Her ligger ressurser, øvelser og arbeidsark coachen har sendt til deg. De kan brukes på tvers av hele forløpet.")
     : workspaceIntro("Delte ressurser", "Ressurser fra coach", "Her vises ressursene som er sendt i dette coachingforløpet, inkludert instruksen klienten ser.");
-  return el("div", { class: "reflection-space client-resource-space" }, [
+  return el("div", { class: "platform-page reflection-space client-resource-space" }, [
     intro,
     resourcesFromCoachSection(data, canWriteReflection)
   ].filter(Boolean));

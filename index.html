@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://p.typekit.net">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://use.typekit.net/ynv7fqd.css">
-  <link rel="stylesheet" href="./styles.css?v=polish-85">
+  <link rel="stylesheet" href="./styles.css?v=polish-86">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module">
@@ -18,7 +18,7 @@
     import "https://esm.run/@material/web/button/outlined-button.js";
     import "https://esm.run/@material/web/button/text-button.js";
     import "https://esm.run/@material/web/iconbutton/icon-button.js";
-    import * as resourceLibrary from "./js/resources/resources.api.js?v=polish-85";
+    import * as resourceLibrary from "./js/resources/resources.api.js?v=polish-86";
 
     window.RaederResourceLibrary = resourceLibrary;
   </script>
@@ -77,9 +77,7 @@
         <header class="topline">
           <div class="portal-heading">
             <p class="eyebrow" id="view-kicker">Utviklingsplaner</p>
-            <h1>Utviklingsportal</h1>
-            <p class="portal-subtitle">Et trygt arbeidsrom for mål, samtaler, ressurser og refleksjon i coachingforløpet.</p>
-            <h2 id="view-title">Klienter</h2>
+            <h1 id="view-title">Klienter</h1>
           </div>
           <div class="topline-actions" id="topline-actions"></div>
         </header>
@@ -151,6 +149,20 @@
     </form>
   </dialog>
 
-  <script src="./app.js?v=polish-85" defer></script>
+  <dialog class="competency-chooser" id="competency-chooser">
+    <section class="competency-chooser-shell" aria-labelledby="competency-chooser-title">
+      <header class="competency-chooser-head">
+        <div>
+          <p class="eyebrow">Kompetansebibliotek</p>
+          <h2 id="competency-chooser-title">Utforsk før du velger</h2>
+          <p class="muted">Les hva kompetansen innebærer, se typiske hindringer og vurder konkrete øvingsmuligheter.</p>
+        </div>
+        <button class="icon-button" id="competency-chooser-close" type="button" title="Lukk kompetansebiblioteket"><i data-lucide="x"></i></button>
+      </header>
+      <div class="competency-chooser-content" id="competency-chooser-content"></div>
+    </section>
+  </dialog>
+
+  <script src="./app.js?v=polish-86" defer></script>
 </body>
 </html>

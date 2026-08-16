@@ -1,4 +1,4 @@
-import { LEADERSHIP_COMPETENCY_CATEGORIES } from "./leadership.constants.js?v=polish-85";
+import { LEADERSHIP_COMPETENCY_CATEGORIES } from "./leadership.constants.js?v=polish-86";
 
 function requireSupabaseClient(supabaseClient) {
   if (!supabaseClient || typeof supabaseClient.from !== "function") {

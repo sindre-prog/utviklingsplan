@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-85";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-86";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
