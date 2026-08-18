@@ -12882,9 +12882,103 @@ details.coaching-frame > .coaching-frame-body > article p {
   background: transparent;
 }
 
+.focus-view-description {
+  max-width: 520px;
+  margin: 0;
+  color: var(--platform-muted);
+  font-size: var(--type-support);
+  line-height: 1.5;
+}
+
+.drawer-panel.experiment-create-drawer {
+  width: min(600px, 100vw);
+}
+
+.experiment-create-drawer #drawer-fields {
+  gap: 18px;
+}
+
+.experiment-create-intro {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--neutral-50);
+  color: var(--platform-muted);
+  font-size: var(--type-support);
+  line-height: 1.5;
+}
+
+.experiment-create-drawer textarea[name="action"] {
+  min-height: 112px;
+}
+
+.experiment-context-details {
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
+}
+
+.experiment-context-details > summary {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.experiment-context-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.experiment-context-details > summary span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.experiment-context-details > summary strong,
+.experiment-context-details > summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.experiment-context-details > summary small {
+  color: var(--platform-muted);
+  font-size: var(--type-meta);
+  font-weight: 500;
+}
+
+.experiment-context-details > summary svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  transition: transform .16s ease;
+}
+
+.experiment-context-details[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.experiment-context-fields {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-top: 1px solid var(--platform-line);
+  background: var(--neutral-50);
+}
+
 @media (max-width: 760px) {
   .focus-hub .leadership-workbench-empty .leadership-empty-state {
     padding: 24px 20px;
+  }
+
+  .focus-view-description {
+    max-width: none;
   }
 }
 
