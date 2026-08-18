@@ -12054,3 +12054,226 @@ details.coaching-frame > .coaching-frame-body > article p {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Leadership competency content v3 and conversation integration */
+.competency-inline-names strong {
+  color: var(--platform-ink);
+  font-weight: 750;
+}
+
+.competency-more-label {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.competency-more-label strong,
+.competency-more-label small {
+  display: block;
+}
+
+.competency-more-label small {
+  color: var(--platform-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.competency-source-note {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 14px 16px;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--neutral-50);
+  color: var(--platform-muted);
+}
+
+.competency-source-note svg {
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  color: #596a7c;
+}
+
+.competency-source-note p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.competency-source-note strong {
+  color: var(--platform-ink);
+  font-weight: 750;
+}
+
+.session-conversation-review {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #d8e1ea;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.conversation-review-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.conversation-review-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.conversation-review-head h4,
+.conversation-review-head p,
+.conversation-review-panel h5,
+.conversation-competency p {
+  margin: 0;
+}
+
+.conversation-review-head h4 {
+  color: var(--platform-ink);
+  font-size: var(--type-label);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.conversation-review-head > div > p:last-child {
+  color: var(--platform-muted);
+  font-size: var(--type-meta);
+  line-height: 1.45;
+}
+
+.conversation-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.conversation-review-panel {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--platform-line);
+  border-radius: 7px;
+  background: var(--platform-paper);
+}
+
+.conversation-review-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.conversation-review-panel-head svg {
+  width: 16px;
+  height: 16px;
+  color: #596a7c;
+}
+
+.conversation-review-panel h5 {
+  color: var(--platform-ink);
+  font-size: var(--type-meta);
+  font-weight: 750;
+}
+
+.conversation-competency-list,
+.conversation-learning-list {
+  display: grid;
+  gap: 8px;
+}
+
+.conversation-competency,
+.conversation-learning-item {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding-top: 9px;
+  border-top: 1px solid var(--platform-line);
+}
+
+.conversation-competency:first-child,
+.conversation-learning-item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.conversation-competency .type-chip {
+  width: max-content;
+}
+
+.conversation-competency strong,
+.conversation-learning-item strong {
+  color: var(--platform-ink);
+  font-size: var(--type-meta);
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.conversation-competency p,
+.conversation-learning-item .content-preview,
+.conversation-review-empty {
+  color: var(--platform-muted);
+  font-size: var(--type-meta);
+  line-height: 1.45;
+}
+
+.conversation-review-empty {
+  margin: 0;
+}
+
+.conversation-learning-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--platform-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.conversation-learning-meta small {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.reflection-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reflection-link-grid label {
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .conversation-review-head {
+    display: grid;
+  }
+
+  .conversation-review-head .ui-button {
+    width: 100%;
+  }
+
+  .conversation-review-grid,
+  .reflection-link-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .session-conversation-review {
+    padding: 16px;
+  }
+}

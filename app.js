@@ -1863,7 +1863,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-97")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-98")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2993,7 +2993,7 @@ function workspacePlanStep({ number, eyebrow, label, value = "", emptyText, edit
   ].filter(Boolean));
 }
 
-function workspaceExperimentStep({ number, actions = [], data, editable = false, onCreate, emptyLabel = "Planlegg første forsøk", completeLabel = "Prøv det i praksis", emptyText = "Gjør et lite adferdsforsøk i en konkret arbeidssituasjon." }) {
+function workspaceExperimentStep({ number, actions = [], data, editable = false, onCreate, emptyLabel = "Planlegg første forsøk", completeLabel = "Prøv det i praksis", emptyText = "Gjør et lite atferdsforsøk i en konkret arbeidssituasjon." }) {
   return el("article", { class: `competency-plan-step workspace-plan-step competency-experiment-step ${actions.length ? "is-complete" : "is-empty"}` }, [
     el("span", { class: "competency-step-marker", "aria-hidden": "true" }, [actions.length ? icon("check") : el("span", { text: String(number) })]),
     el("div", { class: "competency-step-content" }, [
@@ -3024,21 +3024,21 @@ function leadershipGuidance(content = {}, title = "kompetansen") {
   if (!signals.length && !underuse.length && !overuse.length && !barriers.length && !experiment) return null;
   const list = (sectionTitle, iconName, items) => items.length ? el("section", {}, [
     el("div", { class: "competency-reference-title" }, [icon(iconName), el("h4", { text: sectionTitle })]),
-    el("ul", {}, items.slice(0, 5).map((item) => el("li", { text: item })))
+    el("ul", {}, items.map((item) => el("li", { text: item })))
   ]) : null;
   return el("details", { class: "competency-reference" }, [
     el("summary", {}, [
       el("span", { class: "competency-reference-icon", "aria-hidden": "true" }, [icon("book-open")]),
       el("span", {}, [
-        el("strong", { text: `Om ${String(title || "kompetansen").toLowerCase()}` }),
-        el("small", { text: "Se god praksis, feilkalibrering og et mulig startforsøk" })
+        el("strong", { text: "Se mer" }),
+        el("small", { text: `Gode grep, mulige feilgrep og barrierer for ${String(title || "kompetansen").toLowerCase()}` })
       ]),
       icon("chevron-down")
     ]),
     el("div", { class: "leadership-guidance" }, [
-      list("God praksis kan se slik ut", "gauge", signals),
-      list("Når gjør du for lite?", "arrow-down", underuse),
-      list("Når gjør du for mye?", "arrow-up", overuse),
+      list("Når lykkes du?", "gauge", signals),
+      list("Når du bruker kompetansen for lite", "arrow-down", underuse),
+      list("Når du bruker kompetansen for mye eller i feil situasjon", "arrow-up", overuse),
       list("Hva kan stå i veien?", "triangle-alert", barriers),
       experiment ? el("section", {}, [
         el("div", { class: "competency-reference-title" }, [icon("sparkles"), el("h4", { text: "Foreslått startforsøk" })]),
@@ -3125,6 +3125,22 @@ function competencySearchText(competency) {
     competency.categoryLabel,
     ...contentValues
   ].filter(Boolean).join(" "));
+}
+
+function competencyNameNodes(copy, competencies = []) {
+  const aliases = ["Ledelse gjennom andre", "Risikovilje"];
+  const names = Array.from(new Set([
+    ...competencies.flatMap((item) => [item.title, item.name_no, item.title_no]),
+    ...aliases
+  ].filter((value) => typeof value === "string" && value.trim().length > 3)))
+    .sort((a, b) => b.length - a.length);
+  if (!copy || !names.length) return [document.createTextNode(copy || "")];
+  const escaped = names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const matcher = new RegExp(`(${escaped.join("|")})`, "giu");
+  const lookup = new Set(names.map((name) => name.toLocaleLowerCase("nb-NO")));
+  return String(copy).split(matcher).filter(Boolean).map((part) => lookup.has(part.toLocaleLowerCase("nb-NO"))
+    ? el("strong", { text: part })
+    : document.createTextNode(part));
 }
 
 function competencyChooserLayout(data, competencies, selectedIds) {
@@ -3262,15 +3278,17 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
   const maxReached = clientOwnsSelection && selectedCount >= 3 && !selected;
   const previewList = (title, iconName, items, tone = "") => items?.length ? el("section", { class: `competency-preview-section ${tone}`.trim() }, [
     el("div", { class: "competency-preview-section-title" }, [icon(iconName), el("h4", { text: title })]),
-    el("ul", {}, items.slice(0, 5).map((item) => el("li", { text: item })))
+    el("ul", {}, items.map((item) => el("li", { text: item })))
   ]) : null;
-  const contextBlock = (title, iconName, copy) => copy ? el("section", { class: "competency-context-block" }, [
+  const contextBlock = (title, iconName, copy, emphasizeCompetencies = false) => copy ? el("section", { class: "competency-context-block" }, [
     el("div", { class: "competency-context-label" }, [icon(iconName), el("h4", { text: title })]),
-    el("p", { text: copy })
+    emphasizeCompetencies
+      ? el("p", { class: "competency-inline-names" }, competencyNameNodes(copy, data.leadershipCompetencies || []))
+      : el("p", { text: copy })
   ]) : null;
   const secondaryPracticeSections = [
-    previewList("Når gjør du for lite?", "arrow-down", content.best_practice?.underuse || content.underuse, "underuse"),
-    previewList("Når gjør du for mye?", "arrow-up", content.best_practice?.overuse || content.overuse, "overuse"),
+    previewList("Når du bruker kompetansen for lite", "arrow-down", content.best_practice?.underuse || content.underuse, "underuse"),
+    previewList("Når du bruker kompetansen for mye eller i feil situasjon", "arrow-up", content.best_practice?.overuse || content.overuse, "overuse"),
     previewList("Hva kan stå i veien?", "triangle-alert", content.barriers || [], "barriers")
   ].filter(Boolean);
   const chooseAction = () => el("button", {
@@ -3295,12 +3313,18 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
     competency.summary ? el("p", { class: "competency-preview-summary", text: competency.summary }) : null,
     el("div", { class: "competency-context-grid" }, [
       contextBlock("Relevant når", "target", content.choose_when),
-      contextBlock("Skille mot nærliggende kompetanser", "split", content.distinction)
+      contextBlock("Skille mot nærliggende kompetanser", "split", content.distinction, true)
     ].filter(Boolean)),
     el("div", { class: "competency-preview-sections" }, [
       previewList("Når lykkes du?", "gauge", content.best_practice?.success || content.signals, "good-practice"),
       secondaryPracticeSections.length ? el("details", { class: "competency-preview-more" }, [
-        el("summary", {}, [el("span", { text: "Se for lite, for mye og mulige barrierer" }), icon("chevron-down")]),
+        el("summary", {}, [
+          el("span", { class: "competency-more-label" }, [
+            el("strong", { text: "Se mer" }),
+            el("small", { text: "Gode grep, mulige feilgrep og barrierer" })
+          ]),
+          icon("chevron-down")
+        ]),
         el("div", { class: "competency-preview-more-body" }, secondaryPracticeSections)
       ]) : null
     ].filter(Boolean)),
@@ -3316,6 +3340,13 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
       el("summary", {}, [el("span", { text: "Refleksjonsspørsmål" }), icon("chevron-down")]),
       previewList("Reflekter", "message-circle-question", content.reflection, "reflection")
     ]) : null,
+    el("aside", { class: "competency-source-note" }, [
+      icon("info"),
+      el("p", {}, [
+        el("strong", { text: "Faglig grunnlag. " }),
+        document.createTextNode("Kompetanserammen tar utgangspunkt i CCL Compass. Norske beskrivelser og utviklingsgrep er selvstendig bearbeidet med støtte i forskning og praksis innen lederutvikling. Dette er et utviklingskart, ikke et psykometrisk verktøy.")
+      ])
+    ]),
     el("footer", { class: "competency-preview-footer" }, [
       el("span", { class: "muted", text: selected ? "Denne kompetansen er aktiv i utviklingsplanen." : suggested && maxReached ? "Forslaget er ikke aktivt. Arkiver en aktiv kompetanse før du kan aktivere det." : suggested ? "Coachen har foreslått kompetansen; klienten eier aktiveringen." : maxReached ? "Arkiver en aktiv kompetanse for å gjøre plass." : "Valget kan endres senere." }),
       chooseAction()
@@ -3859,6 +3890,75 @@ function selectSessionCard(session, index, detail, editable, data) {
   refreshIcons();
 }
 
+function sessionConversationReview(data, session = {}) {
+  if (!data) return null;
+  const activeCompetencies = (data.programCompetencies || [])
+    .filter((item) => item.status === "active")
+    .sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99));
+  const sharedReflections = (data.reflections || [])
+    .filter((reflection) => reflection.visibility === "shared_with_coach")
+    .slice(0, 2)
+    .map((reflection) => {
+      const competency = activeCompetencies.find((item) => item.id === reflection.program_competency_id)
+        || (data.programCompetencies || []).find((item) => item.id === reflection.program_competency_id);
+      const area = (data.areas || []).find((item) => item.id === reflection.development_area_id);
+      return {
+        type: "Delt refleksjon",
+        title: competency?.title || area?.title || "Hele forløpet",
+        body: reflection.body || "",
+        date: reflection.created_at
+      };
+    });
+  const experimentLearning = (data.actions || [])
+    .map((action) => ({ action, parsed: parseActionDescription(action.description || "") }))
+    .filter(({ parsed }) => parsed.learning || parsed.observation || parsed.effect)
+    .sort((a, b) => Number(b.action.session_id === session.id) - Number(a.action.session_id === session.id))
+    .slice(0, 2)
+    .map(({ action, parsed }) => ({
+      type: "Læring fra eksperiment",
+      title: action.title || "Eksperiment",
+      body: parsed.learning || parsed.observation || effectLabel(parsed.effect),
+      date: action.updated_at || action.created_at
+    }));
+  const learningItems = [...sharedReflections, ...experimentLearning].slice(0, 3);
+
+  return el("section", { class: "session-conversation-review" }, [
+    el("header", { class: "conversation-review-head" }, [
+      el("div", {}, [
+        el("p", { class: "workspace-kicker", text: "Samtalegrunnlag" }),
+        el("h4", { text: "Ta med utviklingsfokuset inn i samtalen" }),
+        el("p", { text: "Se aktive kompetanser og nylig delt læring før dere velger neste forsøk." })
+      ]),
+      el("button", { class: "ui-button ui-button-outlined", type: "button", text: "Åpne kompetanser", onclick: () => renderCachedProgram("work") })
+    ]),
+    el("div", { class: "conversation-review-grid" }, [
+      el("section", { class: "conversation-review-panel" }, [
+        el("div", { class: "conversation-review-panel-head" }, [icon("compass"), el("h5", { text: "Aktive kompetanser" })]),
+        activeCompetencies.length
+          ? el("div", { class: "conversation-competency-list" }, activeCompetencies.map((item) => el("article", { class: "conversation-competency" }, [
+            el("span", { class: "ui-meta type-chip", text: item.roleLabel || (Number(item.priority) === 1 ? "Hovedfokus" : "Støttende kompetanse") }),
+            el("strong", { text: item.title || "Kompetanse" }),
+            el("p", { text: item.desired_behavior || item.why_now || item.summary || "Utviklingshypotesen er ikke avklart ennå." })
+          ])))
+          : el("p", { class: "conversation-review-empty", text: "Ingen aktive kompetanser er valgt ennå." })
+      ]),
+      el("section", { class: "conversation-review-panel" }, [
+        el("div", { class: "conversation-review-panel-head" }, [icon("messages-square"), el("h5", { text: "Delt refleksjon og læring" })]),
+        learningItems.length
+          ? el("div", { class: "conversation-learning-list" }, learningItems.map((item) => el("article", { class: "conversation-learning-item" }, [
+            el("span", { class: "conversation-learning-meta" }, [
+              el("span", { text: item.type }),
+              item.date ? el("small", { text: formatDate(item.date) }) : null
+            ].filter(Boolean)),
+            el("strong", { text: item.title }),
+            contentPreview(item.body, "Ingen læring er notert ennå.", 3)
+          ])))
+          : el("p", { class: "conversation-review-empty", text: "Ingen delt refleksjon eller avlest eksperiment ennå." })
+      ])
+    ])
+  ]);
+}
+
 function sessionDetail(session, index, editable, data = null) {
   const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id);
   const activeLinkedActions = linkedActions.filter((action) => isExperimentActive(action.status));
@@ -3891,6 +3991,7 @@ function sessionDetail(session, index, editable, data = null) {
       ]),
       editable ? iconAction("Slett samtale", "trash-2", () => deleteSession(index), "danger") : null
     ].filter(Boolean)),
+    sessionConversationReview(data, session),
     workspaceNextStep({
       complete: progress.completed === 5,
       label: nextLabel,
@@ -4333,6 +4434,7 @@ function reflectionComposer(data) {
     buttons.forEach((button) => button.classList.toggle("active", button.dataset.value === value));
   };
   const visibilityButtons = [];
+  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active");
   const visibilityButton = (value, label) => {
     const button = el("button", {
       class: `visibility-choice ${value === "private" ? "active" : ""}`,
@@ -4367,10 +4469,18 @@ function reflectionComposer(data) {
           visibilityButton("shared_with_coach", "Del med coach")
         ])
       ]),
-      el("label", { text: "Knytt til" }, [
-        el("select", { id: "reflection-area" }, [
-          el("option", { value: "", text: "Hele forløpet" }),
-          ...data.areas.map((area) => el("option", { value: area.id, text: area.title || "Fokusoppdrag" }))
+      el("div", { class: "reflection-link-grid" }, [
+        el("label", { text: "Fokusoppdrag" }, [
+          el("select", { id: "reflection-area" }, [
+            el("option", { value: "", text: "Ikke knyttet" }),
+            ...data.areas.map((area) => el("option", { value: area.id, text: area.title || "Fokusoppdrag" }))
+          ])
+        ]),
+        el("label", { text: "Kompetanse" }, [
+          el("select", { id: "reflection-competency" }, [
+            el("option", { value: "", text: "Ikke knyttet" }),
+            ...activeCompetencies.map((item) => el("option", { value: item.id, text: `${item.roleLabel || "Kompetanse"}: ${item.title || "Lederkompetanse"}` }))
+          ])
         ])
       ])
     ]),
@@ -4396,6 +4506,7 @@ function reflectionsList(reflections, data, canWriteReflection = false) {
   return el("div", { class: "reflection-list" }, reflections.map((reflection) => {
     const editable = reflection.created_by === state.user?.id;
     const area = (data.areas || []).find((item) => item.id === reflection.development_area_id);
+    const competency = (data.programCompetencies || []).find((item) => item.id === reflection.program_competency_id);
     if (editable && state.inlineEditKey === `reflection:${reflection.id}`) return reflectionInlineCard(reflection, data);
     return el("article", { class: "reflection-card editable-row" }, [
       el("button", {
@@ -4408,6 +4519,7 @@ function reflectionsList(reflections, data, canWriteReflection = false) {
         el("span", { class: "row-main" }, [
           el("span", { class: "reflection-card-meta" }, [
             el("span", { class: `ui-meta ${reflection.visibility === "private" ? "private" : ""}`, text: reflection.visibility === "private" ? "Privat" : "Delt med coach" }),
+            competency ? el("span", { class: "ui-meta", text: competency.title || "Kompetanse" }) : null,
             area ? el("span", { class: "ui-meta", text: area.title || "Fokus" }) : null,
             el("small", { class: "content-card-meta", text: formatDate(reflection.created_at) })
           ].filter(Boolean)),
@@ -4446,8 +4558,13 @@ function reflectionInlineCard(reflection, data) {
     return button;
   };
   const area = el("select", {}, [
-    el("option", { value: "", text: "Hele forløpet", selected: !reflection.development_area_id }),
+    el("option", { value: "", text: "Ikke knyttet", selected: !reflection.development_area_id }),
     ...data.areas.map((item) => el("option", { value: item.id, text: item.title || "Fokusoppdrag", selected: reflection.development_area_id === item.id }))
+  ]);
+  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active" || item.id === reflection.program_competency_id);
+  const competency = el("select", {}, [
+    el("option", { value: "", text: "Ikke knyttet", selected: !reflection.program_competency_id }),
+    ...activeCompetencies.map((item) => el("option", { value: item.id, text: item.title || "Lederkompetanse", selected: reflection.program_competency_id === item.id }))
   ]);
   return el("article", { class: "ui-inline-editor content-card reflection-card reflection-card-edit" }, [
     el("div", { class: "field-pair" }, [
@@ -4458,7 +4575,10 @@ function reflectionInlineCard(reflection, data) {
           visibilityButton("shared_with_coach", "Del med coach")
         ])
       ]),
-      el("label", { text: "Knytt til" }, [area])
+      el("div", { class: "reflection-link-grid" }, [
+        el("label", { text: "Fokusoppdrag" }, [area]),
+        el("label", { text: "Kompetanse" }, [competency])
+      ])
     ]),
     body,
     el("div", { class: "ui-inline-editor-actions inline-edit-actions" }, [
@@ -4470,7 +4590,8 @@ function reflectionInlineCard(reflection, data) {
         const { error } = await state.sb.from("client_reflections").update({
           body: body.value || "",
           visibility,
-          development_area_id: area.value || null
+          development_area_id: area.value || null,
+          program_competency_id: competency.value || null
         }).eq("id", reflection.id);
         if (error) {
           await showAppMessage("Kunne ikke lagre refleksjonen", error.message || "Prøv igjen.");
@@ -4515,7 +4636,10 @@ function createActionFromSessionNextStep(sessionIndex, nextStepText) {
   const data = client ? state.programCache[client.id] : null;
   const session = getSessions()[sessionIndex] || {};
   if (!data) return;
-  createAction(data, "", "", nextStepText, {
+  const primaryCompetency = (data.programCompetencies || [])
+    .filter((item) => item.status === "active")
+    .sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99))[0];
+  createAction(data, "", primaryCompetency?.id || "", nextStepText, {
     title: "Gjør til eksperiment",
     kicker: "Fra samtalen",
     sessionId: session.id || null,
@@ -4708,7 +4832,8 @@ async function createReflection(programId) {
     program_id: programId,
     body,
     visibility: $("#reflection-visibility")?.value || "private",
-    development_area_id: $("#reflection-area")?.value || null
+    development_area_id: $("#reflection-area")?.value || null,
+    program_competency_id: $("#reflection-competency")?.value || null
   });
   if (error) {
     if (status) status.textContent = "Kunne ikke lagre";

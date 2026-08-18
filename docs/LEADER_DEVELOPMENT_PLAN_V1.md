@@ -618,6 +618,8 @@ Build:
 
 ### Package 5: Conversation Integration
 
+Status: implemented on an isolated feature branch together with the V3 content contract. Local structural and migration QA is complete; desktop and mobile visual QA remains a release gate.
+
 Build:
 
 - Conversation review of active competencies.
@@ -641,15 +643,19 @@ Build:
 - Read-only fallback for old plans where needed.
 - Admin audit view for migration state.
 
-## Open Decisions
+## Decisions Locked After V1
 
-1. Should the main navigation labels change now, or should we keep the current labels and change the meaning underneath first?
+1. Keep the current main navigation. `Alle eksperimenter` remains a cross-cutting workspace under Fokus.
 
-2. Should clients self-select competencies, coaches recommend them, or should both be supported from day one?
+2. The client owns activation and priority. The coach can suggest without overriding the client.
 
-3. Should the first pilot include all visible CCL-style competencies, or only a curated set of 8-12?
+3. The active model is one `Hovedfokus` and up to two `Støttende kompetanser` selected from all 52 competencies.
 
-4. Should custom competencies be allowed, or should all development tracks start from the library?
+4. Experiments remain one shared object in `session_actions`; no parallel competency-experiment model is introduced.
+
+## Remaining Product Decision
+
+1. Should custom competencies be allowed, or should all development tracks start from the library?
 
 5. Should derailers be visible to clients, or only used as coach/admin guidance?
 
