@@ -129,6 +129,8 @@ const state = {
   leadershipLibraryPromise: null,
   selectedCompetencyId: null,
   focusView: "competencies",
+  experimentView: "active",
+  experimentFilter: "all",
   previewCompetencyId: null,
   competencyChooserQuery: "",
   competencyChooserCategory: "all",
@@ -163,6 +165,14 @@ function isExperimentClosed(status) {
 
 function isExperimentReviewed(status) {
   return ["reviewed", "continued", "closed"].includes(normalizeExperimentStatus(status));
+}
+
+function isExperimentActive(status) {
+  return !isExperimentReviewed(status);
+}
+
+function isClientCompetencyOwner() {
+  return state.profile?.role === "client";
 }
 
 function el(tag, attrs = {}, children = []) {
@@ -1853,7 +1863,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-92")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-97")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2696,16 +2706,22 @@ function workWorkspace(client, data, plan) {
 }
 
 function focusHubWorkspace(data, plan, focusItems, editable) {
-  const selectedItems = data.programCompetencies || [];
-  const activeView = state.focusView === "assignments" ? "assignments" : "competencies";
+  const selectedItems = (data.programCompetencies || []).filter((item) => item.status === "active");
+  const activeView = ["competencies", "assignments", "experiments"].includes(state.focusView) ? state.focusView : "competencies";
   return el("div", { class: "platform-page work-stack focus-hub" }, [
-    focusHubIntro(editable, data, activeView === "competencies" ? selectedItems.length : focusItems.length, true),
-    focusViewTabs(activeView),
+    focusHubIntro(editable, data, activeView === "competencies" ? selectedItems.length : activeView === "assignments" ? focusItems.length : data.actions.length, true),
+    el("div", { class: "focus-navigation-row" }, [
+      focusViewTabs(activeView),
+      experimentHubLink(data, activeView)
+    ]),
     el("section", { class: `focus-hub-panel ${activeView === "competencies" ? "active" : ""}`, "aria-hidden": activeView === "competencies" ? "false" : "true" }, [
       activeView === "competencies" ? leadershipWorkbench(data, editable) : null
     ].filter(Boolean)),
     el("section", { class: `focus-hub-panel ${activeView === "assignments" ? "active" : ""}`, "aria-hidden": activeView === "assignments" ? "false" : "true" }, [
       activeView === "assignments" ? focusWorkbench(focusItems, data, editable) : null
+    ].filter(Boolean)),
+    el("section", { class: `focus-hub-panel ${activeView === "experiments" ? "active" : ""}`, "aria-hidden": activeView === "experiments" ? "false" : "true" }, [
+      activeView === "experiments" ? experimentHubWorkspace(data, editable) : null
     ].filter(Boolean)),
     areasEditor(plan.areas)
   ]);
@@ -2713,10 +2729,26 @@ function focusHubWorkspace(data, plan, focusItems, editable) {
 
 function focusHubIntro(editable, data, itemCount = 0, hasCompetencies = true) {
   const assignmentsActive = !hasCompetencies || state.focusView === "assignments";
-  const action = assignmentsActive
+  const experimentsActive = hasCompetencies && state.focusView === "experiments";
+  const action = experimentsActive
+    ? (editable ? addAction("Nytt eksperiment", () => createAction(data)) : null)
+    : assignmentsActive
     ? (editable ? addAction(itemCount ? "Nytt fokusoppdrag" : "Opprett fokusoppdrag", () => addFocusArea()) : null)
     : (editable ? addAction(itemCount ? "Utforsk flere kompetanser" : "Velg kompetanser", () => openCompetencyChooser(data)) : null);
   return workspaceIntro("Fokus", "Koble utviklingen til arbeidet som skal gjøres", "Utvikle lederkompetanser over tid, og bruk fokusoppdrag til konkrete prosjekter, leveranser eller situasjoner som krever oppmerksomhet nå.", [action].filter(Boolean));
+}
+
+function experimentHubLink(data, activeView) {
+  const activeCount = (data.actions || []).filter((action) => isExperimentActive(action.status)).length;
+  return el("button", {
+    class: `experiment-hub-link ${activeView === "experiments" ? "active" : ""}`,
+    type: "button",
+    onclick: () => {
+      state.focusView = "experiments";
+      state.inlineEditKey = null;
+      renderCachedProgram("work");
+    }
+  }, [icon("flask-conical"), el("span", { text: "Alle eksperimenter" }), el("small", { text: `${activeCount} aktive` })]);
 }
 
 function focusViewTabs(activeView) {
@@ -2739,15 +2771,17 @@ function focusViewTabs(activeView) {
 }
 
 function leadershipWorkbench(data, editable) {
-  const selectedItems = data.programCompetencies || [];
+  const selectedItems = (data.programCompetencies || []).filter((item) => item.status === "active");
+  const suggestions = (data.programCompetencies || []).filter((item) => item.status === "suggested");
   if (!selectedItems.length) {
     return el("div", { class: "leadership-workspace-stack" }, [
+      leadershipSuggestions(suggestions, data, editable),
       el("div", { class: "platform-surface leadership-workbench leadership-workbench-empty" }, [
         el("div", { class: "leadership-master" }, [
           leadershipEmptyState(data, editable)
         ])
       ])
-    ]);
+    ].filter(Boolean));
   }
 
   const selected = selectedItems.find((item) => item.id === state.selectedCompetencyId) || selectedItems[0];
@@ -2756,17 +2790,50 @@ function leadershipWorkbench(data, editable) {
     leadershipDetail(selected, data, editable)
   ]);
   return el("div", { class: "leadership-workspace-stack" }, [
+    leadershipSuggestions(suggestions, data, editable),
     el("div", { class: "platform-surface leadership-workbench workspace-split-view" }, [
       leadershipSelectedList(selectedItems, detail, data, editable),
       el("div", { class: "leadership-detail-wrap" }, [detail])
     ])
+  ].filter(Boolean));
+}
+
+function leadershipSuggestions(items, data, editable) {
+  if (!items.length) return null;
+  const clientOwnsChoice = isClientCompetencyOwner();
+  return el("section", { class: "competency-suggestions" }, [
+    el("div", { class: "competency-suggestions-copy" }, [
+      el("span", { class: "workspace-kicker", text: "Forslag fra coach" }),
+      el("strong", { text: items.length === 1 ? "Én kompetanse er foreslått" : `${items.length} kompetanser er foreslått` }),
+      el("p", { text: clientOwnsChoice ? "Du bestemmer om forslaget skal bli hovedfokus eller en støttende kompetanse." : "Forslaget blir ikke aktivt før klienten velger det." })
+    ]),
+    el("div", { class: "competency-suggestion-list" }, items.map((item) => el("article", {}, [
+      el("div", {}, [
+        el("strong", { text: item.title || "Kompetanse" }),
+        el("small", { text: item.categoryLabel || "Lederkompetanse" })
+      ]),
+      clientOwnsChoice && editable ? el("div", { class: "competency-suggestion-actions" }, [
+        el("button", {
+          class: "ui-button ui-button-tonal",
+          type: "button",
+          text: "Aktiver forslag",
+          onclick: () => activateSuggestedCompetency(data, item)
+        }),
+        el("button", {
+          class: "ui-button ui-button-outlined",
+          type: "button",
+          text: "Skjul",
+          onclick: () => removeLeadershipCompetency(item)
+        })
+      ]) : null
+    ].filter(Boolean))))
   ]);
 }
 
 function leadershipSelectedList(items, detail, data, editable) {
   const rows = items.map((item, index) => {
     const active = item.id === state.selectedCompetencyId || (!state.selectedCompetencyId && index === 0);
-    const completion = leadershipCompletion(item, data);
+    const planStatus = leadershipPlanStatus(item);
     const note = item.desired_behavior || item.competency?.summary || item.summary || "Ikke påbegynt";
     return el("article", { class: `leadership-track-row workspace-master-row ${active ? "active" : ""}` }, [
       el("button", {
@@ -2781,11 +2848,11 @@ function leadershipSelectedList(items, detail, data, editable) {
           refreshIcons();
         }
       }, [
-        el("span", { class: "leadership-track-index", "aria-hidden": "true" }, [icon(completion.count === completion.total ? "check" : "compass")]),
+        el("span", { class: "leadership-track-index", "aria-hidden": "true" }, [icon(planStatus.ready ? "check" : "compass")]),
         el("span", { class: "leadership-track-main" }, [
           el("span", { class: "leadership-track-heading" }, [
             el("strong", { text: item.title || "Kompetanse" }),
-            el("small", { text: `${completion.count}/${completion.total}` })
+            el("small", { text: item.roleLabel || (item.priority === 1 ? "Hovedfokus" : "Støttende kompetanse") })
           ]),
           contentPreview(note, "Hva vil du utvikle?", 2)
         ]),
@@ -2795,8 +2862,8 @@ function leadershipSelectedList(items, detail, data, editable) {
   });
   return el("div", { class: "leadership-master leadership-track-list workspace-master-rail" }, [
     el("div", { class: "leadership-track-head workspace-master-head" }, [
-      el("strong", { text: "Valgte kompetanser" }),
-      el("span", { text: `${items.length}/3` })
+      el("strong", { text: "Aktive kompetanser" }),
+      el("span", { text: `${items.length} aktive` })
     ]),
     ...rows
   ]);
@@ -2804,60 +2871,66 @@ function leadershipSelectedList(items, detail, data, editable) {
 
 function leadershipDetail(item, data, editable) {
   const content = item.competency?.content || {};
-  const actions = data.actions.filter((action) => action.program_competency_id === item.id && !isExperimentClosed(action.status));
-  const completion = leadershipCompletion(item, data);
+  const actions = data.actions.filter((action) => action.program_competency_id === item.id);
+  const activeActions = actions.filter((action) => isExperimentActive(action.status));
+  const planStatus = leadershipPlanStatus(item);
   const missingStep = [
+    ["why_now", "Avklar hvorfor kompetansen er viktig nå"],
     ["desired_behavior", "Avklar hva du vil utvikle"],
-    ["current_pattern", "Velg en konkret øvingsarena"],
-    ["obstacles", "Sett ord på det som kan stå i veien"]
+    ["current_pattern", "Beskriv hva du gjør i dag"]
   ].find(([fieldKey]) => !(item[fieldKey] || "").trim());
-  const nextLabel = missingStep?.[1] || (!actions.length ? "Planlegg første eksperiment" : "Følg opp eksperimentet");
+  const nextLabel = missingStep?.[1] || (!activeActions.length ? "Planlegg første eksperiment" : "Følg opp eksperimentet");
   const nextHandler = missingStep
     ? () => openLeadershipFieldEditor(item, missingStep[0])
-    : !actions.length
+    : !activeActions.length
       ? () => createCompetencyAction(data, item)
-      : () => editAction(actions[0], data);
+      : () => editAction(activeActions[0], data);
 
   return el("section", { class: "leadership-detail-card competency-workspace workspace-detail-surface" }, [
     el("header", { class: "competency-workspace-head" }, [
       el("div", { class: "competency-workspace-heading" }, [
         el("span", { class: "competency-context" }, [
-          el("span", { class: "workspace-kicker", text: "Valgt kompetanse" }),
+          el("span", { class: "workspace-kicker", text: item.roleLabel || "Valgt kompetanse" }),
           item.categoryLabel ? el("span", { class: "ui-meta type-chip", text: item.categoryLabel }) : null
         ].filter(Boolean)),
         el("h3", { text: item.title || "Kompetanse" }),
         item.summary ? el("p", { class: "muted leadership-summary", text: item.summary }) : null
       ]),
-      editable ? iconAction("Fjern kompetanse", "trash-2", () => removeLeadershipCompetency(item), "danger") : null
+      editable && isClientCompetencyOwner() ? el("div", { class: "competency-heading-actions" }, [
+        item.priority !== 1 ? el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Gjør til hovedfokus", onclick: () => makeLeadershipCompetencyPrimary(item) }) : null,
+        iconAction("Arkiver kompetanse", "archive", () => removeLeadershipCompetency(item), "danger")
+      ].filter(Boolean)) : null
     ].filter(Boolean)),
     workspaceNextStep({
-      complete: completion.count === completion.total,
+      complete: planStatus.ready,
       label: nextLabel,
-      actionLabel: completion.count === completion.total ? "Åpne" : "Fortsett",
+      helper: planStatus.ready ? "Planen er tydelig nok til å prøve i arbeidshverdagen. Det betyr ikke at kompetansen er ferdigutviklet." : "Gjør utviklingshypotesen tydelig nok til å kunne prøves.",
+      actionLabel: planStatus.ready ? "Åpne" : "Fortsett",
       onAction: nextHandler,
       editable
     }),
     workspacePlan({
       title: "Din utviklingsplan",
-      description: "Gjør kompetansen konkret nok til å kunne øves på i arbeidshverdagen.",
-      count: completion.count,
-      total: completion.total,
+      description: "En utviklingshypotese – ikke en måling av hvor ferdigutviklet du er.",
+      status: planStatus,
       steps: [
-        leadershipPlanStep(item, 1, "Målbilde", "Hva vil du gjøre annerledes?", item.desired_behavior, "Beskriv den konkrete atferden du vil utvikle.", "desired_behavior", editable),
-        leadershipPlanStep(item, 2, "Øvingsarena", "Hvor skal det merkes?", item.current_pattern, "Velg møter, relasjoner eller beslutninger der du kan øve.", "current_pattern", editable),
-        leadershipPlanStep(item, 3, "Hindringer", "Hva kan stå i veien?", item.obstacles, "Sett ord på vaner, situasjoner eller reaksjoner som kan hindre deg.", "obstacles", editable),
-        leadershipExperimentStep(item, data, actions, editable)
+        leadershipPlanStep(item, 1, "Hvorfor nå?", "Hvorfor er akkurat denne kompetansen viktig nå?", item.why_now, "Knytt kompetansen til det som faktisk krever noe annet av deg nå.", "why_now", editable),
+        leadershipPlanStep(item, 2, "Ønsket atferd", "Hva vil du gjøre annerledes?", item.desired_behavior, "Beskriv konkret, observerbar lederatferd.", "desired_behavior", editable),
+        leadershipPlanStep(item, 3, "Nåmønster", "Hva gjør du i dag?", item.current_pattern, "Beskriv den typiske responsen eller vanen du vil undersøke.", "current_pattern", editable),
+        leadershipPlanStep(item, 4, "Mulige barrierer", "Hva kan stå i veien?", item.obstacles, "Formuler egne hypoteser om vaner, antakelser eller situasjonsfaktorer – uten å diagnostisere.", "obstacles", editable)
       ]
     }),
+    relatedExperiments({ actions, data, editable, onCreate: () => createCompetencyAction(data, item), contextLabel: item.title || "kompetansen" }),
     leadershipGuidance(content, item.title)
   ].filter(Boolean));
 }
 
-function leadershipCompletion(item, data) {
-  const actionCount = (data.actions || []).filter((action) => action.program_competency_id === item.id && !isExperimentClosed(action.status)).length;
-  const count = [item.desired_behavior, item.current_pattern, item.obstacles].filter((value) => (value || "").trim()).length + (actionCount ? 1 : 0);
-  const total = 4;
-  return { count, total, percent: Math.round((count / total) * 100) };
+function leadershipPlanStatus(item) {
+  const required = [item.why_now, item.desired_behavior, item.current_pattern].filter((value) => (value || "").trim()).length;
+  const any = [item.why_now, item.desired_behavior, item.current_pattern, item.obstacles].some((value) => (value || "").trim());
+  if (required === 3) return { key: "ready", label: "Klar til å prøves", ready: true };
+  if (any) return { key: "working", label: "Under arbeid", ready: false };
+  return { key: "not-started", label: "Ikke påbegynt", ready: false };
 }
 
 function workspaceNextStep({ complete = false, label, helper = "", actionLabel = "Fortsett", onAction = null, editable = false }) {
@@ -2872,22 +2945,15 @@ function workspaceNextStep({ complete = false, label, helper = "", actionLabel =
   ].filter(Boolean));
 }
 
-function workspacePlan({ title, description, count, total, steps }) {
-  const percent = total ? Math.round((count / total) * 100) : 0;
+function workspacePlan({ title, description, status, steps }) {
   return el("section", { class: "competency-plan workspace-plan" }, [
     el("header", { class: "competency-plan-head" }, [
       el("div", {}, [
         el("h4", { text: title }),
         el("p", { text: description })
       ]),
-      el("div", { class: "competency-progress-copy" }, [
-        el("strong", { text: `${count} av ${total}` }),
-        el("span", { text: "avklart" })
-      ])
-    ]),
-    el("div", { class: "competency-progress-track", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(count) }, [
-      el("span", { style: `width:${percent}%` })
-    ]),
+      status ? el("span", { class: `plan-status-chip ${status.key || "working"}`, text: status.label || "Under arbeid" }) : null
+    ].filter(Boolean)),
     el("div", { class: "competency-plan-list workspace-plan-list" }, steps)
   ]);
 }
@@ -2950,10 +3016,12 @@ function openLeadershipFieldEditor(item, fieldKey) {
 }
 
 function leadershipGuidance(content = {}, title = "kompetansen") {
-  const signals = content.signals || [];
-  const obstacles = content.obstacles || [];
-  const practices = content.practices || [];
-  if (!signals.length && !obstacles.length && !practices.length) return null;
+  const signals = content.best_practice?.success || content.signals || [];
+  const underuse = content.best_practice?.underuse || content.underuse || [];
+  const overuse = content.best_practice?.overuse || content.overuse || [];
+  const barriers = content.barriers || content.obstacles || [];
+  const experiment = content.practice?.experiment || content.experiment || "";
+  if (!signals.length && !underuse.length && !overuse.length && !barriers.length && !experiment) return null;
   const list = (sectionTitle, iconName, items) => items.length ? el("section", {}, [
     el("div", { class: "competency-reference-title" }, [icon(iconName), el("h4", { text: sectionTitle })]),
     el("ul", {}, items.slice(0, 5).map((item) => el("li", { text: item })))
@@ -2963,14 +3031,19 @@ function leadershipGuidance(content = {}, title = "kompetansen") {
       el("span", { class: "competency-reference-icon", "aria-hidden": "true" }, [icon("book-open")]),
       el("span", {}, [
         el("strong", { text: `Om ${String(title || "kompetansen").toLowerCase()}` }),
-        el("small", { text: "Se kjennetegn, vanlige hindringer og mulige øvingsgrep" })
+        el("small", { text: "Se god praksis, feilkalibrering og et mulig startforsøk" })
       ]),
       icon("chevron-down")
     ]),
     el("div", { class: "leadership-guidance" }, [
       list("God praksis kan se slik ut", "gauge", signals),
-      list("Typiske hindringer", "triangle-alert", obstacles),
-      list("Mulige øvingsgrep", "sparkles", practices)
+      list("Når gjør du for lite?", "arrow-down", underuse),
+      list("Når gjør du for mye?", "arrow-up", overuse),
+      list("Hva kan stå i veien?", "triangle-alert", barriers),
+      experiment ? el("section", {}, [
+        el("div", { class: "competency-reference-title" }, [icon("sparkles"), el("h4", { text: "Foreslått startforsøk" })]),
+        el("p", { text: experiment })
+      ]) : null
     ].filter(Boolean))
   ]);
 }
@@ -3010,7 +3083,7 @@ function openCompetencyChooser(data) {
 
   const competencies = data.leadershipCompetencies || [];
   const selectedItems = data.programCompetencies || [];
-  const selectedIds = new Set(selectedItems.map((item) => item.competency_id));
+  const selectedIds = new Set(selectedItems.filter((item) => ["active", "suggested"].includes(item.status)).map((item) => item.competency_id));
   const availableCategories = new Set(competencies.map((item) => item.category));
   if (state.competencyChooserCategory !== "all" && !availableCategories.has(state.competencyChooserCategory)) {
     state.competencyChooserCategory = "all";
@@ -3039,7 +3112,12 @@ function normalizeCompetencySearch(value) {
 }
 
 function competencySearchText(competency) {
-  const contentValues = Object.values(competency.content || {}).flatMap((value) => Array.isArray(value) ? value : [value]);
+  const flatten = (value) => {
+    if (Array.isArray(value)) return value.flatMap(flatten);
+    if (value && typeof value === "object") return Object.values(value).flatMap(flatten);
+    return typeof value === "string" ? [value] : [];
+  };
+  const contentValues = flatten(competency.content || {});
   return normalizeCompetencySearch([
     competency.title,
     competency.title_en,
@@ -3050,7 +3128,7 @@ function competencySearchText(competency) {
 }
 
 function competencyChooserLayout(data, competencies, selectedIds) {
-  const selectedCount = selectedIds.size;
+  const selectedCount = (data.programCompetencies || []).filter((item) => item.status === "active").length;
   const categoryOrder = ["foundation", "self_capacity", "relationships_influence", "team_people", "execution_decisions", "strategy_business_change", "derailer"];
   const categoryOptions = [["all", "Alle utviklingsområder"], ...Array.from(new Map(competencies.map((item) => [item.category, item.categoryLabel || "Andre"])).entries())
     .sort(([a], [b]) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b))];
@@ -3176,8 +3254,12 @@ function competencyBrowserRow(competency, selectedIds, active, onOpen) {
 
 function competencyPreview(competency, data, selectedIds, selectedCount, onBack) {
   const content = competency.content || {};
-  const selected = selectedIds.has(competency.id);
-  const maxReached = selectedCount >= 3 && !selected;
+  const selectedItem = (data.programCompetencies || []).find((item) => item.competency_id === competency.id);
+  const selected = selectedItem?.status === "active";
+  const suggested = selectedItem?.status === "suggested";
+  const clientOwnsSelection = isClientCompetencyOwner();
+  const canActivateSuggestion = suggested && clientOwnsSelection;
+  const maxReached = clientOwnsSelection && selectedCount >= 3 && !selected;
   const previewList = (title, iconName, items, tone = "") => items?.length ? el("section", { class: `competency-preview-section ${tone}`.trim() }, [
     el("div", { class: "competency-preview-section-title" }, [icon(iconName), el("h4", { text: title })]),
     el("ul", {}, items.slice(0, 5).map((item) => el("li", { text: item })))
@@ -3186,15 +3268,19 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
     el("div", { class: "competency-context-label" }, [icon(iconName), el("h4", { text: title })]),
     el("p", { text: copy })
   ]) : null;
+  const secondaryPracticeSections = [
+    previewList("Når gjør du for lite?", "arrow-down", content.best_practice?.underuse || content.underuse, "underuse"),
+    previewList("Når gjør du for mye?", "arrow-up", content.best_practice?.overuse || content.overuse, "overuse"),
+    previewList("Hva kan stå i veien?", "triangle-alert", content.barriers || [], "barriers")
+  ].filter(Boolean);
   const chooseAction = () => el("button", {
     class: "ui-button ui-button-filled competency-select-action",
     type: "button",
-    disabled: selected || maxReached,
+    disabled: selected || (suggested && !canActivateSuggestion) || (maxReached && !canActivateSuggestion),
     onclick: async () => {
-      $("#competency-chooser")?.close();
-      await selectLeadershipCompetency(data, competency);
+      await selectLeadershipCompetency(data, competency, { keepChooserOpen: true });
     }
-  }, [icon(selected ? "check" : "plus"), el("span", { text: selected ? "Allerede valgt" : maxReached ? "Maks tre valgt" : "Velg denne kompetansen" })]);
+  }, [icon(selected || suggested ? "check" : "plus"), el("span", { text: selected ? "Allerede aktiv" : suggested && canActivateSuggestion ? "Aktiver coachens forslag" : suggested ? "Foreslått for klienten" : maxReached ? "Maks tre aktive" : clientOwnsSelection ? "Velg denne kompetansen" : "Foreslå for klienten" })]);
 
   return el("article", { class: "competency-preview-card" }, [
     el("button", { class: "competency-preview-back mobile-only", type: "button", onclick: onBack }, [icon("arrow-left"), el("span", { text: "Til biblioteket" })]),
@@ -3212,38 +3298,78 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
       contextBlock("Skille mot nærliggende kompetanser", "split", content.distinction)
     ].filter(Boolean)),
     el("div", { class: "competency-preview-sections" }, [
-      previewList("God praksis", "gauge", content.signals, "good-practice"),
-      previewList("Underbruk", "arrow-down", content.underuse ? [content.underuse] : content.obstacles, "underuse"),
-      previewList("Overbruk", "arrow-up", content.overuse ? [content.overuse] : [], "overuse")
+      previewList("Når lykkes du?", "gauge", content.best_practice?.success || content.signals, "good-practice"),
+      secondaryPracticeSections.length ? el("details", { class: "competency-preview-more" }, [
+        el("summary", {}, [el("span", { text: "Se for lite, for mye og mulige barrierer" }), icon("chevron-down")]),
+        el("div", { class: "competency-preview-more-body" }, secondaryPracticeSections)
+      ]) : null
     ].filter(Boolean)),
-    content.experiment || content.practices?.length ? el("section", { class: "competency-practice-block" }, [
+    content.practice?.experiment || content.experiment || content.practices?.length ? el("section", { class: "competency-practice-block" }, [
       el("span", { class: "competency-practice-icon", "aria-hidden": "true" }, [icon("sparkles")]),
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Prøv i praksis" }),
-        el("p", { class: "competency-practice-copy", text: content.experiment || content.practices.join(" ") }),
-        content.evidence ? el("p", { class: "competency-evidence" }, [el("strong", { text: "Tegn på effekt: " }), el("span", { text: content.evidence })]) : null
+        el("p", { class: "competency-practice-copy", text: content.practice?.experiment || content.experiment || content.practices.join(" ") }),
+        content.practice?.effect || content.evidence ? el("p", { class: "competency-evidence" }, [el("strong", { text: "Tegn på effekt: " }), el("span", { text: content.practice?.effect || content.evidence })]) : null
       ].filter(Boolean))
     ]) : null,
+    content.reflection?.length ? el("details", { class: "competency-preview-reflection" }, [
+      el("summary", {}, [el("span", { text: "Refleksjonsspørsmål" }), icon("chevron-down")]),
+      previewList("Reflekter", "message-circle-question", content.reflection, "reflection")
+    ]) : null,
     el("footer", { class: "competency-preview-footer" }, [
-      el("span", { class: "muted", text: selected ? "Denne kompetansen ligger allerede i utviklingsplanen." : maxReached ? "Fjern en valgt kompetanse for å gjøre plass." : "Valget kan endres senere." }),
+      el("span", { class: "muted", text: selected ? "Denne kompetansen er aktiv i utviklingsplanen." : suggested && maxReached ? "Forslaget er ikke aktivt. Arkiver en aktiv kompetanse før du kan aktivere det." : suggested ? "Coachen har foreslått kompetansen; klienten eier aktiveringen." : maxReached ? "Arkiver en aktiv kompetanse for å gjøre plass." : "Valget kan endres senere." }),
       chooseAction()
     ])
   ].filter(Boolean));
 }
 
-async function selectLeadershipCompetency(data, competency) {
+async function selectLeadershipCompetency(data, competency, { keepChooserOpen = false } = {}) {
   const library = await ensureLeadershipLibrary();
   if (!library?.selectProgramCompetency) return;
-  const selectedItems = data.programCompetencies || [];
-  if (selectedItems.some((item) => item.competency_id === competency.id)) return;
-  if (selectedItems.length >= 3) {
-    await showAppMessage("Velg maks tre kompetanser", "Det blir mer praktisk å jobbe med få kompetanser om gangen. Fjern en valgt kompetanse før du legger til en ny.");
+  const selectedItems = (data.programCompetencies || []).filter((item) => item.status === "active");
+  const existing = (data.programCompetencies || []).find((item) => item.competency_id === competency.id);
+  if (existing?.status === "active") return;
+  if (!isClientCompetencyOwner()) {
+    if (!library.suggestProgramCompetency || existing?.status === "suggested") return;
+    await library.suggestProgramCompetency(state.sb, data.program.id, competency.id);
+    await reloadProgramAndRender("work");
+    if (keepChooserOpen) reopenCompetencyChooserFromCache();
     return;
   }
-  const nextPriority = selectedItems.length + 1;
+  if (selectedItems.length >= 3) {
+    await showAppMessage("Velg maks tre aktive kompetanser", "Du kan ha ett hovedfokus og inntil to støttende kompetanser. Arkiver en aktiv kompetanse før du legger til en ny.");
+    return;
+  }
+  const usedPriorities = new Set(selectedItems.map((item) => Number(item.priority)));
+  const nextPriority = [1, 2, 3].find((priority) => !usedPriorities.has(priority));
+  if (!nextPriority) return;
   const created = await library.selectProgramCompetency(state.sb, data.program.id, competency.id, nextPriority);
   state.selectedCompetencyId = created?.id || null;
   await reloadProgramAndRender("work");
+  if (keepChooserOpen) reopenCompetencyChooserFromCache();
+}
+
+function reopenCompetencyChooserFromCache() {
+  const client = getCurrentClient();
+  const latest = client ? state.programCache[client.id] : null;
+  if (latest && $("#competency-chooser")?.open) openCompetencyChooser(latest);
+}
+
+async function activateSuggestedCompetency(data, item) {
+  if (!isClientCompetencyOwner()) return;
+  await selectLeadershipCompetency(data, item.competency || { id: item.competency_id });
+}
+
+async function makeLeadershipCompetencyPrimary(item) {
+  const library = await ensureLeadershipLibrary();
+  if (!isClientCompetencyOwner() || !library?.setPrimaryProgramCompetency) return;
+  try {
+    await library.setPrimaryProgramCompetency(state.sb, item.id);
+    state.selectedCompetencyId = item.id;
+    await reloadProgramAndRender("work");
+  } catch (error) {
+    await showAppMessage("Kunne ikke endre hovedfokus", error.message || "Prøv igjen.");
+  }
 }
 
 async function updateLeadershipCompetencyField(programCompetencyId, fieldKey, value) {
@@ -3260,7 +3386,15 @@ async function updateLeadershipCompetencyField(programCompetencyId, fieldKey, va
 }
 
 async function removeLeadershipCompetency(item) {
-  if (!(await confirmDelete("Fjerne denne kompetansen fra utviklingsplanen?"))) return false;
+  if (!isClientCompetencyOwner()) return false;
+  const message = item.status === "suggested"
+    ? "Skjule coachens forslag? Det blir ikke aktivert."
+    : "Arkivere denne kompetansen? Eksperimenter og læringshistorikk blir bevart.";
+  if (!(await confirmDelete(message, {
+    kicker: "Kompetanse",
+    title: item.status === "suggested" ? "Skjul forslag?" : "Arkiver kompetanse?",
+    confirmLabel: item.status === "suggested" ? "Skjul" : "Arkiver"
+  }))) return false;
   const library = await ensureLeadershipLibrary();
   if (!library?.removeProgramCompetency) return false;
   try {
@@ -3275,34 +3409,7 @@ async function removeLeadershipCompetency(item) {
 }
 
 function createCompetencyAction(data, item) {
-  openEntityDrawer("Nytt kompetanseeksperiment", "Kompetanse", [
-    inputSpec("title", "Navn på eksperiment", "text", item.title ? `Øve på ${item.title.toLowerCase()}` : ""),
-    selectSpec("areaId", "Knytt også til fokusoppdrag", [["", "Ikke knyttet til et fokusoppdrag"], ...data.areas.map((area) => [area.id, area.title || "Fokusoppdrag"])], "", false),
-    sectionSpec("Før", "Gjør forsøket lite nok til at det kan prøves i en faktisk arbeidssituasjon."),
-    textareaSpec("hypothesis", "Hva vil du undersøke?", "", { placeholder: "Jeg vil teste om..." }),
-    textareaSpec("action", "Hva skal du gjøre i praksis?", item.current_pattern || "", { placeholder: "I neste relevante situasjon skal jeg..." }),
-    textareaSpec("signals", "Hva vil være tegn på at det virker?", item.desired_behavior || "", { placeholder: "Jeg vil se etter..." }),
-    inputSpec("dueDate", "Når vil du se tilbake?", "date"),
-    sectionSpec("Under", "Noter raskt hva som faktisk skjedde når du prøvde."),
-    textareaSpec("observation", "Hva la du merke til underveis?", "", { placeholder: "Underveis la jeg merke til..." }),
-    sectionSpec("Etter", "Fylles ut når forsøket er prøvd."),
-    choiceSpec("effect", "I hvilken grad flyttet dette noe?", [["", "Ikke avlest"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], ""),
-    textareaSpec("learning", "Hva lærte du?", "", { placeholder: "Det jeg la merke til var..." }),
-    textareaSpec("nextStep", "Hva justerer du neste gang?", "", { placeholder: "Neste gang vil jeg..." })
-  ], async (values) => {
-    const { error } = await state.sb.from("session_actions").insert({
-      program_id: data.program.id,
-      program_competency_id: item.id,
-      development_area_id: values.areaId || null,
-      title: values.title || `Øve på ${item.title || "kompetanse"}`,
-      description: actionDescription(values),
-      due_date: values.dueDate || null,
-      status: "planned"
-    });
-    if (error) throw error;
-    state.selectedCompetencyId = item.id;
-    await reloadProgramAndRender("work");
-  });
+  createAction(data, "", item.id, "", { title: `Nytt eksperiment for ${item.title || "kompetansen"}` });
 }
 
 function pageIntro(kicker, title, text, actions = [], tone = "") {
@@ -3323,16 +3430,14 @@ function workspaceIntro(kicker, title, text, actions = []) {
 }
 
 function focusWorkbench(items, data, editable) {
-  const freeActions = data.actions.filter((action) => !action.development_area_id && !isExperimentClosed(action.status));
   if (!items.length) {
     return el("div", { class: "focus-workspace-stack" }, [
       el("div", { class: "focus-workbench focus-workbench-empty" }, [
         el("div", { class: "focus-master" }, [
           focusEmptyState(editable)
         ])
-      ]),
-      freeExperimentSection(freeActions, data, editable)
-    ].filter(Boolean));
+      ])
+    ]);
   }
 
   const selectedItemIndex = Math.max(0, Math.min(state.selectedFocusIndex || 0, items.length - 1));
@@ -3347,9 +3452,8 @@ function focusWorkbench(items, data, editable) {
         grid
       ]),
       el("div", { class: "focus-detail-wrap" }, [detail])
-    ]),
-    freeExperimentSection(freeActions, data, editable)
-  ].filter(Boolean));
+    ])
+  ]);
 }
 
 function focusIntro(editable = false) {
@@ -3372,6 +3476,97 @@ function freeExperimentSection(actions, data, editable) {
   ].filter(Boolean));
 }
 
+function relatedExperiments({ actions = [], data, editable = false, onCreate, contextLabel = "dette arbeidet" }) {
+  const active = actions.filter((action) => isExperimentActive(action.status));
+  const history = actions.filter((action) => isExperimentReviewed(action.status));
+  return el("section", { class: "related-experiments" }, [
+    el("div", { class: "experiment-section-head" }, [
+      el("div", {}, [
+        el("span", { class: "workspace-kicker", text: "Praksis og læring" }),
+        el("h4", { text: "Eksperimenter" }),
+        el("p", { text: `Prøv → observer → lær → juster. Planstatus og læringshistorikk holdes adskilt for ${String(contextLabel).toLowerCase()}.` })
+      ]),
+      editable ? addAction("Nytt eksperiment", onCreate) : null
+    ].filter(Boolean)),
+    active.length ? el("div", { class: "related-experiment-group" }, [
+      el("strong", { text: `Aktive · ${active.length}` }),
+      el("div", { class: "experiment-list" }, active.map((action) => experimentRow(action, data, editable)))
+    ]) : el("p", { class: "muted related-experiment-empty", text: "Ingen aktive eksperimenter ennå." }),
+    history.length ? el("details", { class: "experiment-history-group" }, [
+      el("summary", {}, [el("span", { text: `Historikk · ${history.length}` }), icon("chevron-down")]),
+      el("div", { class: "experiment-list" }, history.map((action) => experimentRow(action, data, editable)))
+    ]) : null,
+    actions.length ? el("button", {
+      class: "ui-button ui-button-outlined related-experiment-all",
+      type: "button",
+      text: "Se alle eksperimenter",
+      onclick: () => {
+        state.focusView = "experiments";
+        renderCachedProgram("work");
+      }
+    }) : null
+  ].filter(Boolean));
+}
+
+function experimentHubWorkspace(data, editable) {
+  const actions = data.actions || [];
+  const visible = actions.filter((action) => {
+    const matchesState = state.experimentView === "history" ? isExperimentReviewed(action.status) : isExperimentActive(action.status);
+    if (!matchesState) return false;
+    if (state.experimentFilter === "competency") return Boolean(action.program_competency_id);
+    if (state.experimentFilter === "assignment") return Boolean(action.development_area_id);
+    if (state.experimentFilter === "both") return Boolean(action.program_competency_id && action.development_area_id);
+    if (state.experimentFilter === "unlinked") return !action.program_competency_id && !action.development_area_id;
+    return true;
+  });
+  const filter = el("select", {
+    class: "experiment-hub-filter",
+    "aria-label": "Filtrer eksperimenter",
+    onchange: (event) => {
+      state.experimentFilter = event.currentTarget.value;
+      renderCachedProgram("work");
+    }
+  }, [
+    ["all", "Alle koblinger"],
+    ["competency", "Knyttet til kompetanse"],
+    ["assignment", "Knyttet til fokusoppdrag"],
+    ["both", "Knyttet til begge"],
+    ["unlinked", "Uten kobling"]
+  ].map(([value, label]) => el("option", { value, text: label })));
+  filter.value = state.experimentFilter;
+
+  return el("section", { class: "experiment-hub-workspace platform-surface" }, [
+    el("header", { class: "experiment-hub-head" }, [
+      el("div", {}, [
+        el("span", { class: "workspace-kicker", text: "Felles arbeidsflate" }),
+        el("h3", { text: "Alle eksperimenter" }),
+        el("p", { text: "Aktive forsøk og læringshistorikk på tvers av kompetanser og fokusoppdrag." })
+      ]),
+      editable ? addAction("Nytt eksperiment", () => createAction(data)) : null
+    ].filter(Boolean)),
+    el("div", { class: "experiment-hub-tools" }, [
+      el("div", { class: "experiment-state-tabs", role: "tablist", "aria-label": "Eksperimentstatus" }, [
+        ["active", `Aktive · ${actions.filter((action) => isExperimentActive(action.status)).length}`],
+        ["history", `Historikk · ${actions.filter((action) => isExperimentReviewed(action.status)).length}`]
+      ].map(([value, label]) => el("button", {
+        class: state.experimentView === value ? "active" : "",
+        type: "button",
+        role: "tab",
+        "aria-selected": state.experimentView === value ? "true" : "false",
+        text: label,
+        onclick: () => {
+          state.experimentView = value;
+          renderCachedProgram("work");
+        }
+      }))),
+      filter
+    ]),
+    visible.length
+      ? el("div", { class: "experiment-list experiment-hub-list" }, visible.map((action) => experimentRow(action, data, editable)))
+      : emptyState(state.experimentView === "history" ? "Ingen historikk med dette filteret" : "Ingen aktive eksperimenter med dette filteret", "Opprett et lite forsøk eller velg en annen kobling.")
+  ]);
+}
+
 function focusList(items, editable, data, detail) {
   return el("div", { class: "focus-picker workspace-master-rail" }, [
     el("div", { class: "focus-picker-head workspace-master-head" }, [
@@ -3384,7 +3579,7 @@ function focusList(items, editable, data, detail) {
         el("span", { class: "leadership-track-main workspace-master-main" }, [
           el("span", { class: "leadership-track-heading workspace-master-heading" }, [
             el("strong", { text: area.title || "Fokusoppdrag uten tittel" }),
-            el("small", { text: `${focusCompletion(area, data).count}/4` })
+            el("small", { text: focusPlanStatus(area).label })
           ]),
           el("span", { class: "workspace-master-meta" }, [
             el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) }),
@@ -3412,20 +3607,21 @@ function selectFocusCard(buttonNode, item, data, editable, detail) {
 }
 
 function focusDetail({ area, index }, data, editable) {
-  const actions = data.actions.filter((action) => action.development_area_id === area.id && !isExperimentClosed(action.status));
-  const completion = focusCompletion(area, data);
+  const actions = data.actions.filter((action) => action.development_area_id === area.id);
+  const activeActions = actions.filter((action) => isExperimentActive(action.status));
+  const planStatus = focusPlanStatus(area);
   const missingStep = [
     ["movement", "Avklar hva du ønsker å flytte", "Hva skal bli annerledes når oppdraget lykkes?"],
     ["typicalSituations", "Velg hvor arbeidet skal merkes", "Hvilken situasjon, leveranse eller relasjon er den viktigste arenaen?"],
     ["progressSigns", "Bestem hvordan du vil merke fremgang", "Velg et konkret tegn som gjør utviklingen synlig."]
   ].find(([fieldKey]) => !((fieldKey === "movement" ? area.movement || area.description : area[fieldKey]) || "").trim());
-  const nextLabel = missingStep?.[1] || (!actions.length ? "Planlegg første eksperiment" : "Følg opp eksperimentet");
-  const nextHelper = missingStep?.[2] || (!actions.length ? "Gjør neste steg lite nok til å prøve i en faktisk arbeidssituasjon." : "Åpne forsøket og noter hva du har lært.");
+  const nextLabel = missingStep?.[1] || (!activeActions.length ? "Planlegg første eksperiment" : "Følg opp eksperimentet");
+  const nextHelper = missingStep?.[2] || (!activeActions.length ? "Gjør neste steg lite nok til å prøve i en faktisk arbeidssituasjon." : "Åpne forsøket og noter hva du har lært.");
   const nextHandler = missingStep
     ? () => openFocusField(index, missingStep[0])
-    : !actions.length
+    : !activeActions.length
       ? () => createAction(data, area.id)
-      : () => editAction(actions[0], data);
+      : () => editAction(activeActions[0], data);
   return el("section", { class: "focus-detail-card competency-workspace workspace-detail-surface" }, [
     el("header", { class: "competency-workspace-head" }, [
       el("div", { class: "competency-workspace-heading" }, [
@@ -3447,32 +3643,32 @@ function focusDetail({ area, index }, data, editable) {
       editable ? iconAction("Slett fokusoppdrag", "trash-2", () => deleteFocusArea(index), "danger") : null
     ].filter(Boolean)),
     workspaceNextStep({
-      complete: completion.count === completion.total,
+      complete: planStatus.ready,
       label: nextLabel,
       helper: nextHelper,
-      actionLabel: completion.count === completion.total ? "Åpne" : "Fortsett",
+      actionLabel: planStatus.ready ? "Åpne" : "Fortsett",
       onAction: nextHandler,
       editable
     }),
     workspacePlan({
       title: "Arbeidsplan for fokusoppdraget",
       description: "Gjør oppdraget konkret nok til å kunne prioriteres, prøves og følges opp.",
-      count: completion.count,
-      total: completion.total,
+      status: planStatus,
       steps: [
         focusPlanStep(area, index, 1, "Målbilde", "Hva ønsker du skal bli annerledes?", area.movement || area.description, "Beskriv hva som skal flytte seg eller bli tydeligere.", "movement", editable),
         focusPlanStep(area, index, 2, "Arbeidsarena", "Hvor skal dette merkes?", area.typicalSituations, "Velg prosjektet, leveransen, møtet eller relasjonen der du skal arbeide med dette.", "typicalSituations", editable),
-        focusPlanStep(area, index, 3, "Fremgang", "Hvordan vil du merke bevegelse?", area.progressSigns, "Velg et konkret tegn på at arbeidet beveger seg i riktig retning.", "progressSigns", editable),
-        workspaceExperimentStep({ number: 4, actions, data, editable, onCreate: () => createAction(data, area.id) })
+        focusPlanStep(area, index, 3, "Fremgang", "Hvordan vil du merke bevegelse?", area.progressSigns, "Velg et konkret tegn på at arbeidet beveger seg i riktig retning.", "progressSigns", editable)
       ]
-    })
+    }),
+    relatedExperiments({ actions, data, editable, onCreate: () => createAction(data, area.id), contextLabel: area.title || "fokusoppdraget" })
   ]);
 }
 
-function focusCompletion(area, data) {
-  const actionCount = (data.actions || []).filter((action) => action.development_area_id === area.id && !isExperimentClosed(action.status)).length;
-  const count = [area.movement || area.description, area.typicalSituations, area.progressSigns].filter((value) => (value || "").trim()).length + (actionCount ? 1 : 0);
-  return { count, total: 4, percent: Math.round((count / 4) * 100) };
+function focusPlanStatus(area) {
+  const count = [area.movement || area.description, area.typicalSituations, area.progressSigns].filter((value) => (value || "").trim()).length;
+  if (count === 3) return { key: "ready", label: "Klar til å prøves", ready: true };
+  if (count > 0) return { key: "working", label: "Under arbeid", ready: false };
+  return { key: "not-started", label: "Ikke påbegynt", ready: false };
 }
 
 function openFocusField(index, fieldKey) {
@@ -3631,7 +3827,7 @@ function sessionRail(sessions, detail, editable, data) {
     ]),
     el("label", { class: "session-mobile-picker", text: "Velg samtale" }, [mobilePicker]),
     el("div", { class: "session-rail-list" }, sessions.map((session, index) => {
-      const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id && !isExperimentClosed(action.status));
+      const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id);
       const progress = sessionProgress(session, linkedActions);
       return el("article", { class: `session-nav-item workspace-master-row ${index === (state.selectedSessionIndex || 0) ? "active" : ""}` }, [
         el("button", { class: "session-nav-button workspace-master-button", type: "button", onclick: () => selectSessionCard(session, index, detail, editable, data) }, [
@@ -3664,16 +3860,17 @@ function selectSessionCard(session, index, detail, editable, data) {
 }
 
 function sessionDetail(session, index, editable, data = null) {
-  const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id && !isExperimentClosed(action.status));
+  const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id);
+  const activeLinkedActions = linkedActions.filter((action) => isExperimentActive(action.status));
   const progress = sessionProgress(session, linkedActions);
   const nextField = sessionNextField(session);
-  const nextLabel = nextField?.label || (!linkedActions.length ? "Gjør neste steg om til et lite eksperiment" : "Følg opp eksperimentet");
-  const nextHelper = nextField?.helper || (!linkedActions.length ? "Knytt handlingen til en situasjon og bestem hva du vil se etter." : "Åpne forsøket og noter hva du har lært.");
+  const nextLabel = nextField?.label || (!activeLinkedActions.length ? "Gjør neste steg om til et lite eksperiment" : "Følg opp eksperimentet");
+  const nextHelper = nextField?.helper || (!activeLinkedActions.length ? "Knytt handlingen til en situasjon og bestem hva du vil se etter." : "Åpne forsøket og noter hva du har lært.");
   const nextHandler = nextField
     ? () => openSessionField(index, nextField.key)
-    : !linkedActions.length
+    : !activeLinkedActions.length
       ? () => createActionFromSessionNextStep(index, session.actions || "")
-      : () => editAction(linkedActions[0], data);
+      : () => editAction(activeLinkedActions[0], data);
   return el("section", { class: "session-detail-card competency-workspace workspace-detail-surface" }, [
     el("header", { class: "competency-workspace-head" }, [
       el("div", { class: "competency-workspace-heading" }, [
@@ -4286,33 +4483,30 @@ function reflectionInlineCard(reflection, data) {
   ]);
 }
 
-function createAction(data, presetAreaId = "") {
-  openEntityDrawer("Nytt eksperiment", "Arbeid", [
-    inputSpec("title", "Navn på eksperiment"),
-    selectSpec("areaId", "Knytt til fokusoppdrag", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokusoppdrag"])], presetAreaId || "", false),
-    selectSpec("competencyId", "Knytt også til kompetanse", [["", "Ikke knyttet til en kompetanse"], ...(data.programCompetencies || []).map((item) => [item.id, item.title || "Lederkompetanse"])], "", false),
-    sectionSpec("Før", "Gjør forsøket tydelig før du går ut og tester."),
-    textareaSpec("hypothesis", "Hva vil du undersøke?", "", { placeholder: "Jeg vil teste om..." }),
-    textareaSpec("action", "Hva skal du gjøre i praksis?", "", { placeholder: "I neste relevante situasjon skal jeg..." }),
-    textareaSpec("signals", "Hva vil være tegn på at det virker?", "", { placeholder: "Jeg vil se etter..." }),
-    inputSpec("dueDate", "Når vil du se tilbake?", "date"),
-    sectionSpec("Under", "Noter raskt hva som faktisk skjedde når du prøvde."),
-    textareaSpec("observation", "Hva la du merke til underveis?", "", { placeholder: "Underveis la jeg merke til..." }),
-    sectionSpec("Etter", "Fylles ut når forsøket er prøvd."),
-    choiceSpec("effect", "I hvilken grad flyttet dette noe?", [["", "Ikke avlest"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], ""),
-    textareaSpec("learning", "Hva lærte du?", "", { placeholder: "Det jeg la merke til var..." }),
-    textareaSpec("nextStep", "Hva justerer du neste gang?", "", { placeholder: "Neste gang vil jeg..." })
+function createAction(data, presetAreaId = "", presetCompetencyId = "", presetAction = "", options = {}) {
+  openEntityDrawer(options.title || "Nytt eksperiment", options.kicker || "Prøv i arbeidet", [
+    textareaSpec("action", "Hva skal du prøve?", presetAction, { placeholder: "Én konkret atferd eller handling..." }),
+    inputSpec("arena", "Hvor skal du prøve det?", "text", "", { placeholder: "Et møte, en samtale eller en annen konkret situasjon" }),
+    selectSpec("areaId", "Knytt eventuelt til Fokusoppdrag", [["", "Ikke knyttet til fokusoppdrag"], ...data.areas.map((area) => [area.id, area.title || "Fokusoppdrag"])], presetAreaId || "", false),
+    selectSpec("competencyId", "Knytt eventuelt til kompetanse", [["", "Ikke knyttet til kompetanse"], ...(data.programCompetencies || []).filter((item) => item.status === "active").map((item) => [item.id, `${item.roleLabel || "Kompetanse"}: ${item.title || "Lederkompetanse"}`])], presetCompetencyId || "", false),
+    textareaSpec("signals", "Hva skal du se etter?", "", { placeholder: "Et observerbart tegn på effekt eller respons..." }),
+    inputSpec("dueDate", "Når vil du se tilbake?", "date")
   ], async (values) => {
-    await state.sb.from("session_actions").insert({
+    if (!(values.action || "").trim()) throw new Error("Beskriv hva du skal prøve.");
+    const title = (values.action || "Eksperiment").trim().slice(0, 80);
+    const { error } = await state.sb.from("session_actions").insert({
       program_id: data.program.id,
+      session_id: options.sessionId || null,
       development_area_id: values.areaId || null,
       program_competency_id: values.competencyId || null,
-      title: values.title,
+      title,
       description: actionDescription(values),
       due_date: values.dueDate || null,
       status: "planned"
     });
-    await reloadProgramAndRender("work");
+    if (error) throw error;
+    if (presetCompetencyId) state.selectedCompetencyId = presetCompetencyId;
+    await reloadProgramAndRender(options.returnPane || "work");
   });
 }
 
@@ -4321,34 +4515,11 @@ function createActionFromSessionNextStep(sessionIndex, nextStepText) {
   const data = client ? state.programCache[client.id] : null;
   const session = getSessions()[sessionIndex] || {};
   if (!data) return;
-  openEntityDrawer("Gjør til eksperiment", "Samtale", [
-    inputSpec("title", "Navn på eksperiment", "text", nextStepText.slice(0, 80)),
-    selectSpec("areaId", "Knytt til fokusoppdrag", [["", "Velg fokusoppdrag"], ...data.areas.map((area) => [area.id, area.title || "Fokusoppdrag"])], "", false),
-    selectSpec("competencyId", "Knytt også til kompetanse", [["", "Ikke knyttet til en kompetanse"], ...(data.programCompetencies || []).map((item) => [item.id, item.title || "Lederkompetanse"])], "", false),
-    textareaSpec("action", "Hva skal testes?", nextStepText, { placeholder: "Hva skal klienten prøve i praksis?" }),
-    textareaSpec("signals", "Hva skal observeres?", "", { placeholder: "Hva skal klienten se etter?" }),
-    inputSpec("dueDate", "Når skal det avleses?", "date")
-  ], async (values) => {
-    const { error } = await state.sb.from("session_actions").insert({
-      program_id: data.program.id,
-      session_id: session.id || null,
-      development_area_id: values.areaId || null,
-      program_competency_id: values.competencyId || null,
-      title: values.title || "Eksperiment fra samtale",
-      description: actionDescription({
-        hypothesis: "",
-        action: values.action || "",
-        signals: values.signals || "",
-        observation: "",
-        effect: "",
-        learning: "",
-        nextStep: ""
-      }),
-      due_date: values.dueDate || null,
-      status: "planned"
-    });
-    if (error) throw error;
-    await reloadProgramAndRender("sessions");
+  createAction(data, "", "", nextStepText, {
+    title: "Gjør til eksperiment",
+    kicker: "Fra samtalen",
+    sessionId: session.id || null,
+    returnPane: "sessions"
   });
 }
 
@@ -4357,36 +4528,44 @@ function editAction(action, data) {
   openEntityDrawer("Rediger eksperiment", "Arbeid", [
     inputSpec("title", "Navn på eksperiment", "text", action.title || ""),
     selectSpec("areaId", "Knytt til fokusoppdrag", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokusoppdrag"])], action.development_area_id || "", false),
-    selectSpec("competencyId", "Knytt også til kompetanse", [["", "Ikke knyttet til en kompetanse"], ...(data.programCompetencies || []).map((item) => [item.id, item.title || "Lederkompetanse"])], action.program_competency_id || "", false),
-    sectionSpec("Før", "Hva var planen og antakelsen?"),
-    textareaSpec("hypothesis", "Hva vil du undersøke?", parsed.hypothesis),
-    textareaSpec("action", "Hva skal du gjøre i praksis?", parsed.action),
-    textareaSpec("signals", "Hva vil være tegn på at det virker?", parsed.signals),
+    selectSpec("competencyId", "Knytt også til kompetanse", [["", "Ikke knyttet til en kompetanse"], ...(data.programCompetencies || [])
+      .filter((item) => item.status === "active" || item.id === action.program_competency_id)
+      .map((item) => [item.id, `${item.title || "Lederkompetanse"}${item.status === "active" ? "" : " (ikke aktiv)"}`])], action.program_competency_id || "", false),
+    textareaSpec("action", "Hva skal du prøve?", parsed.action, { placeholder: "Én konkret atferd eller handling..." }),
+    inputSpec("arena", "Hvor skal du prøve det?", "text", parsed.arena || "", { placeholder: "Et møte, en samtale eller en annen konkret situasjon" }),
+    textareaSpec("signals", "Hva skal du se etter?", parsed.signals, { placeholder: "Et observerbart tegn på effekt eller respons..." }),
     inputSpec("dueDate", "Når vil du se tilbake?", "date", action.due_date || ""),
-    sectionSpec("Under", "Hva observerte du mens det skjedde?"),
-    textareaSpec("observation", "Hva la du merke til underveis?", parsed.observation),
-    sectionSpec("Etter", "Hva skjedde, og hva tar du med videre?"),
-    choiceSpec("effect", "I hvilken grad flyttet dette noe?", [["", "Ikke avlest"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || ""),
-    textareaSpec("learning", "Hva lærte du?", parsed.learning),
-    textareaSpec("nextStep", "Hva justerer du neste gang?", parsed.nextStep)
+    sectionSpec("Etter at du har prøvd", "Fyll ut når du har noe faktisk å se tilbake på."),
+    textareaSpec("observation", "Hva observerte du?", parsed.observation, { placeholder: "Hva skjedde, og hvordan responderte andre?" }),
+    choiceSpec("effect", "Hvilken effekt så du?", [["", "Ikke avlest"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || ""),
+    textareaSpec("learning", "Hva lærte du?", parsed.learning, { placeholder: "Hva forstår du bedre nå?" }),
+    textareaSpec("nextStep", "Hva justerer du neste gang?", parsed.nextStep, { placeholder: "Behold, endre eller prøv noe nytt..." }),
+    choiceSpec("status", "Status", [["planned", "Planlagt"], ["active", "Prøves ut"], ["reviewed", "Avlest"], ["continued", "Videreført"], ["closed", "Avsluttet"]], normalizeExperimentStatus(action.status))
   ], async (values) => {
+    if (!(values.action || "").trim()) throw new Error("Beskriv hva du skal prøve.");
+    let nextStatus = values.status || normalizeExperimentStatus(action.status);
+    if (["planned", "active"].includes(nextStatus) && (values.effect || values.learning || values.nextStep)) nextStatus = "reviewed";
+    else if (nextStatus === "planned" && values.observation) nextStatus = "active";
     const { error } = await state.sb.from("session_actions").update({
       development_area_id: values.areaId || null,
       program_competency_id: values.competencyId || null,
-      title: values.title,
-      description: actionDescription(values),
-      due_date: values.dueDate || null
+      title: values.title || (values.action || "Eksperiment").trim().slice(0, 80),
+      description: actionDescription({ ...values, hypothesis: parsed.hypothesis, _raw: parsed._raw }),
+      due_date: values.dueDate || null,
+      status: nextStatus
     }).eq("id", action.id);
     if (error) throw error;
     await reloadProgramAndRender("work");
-  }, { dangerLabel: "Slett eksperiment", onDanger: () => deleteAction(action.id) });
+  }, isExperimentClosed(action.status) ? {} : { dangerLabel: "Avslutt eksperiment", dangerIcon: "circle-stop", onDanger: () => closeAction(action.id) });
 }
 
 function actionDescription(values) {
   const payload = {
-    version: 2,
+    ...(values._raw && typeof values._raw === "object" ? values._raw : {}),
+    version: 3,
     hypothesis: values.hypothesis || "",
     action: values.action || "",
+    arena: values.arena || "",
     signals: values.signals || "",
     observation: values.observation || "",
     effect: values.effect || "",
@@ -4405,6 +4584,7 @@ function actionMeta(action, data) {
     competency && ["Kompetanse", competency.title || "Lederkompetanse"],
     parsed.hypothesis && ["Hypotese", parsed.hypothesis],
     parsed.action && ["Handling", parsed.action],
+    parsed.arena && ["Arena", parsed.arena],
     parsed.signals && ["Tegn", parsed.signals],
     parsed.observation && ["Underveis", parsed.observation],
     parsed.learning && ["Læring", parsed.learning],
@@ -4426,7 +4606,7 @@ function phaseLabel(status, parsed) {
   if (normalized === "closed") return "Avsluttet";
   if (normalized === "continued") return "Videreført";
   if (normalized === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep) return "Avlest";
-  if (normalized === "active" || parsed.action || parsed.signals) return "Prøves ut";
+  if (normalized === "active") return "Prøves ut";
   return "Planlagt";
 }
 
@@ -4436,10 +4616,26 @@ function experimentStateClass(action, parsed) {
   if (status === "continued") return "has-effect";
   if (status === "reviewed") return "is-reviewed";
   if (status === "active") return "is-testing";
+  if (status === "planned") return "is-planned";
   if (parsed.effect === "clear" || parsed.effect === "some") return "has-effect";
   if (parsed.effect || parsed.learning || parsed.nextStep) return "is-reviewed";
   if (parsed.observation || parsed.action || parsed.signals) return "is-testing";
   return "is-planned";
+}
+
+async function closeAction(id) {
+  if (!(await confirmDelete("Avslutte dette eksperimentet? Det blir liggende i historikken.", {
+    kicker: "Eksperiment",
+    title: "Avslutt eksperiment?",
+    confirmLabel: "Avslutt"
+  }))) return false;
+  const { error } = await state.sb.from("session_actions").update({ status: "closed" }).eq("id", id);
+  if (error) {
+    await showAppMessage("Kunne ikke avslutte eksperimentet", error.message || "Prøv igjen.");
+    return false;
+  }
+  await reloadProgramAndRender("work");
+  return true;
 }
 
 async function deleteAction(id) {
@@ -4454,15 +4650,17 @@ async function deleteAction(id) {
 }
 
 function parseActionDescription(description) {
-  const values = { hypothesis: "", action: "", signals: "", observation: "", effect: "", learning: "", nextStep: "", situation: "", response: "", observe: "" };
+  const values = { hypothesis: "", action: "", arena: "", signals: "", observation: "", effect: "", learning: "", nextStep: "", situation: "", response: "", observe: "", _raw: {} };
   if (!description) return values;
   try {
     const parsed = JSON.parse(description);
     if (parsed && typeof parsed === "object") {
       return {
         ...values,
+        _raw: parsed,
         hypothesis: parsed.hypothesis || "",
         action: parsed.action || "",
+        arena: parsed.arena || "",
         signals: parsed.signals || "",
         observation: parsed.observation || "",
         effect: parsed.effect || "",
@@ -4539,7 +4737,13 @@ async function reloadProgramAndRender(activePane = "direction") {
 function experimentRow(action, data, editable) {
   const parsed = parseActionDescription(action.description || "");
   const area = data.areas.find((item) => item.id === action.development_area_id);
-  const meta = [area?.title, action.due_date && formatDate(action.due_date)].filter(Boolean).join(" · ");
+  const competency = (data.programCompetencies || []).find((item) => item.id === action.program_competency_id);
+  const meta = [
+    competency?.title && `Kompetanse: ${competency.title}`,
+    area?.title && `Fokusoppdrag: ${area.title}`,
+    parsed.arena,
+    action.due_date && `Se tilbake ${formatDate(action.due_date)}`
+  ].filter(Boolean).join(" · ");
   const preview = parsed.learning || parsed.observation || parsed.action || parsed.hypothesis || "Hva skal prøves i praksis?";
   const effect = effectLabel(parsed.effect);
   return el("article", { class: `experiment-row ${experimentStateClass(action, parsed)}` }, [
@@ -4556,7 +4760,7 @@ function experimentRow(action, data, editable) {
         ].filter(Boolean)),
         el("strong", { text: action.title || "Eksperiment uten tittel" }),
         meta ? el("small", { class: "content-card-meta", text: meta }) : null,
-        contentPreview(preview, "Legg til hypotese, handling og avlesning.", 2)
+        contentPreview(preview, "Beskriv hva du skal prøve.", 2)
       ]),
       icon("chevron-right")
     ].filter(Boolean))
@@ -4898,7 +5102,7 @@ function openEntityModal(title, kicker, specs, onSave, options = {}) {
   if (dangerSlot) {
     if (options.onDanger) {
       dangerSlot.replaceChildren(el("button", { class: "button modal-danger-button", type: "button", onclick: handleModalDanger }, [
-        icon("trash-2"),
+        icon(options.dangerIcon || "trash-2"),
         el("span", { text: options.dangerLabel || "Slett" })
       ]));
     } else {
@@ -4924,7 +5128,7 @@ function openEntityDrawer(title, kicker, specs, onSave, options = {}) {
   if (dangerSlot) {
     if (options.onDanger) {
       dangerSlot.replaceChildren(el("button", { class: "button modal-danger-button", type: "button", onclick: handleDrawerDanger }, [
-        icon("trash-2"),
+        icon(options.dangerIcon || "trash-2"),
         el("span", { text: options.dangerLabel || "Slett" })
       ]));
     } else {
