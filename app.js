@@ -1877,7 +1877,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-102")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-103")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2760,11 +2760,15 @@ function workWorkspace(client, data, plan) {
 function focusHubWorkspace(data, plan, focusItems, editable) {
   const selectedItems = (data.programCompetencies || []).filter((item) => item.status === "active");
   const activeView = ["competencies", "assignments", "experiments"].includes(state.focusView) ? state.focusView : "competencies";
+  const viewCopy = focusViewDescription(activeView);
   return el("div", { class: "platform-page work-stack focus-hub" }, [
     focusHubIntro(editable, data, activeView === "competencies" ? selectedItems.length : activeView === "assignments" ? focusItems.length : data.actions.length, true),
     el("div", { class: "focus-navigation-row" }, [
       focusViewTabs(activeView, data),
-      el("p", { class: "focus-view-description", text: focusViewDescription(activeView) })
+      el("div", { class: "focus-view-description" }, [
+        el("strong", { text: viewCopy.question }),
+        el("p", { text: viewCopy.description })
+      ])
     ]),
     el("section", { class: `focus-hub-panel ${activeView === "competencies" ? "active" : ""}`, id: "focus-panel-competencies", role: "tabpanel", "aria-labelledby": "focus-tab-competencies", "aria-hidden": activeView === "competencies" ? "false" : "true" }, [
       activeView === "competencies" ? leadershipWorkbench(data, editable) : null
@@ -2781,22 +2785,28 @@ function focusHubWorkspace(data, plan, focusItems, editable) {
 
 function focusViewDescription(activeView) {
   const descriptions = {
-    competencies: "Lederkompetanser er måter å lede på som du utvikler over tid.",
-    assignments: "Fokusoppdrag er konkrete prosjekter eller utfordringer der utviklingen skal merkes.",
-    experiments: "Eksperimenter er små atferdsforsøk du prøver, observerer og justerer."
+    competencies: {
+      question: "Hva vil du bli bedre på?",
+      description: "Måter å lede på som du kan utvikle over tid."
+    },
+    assignments: {
+      question: "Hvor skal utviklingen merkes?",
+      description: "Konkrete situasjoner, utfordringer eller oppgaver der du vil gjøre en forskjell."
+    },
+    experiments: {
+      question: "Hva vil du prøve i praksis?",
+      description: "Små atferdsforsøk du prøver, observerer og justerer."
+    }
   };
   return descriptions[activeView] || descriptions.competencies;
 }
 
 function focusHubIntro(editable, data, itemCount = 0, hasCompetencies = true) {
-  const assignmentsActive = !hasCompetencies || state.focusView === "assignments";
-  const experimentsActive = hasCompetencies && state.focusView === "experiments";
-  const action = experimentsActive
-    ? (editable ? addAction("Nytt eksperiment", () => createAction(data)) : null)
-    : assignmentsActive
-    ? (editable ? addAction(itemCount ? "Nytt fokusoppdrag" : "Opprett fokusoppdrag", () => addFocusArea()) : null)
-    : (editable && itemCount ? addAction("Utforsk flere lederkompetanser", () => openCompetencyChooser(data)) : null);
-  return workspaceIntro("Fokus", "Hva skal du utvikle?", "Velg lederkompetanser og fokusoppdrag, og prøv ny atferd i praksis.", [action].filter(Boolean));
+  const competenciesActive = hasCompetencies && state.focusView === "competencies";
+  const action = competenciesActive && editable && itemCount
+    ? addAction("Utforsk flere lederkompetanser", () => openCompetencyChooser(data))
+    : null;
+  return workspaceIntro("Fokus", "Fra fokus til ny praksis", "Velg hva du vil utvikle, hvor det skal merkes og hva du vil prøve.", [action].filter(Boolean));
 }
 
 function focusViewTabs(activeView, data = {}) {
@@ -3012,8 +3022,8 @@ function workspaceNextStep({ complete = false, label, helper = "", actionLabel =
   ].filter(Boolean));
 }
 
-function workspacePlan({ title, description, status, steps }) {
-  return el("section", { class: "competency-plan workspace-plan" }, [
+function workspacePlan({ title, description, status, steps, className = "" }) {
+  return el("section", { class: `competency-plan workspace-plan ${className}`.trim() }, [
     el("header", { class: "competency-plan-head" }, [
       el("div", {}, [
         el("h4", { text: title }),
@@ -3138,10 +3148,10 @@ function leadershipEmptyState(data, editable) {
     el("span", { class: "empty-state-icon", "aria-hidden": "true" }, [icon("compass")]),
     el("div", { class: "leadership-empty-copy" }, [
       el("p", { class: "eyebrow", text: "Bibliotek for lederkompetanser" }),
-      el("h3", { text: "Finn lederkompetansen som betyr mest nå" }),
-      el("p", { class: "muted", text: "Velg først ett hovedfokus. Du kan legge til inntil to støttende lederkompetanser senere." })
+      el("h3", { text: "Velg hva du vil bli bedre på" }),
+      el("p", { class: "muted", text: "Start med én lederkompetanse som vil gjøre størst forskjell i rollen din nå." })
     ]),
-    editable ? addAction("Utforsk lederkompetanser", () => openCompetencyChooser(data)) : null
+    editable ? addAction("Velg lederkompetanse", () => openCompetencyChooser(data)) : null
   ].filter(Boolean));
 }
 
@@ -3646,7 +3656,7 @@ function experimentHubWorkspace(data, editable) {
       el("div", {}, [
         el("span", { class: "workspace-kicker", text: "Felles arbeidsflate" }),
         el("h3", { text: "Alle eksperimenter" }),
-        el("p", { text: "Aktive forsøk og læringshistorikk på tvers av lederkompetanser og fokusoppdrag." })
+        el("p", { text: "Prøv noe nytt, observer hva som skjer og bruk læringen til å justere." })
       ]),
       editable ? addAction("Nytt eksperiment", () => createAction(data)) : null
     ].filter(Boolean)),
@@ -3756,6 +3766,7 @@ function focusDetail({ area, index }, data, editable) {
       editable
     }),
     workspacePlan({
+      className: "focus-assignment-plan",
       title: "Arbeidsplan for fokusoppdraget",
       description: "Gjør oppdraget konkret nok til å kunne prioriteres, prøves og følges opp.",
       status: planStatus,
@@ -4005,6 +4016,7 @@ function sessionDetail(session, index, editable, data = null) {
       editable
     }),
     workspacePlan({
+      className: "session-conversation-plan",
       title: "Samtaleplan",
       description: "Forbered retning, fang innsikten og gjør neste steg prøvbart i hverdagen.",
       status: sessionPlanStatus(progress),
@@ -5002,8 +5014,30 @@ function experimentRow(action, data, editable) {
     parsed.arena,
     action.due_date && `Se tilbake ${formatDate(action.due_date)}`
   ].filter(Boolean).join(" · ");
-  const preview = parsed.learning || parsed.observation || parsed.action || parsed.hypothesis || "Hva skal prøves i praksis?";
+  const learning = (parsed.learning || "").trim();
+  const emphasizedLearning = isExperimentReviewed(action.status) && learning;
+  const preview = parsed.observation || parsed.action || parsed.hypothesis || "Hva skal prøves i praksis?";
   const effect = effectLabel(parsed.effect);
+  const stage = el("span", { class: "experiment-stage-row" }, [
+    el("small", { class: "phase-chip", text: phaseLabel(action.status, parsed) }),
+    effect ? el("small", { class: "effect-chip", text: effect }) : null
+  ].filter(Boolean));
+  const summary = emphasizedLearning
+    ? [
+        el("strong", { text: action.title || "Eksperiment uten tittel" }),
+        meta ? el("small", { class: "content-card-meta", text: meta }) : null,
+        el("p", { class: "experiment-learning-preview" }, [
+          el("strong", { text: "Læring:" }),
+          el("span", { text: learning })
+        ]),
+        stage
+      ]
+    : [
+        stage,
+        el("strong", { text: action.title || "Eksperiment uten tittel" }),
+        meta ? el("small", { class: "content-card-meta", text: meta }) : null,
+        contentPreview(preview, "Beskriv hva du skal prøve.", 2)
+      ];
   return el("article", { class: `experiment-row ${experimentStateClass(action, parsed)}` }, [
     el("button", {
       class: "experiment-open",
@@ -5011,15 +5045,7 @@ function experimentRow(action, data, editable) {
       onclick: editable ? () => editAction(action, data) : undefined,
       disabled: editable ? undefined : true
     }, [
-      el("span", {}, [
-        el("span", { class: "experiment-stage-row" }, [
-          el("small", { class: "phase-chip", text: phaseLabel(action.status, parsed) }),
-          effect ? el("small", { class: "effect-chip", text: effect }) : null
-        ].filter(Boolean)),
-        el("strong", { text: action.title || "Eksperiment uten tittel" }),
-        meta ? el("small", { class: "content-card-meta", text: meta }) : null,
-        contentPreview(preview, "Beskriv hva du skal prøve.", 2)
-      ]),
+      el("span", {}, summary),
       icon("chevron-right")
     ].filter(Boolean))
   ].filter(Boolean));

@@ -24,7 +24,14 @@ requireText(app, /from\("session_actions"\)\.insert\(\{[\s\S]*session_id:[\s\S]*
 requireText(app, /function focusViewTabs[\s\S]*\["competencies", "(?:Lederkompetanser|Kompetanser)"[\s\S]*\["assignments", "Fokusoppdrag"[\s\S]*\["experiments", "Eksperimenter"/, "Fokus mangler én samlet navigasjon for lederkompetanser, fokusoppdrag og eksperimenter.");
 requireText(app, /function experimentReviewSpec[\s\S]*el\("details", \{ class: "experiment-review-details"[\s\S]*"Se tilbake og lær"/, "Eksperimentrefleksjonen vises ikke progressivt etter opprettelse.");
 requireText(app, /function createAction\([\s\S]*Hva skal du prøve\?[\s\S]*Hvor skal du prøve det\?[\s\S]*Hva skal du se etter\?[\s\S]*Når vil du se tilbake\?[\s\S]*experimentContextSpec/, "Felles eksperimentopprettelse følger ikke den avtalte, lette rekkefølgen.");
-requireText(app, /function focusViewDescription[\s\S]*Lederkompetanser er måter å lede på[\s\S]*Fokusoppdrag er konkrete prosjekter[\s\S]*Eksperimenter er små atferdsforsøk/, "Fokusbegrepene mangler korte forklaringer.");
+requireText(app, /function focusViewDescription[\s\S]*Hva vil du bli bedre på\?[\s\S]*Måter å lede på som du kan utvikle over tid\.[\s\S]*Hvor skal utviklingen merkes\?[\s\S]*Konkrete situasjoner, utfordringer eller oppgaver der du vil gjøre en forskjell\.[\s\S]*Hva vil du prøve i praksis\?[\s\S]*Små atferdsforsøk du prøver, observerer og justerer\./, "Fokusarbeidsflatene mangler avtalte spørsmål og forklaringer.");
+requireText(app, /function focusHubIntro[\s\S]*Fra fokus til ny praksis[\s\S]*Velg hva du vil utvikle, hvor det skal merkes og hva du vil prøve\./, "Fokus mangler avtalt samlende introduksjon.");
+const focusIntroSource = app.match(/function focusHubIntro[\s\S]*?\n}\n\nfunction focusViewTabs/)?.[0] || "";
+if (/Nytt eksperiment|Nytt fokusoppdrag|Opprett fokusoppdrag/.test(focusIntroSource)) errors.push("Fokusintroen dupliserer opprettelseshandlinger fra aktiv arbeidsflate.");
+requireText(app, /className: "focus-assignment-plan"/, "Fokusoppdrag mangler en avgrenset, sekundær arbeidsplan.");
+requireText(app, /className: "session-conversation-plan"/, "Samtaler mangler en avgrenset, sekundær samtaleplan.");
+requireText(app, /experiment-learning-preview[\s\S]*Læring:/, "Eksperimenthistorikken fremhever ikke eksplisitt læring.");
+requireText(app, /Prøv noe nytt, observer hva som skjer og bruk læringen til å justere\./, "Eksperimentflaten mangler avtalt læringsorientert introduksjon.");
 requireText(app, /function projectTypeLabel[\s\S]*"Tidligere fokusområde"/, "Legacy-fokusområder mangler et tydelig, ikke-konverterende navn.");
 requireText(app, /function directionWorkspace[\s\S]*"Retningen er klar til bruk"/, "Retning viser ikke planstatus uten utviklingsprosent.");
 requireText(app, /function leadershipPlanStatus[\s\S]*item\.why_now[\s\S]*item\.desired_behavior[\s\S]*item\.current_pattern[\s\S]*item\.obstacles[\s\S]*completed === planFields\.length/, "Kompetanseplanen kan bli klar uten alle fire delene i utviklingshypotesen.");
@@ -41,6 +48,8 @@ requireText(css, /\.reflection-link-grid[\s\S]*grid-template-columns: repeat\(2,
 requireText(css, /\.focus-view-tabs[\s\S]*grid-template-columns: repeat\(3,[\s\S]*@media \(max-width: 700px\)[\s\S]*\.focus-view-tabs[\s\S]*repeat\(3,/, "De tre fokusarbeidsflatene er ikke eksplisitt tilpasset desktop og mobil.");
 requireText(css, /\.client-resource-workbench\.has-selection \.client-resource-rail[\s\S]*display: none[\s\S]*\.client-resource-workbench\.has-selection \.client-resource-detail[\s\S]*display: block/, "Ressursene mangler en eksplisitt liste–detalj-flyt på mobil.");
 requireText(css, /\.experiment-review-details[\s\S]*\.experiment-review-fields/, "Progressiv eksperimentrefleksjon mangler visuell kontrakt.");
+requireText(css, /\.focus-detail-card \.focus-assignment-plan[\s\S]*\.session-detail-card \.session-conversation-plan[\s\S]*background: transparent/, "Fokus- og samtaleplanen mangler avgrenset, rolig visuell behandling.");
+requireText(css, /\.experiment-learning-preview[\s\S]*font-weight: 750/, "Læringsutdraget mangler visuell prioritet i historikken.");
 
 if (/Ressursmodulen mangler|Supabase er ikke koblet|Sjekker mot Supabase|radnivåpolicy/.test(app)) {
   errors.push("Brukerflaten inneholder fortsatt teknisk pilot- eller plattformtekst.");
