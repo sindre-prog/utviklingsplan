@@ -9015,23 +9015,6 @@ select:focus-visible {
   font-size: var(--type-support);
 }
 
-.direction-progress-track {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  height: 4px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--neutral-100);
-}
-
-.direction-progress-track > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--platform-ink);
-  transition: width 180ms ease;
-}
-
 .direction-next-action {
   grid-column: 2;
   grid-row: 1;
@@ -9838,11 +9821,6 @@ select:focus-visible {
     grid-row: 3;
     justify-self: stretch;
     width: 100%;
-  }
-
-  .direction-progress-track {
-    grid-column: 1;
-    grid-row: 2;
   }
 
   .direction-plan-row {
@@ -12275,5 +12253,338 @@ details.coaching-frame > .coaching-frame-body > article p {
 
   .session-conversation-review {
     padding: 16px;
+  }
+}
+
+/* UX consolidation: focus, resources, plan status and progressive learning. */
+.workspace-pane.active > .platform-page,
+.focus-hub,
+.direction-simple,
+.client-resource-space {
+  gap: 24px;
+}
+
+.workspace-pane.active > .platform-page > .workspace-intro {
+  min-height: 0;
+  padding-bottom: 20px;
+}
+
+.workspace-tab:focus-visible,
+.focus-view-tab:focus-visible,
+.client-resource-open:focus-visible,
+.client-resource-back:focus-visible,
+.competency-source-note > summary:focus-visible,
+.experiment-review-details > summary:focus-visible {
+  outline: 3px solid rgba(78, 96, 211, .35);
+  outline-offset: 2px;
+}
+
+.focus-navigation-row {
+  justify-content: flex-start;
+}
+
+.focus-view-tabs {
+  width: fit-content;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+}
+
+.focus-view-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.focus-view-tab small {
+  min-width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  border: 1px solid var(--platform-line);
+  border-radius: 999px;
+  background: var(--platform-paper);
+  color: var(--platform-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.leadership-workbench-empty {
+  max-width: 720px;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+
+.leadership-workbench-empty .leadership-master {
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
+}
+
+.leadership-empty-state {
+  min-height: 0;
+  justify-items: start;
+  align-content: start;
+  padding: 32px;
+  text-align: left;
+}
+
+.direction-overview {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.direction-next-action {
+  grid-row: 1;
+}
+
+.competency-source-note {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+}
+
+.competency-source-note > summary,
+.experiment-review-details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.competency-source-note > summary::-webkit-details-marker,
+.experiment-review-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.competency-source-note > summary {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 18px;
+  gap: 10px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.competency-source-note > summary svg {
+  margin: 0;
+}
+
+.competency-source-note > summary svg:last-child,
+.experiment-review-details > summary > svg {
+  transition: transform 160ms ease;
+}
+
+.competency-source-note[open] > summary svg:last-child,
+.experiment-review-details[open] > summary > svg {
+  transform: rotate(180deg);
+}
+
+.competency-source-note > p {
+  padding: 0 16px 14px 46px;
+}
+
+.experiment-review-details {
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--neutral-50);
+}
+
+.experiment-review-details > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+}
+
+.experiment-review-details > summary span,
+.experiment-review-details > summary strong,
+.experiment-review-details > summary small {
+  display: block;
+}
+
+.experiment-review-details > summary small {
+  margin-top: 3px;
+  color: var(--platform-muted);
+  font-size: var(--type-meta);
+  font-weight: 500;
+}
+
+.experiment-review-fields {
+  display: grid;
+  gap: 16px;
+  padding: 18px 16px;
+  border-top: 1px solid var(--platform-line);
+  background: var(--platform-paper);
+}
+
+.client-resources-head {
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.client-resources-summary {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.client-resources-summary strong {
+  color: var(--platform-ink);
+  font-size: var(--type-card-title);
+}
+
+.client-resources-summary span {
+  font-size: var(--type-meta);
+}
+
+.client-resource-search {
+  width: min(300px, 100%);
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
+  color: var(--platform-ink);
+  font: inherit;
+}
+
+.client-resource-workbench {
+  grid-template-columns: minmax(280px, 330px) minmax(0, 1fr);
+}
+
+.client-resource-open {
+  min-height: 0;
+  padding: 16px 18px;
+}
+
+.client-resource-main {
+  gap: 6px;
+}
+
+.client-resource-main > strong {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.client-resource-meta .badge {
+  font-size: 10px;
+}
+
+.client-resource-detail-empty {
+  min-height: 220px;
+}
+
+.client-resource-detail-stack {
+  min-width: 0;
+}
+
+.client-resource-back {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .focus-view-tabs {
+    width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .focus-view-tab {
+    min-width: 0;
+    justify-content: center;
+    padding-inline: 8px;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .focus-view-tab small {
+    display: none;
+  }
+
+  .direction-next-action {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .client-resources-head {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .client-resource-search {
+    width: 100%;
+  }
+
+  .client-resource-workbench {
+    display: block;
+    margin-top: 0;
+  }
+
+  .client-resource-rail {
+    display: block;
+    border-right: 0;
+  }
+
+  .client-resource-detail {
+    display: none;
+  }
+
+  .client-resource-workbench.has-selection .client-resource-rail {
+    display: none;
+  }
+
+  .client-resource-workbench.has-selection .client-resource-detail {
+    display: block;
+  }
+
+  .client-resource-picker {
+    display: none;
+  }
+
+  .client-resource-back {
+    width: 100%;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 0;
+    border-bottom: 1px solid var(--platform-line);
+    background: var(--neutral-50);
+    color: var(--platform-ink);
+    font: inherit;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .client-resource-back svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .client-resource-detail .client-resource-view {
+    padding: 20px 18px;
+  }
+
+  .client-resource-detail .client-resource-view-head {
+    padding: 0 0 20px;
+  }
+
+  .client-resource-detail .client-coach-note,
+  .client-resource-detail .resource-preview-section,
+  .client-resource-detail .client-resource-response {
+    padding-inline: 0;
+  }
+
+  .client-resource-detail .resource-next-step {
+    margin-inline: 0;
+  }
+
+  .leadership-empty-state {
+    padding: 24px 20px;
+  }
+
+  .competency-source-note > p {
+    padding-left: 16px;
   }
 }

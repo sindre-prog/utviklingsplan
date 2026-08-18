@@ -6,7 +6,7 @@ const EXPERIMENT_STATUS = {
   planned: "Planlagt",
   active: "Prøves ut",
   reviewed: "Avlest",
-  continued: "Videreført",
+  continued: "Avlest",
   closed: "Avsluttet"
 };
 
@@ -59,7 +59,7 @@ const RESOURCE_VISIBILITY_OPTIONS = [
 ];
 const RESOURCE_REVIEW_STATUS_OPTIONS = [
   ["draft", "Utkast"],
-  ["approved_for_pilot", "Godkjent pilot"],
+  ["approved_for_pilot", "Faglig godkjent"],
   ["reviewed", "Vurdert"],
   ["needs_revision", "Må revideres"]
 ];
@@ -125,6 +125,8 @@ const state = {
   resourceCache: null,
   selectedResourceSlug: null,
   selectedSharedResourceId: null,
+  selectedSharedResourceProgramId: null,
+  sharedResourceQuery: "",
   resourceLibraryPromise: null,
   leadershipLibraryPromise: null,
   selectedCompetencyId: null,
@@ -169,6 +171,14 @@ function isExperimentReviewed(status) {
 
 function isExperimentActive(status) {
   return !isExperimentReviewed(status);
+}
+
+function userFacingError(error, fallback = "Noe gikk galt. Prøv igjen.") {
+  const message = String(error?.message || "").trim();
+  if (error) console.error(error);
+  if (!message) return fallback;
+  const technical = /supabase|postgres|postgrest|\brls\b|row.level|relation |column |constraint|schema|migration|seed|\brpc\b|\bquery\b|jwt|auth\.|permission denied|duplicate key|violates|module/i;
+  return technical.test(message) ? fallback : message;
 }
 
 function isClientCompetencyOwner() {
@@ -754,19 +764,19 @@ async function renderResourceAdminSection(slot) {
       el("div", {}, [
         el("p", { class: "eyebrow", text: "Fagbibliotek" }),
         el("h3", { text: "Ressurser" }),
-        el("p", { class: "muted", text: "Pilot-admin for native ressurser. Filopplasting og blokkeditor kommer senere." })
+        el("p", { class: "muted", text: "Opprett, kvalitetssikre og publiser innhold som kan deles med klienter." })
       ]),
       button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
     ]),
-    el("p", { class: "muted", text: "Henter ressurser..." })
+    el("p", { class: "muted", text: "Henter ressursene …" })
   ]));
 
   const library = await ensureResourceLibrary();
   if (!library?.getAdminResources) {
     slot.replaceChildren(el("section", { class: "panel empty-state" }, [
       el("p", { class: "eyebrow", text: "Ressurser" }),
-      el("h3", { text: "Adminfunksjonen er ikke lastet" }),
-      el("p", { class: "muted", text: "Last siden på nytt. Hvis feilen fortsetter mangler ressursmodulen admin-query." })
+      el("h3", { text: "Ressursene kunne ikke åpnes" }),
+      el("p", { class: "muted", text: "Last siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter." })
     ]));
     return;
   }
@@ -775,10 +785,11 @@ async function renderResourceAdminSection(slot) {
   try {
     resources = await library.getAdminResources(state.sb);
   } catch (error) {
+    console.error("Could not load admin resources", error);
     slot.replaceChildren(el("section", { class: "panel empty-state" }, [
       el("p", { class: "eyebrow", text: "Ressurser" }),
       el("h3", { text: "Kunne ikke hente ressurser" }),
-      el("p", { class: "muted", text: error.message || "Sjekk RLS og resource-migrations." })
+      el("p", { class: "muted", text: "Prøv å laste siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter." })
     ]));
     return;
   }
@@ -1207,7 +1218,7 @@ function createResourceAdminPreview(library, getResourceDraft) {
       hydrateResourceMedia(previewSlot);
       refreshIcons();
     } catch (error) {
-      previewSlot.replaceChildren(el("p", { class: "muted", text: error.message || "Kunne ikke vise preview." }));
+      previewSlot.replaceChildren(el("p", { class: "muted", text: userFacingError(error, "Kunne ikke vise forhåndsvisningen.") }));
     }
   };
   const wrapper = el("section", { class: "resource-admin-preview" }, [
@@ -1250,7 +1261,7 @@ async function openResourceFile(file) {
     const opened = window.open(url, "_blank", "noopener");
     if (!opened) window.location.href = url;
   } catch (error) {
-    await showAppMessage("Kunne ikke åpne fil", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke åpne fil", userFacingError(error, "Prøv igjen."));
   }
 }
 
@@ -1330,7 +1341,7 @@ function createResourceFileManager(resource, library, options = {}) {
   return el("section", { class: "resource-admin-files" }, [
     el("div", { class: "resource-admin-helper-card" }, [
       el("strong", { text: "Filer og bilder" }),
-      el("p", { text: "Filer lagres privat i Supabase Storage. Ressursen fungerer fortsatt uten filer." })
+      el("p", { text: "Filer lagres privat og blir bare tilgjengelige for brukere med riktig tilgang. Ressursen fungerer også uten filer." })
     ]),
     fileList,
     el("div", { class: "resource-admin-upload" }, [
@@ -1357,7 +1368,7 @@ function createResourceFileManager(resource, library, options = {}) {
           message.textContent = "Fil lastet opp.";
           renderFiles();
         } catch (error) {
-          message.textContent = error.message || "Kunne ikke laste opp fil.";
+          message.textContent = userFacingError(error, "Kunne ikke laste opp filen.");
         }
       } }, [icon("upload"), el("span", { text: "Last opp" })])
     ]),
@@ -1442,7 +1453,7 @@ function createResourceReadinessPanel(getDraftResource) {
         text: `${item.done ? "OK" : item.group === "minimum" ? "Mangler" : "Anbefalt"}: ${item.label}`
       })));
     } catch (error) {
-      summary.textContent = error.message || "Fyll ut feltene for å se hva som mangler.";
+      summary.textContent = userFacingError(error, "Fyll ut feltene for å se hva som mangler.");
       list.replaceChildren();
     }
   };
@@ -1511,7 +1522,7 @@ async function openResourceAdminEditor(resource = null) {
   if (state.profile?.role !== "admin") return;
   const library = await ensureResourceLibrary();
   if (!library?.createResource || !library?.updateResource) {
-    await showAppMessage("Ressursadmin mangler", "Last siden på nytt. Hvis feilen fortsetter mangler mutation-modulen.");
+    await showAppMessage("Ressursen kan ikke redigeres", "Last siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter.");
     return;
   }
 
@@ -1698,16 +1709,16 @@ async function renderResources() {
   const content = $("#content");
   content.replaceChildren(el("section", { class: "panel empty-state" }, [
     el("p", { class: "eyebrow", text: "Ressurser" }),
-    el("h3", { text: "Henter pilotressurser" }),
-    el("p", { class: "muted", text: "Leser publiserte ressurser, tags og filmetadata." })
+    el("h3", { text: "Henter ressursene" }),
+    el("p", { class: "muted", text: "Dette tar vanligvis bare et øyeblikk." })
   ]));
 
   const library = await ensureResourceLibrary();
   if (!library) {
     content.replaceChildren(el("section", { class: "panel empty-state" }, [
       el("p", { class: "eyebrow", text: "Ressurser" }),
-      el("h3", { text: "Ressursmodulen er ikke lastet" }),
-      el("p", { class: "muted", text: "Kunne ikke laste ressursmodulen. Prøv å laste siden på nytt." })
+      el("h3", { text: "Ressursene kunne ikke åpnes" }),
+      el("p", { class: "muted", text: "Prøv å laste siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter." })
     ]));
     return;
   }
@@ -1716,10 +1727,11 @@ async function renderResources() {
   try {
     resources = await library.getPublishedResources(state.sb);
   } catch (error) {
+    console.error("Could not load published resources", error);
     content.replaceChildren(el("section", { class: "panel empty-state" }, [
       el("p", { class: "eyebrow", text: "Ressurser" }),
       el("h3", { text: "Kunne ikke hente ressursene" }),
-      el("p", { class: "muted", text: error.message || "Sjekk RLS, migrations og seeddata." })
+      el("p", { class: "muted", text: "Prøv å laste siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter." })
     ]));
     return;
   }
@@ -1839,7 +1851,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-96")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-97")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1863,7 +1875,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-98")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-99")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2009,7 +2021,7 @@ function createResourceContextPicker(resource, clients) {
       renderOptions([option("program", "", "Forløp")]);
       return;
     }
-    message.textContent = "Henter kontekst fra klientens forløp...";
+    message.textContent = "Gjør klart relevante plasseringer …";
     try {
       const data = await loadClientProgram(client);
       renderOptions(buildOptions(data));
@@ -2018,7 +2030,7 @@ function createResourceContextPicker(resource, clients) {
         : "Denne ressursen sendes på forløpsnivå.";
     } catch (error) {
       renderOptions([option("program", "", "Hele forløpet")]);
-      message.textContent = error.message || "Kunne ikke hente kontekst. Ressursen kan fortsatt sendes på forløpsnivå.";
+      message.textContent = userFacingError(error, "Kunne ikke hente plasseringene. Ressursen kan fortsatt sendes på forløpsnivå.");
     }
   };
 
@@ -2042,7 +2054,7 @@ function canShareResourceToClient(client) {
 
 async function sendResourceToClient(resource, values) {
   const library = await ensureResourceLibrary();
-  if (!library?.shareResourceWithClient) throw new Error("Ressursmodulen mangler sendefunksjon.");
+  if (!library?.shareResourceWithClient) throw new Error("Ressursen kan ikke deles akkurat nå. Last siden på nytt og prøv igjen.");
 
   const client = state.clients.find((item) => item.id === values.clientId);
   if (!client) throw new Error("Velg en klient.");
@@ -2122,17 +2134,17 @@ async function renderPlan(activePane = "direction") {
   ].filter(Boolean);
   setHeader("Utviklingsplan", client.name || "Klient", headerActions);
   $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
-    el("p", { class: "eyebrow", text: "Laster" }),
-    el("h3", { text: "Henter klientforløp" }),
-    el("p", { class: "muted", text: "Kobler til Supabase-tabellene for program, områder, sesjoner og evaluering." })
+    el("p", { class: "eyebrow", text: "Utviklingsplan" }),
+    el("h3", { text: "Åpner klientforløpet …" }),
+    el("p", { class: "muted", text: "Henter det siste arbeidet og gjør arbeidsflaten klar." })
   ]));
 
   const data = await loadClientProgram(client);
   if (!data) {
     $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
       el("p", { class: "eyebrow", text: "Program" }),
-      el("h3", { text: "Fant ikke klientforløp" }),
-      el("p", { class: "muted", text: "Sjekk at klienten har en rad i coaching_programs." })
+      el("h3", { text: "Klientforløpet er ikke klart ennå" }),
+      el("p", { class: "muted", text: "Gå tilbake til klientoversikten og prøv igjen. Kontakt ansvarlig for portalen hvis problemet fortsetter." })
     ]));
     return;
   }
@@ -2141,19 +2153,19 @@ async function renderPlan(activePane = "direction") {
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     hiddenPlanState(plan),
     clientWorkspaceTabs(data, activePane),
-    el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, "data-pane": "direction" }, [
+    el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, id: "workspace-pane-direction", role: "tabpanel", "aria-labelledby": "workspace-tab-direction", "aria-hidden": activePane === "direction" ? "false" : "true", "data-pane": "direction" }, [
       directionWorkspace(client, plan, data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "work" ? "active" : ""}`, "data-pane": "work" }, [
+    el("section", { class: `workspace-pane ${activePane === "work" ? "active" : ""}`, id: "workspace-pane-work", role: "tabpanel", "aria-labelledby": "workspace-tab-work", "aria-hidden": activePane === "work" ? "false" : "true", "data-pane": "work" }, [
       workWorkspace(client, data, plan)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "sessions" ? "active" : ""}`, "data-pane": "sessions" }, [
+    el("section", { class: `workspace-pane ${activePane === "sessions" ? "active" : ""}`, id: "workspace-pane-sessions", role: "tabpanel", "aria-labelledby": "workspace-tab-sessions", "aria-hidden": activePane === "sessions" ? "false" : "true", "data-pane": "sessions" }, [
       sessionsWorkspace(plan.sessions, data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, "data-pane": "reflections" }, [
+    el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, id: "workspace-pane-reflections", role: "tabpanel", "aria-labelledby": "workspace-tab-reflections", "aria-hidden": activePane === "reflections" ? "false" : "true", "data-pane": "reflections" }, [
       reflectionsWorkspace(data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "resources" ? "active" : ""}`, "data-pane": "resources" }, [
+    el("section", { class: `workspace-pane ${activePane === "resources" ? "active" : ""}`, id: "workspace-pane-resources", role: "tabpanel", "aria-labelledby": "workspace-tab-resources", "aria-hidden": activePane === "resources" ? "false" : "true", "data-pane": "resources" }, [
       coachResourcesWorkspace(data)
     ])
   ]);
@@ -2180,19 +2192,19 @@ function renderCachedProgram(activePane = "direction") {
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     hiddenPlanState(plan),
     clientWorkspaceTabs(data, activePane),
-    el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, "data-pane": "direction" }, [
+    el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, id: "workspace-pane-direction", role: "tabpanel", "aria-labelledby": "workspace-tab-direction", "aria-hidden": activePane === "direction" ? "false" : "true", "data-pane": "direction" }, [
       directionWorkspace(client, plan, data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "work" ? "active" : ""}`, "data-pane": "work" }, [
+    el("section", { class: `workspace-pane ${activePane === "work" ? "active" : ""}`, id: "workspace-pane-work", role: "tabpanel", "aria-labelledby": "workspace-tab-work", "aria-hidden": activePane === "work" ? "false" : "true", "data-pane": "work" }, [
       workWorkspace(client, data, plan)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "sessions" ? "active" : ""}`, "data-pane": "sessions" }, [
+    el("section", { class: `workspace-pane ${activePane === "sessions" ? "active" : ""}`, id: "workspace-pane-sessions", role: "tabpanel", "aria-labelledby": "workspace-tab-sessions", "aria-hidden": activePane === "sessions" ? "false" : "true", "data-pane": "sessions" }, [
       sessionsWorkspace(plan.sessions, data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, "data-pane": "reflections" }, [
+    el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, id: "workspace-pane-reflections", role: "tabpanel", "aria-labelledby": "workspace-tab-reflections", "aria-hidden": activePane === "reflections" ? "false" : "true", "data-pane": "reflections" }, [
       reflectionsWorkspace(data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "resources" ? "active" : ""}`, "data-pane": "resources" }, [
+    el("section", { class: `workspace-pane ${activePane === "resources" ? "active" : ""}`, id: "workspace-pane-resources", role: "tabpanel", "aria-labelledby": "workspace-tab-resources", "aria-hidden": activePane === "resources" ? "false" : "true", "data-pane": "resources" }, [
       coachResourcesWorkspace(data)
     ])
   ]);
@@ -2247,7 +2259,7 @@ function renderConsentGate(client) {
     el("div", { class: "consent-grid" }, [
       consentPoint("lock-keyhole", "Konfidensielt", "Plan, samtaler, fokusoppdrag og refleksjoner brukes til å støtte ditt coachingforløp."),
       consentPoint("users", "Delt med coach", "Tildelt coach kan lese og jobbe med innholdet i planen. Private refleksjoner deles bare når du velger det."),
-      consentPoint("database", "Lagret trygt", "Data lagres i Supabase. Du kan be coachen om innsyn, retting eller sletting.")
+      consentPoint("database", "Lagret trygt", "Data lagres i EU med tilgangsstyring. Du kan be coachen om innsyn, retting eller sletting.")
     ]),
     el("label", { class: "consent-check" }, [
       accepted,
@@ -2366,9 +2378,12 @@ function clientWorkspaceTabs(data = {}, activePane = "direction") {
     ["resources", "Ressurser"]
   ];
   return el("div", { class: "workspace-tabs" }, [
-    el("div", { class: "workspace-tab-group workspace-tab-group-main" }, items.map(([pane, label]) => el("button", {
+    el("div", { class: "workspace-tab-group workspace-tab-group-main", role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label]) => el("button", {
       class: `workspace-tab ${pane === activePane ? "active" : ""}`,
       type: "button",
+      role: "tab",
+      id: `workspace-tab-${pane}`,
+      "aria-controls": `workspace-pane-${pane}`,
       "data-tab": pane,
       "aria-selected": pane === activePane ? "true" : "false"
     }, [el("span", { text: label })])))
@@ -2376,15 +2391,37 @@ function clientWorkspaceTabs(data = {}, activePane = "direction") {
 }
 
 function setupWorkspaceTabs() {
-  $$(".workspace-tab").forEach((tab) => {
-    tab.addEventListener("click", async () => {
+  const tabs = $$(".workspace-tab");
+  const activate = async (tab) => {
       if (state.inlineEditKey) {
         await showAppMessage("Lagre eller avbryt først", "Du har et åpent felt. Lagre eller avbryt før du går videre.");
-        return;
+        return false;
       }
-      $$(".workspace-tab").forEach((item) => item.classList.toggle("active", item === tab));
-      $$(".workspace-tab").forEach((item) => item.setAttribute("aria-selected", item === tab ? "true" : "false"));
-      $$(".workspace-pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === tab.dataset.tab));
+      tabs.forEach((item) => {
+        const active = item === tab;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-selected", active ? "true" : "false");
+        item.tabIndex = active ? 0 : -1;
+      });
+      $$(".workspace-pane").forEach((pane) => {
+        const active = pane.dataset.pane === tab.dataset.tab;
+        pane.classList.toggle("active", active);
+        pane.setAttribute("aria-hidden", active ? "false" : "true");
+      });
+      return true;
+  };
+  tabs.forEach((tab, index) => {
+    tab.tabIndex = tab.classList.contains("active") ? 0 : -1;
+    tab.addEventListener("click", () => activate(tab));
+    tab.addEventListener("keydown", async (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const nextIndex = event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? tabs.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      if (await activate(tabs[nextIndex])) tabs[nextIndex].focus();
     });
   });
 }
@@ -2412,13 +2449,10 @@ function directionWorkspace(client, plan) {
   ];
   return el("section", { class: "platform-page ui-workspace direction-simple" }, [
     pageIntro(status.label, `Hei, ${firstName}. Avklar retningen for forløpet`, "Formuler hva du ønsker å flytte, hvordan fremgang skal merkes og hvilke rammer som gjør samarbeidet nyttig.", [], status.tone),
-    el("section", { class: "direction-overview", "aria-label": "Fremdrift i retningen" }, [
+    el("section", { class: "direction-overview", "aria-label": "Status for retningen" }, [
       el("div", { class: "direction-progress-copy" }, [
-        el("strong", { text: `${completed} av ${directionSpecs.length} avklart` }),
+        el("strong", { text: nextSpec ? `${completed} av ${directionSpecs.length} avklaringer på plass` : "Retningen er klar til bruk" }),
         el("span", { text: status.text })
-      ]),
-      el("div", { class: "direction-progress-track", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(directionSpecs.length), "aria-valuenow": String(completed) }, [
-        el("span", { style: `width:${Math.round((completed / directionSpecs.length) * 100)}%` })
       ]),
       editable ? el("button", {
         class: "ui-button ui-button-filled direction-next-action",
@@ -2603,6 +2637,14 @@ function directionStatus(plan) {
       action: "Avklar forventninger"
     };
   }
+  if (!plan.c_practical || !plan.c_confidentiality || !plan.c_context) {
+    return {
+      tone: "partial",
+      label: "Nesten klar",
+      text: "Avklar de siste rammene og konteksten før retningen tas i bruk.",
+      action: "Fullfør retningen"
+    };
+  }
   return {
     tone: "ready",
     label: "Retning avklart",
@@ -2711,16 +2753,15 @@ function focusHubWorkspace(data, plan, focusItems, editable) {
   return el("div", { class: "platform-page work-stack focus-hub" }, [
     focusHubIntro(editable, data, activeView === "competencies" ? selectedItems.length : activeView === "assignments" ? focusItems.length : data.actions.length, true),
     el("div", { class: "focus-navigation-row" }, [
-      focusViewTabs(activeView),
-      experimentHubLink(data, activeView)
+      focusViewTabs(activeView, data)
     ]),
-    el("section", { class: `focus-hub-panel ${activeView === "competencies" ? "active" : ""}`, "aria-hidden": activeView === "competencies" ? "false" : "true" }, [
+    el("section", { class: `focus-hub-panel ${activeView === "competencies" ? "active" : ""}`, id: "focus-panel-competencies", role: "tabpanel", "aria-labelledby": "focus-tab-competencies", "aria-hidden": activeView === "competencies" ? "false" : "true" }, [
       activeView === "competencies" ? leadershipWorkbench(data, editable) : null
     ].filter(Boolean)),
-    el("section", { class: `focus-hub-panel ${activeView === "assignments" ? "active" : ""}`, "aria-hidden": activeView === "assignments" ? "false" : "true" }, [
+    el("section", { class: `focus-hub-panel ${activeView === "assignments" ? "active" : ""}`, id: "focus-panel-assignments", role: "tabpanel", "aria-labelledby": "focus-tab-assignments", "aria-hidden": activeView === "assignments" ? "false" : "true" }, [
       activeView === "assignments" ? focusWorkbench(focusItems, data, editable) : null
     ].filter(Boolean)),
-    el("section", { class: `focus-hub-panel ${activeView === "experiments" ? "active" : ""}`, "aria-hidden": activeView === "experiments" ? "false" : "true" }, [
+    el("section", { class: `focus-hub-panel ${activeView === "experiments" ? "active" : ""}`, id: "focus-panel-experiments", role: "tabpanel", "aria-labelledby": "focus-tab-experiments", "aria-hidden": activeView === "experiments" ? "false" : "true" }, [
       activeView === "experiments" ? experimentHubWorkspace(data, editable) : null
     ].filter(Boolean)),
     areasEditor(plan.areas)
@@ -2738,36 +2779,40 @@ function focusHubIntro(editable, data, itemCount = 0, hasCompetencies = true) {
   return workspaceIntro("Fokus", "Koble utviklingen til arbeidet som skal gjøres", "Utvikle lederkompetanser over tid, og bruk fokusoppdrag til konkrete prosjekter, leveranser eller situasjoner som krever oppmerksomhet nå.", [action].filter(Boolean));
 }
 
-function experimentHubLink(data, activeView) {
-  const activeCount = (data.actions || []).filter((action) => isExperimentActive(action.status)).length;
-  return el("button", {
-    class: `experiment-hub-link ${activeView === "experiments" ? "active" : ""}`,
-    type: "button",
-    onclick: () => {
-      state.focusView = "experiments";
-      state.inlineEditKey = null;
-      renderCachedProgram("work");
-    }
-  }, [icon("flask-conical"), el("span", { text: "Alle eksperimenter" }), el("small", { text: `${activeCount} aktive` })]);
-}
-
-function focusViewTabs(activeView) {
+function focusViewTabs(activeView, data = {}) {
+  const activeExperiments = (data.actions || []).filter((action) => isExperimentActive(action.status)).length;
   const items = [
-    ["competencies", "Kompetanser"],
-    ["assignments", "Fokusoppdrag"]
+    ["competencies", "Kompetanser", ""],
+    ["assignments", "Fokusoppdrag", ""],
+    ["experiments", "Eksperimenter", activeExperiments ? String(activeExperiments) : ""]
   ];
-  return el("div", { class: "focus-view-tabs", role: "tablist", "aria-label": "Velg fokustype" }, items.map(([value, label]) => el("button", {
+  const activate = (value, { focus = false } = {}) => {
+    state.focusView = value;
+    state.inlineEditKey = null;
+    renderCachedProgram("work");
+    if (focus) requestAnimationFrame(() => document.getElementById(`focus-tab-${value}`)?.focus());
+  };
+  const tabs = items.map(([value, label, count], index) => el("button", {
     class: `focus-view-tab ${activeView === value ? "active" : ""}`,
     type: "button",
     role: "tab",
+    id: `focus-tab-${value}`,
+    "aria-controls": `focus-panel-${value}`,
     "aria-selected": activeView === value ? "true" : "false",
-    text: label,
-    onclick: () => {
-      state.focusView = value;
-      state.inlineEditKey = null;
-      renderCachedProgram("work");
+    tabindex: activeView === value ? "0" : "-1",
+    onclick: () => activate(value),
+    onkeydown: (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const nextIndex = event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? items.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : -1) + items.length) % items.length;
+      activate(items[nextIndex][0], { focus: true });
     }
-  })));
+  }, [el("span", { text: label }), count ? el("small", { text: count }) : null].filter(Boolean)));
+  return el("div", { class: "focus-view-tabs", role: "tablist", "aria-label": "Velg arbeidsflate" }, tabs);
 }
 
 function leadershipWorkbench(data, editable) {
@@ -2877,7 +2922,8 @@ function leadershipDetail(item, data, editable) {
   const missingStep = [
     ["why_now", "Avklar hvorfor kompetansen er viktig nå"],
     ["desired_behavior", "Avklar hva du vil utvikle"],
-    ["current_pattern", "Beskriv hva du gjør i dag"]
+    ["current_pattern", "Beskriv hva du gjør i dag"],
+    ["obstacles", "Undersøk hva som kan stå i veien"]
   ].find(([fieldKey]) => !(item[fieldKey] || "").trim());
   const nextLabel = missingStep?.[1] || (!activeActions.length ? "Planlegg første eksperiment" : "Følg opp eksperimentet");
   const nextHandler = missingStep
@@ -2926,9 +2972,10 @@ function leadershipDetail(item, data, editable) {
 }
 
 function leadershipPlanStatus(item) {
-  const required = [item.why_now, item.desired_behavior, item.current_pattern].filter((value) => (value || "").trim()).length;
-  const any = [item.why_now, item.desired_behavior, item.current_pattern, item.obstacles].some((value) => (value || "").trim());
-  if (required === 3) return { key: "ready", label: "Klar til å prøves", ready: true };
+  const planFields = [item.why_now, item.desired_behavior, item.current_pattern, item.obstacles];
+  const completed = planFields.filter((value) => (value || "").trim()).length;
+  const any = completed > 0;
+  if (completed === planFields.length) return { key: "ready", label: "Klar til å prøves", ready: true };
   if (any) return { key: "working", label: "Under arbeid", ready: false };
   return { key: "not-started", label: "Ikke påbegynt", ready: false };
 }
@@ -3071,8 +3118,7 @@ function leadershipEmptyState(data, editable) {
     el("span", { class: "empty-state-icon", "aria-hidden": "true" }, [icon("compass")]),
     el("p", { class: "eyebrow", text: "Kompetansebibliotek" }),
     el("h3", { text: "Finn kompetansen som betyr mest nå" }),
-    el("p", { class: "muted", text: "Utforsk hva hver kompetanse innebærer før du velger. Du kan starte med én og legge til flere senere." }),
-    editable ? addAction("Utforsk kompetanser", () => openCompetencyChooser(data)) : null
+    el("p", { class: "muted", text: "Velg først ett hovedfokus. Du kan legge til inntil to støttende kompetanser senere." })
   ].filter(Boolean));
 }
 
@@ -3144,7 +3190,13 @@ function competencyNameNodes(copy, competencies = []) {
 }
 
 function competencyChooserLayout(data, competencies, selectedIds) {
-  const selectedCount = (data.programCompetencies || []).filter((item) => item.status === "active").length;
+  const selectedItems = (data.programCompetencies || []).filter((item) => item.status === "active");
+  const selectedCount = selectedItems.length;
+  const hasPrimary = selectedItems.some((item) => Number(item.priority) === 1);
+  const supportingCount = selectedItems.filter((item) => Number(item.priority) !== 1).length;
+  const selectionSummary = selectedCount
+    ? `${hasPrimary ? "Hovedfokus valgt" : "Velg hovedfokus"}${supportingCount ? ` · ${supportingCount} støttende` : ""}`
+    : "Velg hovedfokus";
   const categoryOrder = ["foundation", "self_capacity", "relationships_influence", "team_people", "execution_decisions", "strategy_business_change", "derailer"];
   const categoryOptions = [["all", "Alle utviklingsområder"], ...Array.from(new Map(competencies.map((item) => [item.category, item.categoryLabel || "Andre"])).entries())
     .sort(([a], [b]) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b))];
@@ -3189,7 +3241,7 @@ function competencyChooserLayout(data, competencies, selectedIds) {
     ]),
     el("div", { class: "competency-browser-count" }, [
       resultCount,
-      el("span", { class: "ui-meta", text: `${selectedCount}/3 valgt` })
+      el("span", { class: "ui-meta", text: selectionSummary })
     ]),
     list
   ]);
@@ -3291,6 +3343,7 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
     previewList("Når du bruker kompetansen for mye eller i feil situasjon", "arrow-up", content.best_practice?.overuse || content.overuse, "overuse"),
     previewList("Hva kan stå i veien?", "triangle-alert", content.barriers || [], "barriers")
   ].filter(Boolean);
+  const clientSelectionLabel = selectedCount === 0 ? "Velg som hovedfokus" : "Legg til som støttende kompetanse";
   const chooseAction = () => el("button", {
     class: "ui-button ui-button-filled competency-select-action",
     type: "button",
@@ -3298,7 +3351,7 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
     onclick: async () => {
       await selectLeadershipCompetency(data, competency, { keepChooserOpen: true });
     }
-  }, [icon(selected || suggested ? "check" : "plus"), el("span", { text: selected ? "Allerede aktiv" : suggested && canActivateSuggestion ? "Aktiver coachens forslag" : suggested ? "Foreslått for klienten" : maxReached ? "Maks tre aktive" : clientOwnsSelection ? "Velg denne kompetansen" : "Foreslå for klienten" })]);
+  }, [icon(selected || suggested ? "check" : "plus"), el("span", { text: selected ? "Allerede aktiv" : suggested && canActivateSuggestion ? clientSelectionLabel : suggested ? "Foreslått for klienten" : maxReached ? "Hovedfokus og to støttende er valgt" : clientOwnsSelection ? clientSelectionLabel : "Foreslå for klienten" })]);
 
   return el("article", { class: "competency-preview-card" }, [
     el("button", { class: "competency-preview-back mobile-only", type: "button", onclick: onBack }, [icon("arrow-left"), el("span", { text: "Til biblioteket" })]),
@@ -3340,10 +3393,9 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
       el("summary", {}, [el("span", { text: "Refleksjonsspørsmål" }), icon("chevron-down")]),
       previewList("Reflekter", "message-circle-question", content.reflection, "reflection")
     ]) : null,
-    el("aside", { class: "competency-source-note" }, [
-      icon("info"),
+    el("details", { class: "competency-source-note" }, [
+      el("summary", {}, [icon("info"), el("strong", { text: "Om kompetanserammen" }), icon("chevron-down")]),
       el("p", {}, [
-        el("strong", { text: "Faglig grunnlag. " }),
         document.createTextNode("Kompetanserammen tar utgangspunkt i CCL Compass. Norske beskrivelser og utviklingsgrep er selvstendig bearbeidet med støtte i forskning og praksis innen lederutvikling. Dette er et utviklingskart, ikke et psykometrisk verktøy.")
       ])
     ]),
@@ -3399,7 +3451,7 @@ async function makeLeadershipCompetencyPrimary(item) {
     state.selectedCompetencyId = item.id;
     await reloadProgramAndRender("work");
   } catch (error) {
-    await showAppMessage("Kunne ikke endre hovedfokus", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke endre hovedfokus", userFacingError(error, "Prøv igjen."));
   }
 }
 
@@ -3408,7 +3460,7 @@ async function updateLeadershipCompetencyField(programCompetencyId, fieldKey, va
   if (!library?.updateProgramCompetency) return;
   const { error } = await state.sb.from("program_competencies").update({ [fieldKey]: value || "" }).eq("id", programCompetencyId);
   if (error) {
-    await showAppMessage("Kunne ikke lagre kompetansen", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke lagre kompetansen", userFacingError(error, "Prøv igjen."));
     return;
   }
   state.inlineEditKey = null;
@@ -3431,7 +3483,7 @@ async function removeLeadershipCompetency(item) {
   try {
     await library.removeProgramCompetency(state.sb, item.id);
   } catch (error) {
-    await showAppMessage("Kunne ikke fjerne kompetansen", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke fjerne kompetansen", userFacingError(error, "Prøv igjen."));
     return false;
   }
   state.selectedCompetencyId = null;
@@ -3613,8 +3665,7 @@ function focusList(items, editable, data, detail) {
             el("small", { text: focusPlanStatus(area).label })
           ]),
           el("span", { class: "workspace-master-meta" }, [
-            el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) }),
-            el("span", { text: `Fokusoppdrag ${index + 1}` })
+            el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) })
           ]),
           contentPreview(area.movement || area.description, "Hva vil du rette oppmerksomheten mot?", 2)
         ]),
@@ -3657,9 +3708,9 @@ function focusDetail({ area, index }, data, editable) {
     el("header", { class: "competency-workspace-head" }, [
       el("div", { class: "competency-workspace-heading" }, [
         el("span", { class: "competency-context" }, [
-          el("span", { class: "workspace-kicker", text: `Fokusoppdrag ${index + 1}` }),
-          el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) })
-        ]),
+          el("span", { class: "workspace-kicker", text: area.projectType === "outer" ? `Fokusoppdrag ${index + 1}` : "Tidligere fokusområde" }),
+          area.projectType === "outer" ? el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) }) : null
+        ].filter(Boolean)),
         editableTitle({
           className: "focus-title-edit",
           title: area.title || "Gi fokusoppdraget et navn",
@@ -4320,65 +4371,93 @@ function resourcesFromCoachSection(data, canWriteReflection) {
   if (!library?.createClientResourceList) return null;
 
   const sharedResources = data.sharedResources || [];
+  if (state.selectedSharedResourceProgramId !== data.program?.id) {
+    state.selectedSharedResourceProgramId = data.program?.id || null;
+    state.selectedSharedResourceId = null;
+    state.sharedResourceQuery = "";
+  }
   const section = el("section", { class: "client-resources-section" });
   const renderSection = () => {
-    const selected = sharedResources.find((item) => item.id === state.selectedSharedResourceId) || null;
-    const mobilePicker = el("select", {
-      class: "client-resource-picker",
-      "aria-label": "Velg ressurs",
-      onchange: (event) => {
-        const next = sharedResources.find((item) => item.id === event.target.value);
-        if (next && next.id !== state.selectedSharedResourceId) openSharedResource(next, canWriteReflection, renderSection);
-      }
-    }, [
-      el("option", { value: "", text: "Velg ressurs", selected: !selected }),
-      ...sharedResources.map((item) => el("option", {
-        value: item.id,
-        text: item.resource?.title || "Ressurs",
-        selected: selected?.id === item.id
-      }))
-    ]);
-    const list = library.createClientResourceList(sharedResources, {
+    const query = String(state.sharedResourceQuery || "").trim().toLocaleLowerCase("nb-NO");
+    const visibleResources = sharedResources.filter((item) => !query || [
+      item.resource?.title,
+      item.resource?.summary,
+      item.resource?.type,
+      item.coach_note,
+      ...(item.resource?.tags || [])
+    ].filter(Boolean).join(" ").toLocaleLowerCase("nb-NO").includes(query));
+    const compactLayout = window.matchMedia?.("(max-width: 700px)")?.matches;
+    let selected = visibleResources.find((item) => item.id === state.selectedSharedResourceId) || null;
+    let autoSelected = false;
+    if (!selected && !compactLayout && visibleResources.length) {
+      selected = visibleResources[0];
+      state.selectedSharedResourceId = selected.id;
+      autoSelected = true;
+    }
+    const list = library.createClientResourceList(visibleResources, {
       createElement: el,
       createIcon: icon,
       selectedId: selected?.id || null,
       onOpen: (sharedResource) => openSharedResource(sharedResource, canWriteReflection, renderSection),
+      emptyTitle: query ? "Ingen ressurser funnet" : "Ingen ressurser ennå",
       emptyText: canWriteReflection
-        ? "Når coachen sender en ressurs, vises den her."
-        : "Ingen ressurser er sendt i dette forløpet ennå."
+        ? (query ? "Prøv et annet søk." : "Når coachen sender en ressurs, vises den her.")
+        : (query ? "Prøv et annet søk." : "Ingen ressurser er sendt i dette forløpet ennå.")
     });
-    const detail = selected ? library.createClientResourceView(selected, {
-      createElement: el,
-      readOnly: !canWriteReflection,
-      onOpenFile: openResourceFile,
-      onSave: (resource, values) => saveSharedResourceReflection(resource, values, renderSection)
-    }) : el("section", { class: "client-resource-detail-empty" }, [
+    const detail = selected ? el("div", { class: "client-resource-detail-stack" }, [
+      el("button", { class: "client-resource-back", type: "button", onclick: () => {
+        state.selectedSharedResourceId = null;
+        renderSection();
+      }}, [icon("arrow-left"), el("span", { text: "Tilbake til ressurser" })]),
+      library.createClientResourceView(selected, {
+        createElement: el,
+        readOnly: !canWriteReflection,
+        onOpenFile: openResourceFile,
+        onSave: (resource, values) => saveSharedResourceReflection(resource, values, renderSection)
+      })
+    ]) : el("section", { class: "client-resource-detail-empty" }, [
       el("span", { class: "client-resource-detail-empty-icon" }, [icon("book-open")]),
       el("div", {}, [
-        el("h3", { text: sharedResources.length ? "Velg en ressurs" : "Ingen ressurser ennå" }),
-        el("p", { class: "muted", text: sharedResources.length
+        el("h3", { text: visibleResources.length ? "Velg en ressurs" : query ? "Ingen ressurser funnet" : "Ingen ressurser ennå" }),
+        el("p", { class: "muted", text: visibleResources.length
           ? "Velg fra listen for å lese innholdet og arbeide videre."
           : canWriteReflection ? "Når coachen deler noe med deg, samles det her." : "Ingen ressurser er sendt i dette forløpet." })
       ])
     ]);
+    const search = sharedResources.length > 5 ? el("input", {
+      class: "client-resource-search",
+      type: "search",
+      value: state.sharedResourceQuery,
+      placeholder: "Søk i delte ressurser",
+      "aria-label": "Søk i delte ressurser",
+      oninput: (event) => {
+        const cursor = event.currentTarget.selectionStart;
+        state.sharedResourceQuery = event.currentTarget.value;
+        renderSection();
+        requestAnimationFrame(() => {
+          const nextSearch = $(".client-resource-search", section);
+          nextSearch?.focus();
+          if (Number.isInteger(cursor)) nextSearch?.setSelectionRange(cursor, cursor);
+        });
+      }
+    }) : null;
     section.replaceChildren(
       el("div", { class: "client-resources-head" }, [
-        el("div", {}, [
-          el("p", { class: "eyebrow", text: canWriteReflection ? "Delt med deg" : "Delt med klient" }),
-          el("h3", { text: canWriteReflection ? "Din ressursinnboks" : "Ressursoversikt" }),
-          el("p", { class: "muted", text: canWriteReflection
-            ? "Åpne en ressurs for å lese, arbeide og eventuelt dele en refleksjon tilbake."
-            : "Ressurser som er sendt i dette coachingforløpet." })
+        el("div", { class: "client-resources-summary" }, [
+          el("strong", { text: canWriteReflection ? "Delt med deg" : "Delt med klient" }),
+          el("span", { class: "muted", text: `${visibleResources.length}${query ? ` av ${sharedResources.length}` : ""} ${visibleResources.length === 1 && !query ? "ressurs" : "ressurser"}` })
         ]),
-        el("span", { class: "resource-count", text: String(sharedResources.length) })
-      ]),
-      mobilePicker,
-      el("div", { class: "client-resource-workbench" }, [
+        search
+      ].filter(Boolean)),
+      el("div", { class: `client-resource-workbench ${selected ? "has-selection" : ""}` }, [
         el("aside", { class: "client-resource-rail" }, [list]),
         el("div", { class: "client-resource-detail" }, [detail])
       ])
     );
     hydrateResourceMedia(section);
+    if (autoSelected && canWriteReflection && selected?.status === "assigned") {
+      setTimeout(() => openSharedResource(selected, canWriteReflection, renderSection), 0);
+    }
   };
 
   renderSection();
@@ -4398,8 +4477,9 @@ async function openSharedResource(sharedResource, canWriteReflection, renderSect
       });
       sharedResource.status = "viewed";
       sharedResource.viewed_at = new Date().toISOString();
+      renderSection?.();
     } catch (error) {
-      await showAppMessage("Kunne ikke oppdatere status", error.message || "Ressursen kan fortsatt åpnes.");
+      await showAppMessage("Kunne ikke oppdatere status", userFacingError(error, "Ressursen kan fortsatt åpnes."));
     }
   }
 }
@@ -4407,8 +4487,8 @@ async function openSharedResource(sharedResource, canWriteReflection, renderSect
 async function saveSharedResourceReflection(sharedResource, values, renderSection = null) {
   const library = await ensureResourceLibrary();
   if (!library?.saveClientResourceReflection) {
-    await showAppMessage("Kunne ikke lagre", "Ressursmodulen mangler lagrefunksjon.");
-    throw new Error("Ressursmodulen mangler lagrefunksjon.");
+    await showAppMessage("Kunne ikke lagre", "Last siden på nytt og prøv igjen.");
+    throw new Error("Kunne ikke lagre refleksjonen.");
   }
 
   try {
@@ -4421,8 +4501,9 @@ async function saveSharedResourceReflection(sharedResource, values, renderSectio
     sharedResource.client_visibility = saved?.client_visibility ?? values.clientVisibility ?? "private";
     sharedResource.status = saved?.status || "responded";
     sharedResource.responded_at = saved?.responded_at || new Date().toISOString();
+    renderSection?.();
   } catch (error) {
-    await showAppMessage("Kunne ikke lagre refleksjonen", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke lagre refleksjonen", userFacingError(error, "Prøv igjen."));
     throw error;
   }
 }
@@ -4594,7 +4675,7 @@ function reflectionInlineCard(reflection, data) {
           program_competency_id: competency.value || null
         }).eq("id", reflection.id);
         if (error) {
-          await showAppMessage("Kunne ikke lagre refleksjonen", error.message || "Prøv igjen.");
+          await showAppMessage("Kunne ikke lagre refleksjonen", userFacingError(error, "Prøv igjen."));
           return;
         }
         state.inlineEditKey = null;
@@ -4647,6 +4728,34 @@ function createActionFromSessionNextStep(sessionIndex, nextStepText) {
   });
 }
 
+function experimentReviewSpec(action, parsed) {
+  const normalized = normalizeExperimentStatus(action.status);
+  const reviewStatus = isExperimentReviewed(normalized) && normalized !== "closed" ? "reviewed" : normalized;
+  const hasReview = Boolean(parsed.observation || parsed.effect || parsed.learning || parsed.nextStep || isExperimentReviewed(normalized));
+  const fields = [
+    textareaSpec("observation", "Hva observerte du?", parsed.observation, { placeholder: "Hva skjedde, og hvordan responderte andre?" }),
+    selectSpec("effect", "Hvilken effekt så du?", [["", "Ikke avlest"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || "", false),
+    textareaSpec("learning", "Hva lærte du?", parsed.learning, { placeholder: "Hva forstår du bedre nå?" }),
+    textareaSpec("nextStep", "Hva justerer du neste gang?", parsed.nextStep, { placeholder: "Behold, endre eller prøv noe nytt..." }),
+    selectSpec("status", "Hvor er forsøket nå?", [
+      ["planned", "Planlagt"],
+      ["active", "Prøves ut"],
+      ["reviewed", "Avlest"],
+      ...(normalized === "closed" ? [["closed", "Avsluttet"]] : [])
+    ], reviewStatus, false)
+  ];
+  return customSpec(["observation", "effect", "learning", "nextStep", "status"], el("details", { class: "experiment-review-details", open: hasReview }, [
+    el("summary", {}, [
+      el("span", {}, [
+        el("strong", { text: "Se tilbake og lær" }),
+        el("small", { text: hasReview ? "Observasjon, læring og neste justering" : "Åpne når du har prøvd" })
+      ]),
+      icon("chevron-down")
+    ]),
+    el("div", { class: "experiment-review-fields" }, fields.map(renderSpec))
+  ]));
+}
+
 function editAction(action, data) {
   const parsed = parseActionDescription(action.description || "");
   openEntityDrawer("Rediger eksperiment", "Arbeid", [
@@ -4659,12 +4768,7 @@ function editAction(action, data) {
     inputSpec("arena", "Hvor skal du prøve det?", "text", parsed.arena || "", { placeholder: "Et møte, en samtale eller en annen konkret situasjon" }),
     textareaSpec("signals", "Hva skal du se etter?", parsed.signals, { placeholder: "Et observerbart tegn på effekt eller respons..." }),
     inputSpec("dueDate", "Når vil du se tilbake?", "date", action.due_date || ""),
-    sectionSpec("Etter at du har prøvd", "Fyll ut når du har noe faktisk å se tilbake på."),
-    textareaSpec("observation", "Hva observerte du?", parsed.observation, { placeholder: "Hva skjedde, og hvordan responderte andre?" }),
-    choiceSpec("effect", "Hvilken effekt så du?", [["", "Ikke avlest"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || ""),
-    textareaSpec("learning", "Hva lærte du?", parsed.learning, { placeholder: "Hva forstår du bedre nå?" }),
-    textareaSpec("nextStep", "Hva justerer du neste gang?", parsed.nextStep, { placeholder: "Behold, endre eller prøv noe nytt..." }),
-    choiceSpec("status", "Status", [["planned", "Planlagt"], ["active", "Prøves ut"], ["reviewed", "Avlest"], ["continued", "Videreført"], ["closed", "Avsluttet"]], normalizeExperimentStatus(action.status))
+    experimentReviewSpec(action, parsed)
   ], async (values) => {
     if (!(values.action || "").trim()) throw new Error("Beskriv hva du skal prøve.");
     let nextStatus = values.status || normalizeExperimentStatus(action.status);
@@ -4728,7 +4832,7 @@ function effectLabel(value) {
 function phaseLabel(status, parsed) {
   const normalized = normalizeExperimentStatus(status);
   if (normalized === "closed") return "Avsluttet";
-  if (normalized === "continued") return "Videreført";
+  if (normalized === "continued") return "Avlest";
   if (normalized === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep) return "Avlest";
   if (normalized === "active") return "Prøves ut";
   return "Planlagt";
@@ -4755,7 +4859,7 @@ async function closeAction(id) {
   }))) return false;
   const { error } = await state.sb.from("session_actions").update({ status: "closed" }).eq("id", id);
   if (error) {
-    await showAppMessage("Kunne ikke avslutte eksperimentet", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke avslutte eksperimentet", userFacingError(error, "Prøv igjen."));
     return false;
   }
   await reloadProgramAndRender("work");
@@ -4766,7 +4870,7 @@ async function deleteAction(id) {
   if (!(await confirmDelete("Slette dette eksperimentet?"))) return false;
   const { error } = await state.sb.from("session_actions").delete().eq("id", id);
   if (error) {
-    await showAppMessage("Kunne ikke slette eksperimentet", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke slette eksperimentet", userFacingError(error, "Prøv igjen."));
     return false;
   }
   await reloadProgramAndRender("work");
@@ -4846,7 +4950,7 @@ async function deleteReflection(id) {
   if (!(await confirmDelete("Slette denne refleksjonen?"))) return false;
   const { error } = await state.sb.from("client_reflections").delete().eq("id", id);
   if (error) {
-    await showAppMessage("Kunne ikke slette refleksjonen", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke slette refleksjonen", userFacingError(error, "Prøv igjen."));
     return false;
   }
   await reloadProgramAndRender("reflections");
@@ -4932,7 +5036,7 @@ async function savePlan() {
   setSaveState("saving");
   try {
     const current = state.programCache[client.id] || await loadClientProgram(client);
-    if (!current) throw new Error("Mangler programrad.");
+    if (!current) throw new Error("Klientforløpet kunne ikke åpnes. Last siden på nytt og prøv igjen.");
     const plan = collectPlan();
     const programValues = {
       purpose: plan.c_purpose,
@@ -4962,7 +5066,7 @@ async function savePlan() {
     console.error("Kunne ikke lagre utviklingsplan", error);
     setSaveState("error");
     if (status) status.textContent = "Lagring feilet";
-    await showAppMessage("Kunne ikke lagre", error.message || "Ukjent feil");
+    await showAppMessage("Kunne ikke lagre", userFacingError(error, "Prøv igjen."));
     return false;
   }
 }
@@ -5006,9 +5110,9 @@ function normalizeProjectType(value) {
 
 function projectTypeLabel(value) {
   return {
-    inner: "Personlig fokus",
+    inner: "Tidligere fokusområde",
     outer: "Arbeidsoppdrag",
-    both: "Utvikling i arbeid"
+    both: "Tidligere fokusområde"
   }[normalizeProjectType(value)];
 }
 
@@ -5380,7 +5484,7 @@ $("#entity-form").addEventListener("submit", async (event) => {
     await state.modal.onSave(values);
     $("#entity-modal").close();
   } catch (error) {
-    $("#modal-message").textContent = error.message || "Kunne ikke lagre.";
+    $("#modal-message").textContent = userFacingError(error, "Kunne ikke lagre. Prøv igjen.");
   }
 });
 
@@ -5396,7 +5500,7 @@ $("#drawer-form").addEventListener("submit", async (event) => {
     await state.drawer.onSave(values);
     $("#entity-drawer").close();
   } catch (error) {
-    $("#drawer-message").textContent = error.message || "Kunne ikke lagre.";
+    $("#drawer-message").textContent = userFacingError(error, "Kunne ikke lagre. Prøv igjen.");
   }
 });
 
@@ -5407,7 +5511,7 @@ async function handleModalDanger() {
     const deleted = await state.modal.onDanger();
     if (deleted !== false) $("#entity-modal").close();
   } catch (error) {
-    $("#modal-message").textContent = error.message || "Kunne ikke slette.";
+    $("#modal-message").textContent = userFacingError(error, "Kunne ikke fullføre handlingen. Prøv igjen.");
   }
 }
 
@@ -5418,7 +5522,7 @@ async function handleDrawerDanger() {
     const deleted = await state.drawer.onDanger();
     if (deleted !== false) $("#entity-drawer").close();
   } catch (error) {
-    $("#drawer-message").textContent = error.message || "Kunne ikke slette.";
+    $("#drawer-message").textContent = userFacingError(error, "Kunne ikke fullføre handlingen. Prøv igjen.");
   }
 }
 
@@ -5476,7 +5580,7 @@ async function callInviteUser(values) {
 async function verifyInvitedClient(email) {
   const client = await findClientForInviteVerification(email);
   if (!client?.id) throw new Error("Invitasjonen ble sendt, men klientraden ble ikke opprettet.");
-  if (!client.user_id) throw new Error("Invitasjonen ble sendt, men klienten ble ikke koblet til Supabase Auth.");
+  if (!client.user_id) throw new Error("Invitasjonen ble sendt, men brukerkontoen ble ikke koblet til. Prøv igjen eller kontakt ansvarlig for portalen.");
   if (state.profile.role === "coach" && state.coach?.id && !(client.coach_ids || []).includes(state.coach.id)) {
     throw new Error("Klienten ble opprettet, men ble ikke koblet til din coachprofil.");
   }
@@ -5533,7 +5637,7 @@ async function verifyInvitedCoach(email) {
     .maybeSingle();
   if (error) throw error;
   if (!coach?.id) throw new Error("Invitasjonen ble sendt, men coachraden ble ikke opprettet.");
-  if (!coach.user_id) throw new Error("Invitasjonen ble sendt, men coachen ble ikke koblet til Supabase Auth.");
+  if (!coach.user_id) throw new Error("Invitasjonen ble sendt, men brukerkontoen ble ikke koblet til. Prøv igjen eller kontakt ansvarlig for portalen.");
   await verifyVisibleProfileRole(coach.user_id, "coach", "Coachen");
 }
 
@@ -5579,13 +5683,13 @@ async function deleteCoach(coach) {
   if (!(await confirmDelete(`Slett coach "${coach.name}"? Klientenes planer beholdes.`))) return;
   const { error } = await state.sb.from("coaches").delete().eq("id", coach.id);
   if (error) {
-    await showAppMessage("Kunne ikke slette coach", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke slette coach", userFacingError(error, "Prøv igjen."));
     return;
   }
   if (coach.user_id) {
     const { error: profileError } = await state.sb.from("profiles").delete().eq("id", coach.user_id);
     if (profileError) {
-      await showAppMessage("Coach ble slettet, men ikke profilen", profileError.message || "Kontroller tilgangene.");
+      await showAppMessage("Coach ble slettet, men ikke profilen", userFacingError(profileError, "Kontakt ansvarlig for portalen for å fullføre slettingen."));
       return;
     }
   }
@@ -5596,13 +5700,13 @@ async function deleteClient(client) {
   if (!(await confirmDelete(`Slett klient "${client.name}"? All plandata slettes permanent i dagens datamodell.`))) return;
   const { error } = await state.sb.from("clients").delete().eq("id", client.id);
   if (error) {
-    await showAppMessage("Kunne ikke slette klient", error.message || "Prøv igjen.");
+    await showAppMessage("Kunne ikke slette klient", userFacingError(error, "Prøv igjen."));
     return;
   }
   if (client.user_id) {
     const { error: profileError } = await state.sb.from("profiles").delete().eq("id", client.user_id);
     if (profileError) {
-      await showAppMessage("Klient ble slettet, men ikke profilen", profileError.message || "Kontroller tilgangene.");
+      await showAppMessage("Klient ble slettet, men ikke profilen", userFacingError(profileError, "Kontakt ansvarlig for portalen for å fullføre slettingen."));
       return;
     }
   }

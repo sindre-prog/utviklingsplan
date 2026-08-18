@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-96";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-97";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -49,7 +49,7 @@ function metaPills(createElement, resource) {
 function contextLabel(sharedResource) {
   const labels = {
     program: "Forløp",
-    focus_area: "Fokusområde",
+    focus_area: "Fokusoppdrag",
     session: "Samtale",
     experiment: "Eksperiment",
     reflection: "Refleksjon"
@@ -246,8 +246,6 @@ export function createClientResourceList(sharedResources = [], options = {}) {
     const resource = sharedResource.resource || {};
     const selected = selectedId === sharedResource.id;
     const contextText = resourceContextText(sharedResource);
-    const coachNote = displayText(sharedResource.coach_note);
-    const whySent = sameVisibleText(coachNote, resource.client_intro) || sameVisibleText(coachNote, resource.summary) ? "" : coachNote;
     return createElement("article", { class: `client-resource-row ${selected ? "is-open" : ""}` }, [
       createElement("button", {
         class: `client-resource-open ${selected ? "active" : ""}`,
@@ -261,10 +259,6 @@ export function createClientResourceList(sharedResources = [], options = {}) {
         createElement("span", { class: "client-resource-main" }, [
           createElement("span", { class: "client-resource-meta" }, metaPills(createElement, resource)),
           createElement("strong", { text: displayText(resource.title, "Ressurs") }),
-          whySent ? createElement("span", { class: "client-resource-why" }, [
-            createElement("span", { text: "Hvorfor sendt" }),
-            createElement("span", { text: whySent })
-          ]) : null,
           createElement("span", { class: "client-resource-footer" }, [
             contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null,
             createSharedResourceStatus(sharedResource.status, { createElement })
@@ -405,7 +399,7 @@ export function createSharedResourceStatus(status, options = {}) {
   const labels = {
     assigned: "Sendt",
     viewed: "Åpnet",
-    responded: "Svart",
+    responded: "Refleksjon delt",
     archived: "Arkivert"
   };
 

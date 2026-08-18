@@ -22,6 +22,13 @@ requireText(app, /function sessionConversationReview[\s\S]*programCompetencies[\
 requireText(app, /function createActionFromSessionNextStep[\s\S]*primaryCompetency[\s\S]*createAction\(data, "", primaryCompetency\?\.id/, "Eksperiment fra samtale forhåndsvelger ikke Hovedfokus.");
 
 requireText(app, /from\("session_actions"\)\.insert\(\{[\s\S]*session_id:[\s\S]*development_area_id:[\s\S]*program_competency_id:/, "Felles eksperimentopprettelse mangler en eller flere tillatte koblinger.");
+requireText(app, /function focusViewTabs[\s\S]*\["competencies", "Kompetanser"[\s\S]*\["assignments", "Fokusoppdrag"[\s\S]*\["experiments", "Eksperimenter"/, "Fokus mangler én samlet navigasjon for kompetanser, fokusoppdrag og eksperimenter.");
+requireText(app, /function experimentReviewSpec[\s\S]*el\("details", \{ class: "experiment-review-details"[\s\S]*"Se tilbake og lær"/, "Eksperimentrefleksjonen vises ikke progressivt etter opprettelse.");
+requireText(app, /function projectTypeLabel[\s\S]*"Tidligere fokusområde"/, "Legacy-fokusområder mangler et tydelig, ikke-konverterende navn.");
+requireText(app, /function directionWorkspace[\s\S]*"Retningen er klar til bruk"/, "Retning viser ikke planstatus uten utviklingsprosent.");
+requireText(app, /function leadershipPlanStatus[\s\S]*item\.why_now[\s\S]*item\.desired_behavior[\s\S]*item\.current_pattern[\s\S]*item\.obstacles[\s\S]*completed === planFields\.length/, "Kompetanseplanen kan bli klar uten alle fire delene i utviklingshypotesen.");
+if (/direction-progress-track[\s\S]*role: "progressbar"/.test(app)) errors.push("Retning fremstilles fortsatt som prosentvis utviklingsprogresjon.");
+if (/function experimentHubLink/.test(app)) errors.push("Eksperimenter ligger fortsatt som en separat verktøylenke fremfor en felles arbeidsflate.");
 requireText(app, /from\("client_reflections"\)\.insert\(\{[\s\S]*development_area_id:[\s\S]*program_competency_id:/, "Refleksjoner kan ikke kobles til både Fokusoppdrag og kompetanse.");
 if (/from\("(?:competency_experiments|focus_experiments|conversation_experiments)"\)/.test(app)) {
   errors.push("Det finnes en parallell eksperimentstruktur i klientkoden.");
@@ -31,6 +38,13 @@ requireText(reflectionIntegrity, /foreign key \(development_area_id, program_id\
 
 requireText(css, /\.conversation-review-grid[\s\S]*grid-template-columns: repeat\(2,[\s\S]*@media \(max-width: 700px\)[\s\S]*\.conversation-review-grid,[\s\S]*grid-template-columns: minmax\(0, 1fr\)/, "Samtalegrunnlaget mangler eksplisitt desktop-/mobiltilpasning.");
 requireText(css, /\.reflection-link-grid[\s\S]*grid-template-columns: repeat\(2,[\s\S]*@media \(max-width: 700px\)[\s\S]*\.reflection-link-grid[\s\S]*grid-template-columns: minmax\(0, 1fr\)/, "Refleksjonskoblinger mangler eksplisitt desktop-/mobiltilpasning.");
+requireText(css, /\.focus-view-tabs[\s\S]*grid-template-columns: repeat\(3,[\s\S]*@media \(max-width: 700px\)[\s\S]*\.focus-view-tabs[\s\S]*repeat\(3,/, "De tre fokusarbeidsflatene er ikke eksplisitt tilpasset desktop og mobil.");
+requireText(css, /\.client-resource-workbench\.has-selection \.client-resource-rail[\s\S]*display: none[\s\S]*\.client-resource-workbench\.has-selection \.client-resource-detail[\s\S]*display: block/, "Ressursene mangler en eksplisitt liste–detalj-flyt på mobil.");
+requireText(css, /\.experiment-review-details[\s\S]*\.experiment-review-fields/, "Progressiv eksperimentrefleksjon mangler visuell kontrakt.");
+
+if (/Ressursmodulen mangler|Supabase er ikke koblet|Sjekker mot Supabase|radnivåpolicy/.test(app)) {
+  errors.push("Brukerflaten inneholder fortsatt teknisk pilot- eller plattformtekst.");
+}
 
 const versionPatterns = [
   /styles\.css\?v=polish-(\d+)/,
