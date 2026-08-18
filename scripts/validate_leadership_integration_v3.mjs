@@ -22,7 +22,7 @@ requireText(app, /function sessionConversationReview[\s\S]*programCompetencies[\
 requireText(app, /function createActionFromSessionNextStep[\s\S]*primaryCompetency[\s\S]*createAction\(data, "", primaryCompetency\?\.id/, "Eksperiment fra samtale forhåndsvelger ikke Hovedfokus.");
 
 requireText(app, /from\("session_actions"\)\.insert\(\{[\s\S]*session_id:[\s\S]*development_area_id:[\s\S]*program_competency_id:/, "Felles eksperimentopprettelse mangler en eller flere tillatte koblinger.");
-requireText(app, /function focusViewTabs[\s\S]*\["competencies", "Kompetanser"[\s\S]*\["assignments", "Fokusoppdrag"[\s\S]*\["experiments", "Eksperimenter"/, "Fokus mangler én samlet navigasjon for kompetanser, fokusoppdrag og eksperimenter.");
+requireText(app, /function focusViewTabs[\s\S]*\["competencies", "(?:Lederkompetanser|Kompetanser)"[\s\S]*\["assignments", "Fokusoppdrag"[\s\S]*\["experiments", "Eksperimenter"/, "Fokus mangler én samlet navigasjon for lederkompetanser, fokusoppdrag og eksperimenter.");
 requireText(app, /function experimentReviewSpec[\s\S]*el\("details", \{ class: "experiment-review-details"[\s\S]*"Se tilbake og lær"/, "Eksperimentrefleksjonen vises ikke progressivt etter opprettelse.");
 requireText(app, /function projectTypeLabel[\s\S]*"Tidligere fokusområde"/, "Legacy-fokusområder mangler et tydelig, ikke-konverterende navn.");
 requireText(app, /function directionWorkspace[\s\S]*"Retningen er klar til bruk"/, "Retning viser ikke planstatus uten utviklingsprosent.");
