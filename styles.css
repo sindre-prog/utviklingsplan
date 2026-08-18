@@ -13157,6 +13157,277 @@ details.coaching-frame > .coaching-frame-body > article p {
   }
 }
 
+/* Resource editorial polish: scoped to the existing two-column resource workspace. */
+.client-resource-detail .client-resource-view {
+  gap: 0;
+}
+
+.client-resource-detail .client-resource-view-head {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--platform-line);
+}
+
+.client-resource-detail .client-resource-view-title {
+  gap: 12px;
+}
+
+.client-resource-detail .client-resource-view-title h3 {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.12;
+}
+
+.client-resource-detail .client-resource-view-lead {
+  max-width: 720px;
+  color: var(--platform-muted);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.client-resource-detail .client-resource-view-title .meta-row {
+  margin-top: 2px;
+}
+
+.client-resource-detail .resource-preview-section {
+  gap: 16px;
+}
+
+.client-resource-detail .resource-preview-section:not(.client-coach-note):not(.client-resource-response) {
+  margin-bottom: 36px;
+}
+
+.client-resource-detail .resource-preview-section > h4 {
+  color: var(--platform-ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.client-resource-detail .client-coach-note {
+  gap: 8px;
+  margin-bottom: 34px;
+  padding: 18px 20px;
+  border: 0;
+  border-left: 2px solid #667f99;
+  border-radius: 0 6px 6px 0;
+  background: linear-gradient(90deg, rgba(226, 234, 241, .76), rgba(248, 247, 243, .68));
+}
+
+.client-resource-detail .client-coach-note > h4 {
+  color: #40566d;
+  font-size: 11px;
+  letter-spacing: .1em;
+}
+
+.client-resource-detail .client-coach-note > p {
+  color: rgba(0, 0, 0, .72);
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.65;
+}
+
+.client-resource-detail .resource-block {
+  gap: 11px;
+  padding: 18px 0;
+  border-bottom: 0;
+}
+
+.client-resource-detail .resource-block + .resource-block {
+  margin-top: 4px;
+}
+
+.client-resource-detail .resource-block--intro {
+  padding-top: 0;
+  padding-bottom: 20px;
+}
+
+.client-resource-detail .resource-block--intro .resource-block__content {
+  font-size: 16px;
+  line-height: 1.72;
+}
+
+.client-resource-detail .resource-block__heading {
+  color: var(--platform-ink);
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.32;
+}
+
+.client-resource-detail .resource-block__content {
+  color: rgba(0, 0, 0, .72);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.client-resource-detail .resource-block--step,
+.client-resource-detail .resource-block--worksheet,
+.client-resource-detail .resource-block--reflection-questions {
+  padding-top: 20px;
+  padding-bottom: 22px;
+}
+
+.client-resource-detail .resource-block__fields {
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.client-resource-detail .resource-block__field {
+  min-height: 0;
+  padding: 10px 12px 10px 14px;
+  border: 0;
+  border-left: 2px solid #dedad2;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(0, 0, 0, .72);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.client-resource-detail .resource-block__questions {
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.client-resource-detail .resource-block__questions li {
+  padding-left: 17px;
+  line-height: 1.6;
+}
+
+.client-resource-detail .resource-preview-section--support {
+  gap: 12px;
+  padding: 2px 0 0;
+  border-bottom: 0;
+}
+
+.client-resource-detail .resource-preview-section--support ul {
+  display: grid;
+  gap: 10px;
+  padding-left: 18px;
+}
+
+.client-resource-detail .resource-files {
+  gap: 0;
+}
+
+.client-resource-detail .resource-files li {
+  min-height: 44px;
+  padding-block: 8px;
+}
+
+.client-resource-detail .resource-next-step {
+  margin-bottom: 36px;
+}
+
+.client-resource-detail .client-resource-response {
+  gap: 16px;
+  margin-top: 4px;
+  padding: 22px 20px;
+  border-color: rgba(0, 0, 0, .09);
+  border-radius: 8px;
+  background: #faf9f6;
+}
+
+.client-resource-detail .client-resource-response > h4 {
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+
+.client-resource-detail .client-resource-note {
+  min-height: 150px;
+  border-color: rgba(0, 0, 0, .14);
+  background: #fff;
+  line-height: 1.6;
+}
+
+.client-resource-detail .visibility-control {
+  margin-top: 0;
+  padding-top: 2px;
+}
+
+.client-resource-detail .visibility-control p {
+  max-width: 680px;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.client-resource-detail .client-resource-response .toolbar {
+  margin: 0;
+  padding-top: 2px;
+}
+
+.client-resource-rail .client-resource-meta {
+  gap: 7px;
+}
+
+.client-resource-rail .client-resource-meta .badge {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--platform-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .03em;
+}
+
+.client-resource-rail .client-resource-footer {
+  gap: 7px;
+}
+
+.client-resource-rail .client-resource-context {
+  color: var(--platform-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.client-resource-rail .client-resource-footer .badge {
+  padding: 3px 7px;
+  border-color: transparent;
+  background: var(--neutral-50);
+  color: var(--platform-muted);
+  font-size: 10px;
+  opacity: .82;
+}
+
+.client-resource-rail .client-resource-action {
+  opacity: .52;
+  transition: opacity .16s ease;
+}
+
+.client-resource-rail .client-resource-open:hover .client-resource-action,
+.client-resource-rail .client-resource-open.active .client-resource-action {
+  opacity: .9;
+}
+
+@media (max-width: 700px) {
+  .client-resource-detail .client-resource-view-head {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+  }
+
+  .client-resource-detail .client-resource-view-title h3 {
+    font-size: 27px;
+  }
+
+  .client-resource-detail .client-coach-note {
+    margin-bottom: 28px;
+    padding: 16px 18px;
+  }
+
+  .client-resource-detail .resource-preview-section:not(.client-coach-note):not(.client-resource-response),
+  .client-resource-detail .resource-next-step {
+    margin-bottom: 30px;
+  }
+
+  .client-resource-detail .client-resource-response {
+    padding: 18px;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
