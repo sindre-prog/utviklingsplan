@@ -12660,10 +12660,14 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .experiment-review-details {
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--platform-line);
   border-radius: 8px;
   background: var(--neutral-50);
+}
+
+.experiment-review-details:not([open]) {
+  min-height: 70px;
 }
 
 .experiment-review-details > summary {
@@ -12890,15 +12894,15 @@ details.coaching-frame > .coaching-frame-body > article p {
   line-height: 1.5;
 }
 
-.drawer-panel.experiment-create-drawer {
+.drawer-panel.experiment-editor-drawer {
   width: min(600px, 100vw);
 }
 
-.experiment-create-drawer #drawer-fields {
+.experiment-editor-drawer #drawer-fields {
   gap: 18px;
 }
 
-.experiment-create-intro {
+.experiment-editor-intro {
   margin: 0;
   padding: 14px 16px;
   border-radius: 8px;
@@ -12908,15 +12912,19 @@ details.coaching-frame > .coaching-frame-body > article p {
   line-height: 1.5;
 }
 
-.experiment-create-drawer textarea[name="action"] {
+.experiment-editor-drawer textarea[name="action"] {
   min-height: 112px;
 }
 
 .experiment-context-details {
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--platform-line);
   border-radius: 8px;
   background: var(--platform-paper);
+}
+
+.experiment-context-details:not([open]) {
+  min-height: 58px;
 }
 
 .experiment-context-details > summary {
@@ -13520,7 +13528,6 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .now-context-icon,
-.now-experiment-icon,
 .now-focus-row-icon {
   display: grid;
   place-items: center;
@@ -13532,8 +13539,7 @@ details.coaching-frame > .coaching-frame-body > article p {
   height: 44px;
 }
 
-.now-context-icon svg,
-.now-experiment-icon svg {
+.now-context-icon svg {
   width: 20px;
   height: 20px;
 }
@@ -13607,8 +13613,7 @@ details.coaching-frame > .coaching-frame-body > article p {
   gap: 3px;
 }
 
-.now-section-heading h4,
-.now-experiment-copy h4 {
+.now-section-heading h4 {
   margin: 0;
   color: var(--platform-ink);
   font-family: var(--font-body);
@@ -13693,67 +13698,6 @@ details.coaching-frame > .coaching-frame-body > article p {
 .now-focus-empty p {
   margin: 0;
   color: var(--platform-muted);
-}
-
-.now-experiment {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 18px;
-  padding: 24px;
-  border-top: 1px solid var(--platform-info-line);
-  background: var(--platform-info-soft);
-}
-
-.now-experiment-icon {
-  width: 44px;
-  height: 44px;
-  background: var(--brand-lavender);
-  color: var(--platform-ink);
-}
-
-.now-experiment-copy {
-  display: grid;
-  min-width: 0;
-  gap: 7px;
-}
-
-.now-experiment-copy h4 {
-  font-size: 22px;
-  letter-spacing: -.01em;
-}
-
-.now-experiment-links {
-  margin: 0;
-  color: var(--platform-muted);
-  font-size: var(--type-support);
-}
-
-.now-experiment-meta {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  padding-top: 10px;
-}
-
-.now-experiment-meta span {
-  display: grid;
-  gap: 3px;
-  color: var(--platform-body);
-  font-size: var(--type-support);
-  line-height: 1.45;
-}
-
-.now-experiment-meta strong {
-  color: var(--platform-muted);
-  font-size: var(--type-meta);
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-
-.now-experiment-action {
-  align-self: center;
-  white-space: nowrap;
 }
 
 .now-support {
@@ -13871,15 +13815,13 @@ details.coaching-frame > .coaching-frame-body > article p {
     grid-column: span 2;
   }
 
-  .now-context-head,
-  .now-experiment {
+  .now-context-head {
     grid-template-columns: 40px minmax(0, 1fr);
     gap: 14px;
     padding: 18px 16px;
   }
 
-  .now-context-icon,
-  .now-experiment-icon {
+  .now-context-icon {
     width: 40px;
     height: 40px;
   }
@@ -13888,8 +13830,7 @@ details.coaching-frame > .coaching-frame-body > article p {
     font-size: 21px;
   }
 
-  .now-context-action,
-  .now-experiment-action {
+  .now-context-action {
     grid-column: 1 / -1;
     width: 100%;
   }
@@ -13915,15 +13856,6 @@ details.coaching-frame > .coaching-frame-body > article p {
   .now-focus-empty {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .now-experiment-copy h4 {
-    font-size: 20px;
-  }
-
-  .now-experiment-meta {
-    grid-template-columns: 1fr;
-    gap: 10px;
   }
 
   .now-support-row {

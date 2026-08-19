@@ -3,10 +3,10 @@ const SUPABASE_ANON_KEY = "sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq";
 const CONSENT_VERSION = "coaching-portal-v1";
 
 const EXPERIMENT_STATUS = {
-  planned: "Planlagt",
-  active: "Prøves ut",
-  reviewed: "Avlest",
-  continued: "Avlest",
+  planned: "Pågår",
+  active: "Pågår",
+  reviewed: "Avsluttet",
+  continued: "Avsluttet",
   closed: "Avsluttet"
 };
 
@@ -3561,13 +3561,6 @@ function localIsoDate(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-function isoDateAfter(days) {
-  const date = new Date();
-  date.setHours(12, 0, 0, 0);
-  date.setDate(date.getDate() + days);
-  return localIsoDate(date);
-}
-
 function newestFirst(a, b, field = "created_at") {
   const bTime = new Date(b?.[field] || 0).getTime();
   const aTime = new Date(a?.[field] || 0).getTime();
@@ -3588,33 +3581,6 @@ function nowFocusAssignments(plan) {
     .sort((a, b) => Number(b.area.projectType === "outer") - Number(a.area.projectType === "outer") || a.index - b.index);
 }
 
-function selectNowExperiment(data, primary, focusItems) {
-  const active = (data.actions || []).filter((action) => isExperimentActive(action.status));
-  const focusIds = new Set(focusItems.map((item) => item.area.id).filter(Boolean));
-  const compare = (a, b) => {
-    const relevance = (action) => {
-      const competencyLink = primary && action.program_competency_id === primary.id ? 4 : 0;
-      const focusLink = focusIds.has(action.development_area_id) ? 2 : 0;
-      return competencyLink + focusLink + (competencyLink && focusLink ? 1 : 0);
-    };
-    const relevanceDelta = relevance(b) - relevance(a);
-    if (relevanceDelta) return relevanceDelta;
-    const aHasDate = Boolean(a.due_date);
-    const bHasDate = Boolean(b.due_date);
-    if (aHasDate !== bHasDate) return aHasDate ? -1 : 1;
-    if (aHasDate && a.due_date !== b.due_date) return String(a.due_date).localeCompare(String(b.due_date));
-    return newestFirst(a, b);
-  };
-  return active.slice().sort(compare)[0] || null;
-}
-
-function nextDatedSession(plan, today) {
-  return plan.sessions
-    .map((session, index) => ({ session, index }))
-    .filter(({ session }) => session.date && session.date >= today)
-    .sort((a, b) => String(a.session.date).localeCompare(String(b.session.date)))[0] || null;
-}
-
 function latestRelevantResource(data) {
   const resources = (data.sharedResources || []).slice().sort((a, b) => newestFirst(a, b, "shared_at"));
   return resources.find((item) => item.status === "assigned") || resources[0] || null;
@@ -3629,12 +3595,6 @@ async function openNowResource(resource, data) {
     await openSharedResource(resource, true);
     renderCachedProgram("resources");
   }
-}
-
-function openNowSession(sessionRef, fieldKey = "") {
-  state.selectedSessionIndex = sessionRef.index;
-  if (fieldKey) openSessionField(sessionRef.index, fieldKey);
-  else renderCachedProgram("sessions");
 }
 
 function openNowCompetency(item) {
@@ -3655,18 +3615,8 @@ function openNowReflection() {
   requestAnimationFrame(() => $("#reflection-body")?.focus());
 }
 
-function nowExperimentPresentation(action, data, today) {
-  const parsed = parseActionDescription(action.description || "");
-  const competency = (data.programCompetencies || []).find((item) => item.id === action.program_competency_id);
-  const area = (data.areas || []).find((item) => item.id === action.development_area_id);
-  const isDue = Boolean(action.due_date && action.due_date <= today);
-  const title = parsed.action || action.title || "Eksperiment";
-  return { action, parsed, competency, area, isDue, title };
-}
-
 function nowWorkspace(client, data, plan) {
   const editable = canEditProgram(client);
-  const today = localIsoDate();
   const activeCompetencies = (data.programCompetencies || [])
     .filter((item) => item.status === "active")
     .slice()
@@ -3674,10 +3624,6 @@ function nowWorkspace(client, data, plan) {
   const primary = primaryLeadershipCompetency(data);
   const supporting = activeCompetencies.filter((item) => item.id !== primary?.id);
   const focusItems = nowFocusAssignments(plan);
-  const selectedExperiment = selectNowExperiment(data, primary, focusItems);
-  const experiment = selectedExperiment ? nowExperimentPresentation(selectedExperiment, data, today) : null;
-  const upcomingSession = nextDatedSession(plan, today);
-  const sessionIsNear = upcomingSession && upcomingSession.session.date <= isoDateAfter(7);
   const resource = latestRelevantResource(data);
   const support = [
     resource ? {
@@ -3687,20 +3633,12 @@ function nowWorkspace(client, data, plan) {
       description: resource.coach_note || resource.resource?.summary || "Valgt ut for deg",
       iconName: "book-open",
       onAction: () => openNowResource(resource, data)
-    } : null,
-    sessionIsNear ? {
-      kind: "session",
-      kicker: "Neste samtale",
-      title: upcomingSession.session.focus || "Coachingsamtale",
-      description: formatDate(upcomingSession.session.date),
-      iconName: "calendar",
-      onAction: () => openNowSession(upcomingSession)
     } : null
   ].filter(Boolean);
 
   return el("div", { class: "platform-page now-workspace" }, [
-    pageIntro("Akkurat nå", "Dette arbeider du med", "Se sammenhengen mellom det du utvikler, hvor det skal merkes og hva du prøver i praksis."),
-    nowContextSurface({ primary, supporting, focusItems, experiment, data, editable }),
+    pageIntro("Akkurat nå", "Dette arbeider du med", "Se hva du utvikler, hvor det skal merkes og hva coachen nylig har delt."),
+    nowContextSurface({ primary, supporting, focusItems, data, editable }),
     nowSupportList(support),
     editable ? el("section", { class: "now-reflection-action" }, [
       el("div", {}, [
@@ -3712,8 +3650,7 @@ function nowWorkspace(client, data, plan) {
   ].filter(Boolean));
 }
 
-function nowContextSurface({ primary, supporting, focusItems, experiment, data, editable }) {
-  const firstFocus = focusItems[0] || null;
+function nowContextSurface({ primary, supporting, focusItems, data, editable }) {
   return el("section", { class: "now-context-surface", "aria-labelledby": "now-context-title" }, [
     el("header", { class: "now-context-head" }, [
       el("span", { class: "competency-next-icon now-context-icon", "aria-hidden": "true" }, [icon("compass")]),
@@ -3750,47 +3687,7 @@ function nowContextSurface({ primary, supporting, focusItems, experiment, data, 
         el("p", { text: "Ingen fokusoppdrag er lagt til ennå." }),
         editable ? el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Legg til fokusoppdrag", onclick: () => addFocusArea() }) : null
       ].filter(Boolean))
-    ]),
-    nowExperimentBlock(experiment, { data, primary, firstFocus, editable })
-  ].filter(Boolean));
-}
-
-function nowExperimentBlock(experiment, { data, primary, firstFocus, editable }) {
-  if (!experiment) {
-    return el("section", { class: "now-experiment" }, [
-      el("span", { class: "now-experiment-icon", "aria-hidden": "true" }, [icon("flask-conical")]),
-      el("div", { class: "now-experiment-copy" }, [
-        el("span", { class: "workspace-kicker", text: "Eksperiment" }),
-        el("h4", { text: "Hva vil du prøve i praksis?" }),
-        el("p", { text: "Velg én konkret atferd og en situasjon der du kan prøve den." })
-      ]),
-      editable ? el("button", {
-        class: "ui-button ui-button-filled now-experiment-action",
-        type: "button",
-        text: "Legg til eksperiment",
-        onclick: () => createAction(data, firstFocus?.area.id || "", primary?.id || "", "", { returnPane: "now" })
-      }) : null
-    ].filter(Boolean));
-  }
-  const links = [experiment.competency?.title, experiment.area?.title].filter(Boolean);
-  return el("section", { class: `now-experiment ${experiment.isDue ? "is-due" : ""}` }, [
-    el("span", { class: "now-experiment-icon", "aria-hidden": "true" }, [icon("flask-conical")]),
-    el("div", { class: "now-experiment-copy" }, [
-      el("span", { class: "workspace-kicker", text: experiment.isDue ? "Eksperiment klart for avlesning" : "Aktivt eksperiment" }),
-      el("h4", { text: experiment.title }),
-      links.length ? el("p", { class: "now-experiment-links", text: `Knyttet til: ${links.join(" · ")}` }) : el("p", { class: "now-experiment-links", text: "Ikke knyttet til et fokusoppdrag eller en lederkompetanse." }),
-      el("div", { class: "now-experiment-meta" }, [
-        experiment.parsed.arena ? el("span", {}, [el("strong", { text: "Hvor" }), document.createTextNode(experiment.parsed.arena)]) : null,
-        experiment.parsed.signals ? el("span", {}, [el("strong", { text: "Se etter" }), document.createTextNode(experiment.parsed.signals)]) : null,
-        el("span", {}, [el("strong", { text: "Se tilbake" }), document.createTextNode(experiment.action.due_date ? formatDate(experiment.action.due_date) : "Ikke avtalt")])
-      ].filter(Boolean))
-    ]),
-    editable ? el("button", {
-      class: "ui-button ui-button-filled now-experiment-action",
-      type: "button",
-      text: experiment.isDue ? "Se tilbake på eksperimentet" : "Åpne eksperimentet",
-      onclick: () => editAction(experiment.action, data)
-    }) : null
+    ])
   ].filter(Boolean));
 }
 
@@ -4959,16 +4856,14 @@ function reflectionInlineCard(reflection, data) {
 }
 
 function createAction(data, presetAreaId = "", presetCompetencyId = "", presetAction = "", options = {}) {
-  openEntityDrawer(options.title || "Nytt eksperiment", options.kicker || "Prøv i arbeidet", [
-    customSpec("experimentIntro", el("p", { class: "experiment-create-intro", text: "Gjør forsøket lite nok til å prøve i en faktisk situasjon." })),
-    textareaSpec("action", "Hva skal du prøve?", presetAction, { placeholder: "Én konkret atferd eller handling..." }),
-    inputSpec("arena", "Hvor skal du prøve det?", "text", "", { placeholder: "Et møte, en samtale eller en annen konkret situasjon" }),
-    textareaSpec("signals", "Hva skal du se etter?", "", { placeholder: "Et observerbart tegn på effekt eller respons..." }),
-    inputSpec("dueDate", "Når vil du se tilbake?", "date"),
-    experimentContextSpec(data, presetAreaId, presetCompetencyId)
-  ], async (values) => {
+  const specs = experimentEditorSpecs(data, {
+    action: presetAction,
+    areaId: presetAreaId,
+    competencyId: presetCompetencyId
+  });
+  openEntityDrawer(options.title || "Nytt eksperiment", options.kicker || "Prøv i arbeidet", specs, async (values) => {
     if (!(values.action || "").trim()) throw new Error("Beskriv hva du skal prøve.");
-    const title = (values.action || "Eksperiment").trim().slice(0, 80);
+    const title = (values.title || values.action || "Eksperiment").trim().slice(0, 80);
     const { error } = await state.sb.from("session_actions").insert({
       program_id: data.program.id,
       session_id: options.sessionId || null,
@@ -4982,7 +4877,7 @@ function createAction(data, presetAreaId = "", presetCompetencyId = "", presetAc
     if (error) throw error;
     if (presetCompetencyId) state.selectedCompetencyId = presetCompetencyId;
     await reloadProgramAndRender(options.returnPane || "work");
-  }, { panelClass: "experiment-create-drawer", saveLabel: "Opprett eksperiment" });
+  }, { panelClass: "experiment-editor-drawer", saveLabel: "Opprett eksperiment" });
 }
 
 function experimentContextSpec(data, presetAreaId = "", presetCompetencyId = "") {
@@ -4990,7 +4885,7 @@ function experimentContextSpec(data, presetAreaId = "", presetCompetencyId = "")
     el("option", { value: "", text: "Ikke knyttet til fokusoppdrag", selected: !presetAreaId }),
     ...data.areas.map((item) => el("option", { value: item.id, text: item.title || "Fokusoppdrag", selected: item.id === presetAreaId }))
   ]);
-  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active");
+  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active" || item.id === presetCompetencyId);
   const competency = el("select", { name: "competencyId" }, [
     el("option", { value: "", text: "Ikke knyttet til lederkompetanse", selected: !presetCompetencyId }),
     ...activeCompetencies.map((item) => el("option", {
@@ -5017,6 +4912,20 @@ function experimentContextSpec(data, presetAreaId = "", presetCompetencyId = "")
   ]));
 }
 
+function experimentEditorSpecs(data, values = {}, action = null) {
+  const parsed = values.parsed || {};
+  return [
+    customSpec("experimentIntro", el("p", { class: "experiment-editor-intro", text: "Gjør forsøket lite nok til å prøve i en faktisk situasjon." })),
+    textareaSpec("action", "Hva vil du prøve?", values.action || parsed.action || "", { placeholder: "Én konkret atferd eller handling..." }),
+    inputSpec("title", "Kort navn i oversikten (valgfritt)", "text", values.title || "", { placeholder: "Hvis feltet er tomt, brukes handlingen" }),
+    inputSpec("arena", "Hvor skal du prøve det?", "text", values.arena || parsed.arena || "", { placeholder: "Et møte, en samtale eller en annen konkret situasjon" }),
+    textareaSpec("signals", "Hva skal du se etter?", values.signals || parsed.signals || "", { placeholder: "Et observerbart tegn på effekt eller respons..." }),
+    inputSpec("dueDate", "Når vil du se tilbake?", "date", values.dueDate || ""),
+    experimentContextSpec(data, values.areaId || "", values.competencyId || ""),
+    action ? experimentReviewSpec(action, parsed) : null
+  ].filter(Boolean);
+}
+
 function createActionFromSessionNextStep(sessionIndex, nextStepText) {
   const client = getCurrentClient();
   const data = client ? state.programCache[client.id] : null;
@@ -5035,24 +4944,17 @@ function createActionFromSessionNextStep(sessionIndex, nextStepText) {
 
 function experimentReviewSpec(action, parsed) {
   const normalized = normalizeExperimentStatus(action.status);
-  const reviewStatus = isExperimentReviewed(normalized) && normalized !== "closed" ? "reviewed" : normalized;
   const hasReview = Boolean(parsed.observation || parsed.effect || parsed.learning || parsed.nextStep || isExperimentReviewed(normalized));
   const fields = [
     textareaSpec("observation", "Hva observerte du?", parsed.observation, { placeholder: "Hva skjedde, og hvordan responderte andre?" }),
-    selectSpec("effect", "Hvilken effekt så du?", [["", "Ikke avlest"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || "", false),
+    selectSpec("effect", "Hvilken effekt la du merke til?", [["", "Ikke vurdert"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || "", false),
     textareaSpec("learning", "Hva lærte du?", parsed.learning, { placeholder: "Hva forstår du bedre nå?" }),
-    textareaSpec("nextStep", "Hva justerer du neste gang?", parsed.nextStep, { placeholder: "Behold, endre eller prøv noe nytt..." }),
-    selectSpec("status", "Hvor er forsøket nå?", [
-      ["planned", "Planlagt"],
-      ["active", "Prøves ut"],
-      ["reviewed", "Avlest"],
-      ...(normalized === "closed" ? [["closed", "Avsluttet"]] : [])
-    ], reviewStatus, false)
+    textareaSpec("nextStep", "Hva vil du justere neste gang?", parsed.nextStep, { placeholder: "Behold, endre eller prøv noe nytt..." })
   ];
-  return customSpec(["observation", "effect", "learning", "nextStep", "status"], el("details", { class: "experiment-review-details", open: hasReview }, [
+  return customSpec(["observation", "effect", "learning", "nextStep"], el("details", { class: "experiment-review-details", open: hasReview }, [
     el("summary", {}, [
       el("span", {}, [
-        el("strong", { text: "Se tilbake og lær" }),
+        el("strong", { text: "Se tilbake og juster" }),
         el("small", { text: hasReview ? "Observasjon, læring og neste justering" : "Åpne når du har prøvd" })
       ]),
       icon("chevron-down")
@@ -5063,33 +4965,46 @@ function experimentReviewSpec(action, parsed) {
 
 function editAction(action, data) {
   const parsed = parseActionDescription(action.description || "");
-  openEntityDrawer("Rediger eksperiment", "Arbeid", [
-    inputSpec("title", "Navn på eksperiment", "text", action.title || ""),
-    selectSpec("areaId", "Knytt til fokusoppdrag", [["", "Fritt eksperiment"], ...data.areas.map((area) => [area.id, area.title || "Fokusoppdrag"])], action.development_area_id || "", false),
-    selectSpec("competencyId", "Knytt også til lederkompetanse", [["", "Ikke knyttet til en lederkompetanse"], ...(data.programCompetencies || [])
-      .filter((item) => item.status === "active" || item.id === action.program_competency_id)
-      .map((item) => [item.id, `${item.title || "Lederkompetanse"}${item.status === "active" ? "" : " (ikke aktiv)"}`])], action.program_competency_id || "", false),
-    textareaSpec("action", "Hva skal du prøve?", parsed.action, { placeholder: "Én konkret atferd eller handling..." }),
-    inputSpec("arena", "Hvor skal du prøve det?", "text", parsed.arena || "", { placeholder: "Et møte, en samtale eller en annen konkret situasjon" }),
-    textareaSpec("signals", "Hva skal du se etter?", parsed.signals, { placeholder: "Et observerbart tegn på effekt eller respons..." }),
-    inputSpec("dueDate", "Når vil du se tilbake?", "date", action.due_date || ""),
-    experimentReviewSpec(action, parsed)
-  ], async (values) => {
+  const specs = experimentEditorSpecs(data, {
+    title: action.title || "",
+    dueDate: action.due_date || "",
+    areaId: action.development_area_id || "",
+    competencyId: action.program_competency_id || "",
+    parsed
+  }, action);
+  const persist = async (values, status = normalizeExperimentStatus(action.status)) => {
     if (!(values.action || "").trim()) throw new Error("Beskriv hva du skal prøve.");
-    let nextStatus = values.status || normalizeExperimentStatus(action.status);
-    if (["planned", "active"].includes(nextStatus) && (values.effect || values.learning || values.nextStep)) nextStatus = "reviewed";
-    else if (nextStatus === "planned" && values.observation) nextStatus = "active";
     const { error } = await state.sb.from("session_actions").update({
       development_area_id: values.areaId || null,
       program_competency_id: values.competencyId || null,
-      title: values.title || (values.action || "Eksperiment").trim().slice(0, 80),
+      title: (values.title || values.action || "Eksperiment").trim().slice(0, 80),
       description: actionDescription({ ...values, hypothesis: parsed.hypothesis, _raw: parsed._raw }),
       due_date: values.dueDate || null,
-      status: nextStatus
+      status
     }).eq("id", action.id);
     if (error) throw error;
     await reloadProgramAndRender("work");
-  }, isExperimentClosed(action.status) ? {} : { dangerLabel: "Avslutt eksperiment", dangerIcon: "circle-stop", onDanger: () => closeAction(action.id) });
+  };
+  const isHistory = isExperimentReviewed(action.status);
+  openEntityDrawer("Rediger eksperiment", "Prøv i arbeidet", specs, async (values) => {
+    await persist(values);
+  }, {
+    panelClass: "experiment-editor-drawer",
+    saveLabel: isHistory ? "Lagre endringer" : "Lagre og fortsett",
+    ...(!isHistory ? {
+      dangerLabel: "Avslutt eksperiment",
+      dangerIcon: "circle-stop",
+      onDanger: async (values) => {
+        if (!(await confirmDelete("Eksperimentet blir liggende i historikken sammen med observasjonene og læringen din.", {
+          kicker: "Eksperiment",
+          title: "Avslutt eksperiment?",
+          confirmLabel: "Avslutt"
+        }))) return false;
+        await persist(values, "closed");
+        return true;
+      }
+    } : {})
+  });
 }
 
 function actionDescription(values) {
@@ -5123,7 +5038,7 @@ function actionMeta(action, data) {
     parsed.learning && ["Læring", parsed.learning],
     parsed.nextStep && ["Neste justering", parsed.nextStep]
   ].filter(Boolean);
-  if (!rows.length) return contentPreview("", action.due_date ? `Se tilbake ${formatDate(action.due_date)}` : "Legg til hypotese, handling og hva du vil avlese.", 3);
+  if (!rows.length) return contentPreview("", action.due_date ? `Se tilbake ${formatDate(action.due_date)}` : "Beskriv hva du vil prøve og se etter.", 3);
   return el("div", { class: "action-meta" }, rows.map(([label, value]) => el("div", {}, [
     el("span", { text: label }),
     contentPreview(value, "", 3)
@@ -5134,13 +5049,11 @@ function effectLabel(value) {
   return { low: "Lite effekt", some: "Noe effekt", clear: "Tydelig effekt" }[value] || "";
 }
 
-function phaseLabel(status, parsed) {
+function phaseLabel(status) {
   const normalized = normalizeExperimentStatus(status);
   if (normalized === "closed") return "Avsluttet";
-  if (normalized === "continued") return "Avlest";
-  if (normalized === "reviewed" || parsed.effect || parsed.learning || parsed.nextStep) return "Avlest";
-  if (normalized === "active") return "Prøves ut";
-  return "Planlagt";
+  if (normalized === "continued" || normalized === "reviewed") return "Avsluttet";
+  return "Pågår";
 }
 
 function experimentStateClass(action, parsed) {
@@ -5154,21 +5067,6 @@ function experimentStateClass(action, parsed) {
   if (parsed.effect || parsed.learning || parsed.nextStep) return "is-reviewed";
   if (parsed.observation || parsed.action || parsed.signals) return "is-testing";
   return "is-planned";
-}
-
-async function closeAction(id) {
-  if (!(await confirmDelete("Avslutte dette eksperimentet? Det blir liggende i historikken.", {
-    kicker: "Eksperiment",
-    title: "Avslutt eksperiment?",
-    confirmLabel: "Avslutt"
-  }))) return false;
-  const { error } = await state.sb.from("session_actions").update({ status: "closed" }).eq("id", id);
-  if (error) {
-    await showAppMessage("Kunne ikke avslutte eksperimentet", userFacingError(error, "Prøv igjen."));
-    return false;
-  }
-  await reloadProgramAndRender("work");
-  return true;
 }
 
 async function deleteAction(id) {
@@ -5273,18 +5171,21 @@ function experimentRow(action, data, editable) {
   const parsed = parseActionDescription(action.description || "");
   const area = data.areas.find((item) => item.id === action.development_area_id);
   const competency = (data.programCompetencies || []).find((item) => item.id === action.program_competency_id);
+  const dueDateLabel = action.due_date
+    ? `${isExperimentActive(action.status) && action.due_date < localIsoDate() ? "Du ville se tilbake" : "Se tilbake"} ${formatDate(action.due_date)}`
+    : "";
   const meta = [
     competency?.title && `Lederkompetanse: ${competency.title}`,
     area?.title && `Fokusoppdrag: ${area.title}`,
     parsed.arena,
-    action.due_date && `Se tilbake ${formatDate(action.due_date)}`
+    dueDateLabel
   ].filter(Boolean).join(" · ");
   const learning = (parsed.learning || "").trim();
   const emphasizedLearning = isExperimentReviewed(action.status) && learning;
   const preview = parsed.observation || parsed.action || parsed.hypothesis || "Hva skal prøves i praksis?";
   const effect = effectLabel(parsed.effect);
   const stage = el("span", { class: "experiment-stage-row" }, [
-    el("small", { class: "phase-chip", text: phaseLabel(action.status, parsed) }),
+    el("small", { class: "phase-chip", text: phaseLabel(action.status) }),
     effect ? el("small", { class: "effect-chip", text: effect }) : null
   ].filter(Boolean));
   const summary = emphasizedLearning
@@ -5839,7 +5740,8 @@ async function handleDrawerDanger() {
   if (!state.drawer?.onDanger) return;
   try {
     $("#drawer-message").textContent = "";
-    const deleted = await state.drawer.onDanger();
+    const values = collectSpecValues(state.drawer.specs, $("#drawer-form"));
+    const deleted = await state.drawer.onDanger(values);
     if (deleted !== false) $("#entity-drawer").close();
   } catch (error) {
     $("#drawer-message").textContent = userFacingError(error, "Kunne ikke fullføre handlingen. Prøv igjen.");
