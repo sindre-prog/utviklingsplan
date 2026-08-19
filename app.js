@@ -2165,9 +2165,9 @@ async function renderPlan(activePane = null) {
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     hiddenPlanState(plan),
     clientWorkspaceTabs(data, resolvedPane),
-    isClientWorkspace ? el("section", { class: `workspace-pane ${resolvedPane === "now" ? "active" : ""}`, id: "workspace-pane-now", role: "tabpanel", "aria-labelledby": "workspace-tab-now", "aria-hidden": resolvedPane === "now" ? "false" : "true", "data-pane": "now" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "now" ? "active" : ""}`, id: "workspace-pane-now", role: "tabpanel", "aria-labelledby": "workspace-tab-now", "aria-hidden": resolvedPane === "now" ? "false" : "true", "data-pane": "now" }, [
       nowWorkspace(client, data, plan)
-    ]) : null,
+    ]),
     el("section", { class: `workspace-pane ${resolvedPane === "direction" ? "active" : ""}`, id: "workspace-pane-direction", role: "tabpanel", "aria-labelledby": "workspace-tab-direction", "aria-hidden": resolvedPane === "direction" ? "false" : "true", "data-pane": "direction" }, [
       directionWorkspace(client, plan, data)
     ]),
@@ -2204,13 +2204,12 @@ function renderCachedProgram(activePane = "direction") {
     return;
   }
   const plan = programToFormState(data);
-  const isClientWorkspace = state.profile.role === "client";
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     hiddenPlanState(plan),
     clientWorkspaceTabs(data, activePane),
-    isClientWorkspace ? el("section", { class: `workspace-pane ${activePane === "now" ? "active" : ""}`, id: "workspace-pane-now", role: "tabpanel", "aria-labelledby": "workspace-tab-now", "aria-hidden": activePane === "now" ? "false" : "true", "data-pane": "now" }, [
+    el("section", { class: `workspace-pane ${activePane === "now" ? "active" : ""}`, id: "workspace-pane-now", role: "tabpanel", "aria-labelledby": "workspace-tab-now", "aria-hidden": activePane === "now" ? "false" : "true", "data-pane": "now" }, [
       nowWorkspace(client, data, plan)
-    ]) : null,
+    ]),
     el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, id: "workspace-pane-direction", role: "tabpanel", "aria-labelledby": "workspace-tab-direction", "aria-hidden": activePane === "direction" ? "false" : "true", "data-pane": "direction" }, [
       directionWorkspace(client, plan, data)
     ]),
@@ -2389,7 +2388,7 @@ function programToFormState(data) {
 }
 
 function clientWorkspaceTabs(data = {}, activePane = "direction") {
-  const hasNowTab = state.profile.role === "client";
+  const hasNowTab = true;
   const items = [
     hasNowTab && ["now", "Akkurat nå"],
     ["direction", "Retning"],
