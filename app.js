@@ -1877,7 +1877,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-105")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-110")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -4862,8 +4862,9 @@ function createAction(data, presetAreaId = "", presetCompetencyId = "", presetAc
     competencyId: presetCompetencyId
   });
   openEntityDrawer(options.title || "Nytt eksperiment", options.kicker || "Prøv i arbeidet", specs, async (values) => {
+    if (!(values.title || "").trim()) throw new Error("Gi eksperimentet et navn.");
     if (!(values.action || "").trim()) throw new Error("Beskriv hva du skal prøve.");
-    const title = (values.title || values.action || "Eksperiment").trim().slice(0, 80);
+    const title = values.title.trim().slice(0, 80);
     const { error } = await state.sb.from("session_actions").insert({
       program_id: data.program.id,
       session_id: options.sessionId || null,
@@ -4914,13 +4915,32 @@ function experimentContextSpec(data, presetAreaId = "", presetCompetencyId = "")
 
 function experimentEditorSpecs(data, values = {}, action = null) {
   const parsed = values.parsed || {};
+  const coreFields = el("div", { class: "experiment-core-fields" }, [
+    renderSpec(inputSpec("title", "Navn på eksperimentet", "text", values.title || "", {
+      placeholder: "Et kort navn du kjenner igjen",
+      required: true,
+      maxlength: 80,
+      autocomplete: "off"
+    })),
+    el("div", { class: "experiment-practice-field" }, [
+      renderSpec(textareaSpec("action", "Hva vil du prøve?", values.action || parsed.action || "", {
+        placeholder: "Én konkret atferd eller handling...",
+        required: true
+      })),
+      el("p", { class: "experiment-field-help", text: "Gjør forsøket lite nok til å prøve i en faktisk situasjon." })
+    ]),
+    el("div", { class: "field-pair experiment-field-pair" }, [
+      renderSpec(inputSpec("arena", "Hvor skal du prøve det?", "text", values.arena || parsed.arena || "", {
+        placeholder: "Et møte eller en samtale"
+      })),
+      renderSpec(inputSpec("dueDate", "Når vil du se tilbake?", "date", values.dueDate || ""))
+    ]),
+    renderSpec(textareaSpec("signals", "Hva skal du se etter?", values.signals || parsed.signals || "", {
+      placeholder: "Et observerbart tegn på effekt eller respons..."
+    }))
+  ]);
   return [
-    customSpec("experimentIntro", el("p", { class: "experiment-editor-intro", text: "Gjør forsøket lite nok til å prøve i en faktisk situasjon." })),
-    textareaSpec("action", "Hva vil du prøve?", values.action || parsed.action || "", { placeholder: "Én konkret atferd eller handling..." }),
-    inputSpec("title", "Kort navn i oversikten (valgfritt)", "text", values.title || "", { placeholder: "Hvis feltet er tomt, brukes handlingen" }),
-    inputSpec("arena", "Hvor skal du prøve det?", "text", values.arena || parsed.arena || "", { placeholder: "Et møte, en samtale eller en annen konkret situasjon" }),
-    textareaSpec("signals", "Hva skal du se etter?", values.signals || parsed.signals || "", { placeholder: "Et observerbart tegn på effekt eller respons..." }),
-    inputSpec("dueDate", "Når vil du se tilbake?", "date", values.dueDate || ""),
+    customSpec(["title", "action", "arena", "dueDate", "signals"], coreFields),
     experimentContextSpec(data, values.areaId || "", values.competencyId || ""),
     action ? experimentReviewSpec(action, parsed) : null
   ].filter(Boolean);
@@ -4945,6 +4965,7 @@ function createActionFromSessionNextStep(sessionIndex, nextStepText) {
 function experimentReviewSpec(action, parsed) {
   const normalized = normalizeExperimentStatus(action.status);
   const hasReview = Boolean(parsed.observation || parsed.effect || parsed.learning || parsed.nextStep || isExperimentReviewed(normalized));
+  const isHistory = isExperimentReviewed(normalized);
   const fields = [
     textareaSpec("observation", "Hva observerte du?", parsed.observation, { placeholder: "Hva skjedde, og hvordan responderte andre?" }),
     selectSpec("effect", "Hvilken effekt la du merke til?", [["", "Ikke vurdert"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || "", false),
@@ -4959,7 +4980,15 @@ function experimentReviewSpec(action, parsed) {
       ]),
       icon("chevron-down")
     ]),
-    el("div", { class: "experiment-review-fields" }, fields.map(renderSpec))
+    el("div", { class: "experiment-review-fields" }, [
+      ...fields.map(renderSpec),
+      !isHistory ? el("div", { class: "experiment-review-actions" }, [
+        el("button", { class: "button ghost experiment-finish-button", type: "button", onclick: handleDrawerDanger }, [
+          icon("circle-stop"),
+          el("span", { text: "Avslutt eksperiment" })
+        ])
+      ]) : null
+    ].filter(Boolean))
   ]));
 }
 
@@ -4973,11 +5002,12 @@ function editAction(action, data) {
     parsed
   }, action);
   const persist = async (values, status = normalizeExperimentStatus(action.status)) => {
+    if (!(values.title || "").trim()) throw new Error("Gi eksperimentet et navn.");
     if (!(values.action || "").trim()) throw new Error("Beskriv hva du skal prøve.");
     const { error } = await state.sb.from("session_actions").update({
       development_area_id: values.areaId || null,
       program_competency_id: values.competencyId || null,
-      title: (values.title || values.action || "Eksperiment").trim().slice(0, 80),
+      title: values.title.trim().slice(0, 80),
       description: actionDescription({ ...values, hypothesis: parsed.hypothesis, _raw: parsed._raw }),
       due_date: values.dueDate || null,
       status
@@ -4986,7 +5016,7 @@ function editAction(action, data) {
     await reloadProgramAndRender("work");
   };
   const isHistory = isExperimentReviewed(action.status);
-  openEntityDrawer("Rediger eksperiment", "Prøv i arbeidet", specs, async (values) => {
+  openEntityDrawer("Rediger eksperiment", "Eksperiment", specs, async (values) => {
     await persist(values);
   }, {
     panelClass: "experiment-editor-drawer",
@@ -4994,6 +5024,7 @@ function editAction(action, data) {
     ...(!isHistory ? {
       dangerLabel: "Avslutt eksperiment",
       dangerIcon: "circle-stop",
+      dangerPlacement: "inline",
       onDanger: async (values) => {
         if (!(await confirmDelete("Eksperimentet blir liggende i historikken sammen med observasjonene og læringen din.", {
           kicker: "Eksperiment",
@@ -5576,7 +5607,7 @@ function openEntityDrawer(title, kicker, specs, onSave, options = {}) {
   if (saveLabel) saveLabel.textContent = options.saveLabel || "Lagre";
   const dangerSlot = $("#drawer-danger-slot");
   if (dangerSlot) {
-    if (options.onDanger) {
+    if (options.onDanger && options.dangerPlacement !== "inline") {
       dangerSlot.replaceChildren(el("button", { class: "button modal-danger-button", type: "button", onclick: handleDrawerDanger }, [
         icon(options.dangerIcon || "trash-2"),
         el("span", { text: options.dangerLabel || "Slett" })

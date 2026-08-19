@@ -12899,21 +12899,51 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .experiment-editor-drawer #drawer-fields {
-  gap: 18px;
+  gap: 22px;
 }
 
-.experiment-editor-intro {
-  margin: 0;
-  padding: 14px 16px;
-  border-radius: 8px;
-  background: var(--neutral-50);
-  color: var(--platform-muted);
-  font-size: var(--type-support);
-  line-height: 1.5;
+.experiment-core-fields {
+  display: grid;
+  gap: 20px;
+}
+
+.experiment-core-fields > label:first-child {
+  color: var(--platform-ink);
+}
+
+.experiment-core-fields > label:first-child input {
+  min-height: 54px;
+  padding-inline: 15px;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.experiment-practice-field {
+  display: grid;
+  gap: 6px;
+  padding-top: 2px;
 }
 
 .experiment-editor-drawer textarea[name="action"] {
-  min-height: 112px;
+  min-height: 124px;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.experiment-editor-drawer textarea[name="signals"] {
+  min-height: 96px;
+}
+
+.experiment-field-help {
+  margin: 0;
+  color: var(--platform-muted);
+  font-size: var(--type-meta);
+  line-height: 1.45;
+}
+
+.experiment-field-pair {
+  grid-template-columns: minmax(0, 1.35fr) minmax(180px, .65fr);
+  gap: 16px;
 }
 
 .experiment-context-details {
@@ -12977,10 +13007,51 @@ details.coaching-frame > .coaching-frame-body > article p {
   gap: 14px;
   padding: 16px;
   border-top: 1px solid var(--platform-line);
-  background: var(--neutral-50);
+  background: var(--platform-paper);
+}
+
+.experiment-editor-drawer .experiment-review-details {
+  background: var(--platform-paper);
+}
+
+.experiment-editor-drawer .experiment-review-fields {
+  gap: 18px;
+  padding: 20px 16px 16px;
+}
+
+.experiment-review-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 4px;
+  border-top: 1px solid var(--platform-line);
+}
+
+.experiment-finish-button {
+  min-height: 40px;
+  padding-inline: 0;
+  border-color: transparent;
+  color: var(--platform-muted);
+}
+
+.experiment-finish-button:hover {
+  border-color: transparent;
+  background: transparent;
+  color: var(--danger);
+}
+
+.experiment-editor-drawer .modal-actions {
+  justify-content: flex-end;
 }
 
 @media (max-width: 760px) {
+  .experiment-field-pair {
+    grid-template-columns: 1fr;
+  }
+
+  .experiment-core-fields > label:first-child input {
+    font-size: 17px;
+  }
+
   .focus-hub .leadership-workbench-empty .leadership-empty-state {
     padding: 24px 20px;
   }
