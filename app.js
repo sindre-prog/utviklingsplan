@@ -2108,7 +2108,7 @@ function filterResourceList(resources, filters) {
   });
 }
 
-async function renderPlan(activePane = "direction") {
+async function renderPlan(activePane = null) {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (!client) {
     setHeader("Plan", "Ingen klient funnet");
@@ -2160,26 +2160,30 @@ async function renderPlan(activePane = "direction") {
     return;
   }
   const plan = programToFormState(data);
+  const resolvedPane = activePane || (isClientWorkspace ? "now" : "direction");
 
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     hiddenPlanState(plan),
-    clientWorkspaceTabs(data, activePane),
-    el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, id: "workspace-pane-direction", role: "tabpanel", "aria-labelledby": "workspace-tab-direction", "aria-hidden": activePane === "direction" ? "false" : "true", "data-pane": "direction" }, [
+    clientWorkspaceTabs(data, resolvedPane),
+    isClientWorkspace ? el("section", { class: `workspace-pane ${resolvedPane === "now" ? "active" : ""}`, id: "workspace-pane-now", role: "tabpanel", "aria-labelledby": "workspace-tab-now", "aria-hidden": resolvedPane === "now" ? "false" : "true", "data-pane": "now" }, [
+      nowWorkspace(client, data, plan)
+    ]) : null,
+    el("section", { class: `workspace-pane ${resolvedPane === "direction" ? "active" : ""}`, id: "workspace-pane-direction", role: "tabpanel", "aria-labelledby": "workspace-tab-direction", "aria-hidden": resolvedPane === "direction" ? "false" : "true", "data-pane": "direction" }, [
       directionWorkspace(client, plan, data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "work" ? "active" : ""}`, id: "workspace-pane-work", role: "tabpanel", "aria-labelledby": "workspace-tab-work", "aria-hidden": activePane === "work" ? "false" : "true", "data-pane": "work" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "work" ? "active" : ""}`, id: "workspace-pane-work", role: "tabpanel", "aria-labelledby": "workspace-tab-work", "aria-hidden": resolvedPane === "work" ? "false" : "true", "data-pane": "work" }, [
       workWorkspace(client, data, plan)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "sessions" ? "active" : ""}`, id: "workspace-pane-sessions", role: "tabpanel", "aria-labelledby": "workspace-tab-sessions", "aria-hidden": activePane === "sessions" ? "false" : "true", "data-pane": "sessions" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "sessions" ? "active" : ""}`, id: "workspace-pane-sessions", role: "tabpanel", "aria-labelledby": "workspace-tab-sessions", "aria-hidden": resolvedPane === "sessions" ? "false" : "true", "data-pane": "sessions" }, [
       sessionsWorkspace(plan.sessions, data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, id: "workspace-pane-reflections", role: "tabpanel", "aria-labelledby": "workspace-tab-reflections", "aria-hidden": activePane === "reflections" ? "false" : "true", "data-pane": "reflections" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "reflections" ? "active" : ""}`, id: "workspace-pane-reflections", role: "tabpanel", "aria-labelledby": "workspace-tab-reflections", "aria-hidden": resolvedPane === "reflections" ? "false" : "true", "data-pane": "reflections" }, [
       reflectionsWorkspace(data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "resources" ? "active" : ""}`, id: "workspace-pane-resources", role: "tabpanel", "aria-labelledby": "workspace-tab-resources", "aria-hidden": activePane === "resources" ? "false" : "true", "data-pane": "resources" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "resources" ? "active" : ""}`, id: "workspace-pane-resources", role: "tabpanel", "aria-labelledby": "workspace-tab-resources", "aria-hidden": resolvedPane === "resources" ? "false" : "true", "data-pane": "resources" }, [
       coachResourcesWorkspace(data)
     ])
-  ]);
+  ].filter(Boolean));
 
   const editable = canEditProgram(client);
   if (editable) form.addEventListener("input", (event) => {
@@ -2200,9 +2204,13 @@ function renderCachedProgram(activePane = "direction") {
     return;
   }
   const plan = programToFormState(data);
+  const isClientWorkspace = state.profile.role === "client";
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     hiddenPlanState(plan),
     clientWorkspaceTabs(data, activePane),
+    isClientWorkspace ? el("section", { class: `workspace-pane ${activePane === "now" ? "active" : ""}`, id: "workspace-pane-now", role: "tabpanel", "aria-labelledby": "workspace-tab-now", "aria-hidden": activePane === "now" ? "false" : "true", "data-pane": "now" }, [
+      nowWorkspace(client, data, plan)
+    ]) : null,
     el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, id: "workspace-pane-direction", role: "tabpanel", "aria-labelledby": "workspace-tab-direction", "aria-hidden": activePane === "direction" ? "false" : "true", "data-pane": "direction" }, [
       directionWorkspace(client, plan, data)
     ]),
@@ -2218,7 +2226,7 @@ function renderCachedProgram(activePane = "direction") {
     el("section", { class: `workspace-pane ${activePane === "resources" ? "active" : ""}`, id: "workspace-pane-resources", role: "tabpanel", "aria-labelledby": "workspace-tab-resources", "aria-hidden": activePane === "resources" ? "false" : "true", "data-pane": "resources" }, [
       coachResourcesWorkspace(data)
     ])
-  ]);
+  ].filter(Boolean));
   const editable = canEditProgram(client);
   if (editable) form.addEventListener("input", (event) => {
     if (event.target.closest(".ui-inline-editor")) return;
@@ -2258,7 +2266,7 @@ function renderConsentGate(client) {
     const updatedClient = { ...client, ...payload };
     state.client = updatedClient;
     state.clients = state.clients.map((item) => item.id === client.id ? updatedClient : item);
-    await renderPlan("direction");
+    await renderPlan(state.profile.role === "client" ? "now" : "direction");
   }, "primary");
 
   $("#content").replaceChildren(el("section", { class: "consent-panel" }, [
@@ -2381,14 +2389,16 @@ function programToFormState(data) {
 }
 
 function clientWorkspaceTabs(data = {}, activePane = "direction") {
+  const hasNowTab = state.profile.role === "client";
   const items = [
+    hasNowTab && ["now", "Akkurat nå"],
     ["direction", "Retning"],
     ["work", "Fokus"],
     ["sessions", "Samtaler"],
     ["reflections", "Refleksjon"],
     ["resources", "Ressurser"]
-  ];
-  return el("div", { class: "workspace-tabs" }, [
+  ].filter(Boolean);
+  return el("div", { class: `workspace-tabs ${hasNowTab ? "has-now" : ""}`.trim() }, [
     el("div", { class: "workspace-tab-group workspace-tab-group-main", role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label]) => el("button", {
       class: `workspace-tab ${pane === activePane ? "active" : ""}`,
       type: "button",
@@ -3543,6 +3553,324 @@ function pageIntro(kicker, title, text, actions = [], tone = "") {
 
 function workspaceIntro(kicker, title, text, actions = []) {
   return pageIntro(kicker, title, text, actions);
+}
+
+function localIsoDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function isoDateAfter(days) {
+  const date = new Date();
+  date.setHours(12, 0, 0, 0);
+  date.setDate(date.getDate() + days);
+  return localIsoDate(date);
+}
+
+function newestFirst(a, b, field = "created_at") {
+  const bTime = new Date(b?.[field] || 0).getTime();
+  const aTime = new Date(a?.[field] || 0).getTime();
+  return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+}
+
+function primaryLeadershipCompetency(data) {
+  return (data.programCompetencies || [])
+    .filter((item) => item.status === "active")
+    .slice()
+    .sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99) || newestFirst(a, b))[0] || null;
+}
+
+function selectNowExperiment(data, primary, today) {
+  const active = (data.actions || []).filter((action) => isExperimentActive(action.status));
+  const compare = (a, b) => {
+    const aHasDate = Boolean(a.due_date);
+    const bHasDate = Boolean(b.due_date);
+    if (aHasDate !== bHasDate) return aHasDate ? -1 : 1;
+    if (aHasDate && a.due_date !== b.due_date) return String(a.due_date).localeCompare(String(b.due_date));
+    const aPrimary = primary && a.program_competency_id === primary.id ? 1 : 0;
+    const bPrimary = primary && b.program_competency_id === primary.id ? 1 : 0;
+    return bPrimary - aPrimary || newestFirst(a, b);
+  };
+  const due = active.filter((action) => action.due_date && action.due_date <= today).sort(compare)[0] || null;
+  return { due, next: active.slice().sort(compare)[0] || null };
+}
+
+function nextDatedSession(plan, today) {
+  return plan.sessions
+    .map((session, index) => ({ session, index }))
+    .filter(({ session }) => session.date && session.date >= today)
+    .sort((a, b) => String(a.session.date).localeCompare(String(b.session.date)))[0] || null;
+}
+
+function latestRelevantResource(data) {
+  const resources = (data.sharedResources || []).slice().sort((a, b) => newestFirst(a, b, "shared_at"));
+  return resources.find((item) => item.status === "assigned") || resources[0] || null;
+}
+
+async function openNowResource(resource, data) {
+  state.selectedSharedResourceProgramId = data.program?.id || null;
+  state.selectedSharedResourceId = resource.id;
+  state.sharedResourceQuery = "";
+  renderCachedProgram("resources");
+  if (state.profile.role === "client" && resource.status === "assigned") {
+    await openSharedResource(resource, true);
+    renderCachedProgram("resources");
+  }
+}
+
+function openNowSession(sessionRef, fieldKey = "") {
+  state.selectedSessionIndex = sessionRef.index;
+  if (fieldKey) openSessionField(sessionRef.index, fieldKey);
+  else renderCachedProgram("sessions");
+}
+
+function openNowCompetency(item) {
+  state.focusView = "competencies";
+  state.selectedCompetencyId = item?.id || null;
+  renderCachedProgram("work");
+}
+
+function openNowReflection() {
+  state.reflectionComposerOpen = true;
+  renderCachedProgram("reflections");
+  requestAnimationFrame(() => $("#reflection-body")?.focus());
+}
+
+function nowExperimentPresentation(action, data, today, { support = false } = {}) {
+  const parsed = parseActionDescription(action.description || "");
+  const competency = (data.programCompetencies || []).find((item) => item.id === action.program_competency_id);
+  const area = (data.areas || []).find((item) => item.id === action.development_area_id);
+  const isDue = Boolean(action.due_date && action.due_date <= today);
+  const dateLabel = action.due_date
+    ? action.due_date < today
+      ? `Se tilbake: ${formatDate(action.due_date)}`
+      : action.due_date === today
+        ? "Se tilbake i dag"
+        : `Se tilbake ${formatDate(action.due_date)}`
+    : phaseLabel(action.status, parsed);
+  const title = parsed.action || action.title || "Eksperiment";
+  return {
+    kind: "experiment",
+    kicker: isDue ? "Tid for å se tilbake" : "Aktivt eksperiment",
+    title,
+    description: support
+      ? [dateLabel, parsed.arena].filter(Boolean).join(" · ")
+      : isDue
+        ? "Noter hva som skjedde før du bestemmer hva du vil justere."
+        : "Hold forsøket lite, konkret og lett å observere.",
+    iconName: "flask-conical",
+    meta: [
+      { text: dateLabel, className: isDue ? "phase-chip is-due" : "phase-chip" },
+      competency?.title ? { text: competency.title, className: "ui-meta type-chip" } : null,
+      area?.title ? { text: area.title, className: "ui-meta type-chip" } : null
+    ].filter(Boolean),
+    details: support ? [] : [
+      parsed.arena ? ["Hvor", parsed.arena] : null,
+      parsed.signals ? ["Se etter", parsed.signals] : null
+    ].filter(Boolean),
+    actionLabel: isDue ? "Noter hva du observerte" : "Åpne eksperimentet",
+    onAction: () => editAction(action, data),
+    source: action
+  };
+}
+
+function nowWorkspace(client, data, plan) {
+  const editable = canEditProgram(client);
+  const today = localIsoDate();
+  const primary = primaryLeadershipCompetency(data);
+  const experiments = selectNowExperiment(data, primary, today);
+  const upcomingSession = nextDatedSession(plan, today);
+  const sessionNeedsPreparation = upcomingSession
+    && upcomingSession.session.date <= isoDateAfter(7)
+    && !(upcomingSession.session.goal || "").trim();
+  const resource = latestRelevantResource(data);
+  const resourceIsNew = resource?.status === "assigned";
+  const directionSpecs = getDirectionSpecs(plan);
+  const missingDirection = directionSpecs.find((spec) => !directionSpecHasValue(spec)) || null;
+  const missingCompetencyStep = primary ? [
+    ["why_now", "Avklar hvorfor kompetansen er viktig nå", "Svar på hvorfor nå"],
+    ["desired_behavior", "Beskriv hva du vil gjøre annerledes", "Beskriv ønsket atferd"],
+    ["current_pattern", "Beskriv hva du gjør i dag", "Beskriv nåmønsteret"],
+    ["obstacles", "Undersøk hva som kan stå i veien", "Utforsk barrierene"]
+  ].find(([fieldKey]) => !(primary[fieldKey] || "").trim()) : null;
+
+  let priority = null;
+  if (experiments.due) {
+    priority = nowExperimentPresentation(experiments.due, data, today);
+  } else if (sessionNeedsPreparation) {
+    const session = upcomingSession.session;
+    priority = {
+      kind: "session",
+      kicker: "Neste samtale",
+      title: session.focus ? `Forbered ${session.focus.toLocaleLowerCase("nb-NO")}` : "Forbered neste samtale",
+      description: `Bestem hva samtalen skal hjelpe deg med før ${formatDate(session.date)}.`,
+      iconName: "calendar",
+      meta: [{ text: formatDate(session.date), className: "ui-meta type-chip" }],
+      details: [],
+      actionLabel: "Forbered samtalen",
+      onAction: () => openNowSession(upcomingSession, "goal"),
+      source: session
+    };
+  } else if (experiments.next) {
+    priority = nowExperimentPresentation(experiments.next, data, today);
+  } else if (missingDirection) {
+    priority = {
+      kind: "direction",
+      kicker: "Retning",
+      title: missingDirection.label,
+      description: missingDirection.helper || "Avklar neste del av retningen for forløpet.",
+      iconName: missingDirection.iconName || "compass",
+      meta: [],
+      details: [],
+      actionLabel: "Avklar neste del",
+      onAction: () => activateDirectionEdit(missingDirection)
+    };
+  } else if (!primary && data.competenciesAvailable) {
+    priority = {
+      kind: "competency-choice",
+      kicker: "Hovedfokus",
+      title: "Velg én lederkompetanse",
+      description: "Velg det du vil bli bedre på først. Du kan legge til støttende lederkompetanser senere.",
+      iconName: "compass",
+      meta: [],
+      details: [],
+      actionLabel: "Velg lederkompetanse",
+      onAction: () => openCompetencyChooser(data)
+    };
+  } else if (primary && missingCompetencyStep) {
+    priority = {
+      kind: "competency-plan",
+      kicker: "Hovedfokus",
+      title: missingCompetencyStep[1],
+      description: `Gjør planen for ${String(primary.title || "lederkompetansen").toLocaleLowerCase("nb-NO")} tydelig nok til å prøve i arbeidshverdagen.`,
+      iconName: "compass",
+      meta: [{ text: primary.title || "Lederkompetanse", className: "ui-meta type-chip" }],
+      details: [],
+      actionLabel: missingCompetencyStep[2],
+      onAction: () => openLeadershipFieldEditor(primary, missingCompetencyStep[0])
+    };
+  } else if (primary) {
+    priority = {
+      kind: "first-experiment",
+      kicker: "Hovedfokus",
+      title: "Prøv kompetansen i praksis",
+      description: "Velg én konkret atferd og en situasjon der du kan prøve den.",
+      iconName: "flask-conical",
+      meta: [{ text: primary.title || "Lederkompetanse", className: "ui-meta type-chip" }],
+      details: [],
+      actionLabel: "Legg til eksperiment",
+      onAction: () => createCompetencyAction(data, primary)
+    };
+  } else if (resource) {
+    priority = {
+      kind: "resource",
+      kicker: resourceIsNew ? "Ny ressurs fra coach" : "Ressurs fra coach",
+      title: resource.resource?.title || "Ny ressurs",
+      description: resource.coach_note || resource.resource?.summary || "Se hva coachen har valgt ut for deg.",
+      iconName: "book-open",
+      meta: [],
+      details: [],
+      actionLabel: "Åpne ressursen",
+      onAction: () => openNowResource(resource, data)
+    };
+  } else {
+    priority = {
+      kind: "reflection",
+      kicker: "Mellom samtalene",
+      title: "Hva har du lagt merke til?",
+      description: "Ta vare på en observasjon mens den er fersk.",
+      iconName: "notebook-pen",
+      meta: [],
+      details: [],
+      actionLabel: "Skriv refleksjon",
+      onAction: openNowReflection
+    };
+  }
+
+  const support = [];
+  if (priority.kind === "session" && experiments.next) {
+    support.push(nowExperimentPresentation(experiments.next, data, today, { support: true }));
+  } else if (upcomingSession && priority.kind !== "session") {
+    support.push({
+      kind: "session",
+      kicker: "Neste samtale",
+      title: upcomingSession.session.focus || "Coachingsamtale",
+      description: formatDate(upcomingSession.session.date),
+      iconName: "calendar",
+      onAction: () => openNowSession(upcomingSession)
+    });
+  }
+  if (resource && priority.kind !== "resource") {
+    support.push({
+      kind: "resource",
+      kicker: resourceIsNew ? "Ny ressurs fra coach" : "Ressurs fra coach",
+      title: resource.resource?.title || "Ny ressurs",
+      description: resource.resource?.summary || resource.coach_note || "Valgt ut for deg",
+      iconName: "book-open",
+      onAction: () => openNowResource(resource, data)
+    });
+  }
+  const primaryIsRepresented = priority.meta?.some((item) => item.text === primary?.title)
+    || priority.source?.program_competency_id === primary?.id;
+  if (primary && !primaryIsRepresented && priority.kind !== "competency-plan" && priority.kind !== "first-experiment") {
+    support.push({
+      kind: "competency",
+      kicker: "Hovedfokus",
+      title: primary.title || "Lederkompetanse",
+      description: primary.summary || "Det du arbeider med over tid.",
+      iconName: "compass",
+      onAction: () => openNowCompetency(primary)
+    });
+  }
+
+  return el("div", { class: "platform-page now-workspace" }, [
+    pageIntro("Akkurat nå", "Det viktigste akkurat nå", "Det som trenger oppmerksomheten din mellom samtalene."),
+    nowPrioritySurface(priority, editable),
+    nowSupportList(support.slice(0, 2)),
+    editable && priority.kind !== "reflection" ? el("section", { class: "now-reflection-action" }, [
+      el("div", {}, [
+        el("strong", { text: "Noe du vil huske?" }),
+        el("p", { text: "Skriv det ned mens det er ferskt. Du bestemmer hva du deler." })
+      ]),
+      el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Skriv refleksjon", onclick: openNowReflection })
+    ]) : null
+  ].filter(Boolean));
+}
+
+function nowPrioritySurface(priority, editable) {
+  return el("section", { class: "now-priority-surface", "aria-labelledby": "now-priority-title" }, [
+    el("span", { class: "competency-next-icon now-priority-icon", "aria-hidden": "true" }, [icon(priority.iconName || "arrow-right")]),
+    el("div", { class: "now-priority-copy" }, [
+      el("span", { class: "workspace-kicker", text: priority.kicker }),
+      el("h3", { id: "now-priority-title", text: priority.title }),
+      priority.description ? el("p", { text: priority.description }) : null,
+      priority.meta?.length ? el("div", { class: "now-priority-meta" }, priority.meta.map((item) => el("span", { class: item.className || "ui-meta", text: item.text }))) : null,
+      priority.details?.length ? el("dl", { class: "now-priority-details" }, priority.details.flatMap(([label, value]) => [
+        el("div", { class: "now-priority-detail" }, [el("dt", { text: label }), el("dd", { text: value })])
+      ])) : null
+    ].filter(Boolean)),
+    editable && priority.onAction ? el("div", { class: "now-priority-actions" }, [
+      el("button", { class: "ui-button ui-button-filled", type: "button", text: priority.actionLabel, onclick: priority.onAction })
+    ]) : null
+  ].filter(Boolean));
+}
+
+function nowSupportList(items = []) {
+  if (!items.length) return null;
+  return el("section", { class: "now-support", "aria-labelledby": "now-support-title" }, [
+    el("h3", { id: "now-support-title", text: "Også relevant" }),
+    el("div", { class: "now-support-list" }, items.map((item) => el("button", { class: "now-support-row", type: "button", onclick: item.onAction }, [
+      el("span", { class: "now-support-icon", "aria-hidden": "true" }, [icon(item.iconName || "arrow-right")]),
+      el("span", { class: "now-support-copy" }, [
+        el("span", { class: "workspace-kicker", text: item.kicker }),
+        el("strong", { text: item.title }),
+        item.description ? el("small", { text: item.description }) : null
+      ].filter(Boolean)),
+      icon("chevron-right")
+    ])))
+  ]);
 }
 
 function focusWorkbench(items, data, editable) {
