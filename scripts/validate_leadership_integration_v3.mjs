@@ -25,7 +25,7 @@ requireText(app, /function focusViewTabs[\s\S]*\["competencies", "(?:Lederkompet
 requireText(app, /function experimentReviewSpec[\s\S]*el\("details", \{ class: "experiment-review-details"[\s\S]*"Se tilbake og lær"/, "Eksperimentrefleksjonen vises ikke progressivt etter opprettelse.");
 requireText(app, /function createAction\([\s\S]*Hva skal du prøve\?[\s\S]*Hvor skal du prøve det\?[\s\S]*Hva skal du se etter\?[\s\S]*Når vil du se tilbake\?[\s\S]*experimentContextSpec/, "Felles eksperimentopprettelse følger ikke den avtalte, lette rekkefølgen.");
 requireText(app, /function focusViewDescription[\s\S]*Hva vil du bli bedre på\?[\s\S]*Måter å lede på som du kan utvikle over tid\.[\s\S]*Hvor skal utviklingen merkes\?[\s\S]*Konkrete situasjoner, utfordringer eller oppgaver der du vil gjøre en forskjell\.[\s\S]*Hva vil du prøve i praksis\?[\s\S]*Små atferdsforsøk du prøver, observerer og justerer\./, "Fokusarbeidsflatene mangler avtalte spørsmål og forklaringer.");
-requireText(app, /function focusHubIntro[\s\S]*Fra fokus til ny praksis[\s\S]*Velg hva du vil utvikle, hvor det skal merkes og hva du vil prøve\./, "Fokus mangler avtalt samlende introduksjon.");
+requireText(app, /function focusHubIntro[\s\S]*Hva skal du utvikle\?[\s\S]*Velg lederkompetanser og fokusoppdrag, og prøv ny atferd i praksis\./, "Fokus mangler avtalt samlende introduksjon.");
 const focusIntroSource = app.match(/function focusHubIntro[\s\S]*?\n}\n\nfunction focusViewTabs/)?.[0] || "";
 if (/Nytt eksperiment|Nytt fokusoppdrag|Opprett fokusoppdrag/.test(focusIntroSource)) errors.push("Fokusintroen dupliserer opprettelseshandlinger fra aktiv arbeidsflate.");
 requireText(app, /className: "focus-assignment-plan"/, "Fokusoppdrag mangler en avgrenset, sekundær arbeidsplan.");

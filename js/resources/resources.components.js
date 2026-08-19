@@ -139,7 +139,7 @@ export function createResourcePreview(resource, options = {}) {
     return createElement("section", { class: "resource-preview empty-state" }, [
       createElement("p", { class: "eyebrow", text: "Ressurs" }),
       createElement("h3", { text: "Velg en ressurs" }),
-      createElement("p", { class: "muted", text: "Velg en ressurs i listen for å se innhold, veiledning og refleksjonsspørsmål." })
+      createElement("p", { class: "muted", text: "Se innhold, veiledning og spørsmål." })
     ]);
   }
 
@@ -290,7 +290,7 @@ export function createClientResourceView(sharedResource, options = {}) {
   const note = createElement("textarea", {
     class: "ui-edit-control client-resource-note",
     text: displayText(sharedResource?.client_note),
-    placeholder: "Skriv en privat refleksjon. Ingenting deles før du velger det selv.",
+    placeholder: "Hva vil du ta med deg?",
     rows: "6",
     disabled: readOnly
   });
@@ -358,7 +358,7 @@ export function createClientResourceView(sharedResource, options = {}) {
       createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
       privateResponse ? createElement("p", { class: "muted", text: "Klienten har lagret en privat refleksjon som ikke er delt med coach." }) : note,
       readOnly || privateResponse ? null : createElement("div", { class: "visibility-control" }, [
-        createElement("p", { text: "Privat betyr bare deg. Del med coach betyr at coachen kan lese refleksjonen i forløpet." }),
+        createElement("p", { text: "Privat: Bare du kan lese. Del med coach: Coachen kan lese teksten i forløpet." }),
         createElement("div", { class: "visibility-choice-row" }, [
           createVisibilityButton("private", "Privat"),
           createVisibilityButton("shared_with_coach", "Del med coach")
@@ -399,7 +399,7 @@ export function createSharedResourceStatus(status, options = {}) {
   const labels = {
     assigned: "Sendt",
     viewed: "Åpnet",
-    responded: "Refleksjon delt",
+    responded: "Refleksjon lagret",
     archived: "Arkivert"
   };
 
