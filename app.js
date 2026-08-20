@@ -356,11 +356,11 @@ async function loadReferenceData() {
   const role = state.profile.role;
   if (role === "admin" || role === "coach") {
     const { data } = await state.sb.from("coaches").select("*").eq("user_id", state.user.id).maybeSingle();
-    state.coach = data;
+    state.coach = isActiveRecord(data) ? data : null;
   }
   if (role === "client") {
     const { data } = await state.sb.from("clients").select("*").eq("user_id", state.user.id).maybeSingle();
-    state.client = data;
+    state.client = isActiveRecord(data) ? data : null;
     if (state.client && !isClientActivated(state.client)) {
       const activatedAt = new Date().toISOString();
       await state.sb
@@ -371,7 +371,7 @@ async function loadReferenceData() {
     }
   }
   const { data: coaches } = await state.sb.from("coaches").select("*").order("name");
-  state.coaches = coaches || [];
+  state.coaches = (coaches || []).filter(isActiveRecord);
   let clients = [];
   if (state.profile.role === "client") {
     clients = state.client ? [state.client] : [];
@@ -387,15 +387,26 @@ async function loadReferenceData() {
     if (!error) {
       clients = data || [];
     } else {
-      const { data: fallbackClients } = await state.sb
-        .from("clients")
-        .select("id, created_at, name, code, consent_given, consent_date, account_activated_at, consent_version, coach_ids, role, employer, user_id, email")
-        .order("name");
-      clients = fallbackClients || [];
+      clients = await loadAdminClientFallback();
     }
   }
-  state.clients = clients || [];
+  state.clients = (clients || []).filter(isActiveRecord);
   await loadProgramSummaries();
+}
+
+async function loadAdminClientFallback() {
+  const columns = "id, created_at, name, code, consent_given, consent_date, account_activated_at, consent_version, coach_ids, role, employer, user_id, email";
+  const { data, error } = await state.sb
+    .from("clients")
+    .select(`${columns}, archived_at`)
+    .order("name");
+  if (!error) return data || [];
+  if (!isMissingColumnError(error)) return [];
+  const { data: fallbackData } = await state.sb
+    .from("clients")
+    .select(columns)
+    .order("name");
+  return fallbackData || [];
 }
 
 async function loadProgramSummaries() {
@@ -696,7 +707,7 @@ function renderAdmin() {
     const coaches = state.coaches.filter((coach) => [coach.name, coach.email].filter(Boolean).join(" ").toLowerCase().includes(q));
     coachTableSlot.replaceChildren(adminTable("Coacher", ["Navn", "E-post", "Status", "Klienter", ""], coaches.map((coach) => [
       coach.name || "-", coach.email || "Ikke registrert", coach.user_id ? "Innlogget" : "Ikke innlogget", String(state.clients.filter((client) => (client.coach_ids || []).includes(coach.id)).length),
-      actionGroup([["Rediger", () => openCoachEdit(coach)], ["Slett", () => deleteCoach(coach)]])
+      actionGroup([["Rediger", () => openCoachEdit(coach)], ["Arkiver", () => deleteCoach(coach)]])
     ])));
   };
   const renderClientsTable = () => {
@@ -707,7 +718,7 @@ function renderAdmin() {
       actionGroup([
         ["Åpne", () => openClientPlan(client), !canOpenClient(client)],
         ["Rediger", () => openClientEdit(client)],
-        ["Slett", () => deleteClient(client)]
+        ["Arkiver", () => deleteClient(client)]
       ])
     ])));
   };
@@ -1896,7 +1907,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-115")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-116")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -6049,36 +6060,24 @@ async function inviteCoach(values) {
 }
 
 async function deleteCoach(coach) {
-  if (!(await confirmDelete(`Slett coach "${coach.name}"? Klientenes planer beholdes.`))) return;
-  const { error } = await state.sb.from("coaches").delete().eq("id", coach.id);
-  if (error) {
-    await showAppMessage("Kunne ikke slette coach", userFacingError(error, "Prøv igjen."));
-    return;
-  }
-  if (coach.user_id) {
-    const { error: profileError } = await state.sb.from("profiles").delete().eq("id", coach.user_id);
-    if (profileError) {
-      await showAppMessage("Coach ble slettet, men ikke profilen", userFacingError(profileError, "Kontakt ansvarlig for portalen for å fullføre slettingen."));
-      return;
-    }
-  }
+  if (!(await confirmDelete(`Arkivere coach "${coach.name}"? Klientenes planer beholdes, men coachen fjernes fra aktive admin- og coachlister.`, {
+    kicker: "Coach",
+    title: "Arkiver coach?",
+    confirmLabel: "Arkiver"
+  }))) return;
+  const archived = await archiveRecord("coaches", coach.id, "coachen");
+  if (!archived) return;
   await reloadAndRender();
 }
 
 async function deleteClient(client) {
-  if (!(await confirmDelete(`Slett klient "${client.name}"? All plandata slettes permanent i dagens datamodell.`))) return;
-  const { error } = await state.sb.from("clients").delete().eq("id", client.id);
-  if (error) {
-    await showAppMessage("Kunne ikke slette klient", userFacingError(error, "Prøv igjen."));
-    return;
-  }
-  if (client.user_id) {
-    const { error: profileError } = await state.sb.from("profiles").delete().eq("id", client.user_id);
-    if (profileError) {
-      await showAppMessage("Klient ble slettet, men ikke profilen", userFacingError(profileError, "Kontakt ansvarlig for portalen for å fullføre slettingen."));
-      return;
-    }
-  }
+  if (!(await confirmDelete(`Arkivere klient "${client.name}"? Utviklingsplan, refleksjoner og koblinger bevares, men klienten fjernes fra aktive lister.`, {
+    kicker: "Klient",
+    title: "Arkiver klient?",
+    confirmLabel: "Arkiver"
+  }))) return;
+  const archived = await archiveRecord("clients", client.id, "klienten");
+  if (!archived) return;
   await reloadAndRender();
 }
 
