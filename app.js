@@ -1907,7 +1907,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-116")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-117")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -3625,6 +3625,13 @@ function primaryLeadershipCompetency(data) {
     .sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99) || newestFirst(a, b))[0] || null;
 }
 
+function activeLeadershipCompetencies(data) {
+  return (data.programCompetencies || [])
+    .filter((item) => item.status === "active")
+    .slice()
+    .sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99) || newestFirst(a, b));
+}
+
 function nowFocusAssignments(plan) {
   return (plan.areas || [])
     .map((area, index) => ({ area: normalizeArea(area), index }))
@@ -3635,6 +3642,28 @@ function nowFocusAssignments(plan) {
 function latestRelevantResource(data) {
   const resources = (data.sharedResources || []).slice().sort((a, b) => newestFirst(a, b, "shared_at"));
   return resources.find((item) => item.status === "assigned") || resources[0] || null;
+}
+
+function relevantSession(plan) {
+  const sessions = (plan.sessions || [])
+    .filter((session) => session.date || session.focus || session.goal || session.notes || session.actions || session.reflection)
+    .slice();
+  const today = localIsoDate();
+  const upcoming = sessions
+    .filter((session) => session.date && session.date >= today)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
+  if (upcoming) return { session: upcoming, upcoming: true };
+  const latest = sessions.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())[0] || null;
+  return latest ? { session: latest, upcoming: false } : null;
+}
+
+function latestReflection(data) {
+  return (data.reflections || []).slice().sort((a, b) => newestFirst(a, b))[0] || null;
+}
+
+function hasActionReviewContent(action) {
+  const parsed = parseActionDescription(action.description || "");
+  return Boolean(parsed.observation || parsed.effect || parsed.learning || parsed.nextStep);
 }
 
 async function openNowResource(resource, data) {
@@ -3666,96 +3695,248 @@ function openNowReflection() {
   requestAnimationFrame(() => $("#reflection-body")?.focus());
 }
 
+function createNowAction({ key, priority, kicker, title, description, reason, iconName, ctaLabel, onAction }) {
+  return { key, priority, kicker, title, description, reason, iconName, ctaLabel, onAction };
+}
+
+function nowActionItems({ data, plan, editable }) {
+  const directionSpecs = getDirectionSpecs(plan);
+  const missingDirection = directionSpecs.find((spec) => !directionSpecHasValue(spec));
+  const primary = primaryLeadershipCompetency(data);
+  const activeCompetencies = activeLeadershipCompetencies(data);
+  const focusItems = nowFocusAssignments(plan);
+  const activeActions = (data.actions || []).filter((action) => isExperimentActive(action.status));
+  const overdueAction = activeActions.find((action) => action.due_date && action.due_date < localIsoDate());
+  const activeAction = overdueAction || activeActions[0] || null;
+  const reviewCandidate = activeActions.find((action) => !hasActionReviewContent(action)) || (data.actions || []).find((action) => isExperimentReviewed(action.status) && !hasActionReviewContent(action));
+  const focusWithoutPractice = focusItems.find((item) => {
+    const linkedActions = (data.actions || []).filter((action) => action.development_area_id === item.area.id);
+    return !item.area.nextPractice && !linkedActions.some((action) => isExperimentActive(action.status));
+  });
+  const resource = latestRelevantResource(data);
+  const relevant = relevantSession(plan);
+  const session = relevant?.session || null;
+  const reflection = latestReflection(data);
+  const items = [];
+
+  if (missingDirection) {
+    items.push(createNowAction({
+      key: "direction",
+      priority: 10,
+      kicker: "Retning",
+      title: "Sett retning for arbeidet",
+      description: missingDirection.label,
+      reason: "Forløpet trenger en tydelig retning før fokus og eksperimenter får nok kraft.",
+      iconName: "target",
+      ctaLabel: "Åpne retning",
+      onAction: () => activateWorkspacePane("direction")
+    }));
+  }
+
+  if (!primary) {
+    items.push(createNowAction({
+      key: "competency",
+      priority: 20,
+      kicker: "Fokus",
+      title: "Velg hovedfokus",
+      description: "Start med én lederkompetanse som betyr mest akkurat nå.",
+      reason: "Et tydelig hovedfokus gjør det enklere å velge praksis, samtaletema og refleksjon.",
+      iconName: "compass",
+      ctaLabel: "Velg lederkompetanse",
+      onAction: () => openCompetencyChooser(data)
+    }));
+  }
+
+  if (activeAction) {
+    const parsed = parseActionDescription(activeAction.description || "");
+    items.push(createNowAction({
+      key: "experiment",
+      priority: overdueAction ? 1 : 30,
+      kicker: overdueAction ? "Forfalt eksperiment" : "Eksperiment",
+      title: activeAction.title || "Følg opp eksperimentet",
+      description: parsed.action || parsed.hypothesis || activeAction.description || (activeAction.due_date ? `Se tilbake ${formatDate(activeAction.due_date)}` : "Hva har du prøvd, og hva la du merke til?"),
+      reason: overdueAction ? "Du hadde satt en dato for å se tilbake på dette." : "Aktive eksperimenter skaper læring når de følges opp raskt.",
+      iconName: overdueAction ? "alarm-clock" : "flask-conical",
+      ctaLabel: "Følg opp",
+      onAction: () => editAction(activeAction, data)
+    }));
+  }
+
+  if (reviewCandidate) {
+    items.push(createNowAction({
+      key: "reflection",
+      priority: activeAction ? 50 : 35,
+      kicker: "Læring",
+      title: "Ta vare på erfaringen",
+      description: "Skriv ned hva som skjedde, hva du lærte og hva du vil prøve videre.",
+      reason: "Refleksjon gjør forsøket nyttig for neste samtale og neste valg.",
+      iconName: "message-square-quote",
+      ctaLabel: "Skriv refleksjon",
+      onAction: openNowReflection
+    }));
+  }
+
+  if (focusWithoutPractice) {
+    items.push(createNowAction({
+      key: "focus",
+      priority: 40,
+      kicker: "Fokusoppdrag",
+      title: focusWithoutPractice.area.title || "Gjør fokus konkret",
+      description: "Knytt fokusoppdraget til neste praksis eller et lite eksperiment.",
+      reason: "Fokus blir lettere å følge opp når det er koblet til en konkret handling.",
+      iconName: "briefcase-business",
+      ctaLabel: "Åpne fokus",
+      onAction: () => openNowFocusAssignment(focusWithoutPractice)
+    }));
+  }
+
+  if (resource) {
+    items.push(createNowAction({
+      key: "resource",
+      priority: resource.status === "assigned" ? 25 : 70,
+      kicker: resource.status === "assigned" ? "Ny ressurs" : "Ressurs",
+      title: resource.resource?.title || "Åpne ressurs",
+      description: resource.coach_note || resource.resource?.summary || "Coachen har valgt ut dette for deg.",
+      reason: resource.status === "assigned" ? "Denne er delt med deg og er ikke åpnet ennå." : "Ressursen kan støtte arbeidet du står i nå.",
+      iconName: "book-open",
+      ctaLabel: "Åpne ressurs",
+      onAction: () => openNowResource(resource, data)
+    }));
+  }
+
+  if (session) {
+    items.push(createNowAction({
+      key: "session",
+      priority: 60,
+      kicker: "Samtale",
+      title: relevant.upcoming && session.date ? `Forbered ${formatDate(session.date)}` : "Åpne samtalene",
+      description: session.focus || session.goal || "Samle det viktigste du vil ta opp med coachen.",
+      reason: relevant.upcoming ? "Samtalen blir bedre når erfaringer, spørsmål og neste steg er samlet på forhånd." : "Bruk siste samtale som anker for hva du vil prøve eller ta opp videre.",
+      iconName: "messages-square",
+      ctaLabel: "Åpne samtaler",
+      onAction: () => activateWorkspacePane("sessions")
+    }));
+  }
+
+  if (!items.length && editable) {
+    items.push(createNowAction({
+      key: "start",
+      priority: 100,
+      kicker: "Start",
+      title: "Velg hva du vil utvikle først",
+      description: "Sett retning, velg hovedfokus og legg til et fokusoppdrag.",
+      reason: "Når de tre delene er på plass, kan portalen foreslå mer presise neste steg.",
+      iconName: "sparkles",
+      ctaLabel: "Start i retning",
+      onAction: () => activateWorkspacePane("direction")
+    }));
+  }
+
+  if (!items.some((item) => item.key === "reflection") && editable && (activeCompetencies.length || focusItems.length || reflection)) {
+    items.push(createNowAction({
+      key: "quick-reflection",
+      priority: 90,
+      kicker: "Refleksjon",
+      title: "Noe du vil huske?",
+      description: "Noter det mens det er ferskt. Du bestemmer hva du deler.",
+      reason: "Små observasjoner er ofte det som gjør neste samtale konkret.",
+      iconName: "pencil-line",
+      ctaLabel: "Skriv refleksjon",
+      onAction: openNowReflection
+    }));
+  }
+
+  return items.sort((a, b) => a.priority - b.priority).slice(0, 5);
+}
+
 function nowWorkspace(client, data, plan) {
   const editable = canEditProgram(client);
-  const activeCompetencies = (data.programCompetencies || [])
-    .filter((item) => item.status === "active")
-    .slice()
-    .sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99) || newestFirst(a, b));
-  const primary = primaryLeadershipCompetency(data);
-  const supporting = activeCompetencies.filter((item) => item.id !== primary?.id);
+  const actions = nowActionItems({ data, plan, editable });
+  const primary = actions[0] || null;
+  const supporting = actions.slice(1);
+  const primaryCompetency = primaryLeadershipCompetency(data);
   const focusItems = nowFocusAssignments(plan);
-  const resource = latestRelevantResource(data);
-  const support = [
-    resource ? {
-      kind: "resource",
-      kicker: resource.status === "assigned" ? "Nylig fra coach" : "Sist delt fra coach",
-      title: resource.resource?.title || "Ny ressurs",
-      description: resource.coach_note || resource.resource?.summary || "Valgt ut for deg",
-      iconName: "book-open",
-      onAction: () => openNowResource(resource, data)
-    } : null
-  ].filter(Boolean);
-
-  return el("div", { class: "platform-page now-workspace" }, [
-    pageIntro("Akkurat nå", "Dette arbeider du med", "Se hva du utvikler, hvor det skal merkes og hva coachen nylig har delt."),
-    nowContextSurface({ primary, supporting, focusItems, data, editable }),
-    nowSupportList(support),
-    editable ? el("section", { class: "now-reflection-action" }, [
-      el("div", {}, [
-        el("strong", { text: "Noe du vil huske?" }),
-        el("p", { text: "Skriv det ned mens det er ferskt. Du bestemmer hva du deler." })
-      ]),
-      el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Skriv refleksjon", onclick: openNowReflection })
-    ]) : null
+  return el("div", { class: "platform-page now-workspace now-workspace-v2" }, [
+    pageIntro("Akkurat nå", "Neste beste steg", "Start her når du vil holde utviklingen i bevegelse."),
+    primary ? nowPrimaryAction(primary, editable) : nowEmptyState(editable),
+    nowActionGrid(supporting, editable),
+    nowProgressStrip({ primaryCompetency, focusItems, actions: data.actions || [] })
   ].filter(Boolean));
 }
 
-function nowContextSurface({ primary, supporting, focusItems, data, editable }) {
-  return el("section", { class: "now-context-surface", "aria-labelledby": "now-context-title" }, [
-    el("header", { class: "now-context-head" }, [
-      el("span", { class: "competency-next-icon now-context-icon", "aria-hidden": "true" }, [icon("compass")]),
-      el("div", { class: "now-context-heading" }, [
-        el("span", { class: "workspace-kicker", text: "Hovedfokus" }),
-        el("h3", { id: "now-context-title", text: primary?.title || "Velg én lederkompetanse" }),
-        el("p", { text: primary?.why_now || primary?.summary || (primary ? "Det du vil bli bedre på over tid." : "Velg det du vil bli bedre på først. Du kan legge til støttende lederkompetanser senere.") })
-      ]),
-      editable ? el("button", {
-        class: "ui-button ui-button-outlined now-context-action",
-        type: "button",
-        text: primary ? "Åpne planen" : "Velg lederkompetanse",
-        onclick: () => primary ? openNowCompetency(primary) : openCompetencyChooser(data)
-      }) : null
+function nowPrimaryAction(item, editable) {
+  return el("section", { class: "now-primary-action", "aria-labelledby": "now-primary-title" }, [
+    el("span", { class: "now-primary-icon", "aria-hidden": "true" }, [icon(item.iconName || "arrow-right")]),
+    el("div", { class: "now-primary-copy" }, [
+      el("span", { class: "workspace-kicker", text: item.kicker }),
+      el("h3", { id: "now-primary-title", text: item.title }),
+      el("p", { text: item.description }),
+      item.reason ? el("small", { text: `Hvorfor nå: ${item.reason}` }) : null
     ].filter(Boolean)),
-    supporting.length ? el("div", { class: "now-supporting-competencies" }, [
-      el("span", { text: "Støttende lederkompetanser" }),
-      el("div", {}, supporting.map((item) => el("button", { class: "ui-meta type-chip", type: "button", text: item.title || "Lederkompetanse", onclick: () => openNowCompetency(item) })))
-    ]) : null,
-    el("section", { class: "now-focus-context", "aria-labelledby": "now-focus-title" }, [
-      el("div", { class: "now-section-heading" }, [
-        el("span", { class: "workspace-kicker", text: "Fokusoppdrag" }),
-        el("h4", { id: "now-focus-title", text: "Hvor utviklingen skal merkes" })
-      ]),
-      focusItems.length ? el("div", { class: "now-focus-list" }, focusItems.map((item) => el("button", { class: "now-focus-row", type: "button", onclick: () => openNowFocusAssignment(item) }, [
-        el("span", { class: "now-focus-row-icon", "aria-hidden": "true" }, [icon(item.area.projectType === "outer" ? "briefcase-business" : "archive")]),
-        el("span", { class: "now-focus-row-copy" }, [
-          el("strong", { text: item.area.title || "Fokusoppdrag" }),
-          el("small", { text: item.area.movement || item.area.description || item.area.typicalSituations || "Åpne fokusoppdraget" })
-        ]),
-        item.area.projectType !== "outer" ? el("span", { class: "ui-meta type-chip", text: "Tidligere fokusområde" }) : null,
-        icon("chevron-right")
-      ].filter(Boolean)))) : el("div", { class: "now-focus-empty" }, [
-        el("p", { text: "Ingen fokusoppdrag er lagt til ennå." }),
-        editable ? el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Legg til fokusoppdrag", onclick: () => addFocusArea() }) : null
-      ].filter(Boolean))
-    ])
+    editable && item.onAction ? el("button", { class: "ui-button ui-button-filled now-primary-cta", type: "button", text: item.ctaLabel || "Åpne", onclick: item.onAction }) : null
   ].filter(Boolean));
 }
 
-function nowSupportList(items = []) {
+function nowActionGrid(items = [], editable) {
   if (!items.length) return null;
-  return el("section", { class: "now-support", "aria-labelledby": "now-support-title" }, [
-    el("h3", { id: "now-support-title", text: "Også relevant" }),
-    el("div", { class: "now-support-list" }, items.map((item) => el("button", { class: "now-support-row", type: "button", onclick: item.onAction }, [
-      el("span", { class: "now-support-icon", "aria-hidden": "true" }, [icon(item.iconName || "arrow-right")]),
-      el("span", { class: "now-support-copy" }, [
+  return el("section", { class: "now-action-section", "aria-labelledby": "now-action-title" }, [
+    el("div", { class: "now-section-heading" }, [
+      el("span", { class: "workspace-kicker", text: "Også viktig" }),
+      el("h3", { id: "now-action-title", text: "Hold flyten videre" })
+    ]),
+    el("div", { class: "now-action-grid" }, items.map((item) => el("button", { class: "now-action-card", type: "button", disabled: !editable || !item.onAction, onclick: item.onAction }, [
+      el("span", { class: "now-action-icon", "aria-hidden": "true" }, [icon(item.iconName || "arrow-right")]),
+      el("span", { class: "now-action-copy" }, [
         el("span", { class: "workspace-kicker", text: item.kicker }),
         el("strong", { text: item.title }),
-        item.description ? el("small", { text: item.description }) : null
+        item.description ? el("small", { text: item.description }) : null,
+        item.reason ? el("em", { text: item.reason }) : null
       ].filter(Boolean)),
       icon("chevron-right")
     ])))
   ]);
+}
+
+function nowProgressStrip({ primaryCompetency, focusItems, actions }) {
+  const activeActions = actions.filter((action) => isExperimentActive(action.status)).length;
+  const reviewedActions = actions.filter((action) => isExperimentReviewed(action.status)).length;
+  return el("section", { class: "now-progress-strip", "aria-label": "Status i utviklingsforløpet" }, [
+    nowProgressMetric("Hovedfokus", primaryCompetency?.title || "Ikke valgt", "compass", () => primaryCompetency ? openNowCompetency(primaryCompetency) : activateWorkspacePane("work")),
+    nowProgressMetric("Fokusoppdrag", focusItems.length ? String(focusItems.length) : "Ingen", "briefcase-business", () => activateWorkspacePane("work")),
+    nowProgressMetric("Åpne eksperimenter", String(activeActions), "flask-conical", () => {
+      state.focusView = "experiments";
+      state.experimentView = "active";
+      renderCachedProgram("work");
+    }),
+    nowProgressMetric("Læring i historikk", String(reviewedActions), "history", () => {
+      state.focusView = "experiments";
+      state.experimentView = "history";
+      renderCachedProgram("work");
+    })
+  ]);
+}
+
+function nowProgressMetric(label, value, iconName, onAction) {
+  return el("button", { class: "now-progress-metric", type: "button", onclick: onAction }, [
+    el("span", { class: "now-progress-icon", "aria-hidden": "true" }, [icon(iconName)]),
+    el("span", {}, [
+      el("small", { text: label }),
+      el("strong", { text: value })
+    ])
+  ]);
+}
+
+function nowEmptyState(editable) {
+  return el("section", { class: "now-primary-action now-empty-action", "aria-labelledby": "now-empty-title" }, [
+    el("span", { class: "now-primary-icon", "aria-hidden": "true" }, [icon("sparkles")]),
+    el("div", { class: "now-primary-copy" }, [
+      el("span", { class: "workspace-kicker", text: "Start" }),
+      el("h3", { id: "now-empty-title", text: "Bygg første utviklingssløyfe" }),
+      el("p", { text: "Sett retning, velg hovedfokus og prøv ett lite eksperiment i arbeidshverdagen." }),
+      el("small", { text: "Hvorfor nå: Portalen blir mest nyttig når den kan koble mål, praksis og læring." })
+    ]),
+    editable ? el("button", { class: "ui-button ui-button-filled now-primary-cta", type: "button", text: "Start i retning", onclick: () => activateWorkspacePane("direction") }) : null
+  ].filter(Boolean));
 }
 
 function focusWorkbench(items, data, editable) {
