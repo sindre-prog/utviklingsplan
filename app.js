@@ -423,17 +423,18 @@ async function loadProgramSummaries() {
   const programIds = (programs || []).map((program) => program.id);
   if (!programIds.length) return;
   const [sessions, areas, competencies, actions, reflections, sharedResources] = await Promise.all([
-    loadActiveSummaryRows("coaching_sessions", "id, program_id, session_date, archived_at", "id, program_id, session_date", programIds),
-    loadActiveSummaryRows("development_areas", "id, program_id, archived_at", "id, program_id", programIds),
-    loadActiveSummaryRows("program_competencies", "id, program_id, status, archived_at", "id, program_id, status", programIds),
-    loadActiveSummaryRows("session_actions", "id, program_id, status, due_date, archived_at", "id, program_id, status, due_date", programIds),
+    loadActiveSummaryRows("coaching_sessions", "id, program_id, session_date, created_at, updated_at, archived_at", "id, program_id, session_date", programIds),
+    loadActiveSummaryRows("development_areas", "id, program_id, created_at, updated_at, archived_at", "id, program_id", programIds),
+    loadActiveSummaryRows("program_competencies", "id, program_id, status, created_at, updated_at, archived_at", "id, program_id, status", programIds),
+    loadActiveSummaryRows("session_actions", "id, program_id, status, due_date, created_at, updated_at, archived_at", "id, program_id, status, due_date", programIds),
     loadActiveSummaryRows("client_reflections", "id, program_id, visibility, created_at", "id, program_id, visibility, created_at", programIds),
-    loadActiveSummaryRows("shared_resources", "id, program_id, status, viewed_at, reflected_at, archived_at", "id, program_id, status, viewed_at, reflected_at", programIds)
+    loadActiveSummaryRows("shared_resources", "id, program_id, status, shared_at, viewed_at, reflected_at, created_at, updated_at, archived_at", "id, program_id, status, viewed_at, reflected_at", programIds)
   ]);
   (sessions || []).forEach((session) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === session.program_id);
     if (summary) {
       summary.sessionCount += 1;
+      registerSummaryActivity(summary, session, ["updated_at", "created_at"], "Samtale oppdatert");
       if (session.session_date) {
         const sessionTime = new Date(session.session_date).getTime();
         const today = new Date();
@@ -447,17 +448,22 @@ async function loadProgramSummaries() {
   });
   (areas || []).forEach((area) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === area.program_id);
-    if (summary) summary.areaCount += 1;
+    if (summary) {
+      summary.areaCount += 1;
+      registerSummaryActivity(summary, area, ["updated_at", "created_at"], "Fokus oppdatert");
+    }
   });
   (competencies || []).forEach((competency) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === competency.program_id);
     if (!summary) return;
     if (competency.status === "active") summary.activeCompetencyCount = (summary.activeCompetencyCount || 0) + 1;
     if (competency.status === "suggested") summary.suggestedCompetencyCount = (summary.suggestedCompetencyCount || 0) + 1;
+    registerSummaryActivity(summary, competency, ["updated_at", "created_at"], competency.status === "suggested" ? "Fokus foreslått" : "Fokus oppdatert");
   });
   (actions || []).forEach((action) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === action.program_id);
     if (!summary) return;
+    registerSummaryActivity(summary, action, ["updated_at", "created_at"], "Arbeidsnotat oppdatert");
     if (isExperimentActive(action.status)) {
       summary.activeExperimentCount = (summary.activeExperimentCount || 0) + 1;
       if (action.due_date && action.due_date < localIsoDate()) summary.overdueExperimentCount = (summary.overdueExperimentCount || 0) + 1;
@@ -469,15 +475,32 @@ async function loadProgramSummaries() {
     const summary = Object.values(state.programSummaries).find((item) => item.id === reflection.program_id);
     if (!summary) return;
     if (reflection.visibility === "shared_with_coach") summary.sharedReflectionCount = (summary.sharedReflectionCount || 0) + 1;
+    registerSummaryActivity(summary, reflection, ["created_at"], reflection.visibility === "shared_with_coach" ? "Refleksjon delt" : "Refleksjon opprettet");
   });
   (sharedResources || []).forEach((resource) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === resource.program_id);
     if (!summary) return;
     summary.sharedResourceCount = (summary.sharedResourceCount || 0) + 1;
+    registerSummaryActivity(summary, resource, ["reflected_at", "viewed_at", "updated_at", "shared_at", "created_at"], resource.reflected_at ? "Ressurs besvart" : resource.viewed_at ? "Ressurs åpnet" : "Ressurs delt");
     if (resource.status === "assigned" && !resource.viewed_at && !resource.reflected_at) {
       summary.newSharedResourceCount = (summary.newSharedResourceCount || 0) + 1;
     }
   });
+}
+
+function registerSummaryActivity(summary, record, fields, label) {
+  const timestamp = fields
+    .map((field) => record?.[field])
+    .filter(Boolean)
+    .map((value) => new Date(value))
+    .filter((date) => Number.isFinite(date.getTime()))
+    .sort((a, b) => b.getTime() - a.getTime())[0];
+  if (!timestamp) return;
+  const current = summary.lastActivityAt ? new Date(summary.lastActivityAt) : null;
+  if (!current || timestamp.getTime() > current.getTime()) {
+    summary.lastActivityAt = timestamp.toISOString();
+    summary.lastActivityLabel = label;
+  }
 }
 
 async function loadActiveSummaryRows(tableName, columns, fallbackColumns, programIds) {
@@ -636,7 +659,7 @@ function renderClients() {
     "Klientarbeid",
     "Klienter",
     canInviteClient() ? [createInviteAction()] : [],
-    "Følg utviklingsforløp, neste samtale og det som trenger oppmerksomhet."
+    "Se status, siste aktivitet og åpne klientplaner når du trenger kontekst."
   );
   const content = $("#content");
   const visibleClients = getVisibleClients();
@@ -656,6 +679,7 @@ function renderClients() {
   ], "all", "Filtrer på coach", render);
   const sortFilter = filterMenu([
     { value: "name", label: "Navn A-Å" },
+    { value: "recent-activity", label: "Sist aktivitet" },
     { value: "next-session", label: "Neste samtale" },
     { value: "created-desc", label: "Opprettet nyest" },
     { value: "created-asc", label: "Opprettet eldst" }
@@ -668,13 +692,13 @@ function renderClients() {
         mainStat("Coacher", String(filterCoaches.length), state.profile.role === "admin" ? "med klienttilgang" : "i ditt arbeidsrom", "user-round-check"),
         mainStat("Selskaper", String(companyCount), "representert", "building-2")
       ]),
-      coachRadarSection(visibleClients),
+      clientActivitySection(visibleClients),
       el("section", { class: "panel list-panel main-section main-client-section" }, [
         el("div", { class: "toolbar main-section-head" }, [
           el("div", {}, [
             el("p", { class: "eyebrow", text: "Utviklingsforløp" }),
             el("h2", { text: "Klientoversikt" }),
-            el("p", { class: "muted", text: "Åpne en klient for å arbeide videre med retning, lederkompetanser, samtaler og refleksjon." })
+            el("p", { class: "muted", text: "Åpne en klient for å se dokumentert retning, fokus, samtaler, refleksjoner og ressurser." })
           ]),
           el("span", { class: "ui-meta", text: `${visibleClients.length} totalt` })
         ]),
@@ -688,173 +712,95 @@ function renderClients() {
   render();
 }
 
-function coachRadarSection(clients) {
-  if (state.profile.role !== "coach") return null;
-  const items = coachRadarItems(clients);
+function clientActivitySection(clients) {
+  const items = clientActivityItems(clients);
   if (!items.length) return null;
-  const openCount = items.filter((item) => item.signal.attention).length;
-  return el("section", { class: "coach-radar main-section", "aria-label": "Coachradar" }, [
-    el("div", { class: "coach-radar-head" }, [
+  const recentCount = items.filter((item) => item.activity.recent).length;
+  return el("section", { class: "client-activity main-section", "aria-label": "Siste klientaktivitet" }, [
+    el("div", { class: "client-activity-head" }, [
       el("div", {}, [
-        el("p", { class: "eyebrow", text: "Coachradar" }),
-        el("h2", { text: "Hvem trenger blikket ditt nå?" }),
-        el("p", { class: "muted", text: "Prioritert etter aktivering, retning, fokus, eksperimenter, ressurser og neste samtale." })
+        el("p", { class: "eyebrow", text: "Siste aktivitet" }),
+        el("h2", { text: "Hva har skjedd siden sist?" }),
+        el("p", { class: "muted", text: "En enkel oversikt over nylige oppdateringer, uten krav om at alle bruker portalen aktivt mellom samtalene." })
       ]),
-      el("span", { class: `ui-status-pill ${openCount ? "attention" : "success"}`, text: openCount ? `${openCount} trenger oppfølging` : "Flyt på plass" })
+      el("span", { class: "ui-status-pill", text: recentCount ? `${recentCount} med nylig aktivitet` : "Ingen ny aktivitet" })
     ]),
-    el("div", { class: "coach-radar-grid" }, items.slice(0, 4).map((item) => coachRadarCard(item)))
+    el("div", { class: "client-activity-grid" }, items.slice(0, 4).map((item) => clientActivityCard(item)))
   ]);
 }
 
-function coachRadarItems(clients) {
+function clientActivityItems(clients) {
   return clients
-    .filter(canOpenClient)
-    .map((client) => ({ client, signal: coachRadarSignal(client) }))
-    .sort((a, b) => a.signal.priority - b.signal.priority || (a.client.name || "").localeCompare(b.client.name || "", "nb", { sensitivity: "base" }));
+    .map((client) => ({ client, activity: clientActivitySignal(client) }))
+    .sort((a, b) => b.activity.time - a.activity.time || (a.client.name || "").localeCompare(b.client.name || "", "nb", { sensitivity: "base" }));
 }
 
-function coachRadarSignal(client) {
+function clientActivitySignal(client) {
   const program = state.programSummaries[client.id];
+  const activityTime = program?.lastActivityAt ? new Date(program.lastActivityAt).getTime() : 0;
+  if (activityTime) {
+    return {
+      time: activityTime,
+      tone: "recent",
+      iconName: "activity",
+      label: program.lastActivityLabel || "Plan oppdatert",
+      detail: formatRelativeDate(program.lastActivityAt),
+      meta: program.nextSessionDate ? `Neste samtale ${formatDate(program.nextSessionDate)}` : "Neste samtale ikke planlagt",
+      recent: isRecentDate(program.lastActivityAt)
+    };
+  }
   if (!isClientActivated(client)) {
     return {
-      priority: 10,
-      tone: "attention",
+      time: 0,
+      tone: "quiet",
       iconName: "user-round-clock",
       label: "Venter på aktivering",
-      detail: "Klienten har ikke aktivert tilgangen ennå.",
-      action: "Følg opp tilgang",
-      attention: true
+      detail: "Ingen aktivitet registrert ennå.",
+      meta: "Tilgang sendt",
+      recent: false
     };
   }
   if (!hasClientConsent(client)) {
     return {
-      priority: 20,
-      tone: "attention",
+      time: 0,
+      tone: "quiet",
       iconName: "shield-alert",
       label: "Mangler samtykke",
-      detail: "Portalen bør ikke brukes aktivt før samtykket er på plass.",
-      action: "Åpne klient",
-      attention: true
-    };
-  }
-  if (!program) {
-    return {
-      priority: 25,
-      tone: "attention",
-      iconName: "file-warning",
-      label: "Forløp mangler",
-      detail: "Klienten er opprettet, men forløpsdata er ikke synlig.",
-      action: "Åpne klient",
-      attention: true
-    };
-  }
-  if (program.overdueExperimentCount > 0) {
-    return {
-      priority: 30,
-      tone: "attention",
-      iconName: "alarm-clock",
-      label: "Eksperiment trenger review",
-      detail: `${program.overdueExperimentCount} eksperiment${program.overdueExperimentCount === 1 ? "" : "er"} har passert tilbakeblikkdato.`,
-      action: "Åpne eksperimenter",
-      attention: true
-    };
-  }
-  if (!hasProgramContent(program) || (!program.purpose && !program.success_criteria && !program.activeCompetencyCount)) {
-    return {
-      priority: 40,
-      tone: "attention",
-      iconName: "compass",
-      label: "Retning/fokus bør settes",
-      detail: "Avklar ønsket effekt og hovedfokus før videre arbeid.",
-      action: "Åpne retning",
-      attention: true
-    };
-  }
-  if (program.newSharedResourceCount > 0) {
-    return {
-      priority: 50,
-      tone: "working",
-      iconName: "book-open-check",
-      label: "Ressurs venter hos klient",
-      detail: `${program.newSharedResourceCount} delt${program.newSharedResourceCount === 1 ? "" : "e"} ressurs${program.newSharedResourceCount === 1 ? "" : "er"} er ikke åpnet eller besvart.`,
-      action: "Se ressurser",
-      attention: true
-    };
-  }
-  if (program.sharedReflectionCount > 0) {
-    return {
-      priority: 60,
-      tone: "working",
-      iconName: "message-square-text",
-      label: "Delt refleksjon",
-      detail: `${program.sharedReflectionCount} refleksjon${program.sharedReflectionCount === 1 ? "" : "er"} er delt med coach.`,
-      action: "Les refleksjon",
-      attention: true
-    };
-  }
-  if (!program.nextSessionDate) {
-    return {
-      priority: 70,
-      tone: "working",
-      iconName: "calendar-plus",
-      label: "Neste samtale mangler",
-      detail: "Planlegg neste stoppunkt for å holde rytmen.",
-      action: "Planlegg samtale",
-      attention: true
-    };
-  }
-  const daysUntil = daysUntilDate(program.nextSessionDate);
-  if (daysUntil !== null && daysUntil <= 7) {
-    return {
-      priority: 80,
-      tone: "ready",
-      iconName: "calendar-clock",
-      label: "Samtale nærmer seg",
-      detail: `Neste samtale ${formatRelativeDays(daysUntil)}.`,
-      action: "Forbered",
-      attention: false
-    };
-  }
-  if (program.activeExperimentCount > 0) {
-    return {
-      priority: 90,
-      tone: "ready",
-      iconName: "sparkles",
-      label: "Eksperiment i gang",
-      detail: `${program.activeExperimentCount} aktivt eksperiment holder læringen i bevegelse.`,
-      action: "Følg utvikling",
-      attention: false
+      detail: "Klienten har ikke gitt samtykke i portalen.",
+      meta: "Avventer",
+      recent: false
     };
   }
   return {
-    priority: 100,
-    tone: "ready",
+    time: 0,
+    tone: "quiet",
     iconName: "circle-check",
-    label: "Stabil flyt",
-    detail: "Forløpet har retning og et planlagt neste stoppunkt.",
-    action: "Åpne klient",
-    attention: false
+    label: "Ingen ny aktivitet",
+    detail: hasProgramContent(program) ? "Planen ligger dokumentert." : "Lite er dokumentert i portalen ennå.",
+    meta: program?.nextSessionDate ? `Neste samtale ${formatDate(program.nextSessionDate)}` : "Ingen dato",
+    recent: false
   };
 }
 
-function coachRadarCard({ client, signal }) {
+function clientActivityCard({ client, activity }) {
   const name = client.name || "Uten navn";
-  const program = state.programSummaries[client.id];
+  const canOpen = canOpenClient(client);
   return el("button", {
-    class: `coach-radar-card is-${signal.tone}`,
+    class: `client-activity-card is-${activity.tone} ${canOpen ? "" : "is-locked"}`,
     type: "button",
+    disabled: !canOpen,
     onclick: () => openClientPlan(client)
   }, [
-    el("span", { class: "coach-radar-icon", "aria-hidden": "true" }, [icon(signal.iconName)]),
-    el("span", { class: "coach-radar-copy" }, [
+    el("span", { class: "client-activity-icon", "aria-hidden": "true" }, [icon(activity.iconName)]),
+    el("span", { class: "client-activity-copy" }, [
       el("strong", { text: name }),
       el("small", { text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" }),
-      el("span", { class: "coach-radar-signal", text: signal.label }),
-      el("span", { class: "coach-radar-detail", text: signal.detail })
+      el("span", { class: "client-activity-signal", text: activity.label }),
+      el("span", { class: "client-activity-detail", text: activity.detail })
     ]),
-    el("span", { class: "coach-radar-meta" }, [
-      el("small", { text: program?.nextSessionDate ? formatDate(program.nextSessionDate) : "Ingen dato" }),
-      el("span", { text: signal.action })
+    el("span", { class: "client-activity-meta" }, [
+      el("small", { text: activity.meta }),
+      el("span", { text: canOpen ? "Åpne" : "Kun oversikt" })
     ]),
     icon("chevron-right")
   ]);
@@ -869,6 +815,7 @@ function clientGrid(clients) {
     const hasConsent = hasClientConsent(client);
     const name = client.name || "Uten navn";
     const nextSession = program?.nextSessionDate ? formatDate(program.nextSessionDate) : "Ikke planlagt";
+    const activityLabel = program?.lastActivityAt ? formatRelativeDate(program.lastActivityAt) : "Ingen aktivitet";
     return el("button", {
       class: `client-list-row ${canOpen ? "" : "is-locked"}`,
       disabled: !canOpen,
@@ -881,8 +828,8 @@ function clientGrid(clients) {
         el("small", { text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" })
       ]),
       el("span", { class: "client-list-detail" }, [
-        el("small", { text: "Coach" }),
-        el("strong", { text: coachNames(client) || "Ikke tildelt" })
+        el("small", { text: "Sist aktivitet" }),
+        el("strong", { text: activityLabel })
       ]),
       el("span", { class: "client-list-detail" }, [
         el("small", { text: "Neste samtale" }),
@@ -2113,7 +2060,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-118")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-119")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -3905,20 +3852,27 @@ function createNowAction({ key, priority, kicker, title, description, reason, ic
   return { key, priority, kicker, title, description, reason, iconName, ctaLabel, onAction };
 }
 
+function nowActionSummary(action) {
+  const parsed = parseActionDescription(action?.description || "");
+  return parsed.action || parsed.hypothesis || parsed.observation || parsed.learning || parsed.nextStep || parsed.signals || "";
+}
+
+function contentPreviewText(value, maxLength = 120) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1).trim()}…`;
+}
+
+function hasNowActionContent(action) {
+  return Boolean((action?.title || "").trim() || nowActionSummary(action));
+}
+
 function nowActionItems({ data, plan, editable }) {
   const directionSpecs = getDirectionSpecs(plan);
   const missingDirection = directionSpecs.find((spec) => !directionSpecHasValue(spec));
   const primary = primaryLeadershipCompetency(data);
-  const activeCompetencies = activeLeadershipCompetencies(data);
-  const focusItems = nowFocusAssignments(plan);
   const activeActions = (data.actions || []).filter((action) => isExperimentActive(action.status));
-  const overdueAction = activeActions.find((action) => action.due_date && action.due_date < localIsoDate());
-  const activeAction = overdueAction || activeActions[0] || null;
-  const reviewCandidate = activeActions.find((action) => !hasActionReviewContent(action)) || (data.actions || []).find((action) => isExperimentReviewed(action.status) && !hasActionReviewContent(action));
-  const focusWithoutPractice = focusItems.find((item) => {
-    const linkedActions = (data.actions || []).filter((action) => action.development_area_id === item.area.id);
-    return !item.area.nextPractice && !linkedActions.some((action) => isExperimentActive(action.status));
-  });
+  const datedAction = activeActions.find((action) => action.due_date && action.due_date <= localIsoDate() && hasNowActionContent(action));
   const resource = latestRelevantResource(data);
   const relevant = relevantSession(plan);
   const session = relevant?.session || null;
@@ -3930,9 +3884,9 @@ function nowActionItems({ data, plan, editable }) {
       key: "direction",
       priority: 10,
       kicker: "Retning",
-      title: "Sett retning for arbeidet",
+      title: "Retningen er ikke helt dokumentert",
       description: missingDirection.label,
-      reason: "Forløpet trenger en tydelig retning før fokus og eksperimenter får nok kraft.",
+      reason: "Noen få linjer holder. Dette skal gi felles kontekst, ikke bli en ekstra oppgave.",
       iconName: "target",
       ctaLabel: "Åpne retning",
       onAction: () => activateWorkspacePane("direction")
@@ -3944,66 +3898,23 @@ function nowActionItems({ data, plan, editable }) {
       key: "competency",
       priority: 20,
       kicker: "Fokus",
-      title: "Velg hovedfokus",
-      description: "Start med én lederkompetanse som betyr mest akkurat nå.",
-      reason: "Et tydelig hovedfokus gjør det enklere å velge praksis, samtaletema og refleksjon.",
+      title: "Hovedfokus er ikke valgt",
+      description: "Velg én lederkompetanse hvis dere vil bruke portalen til å samle utviklingsarbeidet rundt et tydelig tema.",
+      reason: "Dette er valgfritt, men nyttig som felles referanse for samtaler og notater.",
       iconName: "compass",
       ctaLabel: "Velg lederkompetanse",
       onAction: () => openCompetencyChooser(data)
     }));
   }
 
-  if (activeAction) {
-    const parsed = parseActionDescription(activeAction.description || "");
-    items.push(createNowAction({
-      key: "experiment",
-      priority: overdueAction ? 1 : 30,
-      kicker: overdueAction ? "Forfalt eksperiment" : "Eksperiment",
-      title: activeAction.title || "Følg opp eksperimentet",
-      description: parsed.action || parsed.hypothesis || activeAction.description || (activeAction.due_date ? `Se tilbake ${formatDate(activeAction.due_date)}` : "Hva har du prøvd, og hva la du merke til?"),
-      reason: overdueAction ? "Du hadde satt en dato for å se tilbake på dette." : "Aktive eksperimenter skaper læring når de følges opp raskt.",
-      iconName: overdueAction ? "alarm-clock" : "flask-conical",
-      ctaLabel: "Følg opp",
-      onAction: () => editAction(activeAction, data)
-    }));
-  }
-
-  if (reviewCandidate) {
-    items.push(createNowAction({
-      key: "reflection",
-      priority: activeAction ? 50 : 35,
-      kicker: "Læring",
-      title: "Ta vare på erfaringen",
-      description: "Skriv ned hva som skjedde, hva du lærte og hva du vil prøve videre.",
-      reason: "Refleksjon gjør forsøket nyttig for neste samtale og neste valg.",
-      iconName: "message-square-quote",
-      ctaLabel: "Skriv refleksjon",
-      onAction: openNowReflection
-    }));
-  }
-
-  if (focusWithoutPractice) {
-    items.push(createNowAction({
-      key: "focus",
-      priority: 40,
-      kicker: "Fokusoppdrag",
-      title: focusWithoutPractice.area.title || "Gjør fokus konkret",
-      description: "Knytt fokusoppdraget til neste praksis eller et lite eksperiment.",
-      reason: "Fokus blir lettere å følge opp når det er koblet til en konkret handling.",
-      iconName: "briefcase-business",
-      ctaLabel: "Åpne fokus",
-      onAction: () => openNowFocusAssignment(focusWithoutPractice)
-    }));
-  }
-
-  if (resource) {
+  if (resource?.status === "assigned") {
     items.push(createNowAction({
       key: "resource",
-      priority: resource.status === "assigned" ? 25 : 70,
-      kicker: resource.status === "assigned" ? "Ny ressurs" : "Ressurs",
-      title: resource.resource?.title || "Åpne ressurs",
-      description: resource.coach_note || resource.resource?.summary || "Coachen har valgt ut dette for deg.",
-      reason: resource.status === "assigned" ? "Denne er delt med deg og er ikke åpnet ennå." : "Ressursen kan støtte arbeidet du står i nå.",
+      priority: 30,
+      kicker: "Ressurs",
+      title: resource.resource?.title || "Ressurs fra coach",
+      description: resource.coach_note || resource.resource?.summary || "Coachen har delt en ressurs som kan være relevant for forløpet.",
+      reason: "Åpne den hvis den er nyttig nå. Den kan også bare ligge som dokumentasjon.",
       iconName: "book-open",
       ctaLabel: "Åpne ressurs",
       onAction: () => openNowResource(resource, data)
@@ -4013,14 +3924,57 @@ function nowActionItems({ data, plan, editable }) {
   if (session) {
     items.push(createNowAction({
       key: "session",
-      priority: 60,
+      priority: relevant.upcoming ? 35 : 60,
       kicker: "Samtale",
-      title: relevant.upcoming && session.date ? `Forbered ${formatDate(session.date)}` : "Åpne samtalene",
-      description: session.focus || session.goal || "Samle det viktigste du vil ta opp med coachen.",
-      reason: relevant.upcoming ? "Samtalen blir bedre når erfaringer, spørsmål og neste steg er samlet på forhånd." : "Bruk siste samtale som anker for hva du vil prøve eller ta opp videre.",
+      title: relevant.upcoming && session.date ? `Neste samtale ${formatDate(session.date)}` : "Samtaler og notater",
+      description: session.focus || session.goal || "Her kan du samle det som er relevant før eller etter en coachingsamtale.",
+      reason: relevant.upcoming ? "Bruk dette som støtte hvis du vil forberede deg. Det er ikke et krav." : "Samtalene kan fungere som historikk for forløpet.",
       iconName: "messages-square",
       ctaLabel: "Åpne samtaler",
       onAction: () => activateWorkspacePane("sessions")
+    }));
+  }
+
+  if (datedAction) {
+    const summary = nowActionSummary(datedAction);
+    items.push(createNowAction({
+      key: "action-note",
+      priority: 50,
+      kicker: "Arbeidsnotat",
+      title: datedAction.title || "Notat med tilbakeblikkdato",
+      description: summary || (datedAction.due_date ? `Dato satt til ${formatDate(datedAction.due_date)}.` : "Dette notatet kan åpnes hvis du vil oppdatere det."),
+      reason: "Datoen betyr bare at dette kan være verdt å se på. Hopp over hvis det ikke er relevant.",
+      iconName: "calendar-clock",
+      ctaLabel: "Åpne notat",
+      onAction: () => editAction(datedAction, data)
+    }));
+  }
+
+  if (reflection) {
+    items.push(createNowAction({
+      key: "reflection",
+      priority: 70,
+      kicker: "Refleksjon",
+      title: "Siste refleksjon ligger i planen",
+      description: reflection.body ? contentPreviewText(reflection.body, 120) : "Refleksjonen er lagret i historikken.",
+      reason: reflection.visibility === "shared_with_coach" ? "Denne er delt med coach." : "Denne er privat, med mindre du velger å dele den.",
+      iconName: "message-square-text",
+      ctaLabel: "Åpne refleksjon",
+      onAction: () => activateWorkspacePane("reflections")
+    }));
+  }
+
+  if (resource && resource.status !== "assigned") {
+    items.push(createNowAction({
+      key: "resource-history",
+      priority: 80,
+      kicker: "Ressurs",
+      title: resource.resource?.title || "Ressurs i planen",
+      description: resource.resource?.summary || "Ressursen ligger tilgjengelig i planen.",
+      reason: "Bruk den når den er relevant.",
+      iconName: "book-open",
+      ctaLabel: "Åpne ressurs",
+      onAction: () => openNowResource(resource, data)
     }));
   }
 
@@ -4028,31 +3982,31 @@ function nowActionItems({ data, plan, editable }) {
     items.push(createNowAction({
       key: "start",
       priority: 100,
-      kicker: "Start",
-      title: "Velg hva du vil utvikle først",
-      description: "Sett retning, velg hovedfokus og legg til et fokusoppdrag.",
-      reason: "Når de tre delene er på plass, kan portalen foreslå mer presise neste steg.",
-      iconName: "sparkles",
+      kicker: "Oversikt",
+      title: "Planen er klar til å fylles ut når dere trenger den",
+      description: "Du kan bruke portalen som enkel dokumentasjon for retning, fokus, samtaler og ressurser.",
+      reason: "Det er helt greit å bruke lite av gangen.",
+      iconName: "file-text",
       ctaLabel: "Start i retning",
       onAction: () => activateWorkspacePane("direction")
     }));
   }
 
-  if (!items.some((item) => item.key === "reflection") && editable && (activeCompetencies.length || focusItems.length || reflection)) {
+  if (!items.length && !editable) {
     items.push(createNowAction({
-      key: "quick-reflection",
-      priority: 90,
-      kicker: "Refleksjon",
-      title: "Noe du vil huske?",
-      description: "Noter det mens det er ferskt. Du bestemmer hva du deler.",
-      reason: "Små observasjoner er ofte det som gjør neste samtale konkret.",
-      iconName: "pencil-line",
-      ctaLabel: "Skriv refleksjon",
-      onAction: openNowReflection
+      key: "overview",
+      priority: 100,
+      kicker: "Oversikt",
+      title: "Planen ligger som dokumentasjon",
+      description: "Her vises det som er dokumentert i forløpet.",
+      reason: "",
+      iconName: "file-text",
+      ctaLabel: "",
+      onAction: null
     }));
   }
 
-  return items.sort((a, b) => a.priority - b.priority).slice(0, 5);
+  return items.sort((a, b) => a.priority - b.priority).slice(0, 4);
 }
 
 function nowWorkspace(client, data, plan) {
@@ -4063,10 +4017,10 @@ function nowWorkspace(client, data, plan) {
   const primaryCompetency = primaryLeadershipCompetency(data);
   const focusItems = nowFocusAssignments(plan);
   return el("div", { class: "platform-page now-workspace now-workspace-v2" }, [
-    pageIntro("Akkurat nå", "Neste beste steg", "Start her når du vil holde utviklingen i bevegelse."),
+    pageIntro("Akkurat nå", "Oversikt akkurat nå", "Et rolig sammendrag av det som er dokumentert i forløpet."),
     primary ? nowPrimaryAction(primary, editable) : nowEmptyState(editable),
     nowActionGrid(supporting, editable),
-    nowProgressStrip({ primaryCompetency, focusItems, actions: data.actions || [] })
+    nowProgressStrip({ primaryCompetency, focusItems, actions: data.actions || [], sessions: plan.sessions || [], resources: data.sharedResources || [] })
   ].filter(Boolean));
 }
 
@@ -4087,8 +4041,8 @@ function nowActionGrid(items = [], editable) {
   if (!items.length) return null;
   return el("section", { class: "now-action-section", "aria-labelledby": "now-action-title" }, [
     el("div", { class: "now-section-heading" }, [
-      el("span", { class: "workspace-kicker", text: "Også viktig" }),
-      el("h3", { id: "now-action-title", text: "Hold flyten videre" })
+      el("span", { class: "workspace-kicker", text: "I planen" }),
+      el("h3", { id: "now-action-title", text: "Relevant dokumentasjon" })
     ]),
     el("div", { class: "now-action-grid" }, items.map((item) => el("button", { class: "now-action-card", type: "button", disabled: !editable || !item.onAction, onclick: item.onAction }, [
       el("span", { class: "now-action-icon", "aria-hidden": "true" }, [icon(item.iconName || "arrow-right")]),
@@ -4103,20 +4057,14 @@ function nowActionGrid(items = [], editable) {
   ]);
 }
 
-function nowProgressStrip({ primaryCompetency, focusItems, actions }) {
-  const activeActions = actions.filter((action) => isExperimentActive(action.status)).length;
-  const reviewedActions = actions.filter((action) => isExperimentReviewed(action.status)).length;
+function nowProgressStrip({ primaryCompetency, focusItems, actions, sessions, resources }) {
   return el("section", { class: "now-progress-strip", "aria-label": "Status i utviklingsforløpet" }, [
     nowProgressMetric("Hovedfokus", primaryCompetency?.title || "Ikke valgt", "compass", () => primaryCompetency ? openNowCompetency(primaryCompetency) : activateWorkspacePane("work")),
     nowProgressMetric("Fokusoppdrag", focusItems.length ? String(focusItems.length) : "Ingen", "briefcase-business", () => activateWorkspacePane("work")),
-    nowProgressMetric("Åpne eksperimenter", String(activeActions), "flask-conical", () => {
+    nowProgressMetric("Samtaler", String(sessions.length || 0), "messages-square", () => activateWorkspacePane("sessions")),
+    nowProgressMetric("Ressurser", String(resources.length || 0), "book-open", () => activateWorkspacePane("resources")),
+    nowProgressMetric("Arbeidsnotater", String(actions.length || 0), "file-text", () => {
       state.focusView = "experiments";
-      state.experimentView = "active";
-      renderCachedProgram("work");
-    }),
-    nowProgressMetric("Læring i historikk", String(reviewedActions), "history", () => {
-      state.focusView = "experiments";
-      state.experimentView = "history";
       renderCachedProgram("work");
     })
   ]);
@@ -4134,12 +4082,12 @@ function nowProgressMetric(label, value, iconName, onAction) {
 
 function nowEmptyState(editable) {
   return el("section", { class: "now-primary-action now-empty-action", "aria-labelledby": "now-empty-title" }, [
-    el("span", { class: "now-primary-icon", "aria-hidden": "true" }, [icon("sparkles")]),
+    el("span", { class: "now-primary-icon", "aria-hidden": "true" }, [icon("file-text")]),
     el("div", { class: "now-primary-copy" }, [
-      el("span", { class: "workspace-kicker", text: "Start" }),
-      el("h3", { id: "now-empty-title", text: "Bygg første utviklingssløyfe" }),
-      el("p", { text: "Sett retning, velg hovedfokus og prøv ett lite eksperiment i arbeidshverdagen." }),
-      el("small", { text: "Hvorfor nå: Portalen blir mest nyttig når den kan koble mål, praksis og læring." })
+      el("span", { class: "workspace-kicker", text: "Oversikt" }),
+      el("h3", { id: "now-empty-title", text: "Planen er tom foreløpig" }),
+      el("p", { text: "Fyll ut retning, fokus eller samtalenotater når det gir verdi i forløpet." }),
+      el("small", { text: "Portalen kan brukes som enkel dokumentasjon. Det er ikke meningen at alt skal fylles ut." })
     ]),
     editable ? el("button", { class: "ui-button ui-button-filled now-primary-cta", type: "button", text: "Start i retning", onclick: () => activateWorkspacePane("direction") }) : null
   ].filter(Boolean));
@@ -6564,10 +6512,15 @@ function sortClients(clients, sortBy = "name") {
     const date = state.programSummaries[client.id]?.nextSessionDate;
     return date ? new Date(date).getTime() : Number.POSITIVE_INFINITY;
   };
+  const activityTime = (client) => {
+    const date = state.programSummaries[client.id]?.lastActivityAt;
+    return date ? new Date(date).getTime() : 0;
+  };
   return [...clients].sort((a, b) => {
     if (sortBy === "created-desc") return createdTime(b) - createdTime(a) || byName(a, b);
     if (sortBy === "created-asc") return createdTime(a) - createdTime(b) || byName(a, b);
     if (sortBy === "next-session") return nextSessionTime(a) - nextSessionTime(b) || byName(a, b);
+    if (sortBy === "recent-activity") return activityTime(b) - activityTime(a) || byName(a, b);
     return byName(a, b);
   });
 }
@@ -6639,6 +6592,30 @@ function showAppMessage(title, message, options = {}) {
 function formatDate(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("no-NO", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function daysSinceDate(iso) {
+  if (!iso) return null;
+  const source = new Date(iso);
+  if (Number.isNaN(source.getTime())) return null;
+  const today = new Date();
+  source.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return Math.round((today.getTime() - source.getTime()) / 86400000);
+}
+
+function isRecentDate(iso, days = 14) {
+  const elapsed = daysSinceDate(iso);
+  return elapsed !== null && elapsed >= 0 && elapsed <= days;
+}
+
+function formatRelativeDate(iso) {
+  const elapsed = daysSinceDate(iso);
+  if (elapsed === null) return "";
+  if (elapsed === 0) return "I dag";
+  if (elapsed === 1) return "I går";
+  if (elapsed > 1 && elapsed <= 14) return `For ${elapsed} dager siden`;
+  return formatDate(iso);
 }
 
 function daysUntilDate(iso) {
