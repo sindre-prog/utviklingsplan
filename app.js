@@ -411,9 +411,9 @@ async function loadProgramSummaries() {
   });
   const programIds = (programs || []).map((program) => program.id);
   if (!programIds.length) return;
-  const [{ data: sessions }, { data: areas }] = await Promise.all([
-    state.sb.from("coaching_sessions").select("id, program_id, session_date").in("program_id", programIds),
-    state.sb.from("development_areas").select("id, program_id").in("program_id", programIds)
+  const [sessions, areas] = await Promise.all([
+    loadActiveSummaryRows("coaching_sessions", "id, program_id, session_date, archived_at", "id, program_id, session_date", programIds),
+    loadActiveSummaryRows("development_areas", "id, program_id, archived_at", "id, program_id", programIds)
   ]);
   (sessions || []).forEach((session) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === session.program_id);
@@ -434,6 +434,24 @@ async function loadProgramSummaries() {
     const summary = Object.values(state.programSummaries).find((item) => item.id === area.program_id);
     if (summary) summary.areaCount += 1;
   });
+}
+
+async function loadActiveSummaryRows(tableName, columns, fallbackColumns, programIds) {
+  const { data, error } = await state.sb
+    .from(tableName)
+    .select(columns)
+    .in("program_id", programIds);
+  if (!error) return (data || []).filter(isActiveRecord);
+  if (!isMissingColumnError(error)) return [];
+  const { data: fallbackData } = await state.sb
+    .from(tableName)
+    .select(fallbackColumns)
+    .in("program_id", programIds);
+  return fallbackData || [];
+}
+
+function isActiveRecord(record) {
+  return !record?.archived_at;
 }
 
 function renderShell() {
@@ -1878,7 +1896,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-114")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-115")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2336,8 +2354,8 @@ async function loadClientProgram(client) {
   ]);
   const payload = {
     program,
-    areas: areas || [],
-    sessions: sessions || [],
+    areas: (areas || []).filter(isActiveRecord),
+    sessions: (sessions || []).filter(isActiveRecord),
     actions: actions || [],
     reflections: reflections || [],
     evaluation: evaluations?.[0] || null,
@@ -3939,7 +3957,7 @@ function focusDetail({ area, index }, data, editable) {
           onSave: async (nextValue) => saveFocusField(index, "title", nextValue)
         })
       ]),
-      editable ? iconAction("Slett fokusoppdrag", "trash-2", () => deleteFocusArea(index), "danger") : null
+      editable ? iconAction("Arkiver fokusoppdrag", "archive", () => deleteFocusArea(index), "danger") : null
     ].filter(Boolean)),
     workspaceNextStep({
       complete: planStatus.ready,
@@ -4189,7 +4207,7 @@ function sessionDetail(session, index, editable, data = null) {
           onSave: async (nextValue) => saveSessionField(index, "focus", nextValue)
         })
       ]),
-      editable ? iconAction("Slett samtale", "trash-2", () => deleteSession(index), "danger") : null
+      editable ? iconAction("Arkiver samtale", "archive", () => deleteSession(index), "danger") : null
     ].filter(Boolean)),
     workspaceNextStep({
       complete: progress.completed === 5,
@@ -4394,12 +4412,16 @@ function addFocusArea() {
 }
 
 async function deleteFocusArea(index) {
-  if (!(await confirmDelete("Slette dette fokusoppdraget?"))) return false;
+  if (!(await confirmDelete("Arkivere dette fokusoppdraget? Eksperimenter, refleksjoner og delte ressurser bevares i historikken.", {
+    kicker: "Fokusoppdrag",
+    title: "Arkiver fokusoppdrag?",
+    confirmLabel: "Arkiver"
+  }))) return false;
   const areas = getAreas();
   const area = areas[index];
   if (area?.id) {
-    const { error } = await state.sb.from("development_areas").delete().eq("id", area.id);
-    if (error) throw error;
+    const archived = await archiveRecord("development_areas", area.id, "fokusoppdraget");
+    if (!archived) return false;
   }
   setAreas(areas.filter((_, itemIndex) => itemIndex !== index));
   markDirty();
@@ -4461,12 +4483,16 @@ function addSession() {
 }
 
 async function deleteSession(index) {
-  if (!(await confirmDelete("Slette denne samtalen?"))) return false;
+  if (!(await confirmDelete("Arkivere denne samtalen? Eksperimenter, refleksjoner og delte ressurser bevares i historikken.", {
+    kicker: "Samtale",
+    title: "Arkiver samtale?",
+    confirmLabel: "Arkiver"
+  }))) return false;
   const sessions = getSessions();
   const session = sessions[index];
   if (session?.id) {
-    const { error } = await state.sb.from("coaching_sessions").delete().eq("id", session.id);
-    if (error) throw error;
+    const archived = await archiveRecord("coaching_sessions", session.id, "samtalen");
+    if (!archived) return false;
   }
   setSessions(sessions.filter((_, itemIndex) => itemIndex !== index));
   markDirty();
@@ -4474,6 +4500,20 @@ async function deleteSession(index) {
   if (!saved) return false;
   await reloadProgramAndRender("sessions");
   return true;
+}
+
+async function archiveRecord(tableName, id, label) {
+  const { error } = await state.sb
+    .from(tableName)
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", id);
+  if (!error) return true;
+  if (isMissingColumnError(error)) {
+    await showAppMessage("Arkivering er ikke aktivert ennå", "Databaseoppdateringen må kjøres før dette kan arkiveres trygt.");
+    return false;
+  }
+  await showAppMessage(`Kunne ikke arkivere ${label}`, userFacingError(error, "Prøv igjen."));
+  return false;
 }
 
 function setSessions(values) {
