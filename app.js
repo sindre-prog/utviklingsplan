@@ -1893,7 +1893,7 @@ async function ensureLeadershipLibrary() {
 }
 
 function canShareResources() {
-  return state.profile?.role === "coach" || state.profile?.role === "admin";
+  return state.profile?.role === "coach";
 }
 
 function openSendResourceDrawer(resource) {
@@ -2049,7 +2049,6 @@ function createResourceContextPicker(resource, clients) {
 
 function canShareResourceToClient(client) {
   if (!client) return false;
-  if (state.profile.role === "admin") return true;
   const coachId = state.coach?.id;
   return Boolean(coachId && (client.coach_ids || []).includes(coachId));
 }
@@ -5313,25 +5312,7 @@ async function savePlan() {
     const current = state.programCache[client.id] || await loadClientProgram(client);
     if (!current) throw new Error("Klientforløpet kunne ikke åpnes. Last siden på nytt og prøv igjen.");
     const plan = collectPlan();
-    const programValues = {
-      purpose: plan.c_purpose,
-      success_criteria: plan.c_success,
-      expectations_coach: plan.c_expect_coach,
-      expectations_client: plan.c_expect_client,
-      confidentiality: plan.c_confidentiality,
-      practical_frame: plan.c_practical,
-      start_date: plan.c_start || null,
-      end_date: plan.c_end || null,
-      session_count: plan.c_sessions ? Number(plan.c_sessions) : null,
-      session_duration: plan.c_duration || null,
-      status: "active"
-    };
-    if ("c_context" in plan) programValues.context = plan.c_context || null;
-    const { error: programError } = await state.sb.from("coaching_programs").update(programValues).eq("id", current.program.id);
-    if (programError) throw programError;
-    await saveAreas(current.program.id, plan.areas);
-    await saveSessions(current.program.id, plan.sessions);
-    await saveEvaluation(current.program.id, plan);
+    await savePlanTransactionally(current.program.id, plan);
     delete state.programCache[client.id];
     await loadProgramSummaries();
     state.dirty = false;
@@ -5344,6 +5325,90 @@ async function savePlan() {
     await showAppMessage("Kunne ikke lagre", userFacingError(error, "Prøv igjen."));
     return false;
   }
+}
+
+function programValuesFromPlan(plan) {
+  const values = {
+    purpose: plan.c_purpose,
+    success_criteria: plan.c_success,
+    expectations_coach: plan.c_expect_coach,
+    expectations_client: plan.c_expect_client,
+    confidentiality: plan.c_confidentiality,
+    practical_frame: plan.c_practical,
+    start_date: plan.c_start || null,
+    end_date: plan.c_end || null,
+    session_count: plan.c_sessions ? Number(plan.c_sessions) : null,
+    session_duration: plan.c_duration || null,
+    status: "active"
+  };
+  if ("c_context" in plan) values.context = plan.c_context || null;
+  return values;
+}
+
+function areaRowsForSave(programId, areas) {
+  return areas
+    .map((area, index) => ({ ...normalizeArea(area), index }))
+    .map((area) => ({
+      id: area.id || "",
+      program_id: programId,
+      title: area.title,
+      description: area.movement || area.description || null,
+      project_type: area.projectType || "inner",
+      movement: area.movement || null,
+      typical_situations: area.typicalSituations || null,
+      progress_signs: area.progressSigns || null,
+      next_practice: null,
+      sort_order: area.index
+    }))
+    .filter((row) => row.title || row.description || row.movement || row.typical_situations || row.progress_signs);
+}
+
+function sessionRowsForSave(programId, sessions) {
+  return sessions.map((session, index) => ({
+    id: session.id || "",
+    program_id: programId,
+    session_number: index + 1,
+    session_date: session.date || null,
+    focus: session.focus || null,
+    conversation_goal: session.goal || null,
+    insights: session.notes || null,
+    decisions: session.actions || null,
+    client_notes: session.reflection || null
+  })).filter((session) => session.session_date || session.focus || session.conversation_goal || session.insights || session.decisions || session.client_notes);
+}
+
+function evaluationPayloadForSave(programId, plan) {
+  return {
+    program_id: programId,
+    achieved: plan.eval_achieved || null,
+    reflection: plan.eval_reflection || null,
+    next_steps: plan.eval_next || null
+  };
+}
+
+async function savePlanTransactionally(programId, plan) {
+  const programValues = programValuesFromPlan(plan);
+  const areas = areaRowsForSave(programId, plan.areas);
+  const sessions = sessionRowsForSave(programId, plan.sessions);
+  const evaluation = evaluationPayloadForSave(programId, plan);
+  const { error } = await state.sb.rpc("save_development_plan_safe", {
+    p_program_id: programId,
+    p_program: programValues,
+    p_areas: areas,
+    p_sessions: sessions,
+    p_evaluation: evaluation
+  });
+  if (!error) return;
+  if (!isMissingFunctionError(error)) throw error;
+  await savePlanLegacy(programId, plan, programValues, areas, sessions, evaluation);
+}
+
+async function savePlanLegacy(programId, plan, programValues = programValuesFromPlan(plan), areas = areaRowsForSave(programId, plan.areas), sessions = sessionRowsForSave(programId, plan.sessions), evaluation = evaluationPayloadForSave(programId, plan)) {
+  const { error: programError } = await state.sb.from("coaching_programs").update(programValues).eq("id", programId);
+  if (programError) throw programError;
+  await saveAreaRows(areas);
+  await saveSessionRows(sessions);
+  await saveEvaluationPayload(evaluation);
 }
 
 function collectPlan() {
@@ -5429,21 +5494,11 @@ function getSessions() {
 }
 
 async function saveAreas(programId, areas) {
-  const rows = areas
-    .map((area, index) => ({ ...normalizeArea(area), index }))
-    .map((area) => ({
-      id: area.id || "",
-      program_id: programId,
-      title: area.title,
-      description: area.movement || area.description || null,
-      project_type: area.projectType || "inner",
-      movement: area.movement || null,
-      typical_situations: area.typicalSituations || null,
-      progress_signs: area.progressSigns || null,
-      next_practice: null,
-      sort_order: area.index
-    }))
-    .filter((row) => row.title || row.description || row.movement || row.typical_situations || row.progress_signs);
+  const rows = areaRowsForSave(programId, areas);
+  await saveAreaRows(rows);
+}
+
+async function saveAreaRows(rows) {
   for (const row of rows) {
     if (row.id) await updateArea(row);
     else await insertArea(row);
@@ -5479,17 +5534,11 @@ function legacyAreaRow(row) {
 }
 
 async function saveSessions(programId, sessions) {
-  const rows = sessions.map((session, index) => ({
-    id: session.id || "",
-    program_id: programId,
-    session_number: index + 1,
-    session_date: session.date || null,
-    focus: session.focus || null,
-    conversation_goal: session.goal || null,
-    insights: session.notes || null,
-    decisions: session.actions || null,
-    client_notes: session.reflection || null
-  })).filter((session) => session.session_date || session.focus || session.conversation_goal || session.insights || session.decisions || session.client_notes);
+  const rows = sessionRowsForSave(programId, sessions);
+  await saveSessionRows(rows);
+}
+
+async function saveSessionRows(rows) {
   for (const row of rows) {
     if (row.id) await updateSession(row);
     else await insertSession(row);
@@ -5521,12 +5570,11 @@ function legacySessionRow(row) {
 }
 
 async function saveEvaluation(programId, plan) {
-  const payload = {
-    program_id: programId,
-    achieved: plan.eval_achieved || null,
-    reflection: plan.eval_reflection || null,
-    next_steps: plan.eval_next || null
-  };
+  const payload = evaluationPayloadForSave(programId, plan);
+  await saveEvaluationPayload(payload);
+}
+
+async function saveEvaluationPayload(payload) {
   const hasEvaluation = payload.achieved || payload.reflection || payload.next_steps;
   if (!hasEvaluation) return;
   const { error } = await state.sb.from("program_evaluations").upsert(payload, { onConflict: "program_id" });
