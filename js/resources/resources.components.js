@@ -229,6 +229,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
     renderSelected,
     createIcon = null,
     selectedId = null,
+    assignedLabel = "Ny",
     emptyTitle = "Ingen ressurser fra coach ennå",
     emptyText = "Når coachen sender en ressurs, vises den her."
   } = options;
@@ -261,7 +262,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
           createElement("strong", { text: displayText(resource.title, "Ressurs") }),
           createElement("span", { class: "client-resource-footer" }, [
             contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null,
-            createSharedResourceStatus(sharedResource.status, { createElement })
+            createSharedResourceStatus(sharedResource.status, { createElement, assignedLabel })
           ].filter(Boolean))
         ].filter(Boolean)),
         createElement("span", { class: "client-resource-action", title: selected ? "Valgt ressurs" : "Åpne ressurs" }, [
@@ -393,11 +394,11 @@ export function createClientResourceView(sharedResource, options = {}) {
 }
 
 export function createSharedResourceStatus(status, options = {}) {
-  const { createElement } = options;
+  const { createElement, assignedLabel = "Ny" } = options;
   requireCreateElement(createElement);
 
   const labels = {
-    assigned: "Ny",
+    assigned: assignedLabel,
     viewed: "Åpnet",
     responded: "Refleksjon lagret",
     archived: "Arkivert"

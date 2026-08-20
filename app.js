@@ -1853,7 +1853,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-98")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-99")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1877,7 +1877,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-111")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-112")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2389,15 +2389,13 @@ function programToFormState(data) {
 }
 
 function defaultWorkspacePane() {
-  return state.profile?.role === "client" ? "now" : "direction";
+  return "now";
 }
 
 function clientWorkspaceTabs(data = {}, activePane = null) {
   const resolvedPane = activePane || defaultWorkspacePane();
   const hasNowTab = true;
-  const clientResources = state.profile?.role === "client"
-    ? (data.sharedResources || []).filter((item) => item.status !== "archived")
-    : [];
+  const clientResources = (data.sharedResources || []).filter((item) => item.status !== "archived");
   const resourceCount = clientResources.length;
   const newResourceCount = clientResources.filter((item) => item.status === "assigned").length;
   const items = [
@@ -2412,7 +2410,7 @@ function clientWorkspaceTabs(data = {}, activePane = null) {
     el("div", { class: "workspace-tab-group workspace-tab-group-main", role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label]) => {
       const showResourceCount = pane === "resources" && resourceCount > 0;
       const resourceLabel = showResourceCount
-        ? `Ressurser, ${resourceCount} ${resourceCount === 1 ? "ressurs" : "ressurser"}${newResourceCount ? `, ${newResourceCount} ${newResourceCount === 1 ? "ny" : "nye"}` : ""}`
+        ? `Ressurser, ${resourceCount} ${resourceCount === 1 ? "ressurs" : "ressurser"}${newResourceCount ? state.profile?.role === "client" ? `, ${newResourceCount} ${newResourceCount === 1 ? "ny" : "nye"}` : `, ${newResourceCount} ikke åpnet av klienten` : ""}`
         : label;
       return el("button", {
         class: `workspace-tab ${pane === resolvedPane ? "active" : ""} ${pane === "resources" && newResourceCount ? "has-new-resource" : ""}`.trim(),
@@ -4574,6 +4572,7 @@ function resourcesFromCoachSection(data, canWriteReflection) {
       createElement: el,
       createIcon: icon,
       selectedId: selected?.id || null,
+      assignedLabel: canWriteReflection ? "Ny" : "Ikke åpnet",
       onOpen: (sharedResource) => openSharedResource(sharedResource, canWriteReflection, renderSection),
       emptyTitle: query ? "Ingen ressurser funnet" : "Ingen ressurser ennå",
       emptyText: canWriteReflection
