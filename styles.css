@@ -7861,44 +7861,44 @@ h3,
   white-space: nowrap;
 }
 
-.coach-radar {
+.client-activity {
   display: grid;
   gap: 16px;
 }
 
-.coach-radar-head {
+.client-activity-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
 }
 
-.coach-radar-head h2 {
+.client-activity-head h2 {
   margin: 0;
   color: var(--platform-ink);
   font-size: 24px;
   line-height: 1.2;
 }
 
-.coach-radar-head .muted {
+.client-activity-head .muted {
   max-width: 720px;
   margin: 8px 0 0;
   font-size: var(--type-support);
   line-height: 1.5;
 }
 
-.coach-radar .ui-status-pill.attention {
+.client-activity .ui-status-pill {
   border-color: var(--md-sys-color-outline-variant);
-  background: var(--status-warning-container);
+  background: var(--brand-cream);
 }
 
-.coach-radar-grid {
+.client-activity-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.coach-radar-card {
+.client-activity-card {
   width: 100%;
   min-width: 0;
   display: grid;
@@ -7916,24 +7916,20 @@ h3,
   transition: border-color 140ms ease, background 140ms ease;
 }
 
-.coach-radar-card:hover {
+.client-activity-card:hover {
   border-color: var(--platform-muted);
   background: var(--neutral-50);
 }
 
-.coach-radar-card.is-attention {
-  border-left-color: var(--attention-accent);
-}
-
-.coach-radar-card.is-working {
+.client-activity-card.is-recent {
   border-left-color: var(--platform-info);
 }
 
-.coach-radar-card.is-ready {
-  border-left-color: var(--status-success);
+.client-activity-card.is-quiet {
+  border-left-color: var(--platform-line-strong);
 }
 
-.coach-radar-icon {
+.client-activity-icon {
   display: grid;
   width: 42px;
   height: 42px;
@@ -7942,33 +7938,34 @@ h3,
   background: var(--brand-cream);
 }
 
-.coach-radar-card.is-attention .coach-radar-icon {
-  background: var(--status-warning-container);
-}
-
-.coach-radar-card.is-working .coach-radar-icon {
+.client-activity-card.is-recent .client-activity-icon {
   background: var(--platform-info-soft);
 }
 
-.coach-radar-card.is-ready .coach-radar-icon {
-  background: var(--status-success-container);
+.client-activity-card.is-quiet .client-activity-icon {
+  background: var(--brand-cream);
 }
 
-.coach-radar-icon svg,
-.coach-radar-card > svg {
+.client-activity-card.is-locked {
+  cursor: default;
+  opacity: .66;
+}
+
+.client-activity-icon svg,
+.client-activity-card > svg {
   width: 18px;
   height: 18px;
   stroke-width: 1.8;
 }
 
-.coach-radar-copy {
+.client-activity-copy {
   min-width: 0;
   display: grid;
   gap: 4px;
 }
 
-.coach-radar-copy strong,
-.coach-radar-signal {
+.client-activity-copy strong,
+.client-activity-signal {
   overflow: hidden;
   color: var(--platform-ink);
   font-size: var(--type-label);
@@ -7978,9 +7975,9 @@ h3,
   white-space: nowrap;
 }
 
-.coach-radar-copy small,
-.coach-radar-detail,
-.coach-radar-meta small {
+.client-activity-copy small,
+.client-activity-detail,
+.client-activity-meta small {
   overflow: hidden;
   color: var(--platform-muted);
   font-size: var(--type-meta);
@@ -7989,18 +7986,18 @@ h3,
   white-space: nowrap;
 }
 
-.coach-radar-detail {
+.client-activity-detail {
   white-space: normal;
 }
 
-.coach-radar-meta {
+.client-activity-meta {
   min-width: 0;
   display: grid;
   justify-items: end;
   gap: 6px;
 }
 
-.coach-radar-meta span {
+.client-activity-meta span {
   display: inline-flex;
   min-height: 30px;
   align-items: center;
@@ -8258,7 +8255,7 @@ h3,
     grid-template-columns: 1fr;
   }
 
-  .coach-radar-grid {
+  .client-activity-grid {
     grid-template-columns: 1fr;
   }
 
@@ -8317,27 +8314,27 @@ h3,
     border-radius: 8px;
   }
 
-  .coach-radar-head {
+  .client-activity-head {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .coach-radar-head h2 {
+  .client-activity-head h2 {
     font-size: 22px;
   }
 
-  .coach-radar-card {
+  .client-activity-card {
     grid-template-columns: 40px minmax(0, 1fr) 18px;
     min-height: 0;
     padding: 16px;
   }
 
-  .coach-radar-meta {
+  .client-activity-meta {
     grid-column: 2;
     justify-items: start;
   }
 
-  .coach-radar-card > svg {
+  .client-activity-card > svg {
     grid-column: 3;
     grid-row: 1 / span 2;
   }
