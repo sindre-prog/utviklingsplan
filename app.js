@@ -3,12 +3,13 @@ const SUPABASE_ANON_KEY = "sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq";
 const CONSENT_VERSION = "coaching-portal-v1";
 
 const EXPERIMENT_STATUS = {
-  planned: "Pågår",
-  active: "Pågår",
-  reviewed: "Avsluttet",
-  continued: "Avsluttet",
+  planned: "Planlagt",
+  active: "I gang",
+  reviewed: "Prøvd og reflektert",
+  continued: "Videreføres",
   closed: "Avsluttet"
 };
+const EXPERIMENT_STATUS_OPTIONS = Object.entries(EXPERIMENT_STATUS);
 
 const EXPERIMENT_STATUS_LEGACY_MAP = {
   todo: "planned",
@@ -1877,7 +1878,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-112")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-114")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -3788,9 +3789,9 @@ function relatedExperiments({ actions = [], data, editable = false, onCreate, co
       editable ? addAction("Legg til eksperiment", onCreate) : null
     ].filter(Boolean)),
     active.length ? el("div", { class: "related-experiment-group" }, [
-      el("strong", { text: `Aktive · ${active.length}` }),
+      el("strong", { text: `Åpne · ${active.length}` }),
       el("div", { class: "experiment-list" }, active.map((action) => experimentRow(action, data, editable)))
-    ]) : el("p", { class: "muted related-experiment-empty", text: "Ingen aktive eksperimenter." }),
+    ]) : el("p", { class: "muted related-experiment-empty", text: "Ingen åpne eksperimenter." }),
     history.length ? el("details", { class: "experiment-history-group" }, [
       el("summary", {}, [el("span", { text: `Historikk · ${history.length}` }), icon("chevron-down")]),
       el("div", { class: "experiment-list" }, history.map((action) => experimentRow(action, data, editable)))
@@ -3845,7 +3846,7 @@ function experimentHubWorkspace(data, editable) {
     ].filter(Boolean)),
     el("div", { class: "experiment-hub-tools" }, [
       el("div", { class: "experiment-state-tabs", role: "tablist", "aria-label": "Eksperimentstatus" }, [
-        ["active", `Aktive · ${actions.filter((action) => isExperimentActive(action.status)).length}`],
+        ["active", `Åpne · ${actions.filter((action) => isExperimentActive(action.status)).length}`],
         ["history", `Historikk · ${actions.filter((action) => isExperimentReviewed(action.status)).length}`]
       ].map(([value, label]) => el("button", {
         class: state.experimentView === value ? "active" : "",
@@ -3862,7 +3863,7 @@ function experimentHubWorkspace(data, editable) {
     ]),
     visible.length
       ? el("div", { class: "experiment-list experiment-hub-list" }, visible.map((action) => experimentRow(action, data, editable)))
-      : emptyState(state.experimentView === "history" ? "Ingen historikk med dette filteret" : "Ingen aktive eksperimenter med dette filteret", "Opprett et lite forsøk eller velg en annen kobling.")
+      : emptyState(state.experimentView === "history" ? "Ingen historikk med dette filteret" : "Ingen åpne eksperimenter med dette filteret", "Opprett et lite forsøk eller velg en annen kobling.")
   ]);
 }
 
@@ -4895,7 +4896,7 @@ function createAction(data, presetAreaId = "", presetCompetencyId = "", presetAc
       title,
       description: actionDescription(values),
       due_date: values.dueDate || null,
-      status: "planned"
+      status: normalizeExperimentStatus(values.status || "planned")
     });
     if (error) throw error;
     if (presetCompetencyId) state.selectedCompetencyId = presetCompetencyId;
@@ -4937,6 +4938,7 @@ function experimentContextSpec(data, presetAreaId = "", presetCompetencyId = "")
 
 function experimentEditorSpecs(data, values = {}, action = null) {
   const parsed = values.parsed || {};
+  const statusValue = normalizeExperimentStatus(values.status || action?.status || "planned");
   const coreFields = el("div", { class: "experiment-core-fields" }, [
     renderSpec(inputSpec("title", "Navn på eksperimentet", "text", values.title || "", {
       placeholder: "Et kort navn du kjenner igjen",
@@ -4951,18 +4953,19 @@ function experimentEditorSpecs(data, values = {}, action = null) {
       })),
       el("p", { class: "experiment-field-help", text: "Gjør forsøket lite nok til å prøve i en faktisk situasjon." })
     ]),
-    el("div", { class: "field-pair experiment-field-pair" }, [
+    el("div", { class: "field-pair experiment-field-pair experiment-field-triple" }, [
       renderSpec(inputSpec("arena", "Hvor skal du prøve det?", "text", values.arena || parsed.arena || "", {
         placeholder: "Et møte eller en samtale"
       })),
-      renderSpec(inputSpec("dueDate", "Når vil du se tilbake?", "date", values.dueDate || ""))
+      renderSpec(inputSpec("dueDate", "Når vil du se tilbake?", "date", values.dueDate || "")),
+      renderSpec(selectSpec("status", "Status", EXPERIMENT_STATUS_OPTIONS, statusValue, false))
     ]),
     renderSpec(textareaSpec("signals", "Hva skal du se etter?", values.signals || parsed.signals || "", {
       placeholder: "Et observerbart tegn på effekt eller respons..."
     }))
   ]);
   return [
-    customSpec(["title", "action", "arena", "dueDate", "signals"], coreFields),
+    customSpec(["title", "action", "arena", "dueDate", "status", "signals"], coreFields),
     experimentContextSpec(data, values.areaId || "", values.competencyId || ""),
     action ? experimentReviewSpec(action, parsed) : null
   ].filter(Boolean);
@@ -5019,11 +5022,12 @@ function editAction(action, data) {
   const specs = experimentEditorSpecs(data, {
     title: action.title || "",
     dueDate: action.due_date || "",
+    status: action.status || "planned",
     areaId: action.development_area_id || "",
     competencyId: action.program_competency_id || "",
     parsed
   }, action);
-  const persist = async (values, status = normalizeExperimentStatus(action.status)) => {
+  const persist = async (values, statusOverride = null) => {
     if (!(values.title || "").trim()) throw new Error("Gi eksperimentet et navn.");
     if (!(values.action || "").trim()) throw new Error("Beskriv hva du skal prøve.");
     const { error } = await state.sb.from("session_actions").update({
@@ -5032,7 +5036,7 @@ function editAction(action, data) {
       title: values.title.trim().slice(0, 80),
       description: actionDescription({ ...values, hypothesis: parsed.hypothesis, _raw: parsed._raw }),
       due_date: values.dueDate || null,
-      status
+      status: normalizeExperimentStatus(statusOverride || values.status || action.status)
     }).eq("id", action.id);
     if (error) throw error;
     await reloadProgramAndRender("work");
@@ -5103,10 +5107,7 @@ function effectLabel(value) {
 }
 
 function phaseLabel(status) {
-  const normalized = normalizeExperimentStatus(status);
-  if (normalized === "closed") return "Avsluttet";
-  if (normalized === "continued" || normalized === "reviewed") return "Avsluttet";
-  return "Pågår";
+  return experimentStatusLabel(status);
 }
 
 function experimentStateClass(action, parsed) {
@@ -5123,10 +5124,14 @@ function experimentStateClass(action, parsed) {
 }
 
 async function deleteAction(id) {
-  if (!(await confirmDelete("Slette dette eksperimentet?"))) return false;
-  const { error } = await state.sb.from("session_actions").delete().eq("id", id);
+  if (!(await confirmDelete("Eksperimentet blir liggende i historikken. Observasjoner og læring bevares.", {
+    kicker: "Eksperiment",
+    title: "Avslutt eksperiment?",
+    confirmLabel: "Avslutt"
+  }))) return false;
+  const { error } = await state.sb.from("session_actions").update({ status: "closed" }).eq("id", id);
   if (error) {
-    await showAppMessage("Kunne ikke slette eksperimentet", userFacingError(error, "Prøv igjen."));
+    await showAppMessage("Kunne ikke avslutte eksperimentet", userFacingError(error, "Prøv igjen."));
     return false;
   }
   await reloadProgramAndRender("work");
