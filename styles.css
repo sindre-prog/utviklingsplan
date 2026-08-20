@@ -13000,6 +13000,10 @@ details.coaching-frame > .coaching-frame-body > article p {
   gap: 16px;
 }
 
+.experiment-field-triple {
+  grid-template-columns: minmax(0, 1.2fr) minmax(150px, .7fr) minmax(160px, .8fr);
+}
+
 .experiment-context-details {
   overflow: visible;
   border: 1px solid var(--platform-line);
