@@ -422,9 +422,13 @@ async function loadProgramSummaries() {
   });
   const programIds = (programs || []).map((program) => program.id);
   if (!programIds.length) return;
-  const [sessions, areas] = await Promise.all([
+  const [sessions, areas, competencies, actions, reflections, sharedResources] = await Promise.all([
     loadActiveSummaryRows("coaching_sessions", "id, program_id, session_date, archived_at", "id, program_id, session_date", programIds),
-    loadActiveSummaryRows("development_areas", "id, program_id, archived_at", "id, program_id", programIds)
+    loadActiveSummaryRows("development_areas", "id, program_id, archived_at", "id, program_id", programIds),
+    loadActiveSummaryRows("program_competencies", "id, program_id, status, archived_at", "id, program_id, status", programIds),
+    loadActiveSummaryRows("session_actions", "id, program_id, status, due_date, archived_at", "id, program_id, status, due_date", programIds),
+    loadActiveSummaryRows("client_reflections", "id, program_id, visibility, created_at", "id, program_id, visibility, created_at", programIds),
+    loadActiveSummaryRows("shared_resources", "id, program_id, status, viewed_at, reflected_at, archived_at", "id, program_id, status, viewed_at, reflected_at", programIds)
   ]);
   (sessions || []).forEach((session) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === session.program_id);
@@ -444,6 +448,35 @@ async function loadProgramSummaries() {
   (areas || []).forEach((area) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === area.program_id);
     if (summary) summary.areaCount += 1;
+  });
+  (competencies || []).forEach((competency) => {
+    const summary = Object.values(state.programSummaries).find((item) => item.id === competency.program_id);
+    if (!summary) return;
+    if (competency.status === "active") summary.activeCompetencyCount = (summary.activeCompetencyCount || 0) + 1;
+    if (competency.status === "suggested") summary.suggestedCompetencyCount = (summary.suggestedCompetencyCount || 0) + 1;
+  });
+  (actions || []).forEach((action) => {
+    const summary = Object.values(state.programSummaries).find((item) => item.id === action.program_id);
+    if (!summary) return;
+    if (isExperimentActive(action.status)) {
+      summary.activeExperimentCount = (summary.activeExperimentCount || 0) + 1;
+      if (action.due_date && action.due_date < localIsoDate()) summary.overdueExperimentCount = (summary.overdueExperimentCount || 0) + 1;
+    } else {
+      summary.reviewedExperimentCount = (summary.reviewedExperimentCount || 0) + 1;
+    }
+  });
+  (reflections || []).forEach((reflection) => {
+    const summary = Object.values(state.programSummaries).find((item) => item.id === reflection.program_id);
+    if (!summary) return;
+    if (reflection.visibility === "shared_with_coach") summary.sharedReflectionCount = (summary.sharedReflectionCount || 0) + 1;
+  });
+  (sharedResources || []).forEach((resource) => {
+    const summary = Object.values(state.programSummaries).find((item) => item.id === resource.program_id);
+    if (!summary) return;
+    summary.sharedResourceCount = (summary.sharedResourceCount || 0) + 1;
+    if (resource.status === "assigned" && !resource.viewed_at && !resource.reflected_at) {
+      summary.newSharedResourceCount = (summary.newSharedResourceCount || 0) + 1;
+    }
   });
 }
 
@@ -635,6 +668,7 @@ function renderClients() {
         mainStat("Coacher", String(filterCoaches.length), state.profile.role === "admin" ? "med klienttilgang" : "i ditt arbeidsrom", "user-round-check"),
         mainStat("Selskaper", String(companyCount), "representert", "building-2")
       ]),
+      coachRadarSection(visibleClients),
       el("section", { class: "panel list-panel main-section main-client-section" }, [
         el("div", { class: "toolbar main-section-head" }, [
           el("div", {}, [
@@ -649,9 +683,181 @@ function renderClients() {
         ]),
         results
       ]),
-    ])
+    ].filter(Boolean))
   );
   render();
+}
+
+function coachRadarSection(clients) {
+  if (state.profile.role !== "coach") return null;
+  const items = coachRadarItems(clients);
+  if (!items.length) return null;
+  const openCount = items.filter((item) => item.signal.attention).length;
+  return el("section", { class: "coach-radar main-section", "aria-label": "Coachradar" }, [
+    el("div", { class: "coach-radar-head" }, [
+      el("div", {}, [
+        el("p", { class: "eyebrow", text: "Coachradar" }),
+        el("h2", { text: "Hvem trenger blikket ditt nå?" }),
+        el("p", { class: "muted", text: "Prioritert etter aktivering, retning, fokus, eksperimenter, ressurser og neste samtale." })
+      ]),
+      el("span", { class: `ui-status-pill ${openCount ? "attention" : "success"}`, text: openCount ? `${openCount} trenger oppfølging` : "Flyt på plass" })
+    ]),
+    el("div", { class: "coach-radar-grid" }, items.slice(0, 4).map((item) => coachRadarCard(item)))
+  ]);
+}
+
+function coachRadarItems(clients) {
+  return clients
+    .filter(canOpenClient)
+    .map((client) => ({ client, signal: coachRadarSignal(client) }))
+    .sort((a, b) => a.signal.priority - b.signal.priority || (a.client.name || "").localeCompare(b.client.name || "", "nb", { sensitivity: "base" }));
+}
+
+function coachRadarSignal(client) {
+  const program = state.programSummaries[client.id];
+  if (!isClientActivated(client)) {
+    return {
+      priority: 10,
+      tone: "attention",
+      iconName: "user-round-clock",
+      label: "Venter på aktivering",
+      detail: "Klienten har ikke aktivert tilgangen ennå.",
+      action: "Følg opp tilgang",
+      attention: true
+    };
+  }
+  if (!hasClientConsent(client)) {
+    return {
+      priority: 20,
+      tone: "attention",
+      iconName: "shield-alert",
+      label: "Mangler samtykke",
+      detail: "Portalen bør ikke brukes aktivt før samtykket er på plass.",
+      action: "Åpne klient",
+      attention: true
+    };
+  }
+  if (!program) {
+    return {
+      priority: 25,
+      tone: "attention",
+      iconName: "file-warning",
+      label: "Forløp mangler",
+      detail: "Klienten er opprettet, men forløpsdata er ikke synlig.",
+      action: "Åpne klient",
+      attention: true
+    };
+  }
+  if (program.overdueExperimentCount > 0) {
+    return {
+      priority: 30,
+      tone: "attention",
+      iconName: "alarm-clock",
+      label: "Eksperiment trenger review",
+      detail: `${program.overdueExperimentCount} eksperiment${program.overdueExperimentCount === 1 ? "" : "er"} har passert tilbakeblikkdato.`,
+      action: "Åpne eksperimenter",
+      attention: true
+    };
+  }
+  if (!hasProgramContent(program) || (!program.purpose && !program.success_criteria && !program.activeCompetencyCount)) {
+    return {
+      priority: 40,
+      tone: "attention",
+      iconName: "compass",
+      label: "Retning/fokus bør settes",
+      detail: "Avklar ønsket effekt og hovedfokus før videre arbeid.",
+      action: "Åpne retning",
+      attention: true
+    };
+  }
+  if (program.newSharedResourceCount > 0) {
+    return {
+      priority: 50,
+      tone: "working",
+      iconName: "book-open-check",
+      label: "Ressurs venter hos klient",
+      detail: `${program.newSharedResourceCount} delt${program.newSharedResourceCount === 1 ? "" : "e"} ressurs${program.newSharedResourceCount === 1 ? "" : "er"} er ikke åpnet eller besvart.`,
+      action: "Se ressurser",
+      attention: true
+    };
+  }
+  if (program.sharedReflectionCount > 0) {
+    return {
+      priority: 60,
+      tone: "working",
+      iconName: "message-square-text",
+      label: "Delt refleksjon",
+      detail: `${program.sharedReflectionCount} refleksjon${program.sharedReflectionCount === 1 ? "" : "er"} er delt med coach.`,
+      action: "Les refleksjon",
+      attention: true
+    };
+  }
+  if (!program.nextSessionDate) {
+    return {
+      priority: 70,
+      tone: "working",
+      iconName: "calendar-plus",
+      label: "Neste samtale mangler",
+      detail: "Planlegg neste stoppunkt for å holde rytmen.",
+      action: "Planlegg samtale",
+      attention: true
+    };
+  }
+  const daysUntil = daysUntilDate(program.nextSessionDate);
+  if (daysUntil !== null && daysUntil <= 7) {
+    return {
+      priority: 80,
+      tone: "ready",
+      iconName: "calendar-clock",
+      label: "Samtale nærmer seg",
+      detail: `Neste samtale ${formatRelativeDays(daysUntil)}.`,
+      action: "Forbered",
+      attention: false
+    };
+  }
+  if (program.activeExperimentCount > 0) {
+    return {
+      priority: 90,
+      tone: "ready",
+      iconName: "sparkles",
+      label: "Eksperiment i gang",
+      detail: `${program.activeExperimentCount} aktivt eksperiment holder læringen i bevegelse.`,
+      action: "Følg utvikling",
+      attention: false
+    };
+  }
+  return {
+    priority: 100,
+    tone: "ready",
+    iconName: "circle-check",
+    label: "Stabil flyt",
+    detail: "Forløpet har retning og et planlagt neste stoppunkt.",
+    action: "Åpne klient",
+    attention: false
+  };
+}
+
+function coachRadarCard({ client, signal }) {
+  const name = client.name || "Uten navn";
+  const program = state.programSummaries[client.id];
+  return el("button", {
+    class: `coach-radar-card is-${signal.tone}`,
+    type: "button",
+    onclick: () => openClientPlan(client)
+  }, [
+    el("span", { class: "coach-radar-icon", "aria-hidden": "true" }, [icon(signal.iconName)]),
+    el("span", { class: "coach-radar-copy" }, [
+      el("strong", { text: name }),
+      el("small", { text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" }),
+      el("span", { class: "coach-radar-signal", text: signal.label }),
+      el("span", { class: "coach-radar-detail", text: signal.detail })
+    ]),
+    el("span", { class: "coach-radar-meta" }, [
+      el("small", { text: program?.nextSessionDate ? formatDate(program.nextSessionDate) : "Ingen dato" }),
+      el("span", { text: signal.action })
+    ]),
+    icon("chevron-right")
+  ]);
 }
 
 function clientGrid(clients) {
@@ -1907,7 +2113,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-117")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-118")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -6433,6 +6639,23 @@ function showAppMessage(title, message, options = {}) {
 function formatDate(iso) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("no-NO", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function daysUntilDate(iso) {
+  if (!iso) return null;
+  const target = new Date(iso);
+  if (Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  target.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function formatRelativeDays(days) {
+  if (days === 0) return "i dag";
+  if (days === 1) return "i morgen";
+  if (days < 0) return "har passert";
+  return `om ${days} dager`;
 }
 
 init();
