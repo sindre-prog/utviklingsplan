@@ -2060,7 +2060,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-120")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-121")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -3848,8 +3848,8 @@ function openNowReflection() {
   requestAnimationFrame(() => $("#reflection-body")?.focus());
 }
 
-function createNowAction({ key, priority, kicker, title, description, reason, iconName, ctaLabel, onAction }) {
-  return { key, priority, kicker, title, description, reason, iconName, ctaLabel, onAction };
+function createNowAction({ key, priority, kicker, title, description, iconName, ctaLabel, onAction }) {
+  return { key, priority, kicker, title, description, iconName, ctaLabel, onAction };
 }
 
 function nowActionSummary(action) {
@@ -3867,9 +3867,14 @@ function hasNowActionContent(action) {
   return Boolean((action?.title || "").trim() || nowActionSummary(action));
 }
 
+function nowDirectionSummary(plan) {
+  const specs = getDirectionSpecs(plan);
+  const completed = specs.filter(directionSpecHasValue).length;
+  return { completed, total: specs.length };
+}
+
 function nowActionItems({ data, plan, editable }) {
-  const directionSpecs = getDirectionSpecs(plan);
-  const missingDirection = directionSpecs.find((spec) => !directionSpecHasValue(spec));
+  const direction = nowDirectionSummary(plan);
   const primary = primaryLeadershipCompetency(data);
   const activeActions = (data.actions || []).filter((action) => isExperimentActive(action.status));
   const datedAction = activeActions.find((action) => action.due_date && action.due_date <= localIsoDate() && hasNowActionContent(action));
@@ -3879,14 +3884,15 @@ function nowActionItems({ data, plan, editable }) {
   const reflection = latestReflection(data);
   const items = [];
 
-  if (missingDirection) {
+  if (direction.completed < direction.total) {
     items.push(createNowAction({
       key: "direction",
       priority: 10,
       kicker: "Retning",
-      title: "Retningen mangler ett felt",
-      description: missingDirection.label,
-      reason: "Fyll bare ut det som hjelper deg og coachen å ha samme bilde.",
+      title: direction.completed === 0 ? "Retning er ikke satt ennå" : "Retningen er delvis utfylt",
+      description: direction.completed === 0
+        ? "Legg inn retning når dere vil samle mål, forventninger og rammer her."
+        : `${direction.completed} av ${direction.total} deler er fylt ut.`,
       iconName: "target",
       ctaLabel: "Åpne retning",
       onAction: () => activateWorkspacePane("direction")
@@ -3900,7 +3906,6 @@ function nowActionItems({ data, plan, editable }) {
       kicker: "Fokus",
       title: "Hovedfokus er ikke valgt",
       description: "Velg én lederkompetanse hvis dere vil samle forløpet rundt et tydelig tema.",
-      reason: "Hopp over hvis dere heller bruker samtalenotater og ressurser foreløpig.",
       iconName: "compass",
       ctaLabel: "Velg lederkompetanse",
       onAction: () => openCompetencyChooser(data)
@@ -3914,7 +3919,6 @@ function nowActionItems({ data, plan, editable }) {
       kicker: "Ressurs",
       title: resource.resource?.title || "Ressurs fra coach",
       description: resource.coach_note || resource.resource?.summary || "Coachen har delt en ressurs med deg.",
-      reason: "Åpne den når den er relevant for det dere jobber med.",
       iconName: "book-open",
       ctaLabel: "Åpne ressurs",
       onAction: () => openNowResource(resource, data)
@@ -3928,7 +3932,6 @@ function nowActionItems({ data, plan, editable }) {
       kicker: "Samtale",
       title: relevant.upcoming && session.date ? `Neste samtale ${formatDate(session.date)}` : "Samtaler og notater",
       description: session.focus || session.goal || "Se temaer, notater og eventuelle avtaler fra samtalene.",
-      reason: relevant.upcoming ? "Legg inn det du vil ta opp hvis noe bør være klart før samtalen." : "Åpne hvis du vil hente frem hva dere snakket om sist.",
       iconName: "messages-square",
       ctaLabel: "Åpne samtaler",
       onAction: () => activateWorkspacePane("sessions")
@@ -3943,7 +3946,6 @@ function nowActionItems({ data, plan, editable }) {
       kicker: "Arbeidsnotat",
       title: datedAction.title || "Notat med tilbakeblikkdato",
       description: summary || (datedAction.due_date ? `Dato satt til ${formatDate(datedAction.due_date)}.` : "Dette notatet kan åpnes hvis du vil oppdatere det."),
-      reason: "Åpne bare hvis notatet fortsatt er relevant.",
       iconName: "calendar-clock",
       ctaLabel: "Åpne notat",
       onAction: () => editAction(datedAction, data)
@@ -3957,7 +3959,6 @@ function nowActionItems({ data, plan, editable }) {
       kicker: "Refleksjon",
       title: reflection.visibility === "shared_with_coach" ? "Delt refleksjon" : "Privat refleksjon",
       description: reflection.body ? contentPreviewText(reflection.body, 120) : "Refleksjonen er lagret i historikken.",
-      reason: reflection.visibility === "shared_with_coach" ? "Coachen kan lese denne." : "Bare du kan lese denne.",
       iconName: "message-square-text",
       ctaLabel: "Åpne refleksjon",
       onAction: () => activateWorkspacePane("reflections")
@@ -3971,7 +3972,6 @@ function nowActionItems({ data, plan, editable }) {
       kicker: "Ressurs",
       title: resource.resource?.title || "Ressurs i planen",
       description: resource.resource?.summary || "Ressursen er tilgjengelig når du trenger den.",
-      reason: "Åpne hvis du vil lese den igjen.",
       iconName: "book-open",
       ctaLabel: "Åpne ressurs",
       onAction: () => openNowResource(resource, data)
@@ -3985,7 +3985,6 @@ function nowActionItems({ data, plan, editable }) {
       kicker: "Oversikt",
       title: "Ingenting krever oppfølging nå",
       description: "Bruk retning, fokus, samtaler og ressurser når de er nyttige i forløpet.",
-      reason: "Du trenger ikke fylle ut mer enn det som faktisk hjelper.",
       iconName: "file-text",
       ctaLabel: "Start i retning",
       onAction: () => activateWorkspacePane("direction")
@@ -3999,7 +3998,6 @@ function nowActionItems({ data, plan, editable }) {
       kicker: "Oversikt",
       title: "Ingenting krever oppfølging nå",
       description: "Her vises retning, fokus, samtaler og ressurser når de er lagt inn.",
-      reason: "",
       iconName: "file-text",
       ctaLabel: "",
       onAction: null
@@ -4017,7 +4015,7 @@ function nowWorkspace(client, data, plan) {
   const primaryCompetency = primaryLeadershipCompetency(data);
   const focusItems = nowFocusAssignments(plan);
   return el("div", { class: "platform-page now-workspace now-workspace-v2" }, [
-    pageIntro("Akkurat nå", "Oversikt akkurat nå", "Her samles retning, fokus, samtaler og ressurser for forløpet."),
+    pageIntro("Akkurat nå", "Oversikt akkurat nå", "Her ser du det som er lagt inn akkurat nå."),
     primary ? nowPrimaryAction(primary, editable) : nowEmptyState(editable),
     nowActionGrid(supporting, editable),
     nowProgressStrip({ primaryCompetency, focusItems, actions: data.actions || [], sessions: plan.sessions || [], resources: data.sharedResources || [] })
@@ -4030,8 +4028,7 @@ function nowPrimaryAction(item, editable) {
     el("div", { class: "now-primary-copy" }, [
       el("span", { class: "workspace-kicker", text: item.kicker }),
       el("h3", { id: "now-primary-title", text: item.title }),
-      el("p", { text: item.description }),
-      item.reason ? el("small", { text: item.reason }) : null
+      el("p", { text: item.description })
     ].filter(Boolean)),
     editable && item.onAction ? el("button", { class: "ui-button ui-button-filled now-primary-cta", type: "button", text: item.ctaLabel || "Åpne", onclick: item.onAction }) : null
   ].filter(Boolean));
@@ -4042,15 +4039,14 @@ function nowActionGrid(items = [], editable) {
   return el("section", { class: "now-action-section", "aria-labelledby": "now-action-title" }, [
     el("div", { class: "now-section-heading" }, [
       el("span", { class: "workspace-kicker", text: "Aktuelt" }),
-      el("h3", { id: "now-action-title", text: "Nyttig å ha foran deg" })
+      el("h3", { id: "now-action-title", text: "Mest relevant nå" })
     ]),
     el("div", { class: "now-action-grid" }, items.map((item) => el("button", { class: "now-action-card", type: "button", disabled: !editable || !item.onAction, onclick: item.onAction }, [
       el("span", { class: "now-action-icon", "aria-hidden": "true" }, [icon(item.iconName || "arrow-right")]),
       el("span", { class: "now-action-copy" }, [
         el("span", { class: "workspace-kicker", text: item.kicker }),
         el("strong", { text: item.title }),
-        item.description ? el("small", { text: item.description }) : null,
-        item.reason ? el("em", { text: item.reason }) : null
+        item.description ? el("small", { text: item.description }) : null
       ].filter(Boolean)),
       icon("chevron-right")
     ])))
