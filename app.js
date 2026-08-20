@@ -1853,7 +1853,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-97")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-98")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -1877,7 +1877,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-110")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-111")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2160,7 +2160,7 @@ async function renderPlan(activePane = null) {
     return;
   }
   const plan = programToFormState(data);
-  const resolvedPane = activePane || (isClientWorkspace ? "now" : "direction");
+  const resolvedPane = activePane || defaultWorkspacePane();
 
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     hiddenPlanState(plan),
@@ -2196,33 +2196,34 @@ async function renderPlan(activePane = null) {
   refreshIcons();
 }
 
-function renderCachedProgram(activePane = "direction") {
+function renderCachedProgram(activePane = null) {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   const data = client ? state.programCache[client.id] : null;
+  const resolvedPane = activePane || defaultWorkspacePane();
   if (!client || !data) {
-    reloadProgramAndRender(activePane);
+    reloadProgramAndRender(resolvedPane);
     return;
   }
   const plan = programToFormState(data);
   const form = el("form", { class: "client-workspace", id: "plan-form" }, [
     hiddenPlanState(plan),
-    clientWorkspaceTabs(data, activePane),
-    el("section", { class: `workspace-pane ${activePane === "now" ? "active" : ""}`, id: "workspace-pane-now", role: "tabpanel", "aria-labelledby": "workspace-tab-now", "aria-hidden": activePane === "now" ? "false" : "true", "data-pane": "now" }, [
+    clientWorkspaceTabs(data, resolvedPane),
+    el("section", { class: `workspace-pane ${resolvedPane === "now" ? "active" : ""}`, id: "workspace-pane-now", role: "tabpanel", "aria-labelledby": "workspace-tab-now", "aria-hidden": resolvedPane === "now" ? "false" : "true", "data-pane": "now" }, [
       nowWorkspace(client, data, plan)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "direction" ? "active" : ""}`, id: "workspace-pane-direction", role: "tabpanel", "aria-labelledby": "workspace-tab-direction", "aria-hidden": activePane === "direction" ? "false" : "true", "data-pane": "direction" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "direction" ? "active" : ""}`, id: "workspace-pane-direction", role: "tabpanel", "aria-labelledby": "workspace-tab-direction", "aria-hidden": resolvedPane === "direction" ? "false" : "true", "data-pane": "direction" }, [
       directionWorkspace(client, plan, data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "work" ? "active" : ""}`, id: "workspace-pane-work", role: "tabpanel", "aria-labelledby": "workspace-tab-work", "aria-hidden": activePane === "work" ? "false" : "true", "data-pane": "work" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "work" ? "active" : ""}`, id: "workspace-pane-work", role: "tabpanel", "aria-labelledby": "workspace-tab-work", "aria-hidden": resolvedPane === "work" ? "false" : "true", "data-pane": "work" }, [
       workWorkspace(client, data, plan)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "sessions" ? "active" : ""}`, id: "workspace-pane-sessions", role: "tabpanel", "aria-labelledby": "workspace-tab-sessions", "aria-hidden": activePane === "sessions" ? "false" : "true", "data-pane": "sessions" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "sessions" ? "active" : ""}`, id: "workspace-pane-sessions", role: "tabpanel", "aria-labelledby": "workspace-tab-sessions", "aria-hidden": resolvedPane === "sessions" ? "false" : "true", "data-pane": "sessions" }, [
       sessionsWorkspace(plan.sessions, data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "reflections" ? "active" : ""}`, id: "workspace-pane-reflections", role: "tabpanel", "aria-labelledby": "workspace-tab-reflections", "aria-hidden": activePane === "reflections" ? "false" : "true", "data-pane": "reflections" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "reflections" ? "active" : ""}`, id: "workspace-pane-reflections", role: "tabpanel", "aria-labelledby": "workspace-tab-reflections", "aria-hidden": resolvedPane === "reflections" ? "false" : "true", "data-pane": "reflections" }, [
       reflectionsWorkspace(data)
     ]),
-    el("section", { class: `workspace-pane ${activePane === "resources" ? "active" : ""}`, id: "workspace-pane-resources", role: "tabpanel", "aria-labelledby": "workspace-tab-resources", "aria-hidden": activePane === "resources" ? "false" : "true", "data-pane": "resources" }, [
+    el("section", { class: `workspace-pane ${resolvedPane === "resources" ? "active" : ""}`, id: "workspace-pane-resources", role: "tabpanel", "aria-labelledby": "workspace-tab-resources", "aria-hidden": resolvedPane === "resources" ? "false" : "true", "data-pane": "resources" }, [
       coachResourcesWorkspace(data)
     ])
   ].filter(Boolean));
@@ -2387,8 +2388,18 @@ function programToFormState(data) {
   };
 }
 
-function clientWorkspaceTabs(data = {}, activePane = "direction") {
+function defaultWorkspacePane() {
+  return state.profile?.role === "client" ? "now" : "direction";
+}
+
+function clientWorkspaceTabs(data = {}, activePane = null) {
+  const resolvedPane = activePane || defaultWorkspacePane();
   const hasNowTab = true;
+  const clientResources = state.profile?.role === "client"
+    ? (data.sharedResources || []).filter((item) => item.status !== "archived")
+    : [];
+  const resourceCount = clientResources.length;
+  const newResourceCount = clientResources.filter((item) => item.status === "assigned").length;
   const items = [
     hasNowTab && ["now", "Akkurat nå"],
     ["direction", "Retning"],
@@ -2398,15 +2409,28 @@ function clientWorkspaceTabs(data = {}, activePane = "direction") {
     ["resources", "Ressurser"]
   ].filter(Boolean);
   return el("div", { class: `workspace-tabs ${hasNowTab ? "has-now" : ""}`.trim() }, [
-    el("div", { class: "workspace-tab-group workspace-tab-group-main", role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label]) => el("button", {
-      class: `workspace-tab ${pane === activePane ? "active" : ""}`,
-      type: "button",
-      role: "tab",
-      id: `workspace-tab-${pane}`,
-      "aria-controls": `workspace-pane-${pane}`,
-      "data-tab": pane,
-      "aria-selected": pane === activePane ? "true" : "false"
-    }, [el("span", { text: label })])))
+    el("div", { class: "workspace-tab-group workspace-tab-group-main", role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label]) => {
+      const showResourceCount = pane === "resources" && resourceCount > 0;
+      const resourceLabel = showResourceCount
+        ? `Ressurser, ${resourceCount} ${resourceCount === 1 ? "ressurs" : "ressurser"}${newResourceCount ? `, ${newResourceCount} ${newResourceCount === 1 ? "ny" : "nye"}` : ""}`
+        : label;
+      return el("button", {
+        class: `workspace-tab ${pane === resolvedPane ? "active" : ""} ${pane === "resources" && newResourceCount ? "has-new-resource" : ""}`.trim(),
+        type: "button",
+        role: "tab",
+        id: `workspace-tab-${pane}`,
+        "aria-controls": `workspace-pane-${pane}`,
+        "data-tab": pane,
+        "aria-label": resourceLabel,
+        "aria-selected": pane === resolvedPane ? "true" : "false"
+      }, [
+        el("span", { text: label }),
+        showResourceCount ? el("span", { class: `workspace-tab-count ${newResourceCount ? "has-new" : ""}`.trim(), "aria-hidden": "true" }, [
+          el("span", { text: String(resourceCount) }),
+          newResourceCount ? el("span", { class: "workspace-tab-new-dot" }) : null
+        ].filter(Boolean)) : null
+      ].filter(Boolean));
+    }))
   ]);
 }
 
@@ -2796,11 +2820,11 @@ function focusViewDescription(activeView) {
   const descriptions = {
     competencies: {
       question: "Hva vil du bli bedre på?",
-      description: "Måter å lede på som du kan utvikle over tid."
+      description: "Den indre utviklingslinjen: atferd og ferdigheter du utvikler i måten du leder på."
     },
     assignments: {
       question: "Hvor skal utviklingen merkes?",
-      description: "Konkrete situasjoner, utfordringer eller oppgaver der du vil gjøre en forskjell."
+      description: "Det ytre arbeidsoppdraget: en konkret leveranse, utfordring eller situasjon der utviklingen skal merkes."
     },
     experiments: {
       question: "Hva vil du prøve i praksis?",
@@ -2813,9 +2837,9 @@ function focusViewDescription(activeView) {
 function focusHubIntro(editable, data, itemCount = 0, hasCompetencies = true) {
   const competenciesActive = hasCompetencies && state.focusView === "competencies";
   const action = competenciesActive && editable && itemCount
-    ? addAction("Utforsk flere lederkompetanser", () => openCompetencyChooser(data))
+    ? addAction("Endre prioritering", () => openCompetencyChooser(data))
     : null;
-  return workspaceIntro("Fokus", "Hva skal du utvikle?", "Velg lederkompetanser og fokusoppdrag, og prøv ny atferd i praksis.", [action].filter(Boolean));
+  return workspaceIntro("Fokus", "Hva skal du utvikle?", "Velg én lederkompetanse som hovedfokus, og bare det som støtter arbeidet nå. Fokusoppdrag viser hvor utviklingen skal merkes.", [action].filter(Boolean));
 }
 
 function focusViewTabs(activeView, data = {}) {
@@ -3888,8 +3912,8 @@ function focusDetail({ area, index }, data, editable) {
   const activeActions = actions.filter((action) => isExperimentActive(action.status));
   const planStatus = focusPlanStatus(area);
   const missingStep = [
-    ["movement", "Beskriv hva som skal bli annerledes", "Hva skal bli annerledes når oppdraget lykkes?", "Beskriv ønsket endring"],
-    ["typicalSituations", "Velg hvor arbeidet skal merkes", "Hvilken situasjon, leveranse eller relasjon er den viktigste arenaen?", "Velg arbeidsarena"],
+    ["movement", "Beskriv ønsket utfall", "Hva skal du oppnå – eller hva skal bli annerledes?", "Beskriv ønsket utfall"],
+    ["typicalSituations", "Velg hvor forskjellen skal merkes", "Hvilken situasjon, leveranse, møte eller relasjon er viktigst – og for hvem?", "Velg arbeidsarena"],
     ["progressSigns", "Velg et tegn på fremgang", "Hva vil vise at arbeidet er på rett vei?", "Velg tegn på fremgang"]
   ].find(([fieldKey]) => !((fieldKey === "movement" ? area.movement || area.description : area[fieldKey]) || "").trim());
   const nextLabel = missingStep?.[1] || (!activeActions.length ? "Planlegg første eksperiment" : "Følg opp eksperimentet");
@@ -3933,8 +3957,8 @@ function focusDetail({ area, index }, data, editable) {
       description: "Gjør oppdraget konkret nok til å kunne prioriteres, prøves og følges opp.",
       status: planStatus,
       steps: [
-        focusPlanStep(area, index, 1, "Målbilde", "Hva skal bli annerledes?", area.movement || area.description, "Beskriv forskjellen du vil skape.", "movement", editable),
-        focusPlanStep(area, index, 2, "Arbeidsarena", "Hvor skal dette merkes?", area.typicalSituations, "Velg prosjektet, leveransen, møtet eller relasjonen der du skal arbeide med dette.", "typicalSituations", editable),
+        focusPlanStep(area, index, 1, "Målbilde", "Hva skal du oppnå – eller hva skal bli annerledes?", area.movement || area.description, "Beskriv utfallet eller forskjellen du vil skape.", "movement", editable),
+        focusPlanStep(area, index, 2, "Arbeidsarena", "Hvor skal forskjellen merkes – og for hvem?", area.typicalSituations, "Velg situasjonen, leveransen, møtet eller relasjonen der forskjellen skal bli tydelig.", "typicalSituations", editable),
         focusPlanStep(area, index, 3, "Tegn på fremgang", "Hva vil vise at du er på rett vei?", area.progressSigns, "Velg ett konkret tegn du kan følge med på.", "progressSigns", editable)
       ]
     }),
@@ -4629,7 +4653,7 @@ async function openSharedResource(sharedResource, canWriteReflection, renderSect
       });
       sharedResource.status = "viewed";
       sharedResource.viewed_at = new Date().toISOString();
-      renderSection?.();
+      renderCachedProgram("resources");
     } catch (error) {
       await showAppMessage("Kunne ikke oppdatere status", userFacingError(error, "Ressursen kan fortsatt åpnes."));
     }
@@ -5192,7 +5216,7 @@ async function deleteReflection(id) {
   return true;
 }
 
-async function reloadProgramAndRender(activePane = "direction") {
+async function reloadProgramAndRender(activePane = null) {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (client) delete state.programCache[client.id];
   await renderPlan(activePane);

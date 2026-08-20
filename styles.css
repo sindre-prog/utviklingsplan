@@ -5798,6 +5798,38 @@ h3,
   font-weight: 750;
 }
 
+.workspace-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--platform-line);
+  border-radius: 999px;
+  background: var(--platform-paper);
+  color: var(--platform-muted);
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+  margin-inline-start: 7px;
+}
+
+.workspace-tab-count.has-new {
+  border-color: var(--accent-line);
+  background: var(--subtle-accent);
+  color: var(--platform-ink);
+}
+
+.workspace-tab-new-dot {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--md-sys-color-secondary);
+}
+
 .workspace-pane {
   min-width: 0;
 }

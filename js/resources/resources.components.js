@@ -397,7 +397,7 @@ export function createSharedResourceStatus(status, options = {}) {
   requireCreateElement(createElement);
 
   const labels = {
-    assigned: "Sendt",
+    assigned: "Ny",
     viewed: "Åpnet",
     responded: "Refleksjon lagret",
     archived: "Arkivert"
