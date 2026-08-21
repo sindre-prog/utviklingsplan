@@ -665,8 +665,7 @@ function renderClients() {
   const visibleClients = getVisibleClients();
   const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
   const recentActivityCount = clientActivityItems(visibleClients).length;
-  const waitingCount = visibleClients.filter((client) => !isClientActivated(client) || !hasClientConsent(client)).length;
-  const unscheduledCount = visibleClients.filter((client) => isClientActivated(client) && hasClientConsent(client) && !state.programSummaries[client.id]?.nextSessionDate).length;
+  const upcomingSessionCount = visibleClients.filter((client) => state.programSummaries[client.id]?.nextSessionDate).length;
   const search = el("input", { class: "search", placeholder: "Søk etter navn, e-post, coach eller arbeidsgiver" });
   const results = el("div");
   const render = () => {
@@ -689,10 +688,9 @@ function renderClients() {
     el("main", { class: "main-area main-clients-area" }, [
       el("section", { class: "main-summary-strip", "aria-label": "Nøkkeltall" }, [
         mainStat("Nylig aktivitet", String(recentActivityCount), "siste 14 dager", "activity"),
-        mainStat("Venter", String(waitingCount), "aktivering eller samtykke", "user-round-clock"),
-        mainStat("Uten samtale", String(unscheduledCount), "ingen dato satt", "calendar-x")
+        mainStat("Klienter", String(visibleClients.length), "aktive i oversikten", "users"),
+        mainStat("Kommende samtaler", String(upcomingSessionCount), "dato satt i planen", "calendar-days")
       ]),
-      clientFollowUpSection(visibleClients),
       clientActivitySection(visibleClients),
       el("section", { class: "panel list-panel main-section main-client-section" }, [
         el("div", { class: "toolbar main-section-head" }, [
@@ -711,70 +709,6 @@ function renderClients() {
     ].filter(Boolean))
   );
   render();
-}
-
-function clientFollowUpSection(clients) {
-  const items = clientFollowUpItems(clients);
-  if (!items.length) return null;
-  return el("section", { class: "client-activity main-section", "aria-label": "Klienter å følge opp" }, [
-    el("div", { class: "client-activity-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Oppfølging" }),
-        el("h2", { text: "Følg opp først" })
-      ]),
-      el("span", { class: "ui-status-pill", text: `${items.length} å følge opp` })
-    ]),
-    el("div", { class: "client-activity-grid" }, items.slice(0, 4).map((item) => clientActivityCard(item)))
-  ]);
-}
-
-function clientFollowUpItems(clients) {
-  return clients
-    .map((client) => ({ client, activity: clientFollowUpSignal(client) }))
-    .filter((item) => item.activity)
-    .sort((a, b) => a.activity.rank - b.activity.rank || a.activity.time - b.activity.time || (a.client.name || "").localeCompare(b.client.name || "", "nb", { sensitivity: "base" }));
-}
-
-function clientFollowUpSignal(client) {
-  const program = state.programSummaries[client.id];
-  const createdTime = client.created_at ? new Date(client.created_at).getTime() : 0;
-  if (!isClientActivated(client)) {
-    return {
-      rank: 1,
-      time: createdTime,
-      tone: "quiet",
-      iconName: "user-round-clock",
-      label: "Venter på aktivering",
-      detail: "Klienten har ikke aktivert tilgangen.",
-      meta: "Invitert",
-      recent: false
-    };
-  }
-  if (!hasClientConsent(client)) {
-    return {
-      rank: 2,
-      time: createdTime,
-      tone: "quiet",
-      iconName: "shield-alert",
-      label: "Mangler samtykke",
-      detail: "Klienten må bekrefte samtykke før forløpet brukes aktivt.",
-      meta: "Avventer",
-      recent: false
-    };
-  }
-  if (!program?.nextSessionDate) {
-    return {
-      rank: 3,
-      time: program?.lastActivityAt ? new Date(program.lastActivityAt).getTime() : createdTime,
-      tone: "quiet",
-      iconName: "calendar-x",
-      label: "Ingen samtale planlagt",
-      detail: hasProgramContent(program) ? "Forløpet er i gang uten neste dato." : "Det er ingen samtaledato i planen.",
-      meta: "Ingen dato",
-      recent: false
-    };
-  }
-  return null;
 }
 
 function clientActivitySection(clients) {
@@ -2125,7 +2059,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-122")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-123")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
