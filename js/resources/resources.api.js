@@ -1,8 +1,8 @@
-export * from "./resources.constants.js?v=polish-101";
-export * from "./resources.queries.js?v=polish-101";
-export * from "./resources.mutations.js?v=polish-101";
-export * from "./resources.renderer.js?v=polish-101";
-export * from "./resources.components.js?v=polish-101";
-export * from "./resources.seed.js?v=polish-101";
+export * from "./resources.constants.js?v=polish-102";
+export * from "./resources.queries.js?v=polish-102";
+export * from "./resources.mutations.js?v=polish-102";
+export * from "./resources.renderer.js?v=polish-102";
+export * from "./resources.components.js?v=polish-102";
+export * from "./resources.seed.js?v=polish-102";
 
-export const RESOURCE_LIBRARY_MODULE_VERSION = "polish-101";
+export const RESOURCE_LIBRARY_MODULE_VERSION = "polish-102";

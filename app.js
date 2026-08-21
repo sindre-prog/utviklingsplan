@@ -2035,7 +2035,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-101")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-102")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -2059,7 +2059,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-126")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-127")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -4926,7 +4926,7 @@ function coachResourcesWorkspace(data) {
   const intro = canWriteReflection
     ? workspaceIntro("Ressurser", "Dine ressurser", "Her finner du ressursene coachen har valgt ut for deg.")
     : workspaceIntro("Ressurser", "Det som er delt i forløpet", "Se hva klienten har fått, hvorfor det ble sendt og hvordan ressursene blir brukt.");
-  return el("div", { class: "platform-page client-resource-space" }, [
+  return el("div", { class: "platform-page client-resource-space resource-workspace-v2" }, [
     intro,
     resourcesFromCoachSection(data, canWriteReflection)
   ].filter(Boolean));
@@ -5022,6 +5022,7 @@ function resourcesFromCoachSection(data, canWriteReflection) {
       ])
     );
     hydrateResourceMedia(section);
+    refreshIcons();
     if (autoSelected && canWriteReflection && selected?.status === "assigned") {
       setTimeout(() => openSharedResource(selected, canWriteReflection, renderSection), 0);
     }

@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-101";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-102";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -252,6 +252,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
         class: `client-resource-open ${selected ? "active" : ""}`,
         type: "button",
         "aria-expanded": selected ? "true" : "false",
+        "aria-label": `Åpne ressurs: ${displayText(resource.title, "Ressurs")}`,
         onclick: (event) => {
           event.preventDefault();
           onOpen?.(sharedResource);
@@ -408,5 +409,5 @@ export function createSharedResourceStatus(status, options = {}) {
     archived: "Arkivert"
   };
 
-  return createElement("span", { class: "badge", text: labels[status] || status || "Sendt" });
+  return createElement("span", { class: `badge shared-resource-status status-${status || "sent"}`, text: labels[status] || status || "Sendt" });
 }
