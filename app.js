@@ -2059,7 +2059,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-123")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-124")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -6004,16 +6004,37 @@ function openCoachEdit(coach) {
 }
 
 function openClientEdit(client) {
-  openEntityModal("Rediger klient", "Klient", [
+  const specs = [
     inputSpec("name", "Navn", "text", client.name || ""),
     inputSpec("role", "Stilling", "text", client.role || ""),
     inputSpec("employer", "Arbeidsgiver", "text", client.employer || ""),
     selectSpec("coachIds", "Coach(er)", state.coaches.map((coach) => [coach.id, coach.name]), client.coach_ids || [], true)
+  ];
+  if (canResendClientInvite(client)) {
+    specs.push(clientAccessSpec(client));
+  }
+  openEntityModal("Rediger klient", "Klient", [
+    ...specs
   ], async (values) => {
     const { error } = await state.sb.from("clients").update({ name: values.name, role: values.role, employer: values.employer, coach_ids: values.coachIds }).eq("id", client.id);
     if (error) throw error;
     await reloadAndRender();
   });
+}
+
+function clientAccessSpec(client) {
+  return customSpec(null, el("div", { class: "modal-section access-section" }, [
+    el("strong", { text: "Invitasjon" }),
+    el("p", { text: "Klienten har ikke aktivert tilgangen ennå." }),
+    el("button", {
+      class: "button ghost",
+      type: "button",
+      onclick: () => resendClientInviteFromModal(client)
+    }, [
+      icon("mail-plus"),
+      el("span", { text: "Send invitasjon på nytt" })
+    ])
+  ]));
 }
 
 function openEntityModal(title, kicker, specs, onSave, options = {}) {
@@ -6365,6 +6386,40 @@ async function inviteClient(values) {
   const client = await verifyInvitedClient(result.email);
   await ensureInvitedClientProgram(client.id);
   await reloadAndRender();
+  setTimeout(() => {
+    showAppMessage("Invitasjon sendt", "Klienten er opprettet med et utviklingsforløp. Invitasjonen kan sendes på nytt fra Rediger klient frem til tilgangen er aktivert.");
+  }, 0);
+}
+
+async function resendClientInviteFromModal(client) {
+  try {
+    $("#modal-message").textContent = "Sender invitasjon...";
+    await resendClientInvite(client);
+    if ($("#entity-modal")?.open) $("#entity-modal").close();
+    await reloadAndRender();
+    setTimeout(() => {
+      showAppMessage("Invitasjon sendt på nytt", "Klienten kan bruke den nye lenken for å aktivere tilgangen.");
+    }, 0);
+  } catch (error) {
+    $("#modal-message").textContent = userFacingError(error, "Kunne ikke sende invitasjonen på nytt. Prøv igjen.");
+  }
+}
+
+async function resendClientInvite(client) {
+  if (!canResendClientInvite(client)) throw new Error("Invitasjon kan bare sendes på nytt før klienten har aktivert tilgangen.");
+  const coachIds = client.coach_ids?.length ? client.coach_ids : state.coach?.id ? [state.coach.id] : [];
+  if (!coachIds.length) throw new Error("Klienten mangler coach.");
+  const result = await callInviteUser({
+    email: client.email,
+    name: client.name,
+    role: "client",
+    coachIds,
+    jobRole: client.role || "",
+    employer: client.employer || ""
+  });
+  const verifiedClient = await verifyInvitedClient(result.email);
+  await ensureInvitedClientProgram(verifiedClient.id);
+  return verifiedClient;
 }
 
 async function inviteCoach(values) {
@@ -6465,6 +6520,10 @@ function isClientActivated(client) {
 
 function hasClientConsent(client) {
   return Boolean(client?.consent_given && client?.consent_date);
+}
+
+function canResendClientInvite(client) {
+  return Boolean(client?.email && canInviteClient() && !client.account_activated_at && !client.consent_date);
 }
 
 function clientStatusLabel(client) {
