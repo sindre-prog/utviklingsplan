@@ -41,7 +41,7 @@ const RESOURCE_FORMAT_OPTIONS = [
 ];
 const RESOURCE_PHASE_OPTIONS = [
   ["direction", "Retning"],
-  ["focus", "Fokus"],
+  ["focus", "Utviklingsfokus"],
   ["experiment", "Eksperiment"],
   ["observation", "Observasjon"],
   ["session", "Samtale"],
@@ -2035,7 +2035,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-99")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-100")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -2059,7 +2059,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-124")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-125")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2582,7 +2582,7 @@ function clientWorkspaceTabs(data = {}, activePane = null) {
   const items = [
     hasNowTab && ["now", "Akkurat nå"],
     ["direction", "Retning"],
-    ["work", "Fokus"],
+    ["work", "Utviklingsfokus"],
     ["sessions", "Samtaler"],
     ["reflections", "Refleksjon"],
     ["resources", "Ressurser"]
@@ -2999,11 +2999,11 @@ function focusViewDescription(activeView) {
   const descriptions = {
     competencies: {
       question: "Hva vil du bli bedre på?",
-      description: "Den indre utviklingslinjen: atferd og ferdigheter du utvikler i måten du leder på."
+      description: "Den indre utviklingslinjen: atferd og ferdigheter du utvikler i måten du leder deg selv og andre på."
     },
     assignments: {
       question: "Hvor skal utviklingen merkes?",
-      description: "Det ytre arbeidsoppdraget: en konkret leveranse, utfordring eller situasjon der utviklingen skal merkes."
+      description: "Den ytre utviklingslinjen: Fokusoppdrag er konkrete strategiske prioriteringer, situasjoner eller oppgaver der utviklingen skal merkes. De kan legges til, justeres eller avsluttes underveis."
     },
     experiments: {
       question: "Hva vil du prøve i praksis?",
@@ -3018,7 +3018,7 @@ function focusHubIntro(editable, data, itemCount = 0, hasCompetencies = true) {
   const action = competenciesActive && editable && itemCount
     ? addAction("Endre prioritering", () => openCompetencyChooser(data))
     : null;
-  return workspaceIntro("Fokus", "Hva skal du utvikle?", "Velg én lederkompetanse som hovedfokus, og bare det som støtter arbeidet nå. Fokusoppdrag viser hvor utviklingen skal merkes.", [action].filter(Boolean));
+  return workspaceIntro("Utviklingsfokus", "Hva skal du utvikle?", "Velg tre lederkompetanser som gir retning for utviklingen. Én kan være hovedfokus nå.", [action].filter(Boolean));
 }
 
 function focusViewTabs(activeView, data = {}) {
@@ -3809,6 +3809,16 @@ function relevantSession(plan) {
   return latest ? { session: latest, upcoming: false } : null;
 }
 
+function nowSessionContext(plan, relevant) {
+  const session = relevant?.session || null;
+  if (!session) return "";
+  const sessions = plan.sessions || [];
+  const index = sessions.indexOf(session);
+  const ordinal = index >= 0 ? `Samtale ${index + 1}` : "Samtale";
+  const date = session.date ? formatDate(session.date) : "";
+  return [ordinal, date].filter(Boolean).join(" · ");
+}
+
 function latestReflection(data) {
   return (data.reflections || []).slice().sort((a, b) => newestFirst(a, b))[0] || null;
 }
@@ -3925,12 +3935,13 @@ function nowActionItems({ data, plan, editable }) {
   }
 
   if (session) {
+    const sessionContext = nowSessionContext(plan, relevant);
     items.push(createNowAction({
       key: "session",
       priority: relevant.upcoming ? 35 : 60,
-      kicker: "Samtale",
-      title: relevant.upcoming && session.date ? `Neste samtale ${formatDate(session.date)}` : "Samtaler og notater",
-      description: session.focus || session.goal || "Se temaer, notater og eventuelle avtaler fra samtalene.",
+      kicker: relevant.upcoming ? "Neste samtale" : "Siste samtale",
+      title: session.focus || session.goal || sessionContext || "Samtale",
+      description: sessionContext,
       iconName: "messages-square",
       ctaLabel: "Åpne samtaler",
       onAction: () => activateWorkspacePane("sessions")

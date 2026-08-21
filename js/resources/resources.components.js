@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-97";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-100";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -15,7 +15,7 @@ const TYPE_LABELS = Object.freeze({
 
 const PHASE_LABELS = Object.freeze({
   direction: "Retning",
-  focus: "Fokus",
+  focus: "Utviklingsfokus",
   experiment: "Eksperiment",
   observation: "Observasjon",
   session: "Samtale",
