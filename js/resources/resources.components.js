@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-100";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-101";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -257,9 +257,13 @@ export function createClientResourceList(sharedResources = [], options = {}) {
           onOpen?.(sharedResource);
         }
       }, [
+        createElement("span", { class: "client-resource-marker", "aria-hidden": "true" }, [
+          createIcon ? createIcon("book-open") : createElement("span", { text: "" })
+        ]),
         createElement("span", { class: "client-resource-main" }, [
           createElement("span", { class: "client-resource-meta" }, metaPills(createElement, resource)),
           createElement("strong", { text: displayText(resource.title, "Ressurs") }),
+          createElement("span", { class: "client-resource-summary", text: displayText(resource.summary || resource.client_intro, "") }),
           createElement("span", { class: "client-resource-footer" }, [
             contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null,
             createSharedResourceStatus(sharedResource.status, { createElement, assignedLabel })
