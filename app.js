@@ -2059,7 +2059,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-127")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-128")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
