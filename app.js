@@ -6005,7 +6005,8 @@ function openCoachEdit(coach) {
     inputSpec("name", "Navn", "text", coach.name || ""),
     inputSpec("email", "E-post", "email", coach.email || "")
   ], async (values) => {
-    const { error } = await state.sb.from("coaches").update({ name: values.name, email: values.email }).eq("id", coach.id);
+    await updatePersonEmailIfChanged("coach", coach, values.email);
+    const { error } = await state.sb.from("coaches").update({ name: values.name }).eq("id", coach.id);
     if (error) throw error;
     if (coach.user_id) {
       const { error: profileError } = await state.sb.from("profiles").update({ name: values.name }).eq("id", coach.user_id);
@@ -6018,6 +6019,7 @@ function openCoachEdit(coach) {
 function openClientEdit(client) {
   const specs = [
     inputSpec("name", "Navn", "text", client.name || ""),
+    inputSpec("email", "E-post", "email", client.email || ""),
     inputSpec("role", "Stilling", "text", client.role || ""),
     inputSpec("employer", "Arbeidsgiver", "text", client.employer || ""),
     selectSpec("coachIds", "Coach(er)", state.coaches.map((coach) => [coach.id, coach.name]), client.coach_ids || [], true)
@@ -6028,6 +6030,7 @@ function openClientEdit(client) {
   openEntityModal("Rediger klient", "Klient", [
     ...specs
   ], async (values) => {
+    await updatePersonEmailIfChanged("client", client, values.email);
     const { error } = await state.sb.from("clients").update({ name: values.name, role: values.role, employer: values.employer, coach_ids: values.coachIds }).eq("id", client.id);
     if (error) throw error;
     await reloadAndRender();
@@ -6306,6 +6309,36 @@ async function callInviteUser(values) {
   const result = await res.json().catch(() => ({}));
   if (!res.ok || result.error) throw new Error(result.error || "Invitasjonen feilet.");
   return { ...result, email };
+}
+
+async function callUpdateUserEmail(values) {
+  const email = normalizeEmail(values.email);
+  if (!email) throw new Error("E-post må fylles ut.");
+  if (!["coach", "client"].includes(values.entityType)) throw new Error("Ugyldig rolletype.");
+  if (!values.entityId) throw new Error("Mangler person.");
+  if (state.profile?.role !== "admin") throw new Error("Bare admin kan endre e-postadresser.");
+  const { data: { session } } = await state.sb.auth.getSession();
+  if (!session?.access_token) throw new Error("Du må være innlogget som admin.");
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/update-user-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({
+      entityType: values.entityType,
+      entityId: values.entityId,
+      email
+    })
+  });
+  const result = await res.json().catch(() => ({}));
+  if (!res.ok || result.error) throw new Error(result.error || "Kunne ikke endre e-postadresse.");
+  return { ...result, email };
+}
+
+async function updatePersonEmailIfChanged(entityType, person, email) {
+  const nextEmail = normalizeEmail(email);
+  const currentEmail = normalizeEmail(person.email || "");
+  if (!nextEmail) throw new Error("E-post må fylles ut.");
+  if (nextEmail === currentEmail) return { email: nextEmail, changed: false };
+  return callUpdateUserEmail({ entityType, entityId: person.id, email: nextEmail });
 }
 
 async function verifyInvitedClient(email) {
