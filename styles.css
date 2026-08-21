@@ -13744,6 +13744,250 @@ details.coaching-frame > .coaching-frame-body > article p {
   }
 }
 
+/* Workspace UI consistency batch: keep rails, editing and resources on one grammar. */
+.focus-hub .focus-navigation-row {
+  align-items: start;
+}
+
+.focus-hub .focus-view-tabs {
+  align-self: start;
+  margin-top: 0;
+}
+
+.focus-hub .focus-view-description {
+  min-height: 64px;
+}
+
+.workspace-master-rail,
+.leadership-track-list,
+.focus-picker,
+.session-rail,
+.client-resource-rail .client-resource-list {
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
+  box-shadow: none;
+}
+
+.workspace-master-button:hover,
+.leadership-track-open:hover,
+.focus-nav-button:hover,
+.session-nav-button:hover,
+.client-resource-open:hover {
+  background: var(--neutral-50);
+}
+
+.workspace-master-row.active,
+.leadership-track-row.active,
+.focus-nav-item.active,
+.session-nav-item.active,
+.client-resource-row.is-open {
+  background: var(--platform-info-soft);
+  box-shadow: inset 3px 0 0 var(--platform-info-line);
+}
+
+.workspace-master-marker,
+.leadership-track-index,
+.client-resource-marker {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--platform-line-strong);
+  border-radius: 50%;
+  background: var(--platform-paper);
+  color: #536679;
+}
+
+.workspace-master-marker svg,
+.leadership-track-index svg,
+.client-resource-marker svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  color: currentColor;
+  stroke: currentColor;
+}
+
+.workspace-master-row.active .workspace-master-marker,
+.leadership-track-row.active .leadership-track-index,
+.client-resource-row.is-open .client-resource-marker {
+  border-color: var(--platform-info-line);
+  background: var(--platform-paper);
+  color: var(--platform-ink);
+}
+
+.client-resource-workbench {
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 24px;
+  border: 0;
+  background: transparent;
+}
+
+.client-resource-rail {
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.client-resource-rail .client-resource-list {
+  display: grid;
+  gap: 0;
+}
+
+.client-resource-row {
+  border: 0;
+  border-bottom: 1px solid var(--platform-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.client-resource-row:last-child {
+  border-bottom: 0;
+}
+
+.client-resource-open,
+.client-resource-open.active {
+  width: 100%;
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  gap: 12px;
+  align-items: start;
+  padding: 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--platform-ink);
+  box-shadow: none;
+  text-align: left;
+}
+
+.client-resource-main {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.client-resource-main > strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--platform-ink);
+  font-size: var(--type-label);
+  font-weight: 700;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.client-resource-summary {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--platform-muted);
+  font-size: var(--type-meta);
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.client-resource-summary:empty {
+  display: none;
+}
+
+.client-resource-meta,
+.client-resource-footer {
+  min-width: 0;
+}
+
+.client-resource-action {
+  width: 16px;
+  min-height: 0;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--platform-muted);
+  opacity: .72;
+}
+
+.client-resource-action svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  color: currentColor;
+  stroke: currentColor;
+}
+
+.client-resource-open:hover .client-resource-action,
+.client-resource-open.active .client-resource-action {
+  color: var(--platform-ink);
+  opacity: 1;
+}
+
+.ui-inline-editor,
+.direction-field.is-editing,
+.workspace-plan-step.is-editing,
+.focus-detail-card .focus-assignment-plan .workspace-plan-step.is-editing,
+.session-detail-card .session-conversation-plan .workspace-plan-step.is-editing {
+  border-color: var(--platform-line);
+  background: var(--platform-paper);
+  box-shadow: inset 2px 0 0 var(--platform-info-line);
+}
+
+.ui-edit-control,
+.inline-textarea,
+.ui-title-input,
+.client-resource-note,
+.modal-panel input,
+.modal-panel textarea,
+.modal-panel select,
+.drawer-panel input,
+.drawer-panel textarea,
+.drawer-panel select {
+  border-color: var(--platform-line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.ui-edit-control:focus,
+.inline-textarea:focus,
+.ui-title-input:focus,
+.client-resource-note:focus,
+.modal-panel input:focus,
+.modal-panel textarea:focus,
+.modal-panel select:focus,
+.drawer-panel input:focus,
+.drawer-panel textarea:focus,
+.drawer-panel select:focus {
+  border-color: var(--platform-line-strong);
+  outline: 2px solid rgba(83, 102, 121, .14);
+  outline-offset: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 700px) {
+  .focus-hub .focus-view-description {
+    min-height: 0;
+  }
+
+  .client-resource-workbench {
+    display: block;
+  }
+
+  .client-resource-open,
+  .client-resource-open.active {
+    min-height: 96px;
+    padding: 14px 16px;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

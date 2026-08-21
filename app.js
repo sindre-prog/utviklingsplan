@@ -2035,7 +2035,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-100")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-101")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -2059,7 +2059,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-125")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-126")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
