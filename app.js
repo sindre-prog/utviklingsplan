@@ -1928,7 +1928,7 @@ async function renderResources() {
 
   const search = el("input", { class: "search", placeholder: "Søk etter tema, ressurs eller tag" });
   const listSlot = el("div", { class: "resource-list" });
-  const previewSlot = el("div", { class: "resource-preview-slot" });
+  const previewSlot = el("div", { class: "resource-preview-slot resource-workspace-v2" });
   const mobilePicker = el("select", {
     class: "resource-mobile-picker",
     "aria-label": "Velg ressurs",
@@ -2037,7 +2037,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-105")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-106")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;

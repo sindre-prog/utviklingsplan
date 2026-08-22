@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-105";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-106";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {
@@ -6,22 +6,38 @@ function assertElementFactory(createElement) {
   }
 }
 
+function cleanText(value, fallback = "") {
+  const text = String(value ?? "").trim();
+  if (!text || text.toLowerCase() === "null" || text.toLowerCase() === "undefined") return fallback;
+  return text;
+}
+
 function textNode(createElement, tag, className, text) {
-  return createElement(tag, { class: className, text: text || "" });
+  return createElement(tag, { class: className, text: cleanText(text) });
 }
 
 function textParagraphs(createElement, className, text) {
-  const paragraphs = String(text || "")
+  const cleaned = cleanText(text);
+  if (!cleaned) return [];
+
+  const paragraphs = cleaned
     .split(/\n{2,}|\r?\n/)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
 
-  if (!paragraphs.length) return [textNode(createElement, "p", className, "")];
   return paragraphs.map((paragraph) => textNode(createElement, "p", className, paragraph));
 }
 
+function visibleTextItems(items = []) {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => cleanText(item))
+    .filter(Boolean);
+}
+
 function renderList(createElement, className, items = []) {
-  return createElement("ul", { class: className }, items.map((item) => (
+  const visibleItems = visibleTextItems(items);
+
+  return createElement("ul", { class: className }, visibleItems.map((item) => (
     createElement("li", { text: item })
   )));
 }
@@ -41,17 +57,22 @@ export function renderResourceContentBlocks(blocks = [], options = {}) {
       rendered.push(renderResourceBlock(block, options));
     }
   }
-  return rendered;
+  return rendered.filter(Boolean);
 }
 
 function renderResourceStep(textBlock, worksheetBlock, options = {}) {
   const { createElement = null } = options;
   assertElementFactory(createElement);
+  const heading = cleanText(textBlock.heading);
+  const paragraphs = textParagraphs(createElement, "resource-block__content", textBlock.content);
+  const fields = visibleTextItems(worksheetBlock.fields || []);
+
+  if (!heading && !paragraphs.length && !fields.length) return null;
 
   return createElement("section", { class: "resource-block resource-block--step" }, [
-    ...(textBlock.heading ? [textNode(createElement, "h3", "resource-block__heading", textBlock.heading)] : []),
-    ...textParagraphs(createElement, "resource-block__content", textBlock.content),
-    renderWorksheetFields(createElement, worksheetBlock.fields || [])
+    ...(heading ? [textNode(createElement, "h3", "resource-block__heading", heading)] : []),
+    ...paragraphs,
+    renderWorksheetFields(createElement, fields)
   ]);
 }
 
@@ -65,38 +86,60 @@ export function renderResourceBlock(block, options = {}) {
 
   switch (block.type) {
     case RESOURCE_BLOCK_TYPES.intro:
-      return createElement("section", { class: "resource-block resource-block--intro" }, (
-        textParagraphs(createElement, "resource-block__content", block.content)
-      ));
+      {
+        const paragraphs = textParagraphs(createElement, "resource-block__content", block.content);
+        if (!paragraphs.length) return null;
+        return createElement("section", { class: "resource-block resource-block--intro" }, paragraphs);
+      }
     case RESOURCE_BLOCK_TYPES.text:
-      return createElement("section", { class: "resource-block resource-block--text" }, [
-        ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
-        ...textParagraphs(createElement, "resource-block__content", block.content)
-      ]);
+      {
+        const heading = cleanText(block.heading);
+        const paragraphs = textParagraphs(createElement, "resource-block__content", block.content);
+        if (!heading && !paragraphs.length) return null;
+        return createElement("section", { class: "resource-block resource-block--text" }, [
+          ...(heading ? [textNode(createElement, "h3", "resource-block__heading", heading)] : []),
+          ...paragraphs
+        ]);
+      }
     case RESOURCE_BLOCK_TYPES.callout:
-      return createElement("section", { class: `resource-block resource-block--callout resource-block--callout-${block.tone || "note"}` }, [
-        ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
-        ...textParagraphs(createElement, "resource-block__content", block.content)
-      ]);
+      {
+        const heading = cleanText(block.heading);
+        const paragraphs = textParagraphs(createElement, "resource-block__content", block.content);
+        if (!heading && !paragraphs.length) return null;
+        return createElement("section", { class: `resource-block resource-block--callout resource-block--callout-${block.tone || "note"}` }, [
+          ...(heading ? [textNode(createElement, "h3", "resource-block__heading", heading)] : []),
+          ...paragraphs
+        ]);
+      }
     case RESOURCE_BLOCK_TYPES.modelCards:
-      return createElement("section", { class: "resource-block resource-block--model-cards" }, [
-        ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
-        createElement("div", { class: "resource-model-card-grid" }, normalizeCards(block.cards).map((card) => (
-          createElement("article", { class: "resource-model-card" }, [
-            ...(card.title ? [createElement("h4", { text: card.title })] : []),
-            ...(card.body ? textParagraphs(createElement, "resource-block__content", card.body) : [])
-          ])
-        )))
-      ]);
+      {
+        const heading = cleanText(block.heading);
+        const cards = normalizeCards(block.cards);
+        if (!heading && !cards.length) return null;
+        return createElement("section", { class: "resource-block resource-block--model-cards" }, [
+          ...(heading ? [textNode(createElement, "h3", "resource-block__heading", heading)] : []),
+          createElement("div", { class: "resource-model-card-grid" }, cards.map((card) => (
+            createElement("article", { class: "resource-model-card" }, [
+              ...(card.title ? [createElement("h4", { text: card.title })] : []),
+              ...(card.body ? textParagraphs(createElement, "resource-block__content", card.body) : [])
+            ])
+          )))
+        ]);
+      }
     case RESOURCE_BLOCK_TYPES.quote:
-      return createElement("figure", { class: "resource-block resource-block--quote" }, [
-        createElement("blockquote", { text: block.quote || "" }),
-        block.attribution ? createElement("figcaption", { text: block.attribution }) : null
-      ].filter(Boolean));
+      {
+        const quote = cleanText(block.quote);
+        const attribution = cleanText(block.attribution);
+        if (!quote && !attribution) return null;
+        return createElement("figure", { class: "resource-block resource-block--quote" }, [
+          quote ? createElement("blockquote", { text: quote }) : null,
+          attribution ? createElement("figcaption", { text: attribution }) : null
+        ].filter(Boolean));
+      }
     case RESOURCE_BLOCK_TYPES.illustration:
       {
         const file = findIllustrationFile(block, resourceFiles);
-        const label = file?.display_name || block.display_name || illustrationLabel(block.key);
+        const label = cleanText(file?.display_name || block.display_name, illustrationLabel(block.key));
         return createElement("div", {
           class: `resource-block resource-block--illustration ${file ? "has-file" : ""}`,
           "data-illustration-key": block.key || "",
@@ -118,19 +161,28 @@ export function renderResourceBlock(block, options = {}) {
         ].filter(Boolean));
       }
     case RESOURCE_BLOCK_TYPES.worksheet:
-      return createElement("section", { class: "resource-block resource-block--worksheet" }, [
-        ...(block.heading ? [textNode(createElement, "h3", "resource-block__heading", block.heading)] : []),
-        renderWorksheetFields(createElement, block.fields || [])
-      ]);
+      {
+        const heading = cleanText(block.heading);
+        const fields = visibleTextItems(block.fields || []);
+        if (!heading && !fields.length) return null;
+        return createElement("section", { class: "resource-block resource-block--worksheet" }, [
+          ...(heading ? [textNode(createElement, "h3", "resource-block__heading", heading)] : []),
+          renderWorksheetFields(createElement, fields)
+        ]);
+      }
     case RESOURCE_BLOCK_TYPES.reflectionQuestions:
-      return createElement("section", { class: "resource-block resource-block--reflection-questions" }, [
-        textNode(createElement, "h3", "resource-block__heading", block.heading || "Refleksjonsspørsmål"),
-        renderList(createElement, "resource-block__questions", block.questions || [])
-      ]);
+      {
+        const questions = visibleTextItems(block.questions || []);
+        if (!questions.length) return null;
+        return createElement("section", { class: "resource-block resource-block--reflection-questions" }, [
+          textNode(createElement, "h3", "resource-block__heading", cleanText(block.heading, "Refleksjonsspørsmål")),
+          renderList(createElement, "resource-block__questions", questions)
+        ]);
+      }
     case RESOURCE_BLOCK_TYPES.download:
       {
         const file = findDownloadFile(block, resourceFiles);
-        const label = block.label || file?.display_name || block.display_name || "Last ned fil";
+        const label = cleanText(block.label || file?.display_name || block.display_name, "Last ned fil");
         return createElement("section", { class: "resource-block resource-block--download" }, [
           createElement("div", { class: "resource-download-card" }, [
             createElement("div", {}, [
@@ -156,9 +208,7 @@ export function renderResourceBlock(block, options = {}) {
 }
 
 function renderWorksheetFields(createElement, fields = []) {
-  const visibleFields = (Array.isArray(fields) ? fields : [])
-    .map((field) => String(field || "").trim())
-    .filter(Boolean);
+  const visibleFields = visibleTextItems(fields);
 
   return createElement("div", { class: "resource-block__fields" }, visibleFields.map((field) => (
     createElement("div", { class: "resource-block__field" }, [
@@ -170,8 +220,8 @@ function renderWorksheetFields(createElement, fields = []) {
 function normalizeCards(cards = []) {
   return (Array.isArray(cards) ? cards : [])
     .map((card) => ({
-      title: String(card?.title || "").trim(),
-      body: String(card?.body || card?.content || "").trim()
+      title: cleanText(card?.title),
+      body: cleanText(card?.body || card?.content)
     }))
     .filter((card) => card.title || card.body)
     .slice(0, 4);

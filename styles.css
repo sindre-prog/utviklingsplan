@@ -15582,6 +15582,125 @@ details.coaching-frame > .coaching-frame-body > article p {
   }
 }
 
+/* Coach resource library parity: reuse the shared resource detail contract. */
+.resources-area .resource-card.active {
+  border-color: var(--platform-line);
+  background: var(--brand-cream);
+  box-shadow: none;
+}
+
+.resources-area .resource-card:hover {
+  background: var(--neutral-50);
+}
+
+.resources-area .resource-card.active:hover {
+  background: var(--brand-cream);
+}
+
+.resources-area .resource-card__title {
+  color: var(--platform-ink);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.resources-area .resource-card__summary {
+  color: var(--platform-body);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.resources-area .resource-preview-slot.resource-workspace-v2 .resource-preview {
+  gap: 0;
+  padding: 0;
+}
+
+.resources-area .resource-preview-slot.resource-workspace-v2 .resource-preview-title h3 {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 5vw, 66px);
+  font-weight: 400;
+  line-height: 1.02;
+}
+
+.resource-workspace-v2 .resource-coach-guidance {
+  display: grid;
+  gap: 18px;
+  background: linear-gradient(90deg, #f3f8fb 0%, #fbfcfd 100%);
+  box-shadow: inset 3px 0 0 rgba(83, 102, 121, .42);
+}
+
+.resource-workspace-v2 .resource-coach-guidance > summary {
+  display: block;
+  cursor: default;
+  list-style: none;
+}
+
+.resource-workspace-v2 .resource-coach-guidance > summary::-webkit-details-marker {
+  display: none;
+}
+
+.resource-workspace-v2 .resource-coach-guidance > summary span {
+  display: grid;
+  gap: 4px;
+}
+
+.resource-workspace-v2 .resource-coach-guidance > summary strong,
+.resource-workspace-v2 .resource-client-preview-label span {
+  color: var(--platform-ink);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.resource-workspace-v2 .resource-coach-guidance > summary small {
+  color: var(--platform-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.resource-workspace-v2 .resource-coach-guidance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 34px;
+  max-width: 920px;
+}
+
+.resource-workspace-v2 .resource-coach-guidance-grid .resource-preview-section {
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.resource-workspace-v2 .resource-coach-guidance-grid .resource-preview-section h4 {
+  margin: 0;
+  color: var(--platform-muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .075em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.resource-workspace-v2 .resource-client-preview-label {
+  padding-bottom: 16px;
+}
+
+.resource-workspace-v2 .resource-client-preview-label span {
+  color: var(--platform-muted);
+  font-size: 11px;
+  letter-spacing: .075em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 700px) {
+  .resource-workspace-v2 .resource-coach-guidance-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Editorial field polish: one quiet editing language across the portal. */
 .app-shell input,
 .app-shell textarea,

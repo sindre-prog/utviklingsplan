@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-105";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-106";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -60,6 +60,10 @@ function contextLabel(sharedResource) {
 function resourceContextText(sharedResource) {
   if (!sharedResource?.context_type || sharedResource.context_type === "program") return "";
   return `Knyttet til ${contextLabel(sharedResource).toLowerCase()}`;
+}
+
+function contentHasBlock(resource, type) {
+  return (resource?.content_json || []).some((block) => block?.type === type);
 }
 
 function visibleResourceFiles(resource) {
@@ -134,6 +138,7 @@ export function createResourcePreview(resource, options = {}) {
   const { createElement, createIcon = null, primaryAction = null, onOpenFile = null, audience = "coach" } = options;
   requireCreateElement(createElement);
   const files = visibleResourceFiles(resource || {});
+  const showLegacyReflectionPrompts = !contentHasBlock(resource, "reflection_questions") && (resource?.reflection_prompts || []).length;
 
   if (!resource) {
     return createElement("section", { class: "resource-preview empty-state" }, [
@@ -143,12 +148,12 @@ export function createResourcePreview(resource, options = {}) {
     ]);
   }
 
-  return createElement("article", { class: "resource-preview" }, [
-    createElement("header", { class: "resource-preview-head" }, [
-      createElement("div", { class: "resource-preview-title" }, [
+  return createElement("article", { class: "resource-preview client-resource-view" }, [
+    createElement("header", { class: "resource-preview-head client-resource-view-head" }, [
+      createElement("div", { class: "resource-preview-title client-resource-view-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs" }),
-        createElement("h3", { text: resource.title }),
-        ...paragraphs(createElement, "resource-preview-lead", resource.client_intro || resource.summary || ""),
+        createElement("h3", { text: displayText(resource.title, "Ressurs") }),
+        ...paragraphs(createElement, "resource-preview-lead client-resource-view-lead", resource.client_intro || resource.summary || ""),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource)),
         primaryAction ? createElement("div", { class: "resource-preview-actions" }, [
           createElement("button", {
@@ -163,7 +168,7 @@ export function createResourcePreview(resource, options = {}) {
         ]) : null
       ])
     ]),
-    audience === "coach" ? createElement("details", { class: "resource-coach-guidance", open: true }, [
+    audience === "coach" ? createElement("details", { class: "resource-coach-guidance resource-preview-section client-coach-note", open: true }, [
       createElement("summary", {}, [
         createElement("span", {}, [
           createElement("strong", { text: "Før du deler" }),
@@ -183,7 +188,7 @@ export function createResourcePreview(resource, options = {}) {
         ])
       ].filter(Boolean))
     ]) : null,
-    audience === "coach" ? createElement("div", { class: "resource-client-preview-label" }, [
+    audience === "coach" ? createElement("div", { class: "resource-client-preview-label resource-preview-section" }, [
       createElement("span", { text: "Dette ser klienten" })
     ]) : null,
     createElement("section", { class: "resource-preview-section" }, [
@@ -208,7 +213,7 @@ export function createResourcePreview(resource, options = {}) {
       )))
     ]) : null,
     createResourceNextStep(createElement, resource, createIcon),
-    (resource.reflection_prompts || []).length ? listSection(createElement, "Tenk videre", resource.reflection_prompts) : null
+    showLegacyReflectionPrompts ? listSection(createElement, "Tenk videre", resource.reflection_prompts) : null
   ].filter(Boolean));
 }
 
@@ -279,6 +284,7 @@ export function createClientResourceView(sharedResource, options = {}) {
 
   const resource = sharedResource?.resource || {};
   const files = visibleResourceFiles(resource);
+  const showLegacyReflectionPrompts = !contentHasBlock(resource, "reflection_questions") && (resource.reflection_prompts || []).length;
   const coachNote = displayText(sharedResource?.coach_note);
   const showCoachNote = Boolean(coachNote) &&
     !sameVisibleText(coachNote, resource.client_intro) &&
@@ -349,7 +355,7 @@ export function createClientResourceView(sharedResource, options = {}) {
       ])))
     ]) : null,
     createResourceNextStep(createElement, resource, createIcon),
-    (resource.reflection_prompts || []).length ? listSection(createElement, "Spørsmål å tenke videre på", resource.reflection_prompts) : null,
+    showLegacyReflectionPrompts ? listSection(createElement, "Spørsmål å tenke videre på", resource.reflection_prompts) : null,
     createElement("section", { class: "resource-preview-section client-resource-response" }, [
       createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
       privateResponse
