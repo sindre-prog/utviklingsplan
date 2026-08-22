@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-106";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-107";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -37,6 +37,14 @@ function displayText(value, fallback = "") {
   const text = String(value ?? "").trim();
   if (!text || text.toLowerCase() === "null" || text.toLowerCase() === "undefined") return fallback;
   return text;
+}
+
+function firstVisibleText(...values) {
+  for (const value of values) {
+    const text = displayText(value);
+    if (text) return text;
+  }
+  return "";
 }
 
 function metaPills(createElement, resource) {
@@ -79,11 +87,14 @@ function visibleResourceFiles(resource) {
 }
 
 function listSection(createElement, title, items = []) {
-  if (!items.length) return null;
+  const visibleItems = (Array.isArray(items) ? items : [])
+    .map((item) => displayText(item))
+    .filter(Boolean);
+  if (!visibleItems.length) return null;
 
   return createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
     createElement("h4", { text: title }),
-    createElement("ul", {}, items.map((item) => createElement("li", { text: item })))
+    createElement("ul", {}, visibleItems.map((item) => createElement("li", { text: item })))
   ]);
 }
 
@@ -129,8 +140,8 @@ export function createResourceCard(resource, options = {}) {
     onclick: () => onSelect?.(resource)
   }, [
     createElement("span", { class: "resource-card__meta" }, metaPills(createElement, resource)),
-    createElement("strong", { class: "resource-card__title", text: resource.title }),
-    createElement("span", { class: "resource-card__summary", text: resource.summary || "" })
+    createElement("strong", { class: "resource-card__title", text: displayText(resource.title, "Ressurs") }),
+    createElement("span", { class: "resource-card__summary", text: displayText(resource.summary) })
   ]);
 }
 
@@ -153,7 +164,7 @@ export function createResourcePreview(resource, options = {}) {
       createElement("div", { class: "resource-preview-title client-resource-view-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs" }),
         createElement("h3", { text: displayText(resource.title, "Ressurs") }),
-        ...paragraphs(createElement, "resource-preview-lead client-resource-view-lead", resource.client_intro || resource.summary || ""),
+        ...paragraphs(createElement, "resource-preview-lead client-resource-view-lead", firstVisibleText(resource.client_intro, resource.summary)),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource)),
         primaryAction ? createElement("div", { class: "resource-preview-actions" }, [
           createElement("button", {
