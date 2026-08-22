@@ -15408,3 +15408,141 @@ details.coaching-frame > .coaching-frame-body > article p {
     flex-direction: column;
   }
 }
+
+/* Editorial field polish: one quiet editing language across the portal. */
+.app-shell input,
+.app-shell textarea,
+.app-shell select,
+.auth-panel input,
+.auth-panel textarea,
+.auth-panel select,
+.ui-edit-control,
+.inline-textarea,
+.ui-title-input,
+.client-resource-note,
+.resource-admin-compact-select,
+.modal-panel input,
+.modal-panel textarea,
+.modal-panel select,
+.drawer-panel input,
+.drawer-panel textarea,
+.drawer-panel select {
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
+  color: var(--platform-ink);
+  box-shadow: none;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+
+.app-shell textarea,
+.auth-panel textarea,
+.ui-edit-control,
+.inline-textarea,
+.client-resource-note,
+.modal-panel textarea,
+.drawer-panel textarea {
+  line-height: 1.6;
+}
+
+.app-shell input::placeholder,
+.app-shell textarea::placeholder,
+.auth-panel input::placeholder,
+.auth-panel textarea::placeholder,
+.ui-edit-control::placeholder,
+.inline-textarea::placeholder,
+.ui-title-input::placeholder,
+.client-resource-note::placeholder,
+.search::placeholder,
+.modal-panel input::placeholder,
+.modal-panel textarea::placeholder,
+.drawer-panel input::placeholder,
+.drawer-panel textarea::placeholder {
+  color: rgba(73, 69, 79, .58);
+  opacity: 1;
+}
+
+.app-shell input:hover,
+.app-shell textarea:hover,
+.app-shell select:hover,
+.auth-panel input:hover,
+.auth-panel textarea:hover,
+.auth-panel select:hover,
+.ui-edit-control:hover,
+.inline-textarea:hover,
+.ui-title-input:hover,
+.client-resource-note:hover,
+.resource-admin-compact-select:hover,
+.modal-panel input:hover,
+.modal-panel textarea:hover,
+.modal-panel select:hover,
+.drawer-panel input:hover,
+.drawer-panel textarea:hover,
+.drawer-panel select:hover {
+  border-color: var(--platform-line-strong);
+}
+
+.app-shell input:focus,
+.app-shell textarea:focus,
+.app-shell select:focus,
+.app-shell input:focus-visible,
+.app-shell textarea:focus-visible,
+.app-shell select:focus-visible,
+.auth-panel input:focus,
+.auth-panel textarea:focus,
+.auth-panel select:focus,
+.auth-panel input:focus-visible,
+.auth-panel textarea:focus-visible,
+.auth-panel select:focus-visible,
+.ui-edit-control:focus,
+.ui-edit-control:focus-visible,
+.inline-textarea:focus,
+.inline-textarea:focus-visible,
+.ui-title-input:focus,
+.ui-title-input:focus-visible,
+.client-resource-note:focus,
+.client-resource-note:focus-visible,
+.resource-admin-compact-select:focus,
+.resource-admin-compact-select:focus-visible,
+.modal-panel input:focus,
+.modal-panel input:focus-visible,
+.modal-panel textarea:focus,
+.modal-panel textarea:focus-visible,
+.modal-panel select:focus,
+.modal-panel select:focus-visible,
+.drawer-panel input:focus,
+.drawer-panel input:focus-visible,
+.drawer-panel textarea:focus,
+.drawer-panel textarea:focus-visible,
+.drawer-panel select:focus,
+.drawer-panel select:focus-visible {
+  border-color: var(--platform-line-strong);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(83, 102, 121, .12);
+}
+
+.search:focus,
+.search:focus-visible {
+  border-color: var(--platform-line-strong);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(83, 102, 121, .12);
+}
+
+.reflection-composer > textarea {
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--platform-line), inset 0 1px 0 var(--platform-line);
+}
+
+.reflection-composer > textarea:focus,
+.reflection-composer > textarea:focus-visible {
+  border-color: transparent;
+  background: rgba(255, 255, 255, .68);
+  box-shadow: inset 0 -1px 0 var(--platform-line-strong), inset 0 1px 0 var(--platform-line-strong);
+}
+
+.client-resource-note:disabled,
+.resource-workspace-v2 .client-resource-note:disabled {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
