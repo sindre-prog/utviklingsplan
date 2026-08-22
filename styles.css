@@ -15719,3 +15719,104 @@ details.coaching-frame > .coaching-frame-body > article p {
   background: transparent;
   box-shadow: none;
 }
+
+/* UI consistency polish v1: keep repeated controls quiet, aligned and predictable. */
+.app-shell :where(.button, .ui-button, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open, .visibility-choice, .client-resource-back),
+.modal-panel :where(.button, .ui-button),
+.drawer-panel :where(.button, .ui-button) {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: none;
+  transition: border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+
+.app-shell :where(.button.ghost, .button.secondary, .ui-button-tonal, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open),
+.modal-panel :where(.button.ghost, .button.secondary, .ui-button-tonal),
+.drawer-panel :where(.button.ghost, .button.secondary, .ui-button-tonal) {
+  border: 1px solid var(--platform-line);
+  background: var(--platform-paper);
+  color: var(--platform-ink);
+}
+
+.app-shell :where(.button.ghost, .button.secondary, .ui-button-tonal, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open):hover,
+.modal-panel :where(.button.ghost, .button.secondary, .ui-button-tonal):hover,
+.drawer-panel :where(.button.ghost, .button.secondary, .ui-button-tonal):hover {
+  border-color: var(--platform-line-strong);
+  background: var(--neutral-50);
+}
+
+.app-shell :where(.button.primary, .ui-button-filled),
+.modal-panel :where(.button.primary, .ui-button-filled),
+.drawer-panel :where(.button.primary, .ui-button-filled) {
+  border-color: var(--platform-ink);
+  background: var(--platform-ink);
+  color: #fff;
+}
+
+.app-shell :where(.button, .ui-button, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open, .visibility-choice):focus-visible,
+.modal-panel :where(.button, .ui-button):focus-visible,
+.drawer-panel :where(.button, .ui-button):focus-visible {
+  outline: 2px solid var(--platform-ink);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.app-shell :where(input, textarea, select, .ui-edit-control, .inline-textarea, .ui-title-input),
+.modal-panel :where(input, textarea, select),
+.drawer-panel :where(input, textarea, select) {
+  max-width: 100%;
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+
+.app-shell :where(input, textarea, select, .ui-edit-control, .inline-textarea, .ui-title-input):focus,
+.app-shell :where(input, textarea, select, .ui-edit-control, .inline-textarea, .ui-title-input):focus-visible,
+.modal-panel :where(input, textarea, select):focus,
+.modal-panel :where(input, textarea, select):focus-visible,
+.drawer-panel :where(input, textarea, select):focus,
+.drawer-panel :where(input, textarea, select):focus-visible {
+  border-color: var(--platform-line-strong);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(83, 102, 121, .12);
+}
+
+.app-shell :where(.toolbar, .toolbar-actions, .topline-actions, .row-actions, .modal-actions, .drawer-actions, .workspace-intro-actions, .resource-preview-actions, .client-resource-response .toolbar) {
+  min-width: 0;
+}
+
+.app-shell :where(.toolbar, .toolbar-actions, .topline-actions, .row-actions, .modal-actions, .drawer-actions, .workspace-intro-actions, .resource-preview-actions, .client-resource-response .toolbar) > :where(.button, .ui-button) {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 700px) {
+  .app-shell :where(.toolbar, .toolbar-actions, .topline-actions, .row-actions, .modal-actions, .drawer-actions, .resource-preview-actions, .client-resource-response .toolbar) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .app-shell :where(.workspace-intro-actions) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .app-shell :where(.toolbar, .toolbar-actions, .topline-actions, .row-actions, .modal-actions, .drawer-actions, .resource-preview-actions, .client-resource-response .toolbar) > :where(.button, .ui-button) {
+    width: 100%;
+  }
+
+  .app-shell :where(.workspace-intro-actions) > :where(.button, .ui-button) {
+    width: 100%;
+  }
+}
