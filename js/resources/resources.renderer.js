@@ -1,4 +1,4 @@
-import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-104";
+import { RESOURCE_BLOCK_TYPES } from "./resources.constants.js?v=polish-105";
 
 function assertElementFactory(createElement) {
   if (typeof createElement !== "function") {
@@ -205,7 +205,8 @@ function findDownloadFile(block, files = []) {
     (block.file_id && file.id === block.file_id) ||
     (block.storage_path && file.storage_path === block.storage_path) ||
     (block.file_url && file.storage_path === block.file_url) ||
-    (block.display_name && file.display_name === block.display_name)
+    (block.display_name && file.display_name === block.display_name) ||
+    (block.label && file.display_name === block.label)
   )) || null;
 }
 

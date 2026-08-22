@@ -14676,7 +14676,7 @@ details.coaching-frame > .coaching-frame-body > article p {
 
 .resource-workspace-v2 .client-resources-section {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -14686,10 +14686,12 @@ details.coaching-frame > .coaching-frame-body > article p {
 
 .resource-workspace-v2 .client-resources-head {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   gap: 18px;
   margin: 0;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--platform-line);
 }
 
 .resource-workspace-v2 .client-resources-summary {
@@ -14949,6 +14951,7 @@ details.coaching-frame > .coaching-frame-body > article p {
 
 .resource-workspace-v2 .client-resource-detail-stack,
 .resource-workspace-v2 .client-resource-view {
+  width: 100%;
   min-width: 0;
 }
 
@@ -15030,9 +15033,10 @@ details.coaching-frame > .coaching-frame-body > article p {
 
 .resource-workspace-v2 .client-coach-note {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   border-left: 0;
-  background: #f7fafc;
+  background: linear-gradient(90deg, #f3f8fb 0%, #fbfcfd 100%);
+  box-shadow: inset 3px 0 0 rgba(83, 102, 121, .42);
 }
 
 .resource-workspace-v2 .client-coach-note > h4,
@@ -15048,17 +15052,19 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .resource-workspace-v2 .client-coach-note > p {
-  max-width: 780px;
+  max-width: 860px;
   margin: 0;
   color: var(--platform-ink);
-  font-size: 15px;
-  font-weight: 400;
-  line-height: 1.65;
+  font-size: 16px;
+  font-weight: 450;
+  line-height: 1.66;
 }
 
 .resource-workspace-v2 .resource-content {
   display: grid;
   gap: 0;
+  width: 100%;
+  min-width: 0;
 }
 
 .resource-workspace-v2 .resource-block {
@@ -15084,12 +15090,12 @@ details.coaching-frame > .coaching-frame-body > article p {
 
 .resource-workspace-v2 .resource-block__heading {
   margin: 0 0 10px;
-  max-width: 100%;
+  max-width: 780px;
   color: var(--platform-ink);
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 400;
-  line-height: 1.15;
+  line-height: 1.2;
   white-space: normal;
   overflow-wrap: break-word;
 }
@@ -15184,6 +15190,72 @@ details.coaching-frame > .coaching-frame-body > article p {
   line-height: 1.55;
 }
 
+.resource-workspace-v2 .resource-block--download {
+  padding: 20px 0;
+}
+
+.resource-workspace-v2 .resource-download-card {
+  width: 100%;
+  max-width: 780px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 20px;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: #fbfaf7;
+  box-shadow: none;
+}
+
+.resource-workspace-v2 .resource-download-card > div {
+  min-width: 0;
+}
+
+.resource-workspace-v2 .resource-download-card .resource-block__heading {
+  margin: 0;
+  color: var(--platform-ink);
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 400;
+  line-height: 1.18;
+}
+
+.resource-workspace-v2 .resource-download-kicker {
+  color: var(--platform-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .08em;
+}
+
+.resource-workspace-v2 .resource-files {
+  max-width: 780px;
+  display: grid;
+  gap: 0;
+  margin: 12px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--platform-line);
+}
+
+.resource-workspace-v2 .resource-files li {
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--platform-line);
+  color: var(--platform-body);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.resource-workspace-v2 .resource-files li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .resource-workspace-v2 .resource-next-step {
   display: grid;
   grid-template-columns: 34px minmax(0, 720px);
@@ -15238,7 +15310,7 @@ details.coaching-frame > .coaching-frame-body > article p {
 
 .resource-workspace-v2 .client-resource-response {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   margin-top: 0;
   border: 0;
   border-radius: 0;
@@ -15379,13 +15451,18 @@ details.coaching-frame > .coaching-frame-body > article p {
   .resource-workspace-v2 .resource-preview-section,
   .resource-workspace-v2 .resource-content,
   .resource-workspace-v2 .resource-block {
+    width: min(100%, 100vw);
     max-width: 100%;
     min-width: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   .resource-workspace-v2 .client-resources-head {
     display: grid;
     align-items: stretch;
+    gap: 12px;
+    padding-bottom: 12px;
   }
 
   .resource-workspace-v2 .client-resources-section.has-selection .client-resources-head {
@@ -15438,6 +15515,19 @@ details.coaching-frame > .coaching-frame-body > article p {
     padding: 24px 18px 22px;
   }
 
+  .resource-workspace-v2 .client-resource-view-title,
+  .resource-workspace-v2 .client-resource-view-lead,
+  .resource-workspace-v2 .client-coach-note > p,
+  .resource-workspace-v2 .resource-block__content,
+  .resource-workspace-v2 .resource-block__fields,
+  .resource-workspace-v2 .resource-block__questions,
+  .resource-workspace-v2 .resource-download-card,
+  .resource-workspace-v2 .resource-files,
+  .resource-workspace-v2 .client-resource-response > * {
+    width: 100%;
+    max-width: calc(100vw - 36px);
+  }
+
   .resource-workspace-v2 .client-resource-view-title h3 {
     font-size: 34px;
     max-width: 100%;
@@ -15457,8 +15547,28 @@ details.coaching-frame > .coaching-frame-body > article p {
   .resource-workspace-v2 .resource-block__content,
   .resource-workspace-v2 .resource-preview-section p,
   .resource-workspace-v2 .resource-preview-section li {
-    max-width: 100%;
+    max-width: min(100%, calc(100vw - 36px));
+    white-space: normal;
     overflow-wrap: break-word;
+  }
+
+  .resource-workspace-v2 .client-coach-note {
+    box-shadow: inset 3px 0 0 rgba(83, 102, 121, .34);
+  }
+
+  .resource-workspace-v2 .resource-download-card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .resource-workspace-v2 .resource-download-card .resource-block__heading {
+    font-size: 22px;
+  }
+
+  .resource-workspace-v2 .resource-files li {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .resource-workspace-v2 .client-resource-view > .resource-preview-section,
