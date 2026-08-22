@@ -2037,7 +2037,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-103")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-104")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -4962,6 +4962,7 @@ function resourcesFromCoachSection(data, canWriteReflection) {
       state.selectedSharedResourceId = selected.id;
       autoSelected = true;
     }
+    section.className = `client-resources-section ${selected ? "has-selection" : ""}`.trim();
     const list = library.createClientResourceList(visibleResources, {
       createElement: el,
       createIcon: icon,

@@ -218,7 +218,7 @@ h3 {
 .auth-panel p {
   max-width: 100%;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 700; }
 input, textarea, select {
@@ -14774,7 +14774,7 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .resource-workspace-v2 .client-resource-row.is-open {
-  background: #f7f9fb;
+  background: var(--brand-cream);
   box-shadow: none;
 }
 
@@ -14796,8 +14796,8 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .resource-workspace-v2 .client-resource-open.active {
-  background: #f7f9fb;
-  box-shadow: inset 3px 0 0 #667f99;
+  background: var(--brand-cream);
+  box-shadow: none;
 }
 
 .resource-workspace-v2 .client-resource-open:hover {
@@ -14805,7 +14805,7 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .resource-workspace-v2 .client-resource-row.is-open .client-resource-open:hover {
-  background: transparent;
+  background: var(--brand-cream);
 }
 
 .resource-workspace-v2 .client-resource-marker {
@@ -15077,18 +15077,21 @@ details.coaching-frame > .coaching-frame-body > article p {
 .resource-workspace-v2 .resource-block--intro .resource-block__content {
   max-width: 760px;
   color: var(--platform-body);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 400;
-  line-height: 1.7;
+  line-height: 1.66;
 }
 
 .resource-workspace-v2 .resource-block__heading {
   margin: 0 0 10px;
+  max-width: 100%;
   color: var(--platform-ink);
   font-family: var(--font-display);
   font-size: 24px;
   font-weight: 400;
   line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .resource-workspace-v2 .resource-block__content,
@@ -15096,9 +15099,10 @@ details.coaching-frame > .coaching-frame-body > article p {
 .resource-workspace-v2 .resource-preview-section li {
   max-width: 780px;
   color: var(--platform-body);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.68;
+  overflow-wrap: break-word;
 }
 
 .resource-workspace-v2 .resource-block__fields {
@@ -15225,8 +15229,15 @@ details.coaching-frame > .coaching-frame-body > article p {
 
 .resource-workspace-v2 .client-resource-response {
   display: grid;
-  gap: 16px;
+  gap: 10px;
   background: #fafafa;
+}
+
+.resource-workspace-v2 .client-resource-empty-note {
+  margin: 0;
+  color: var(--platform-muted);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .resource-workspace-v2 .client-resource-note {
@@ -15343,9 +15354,26 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 @media (max-width: 700px) {
+  .resource-workspace-v2,
+  .resource-workspace-v2 .client-resources-section,
+  .resource-workspace-v2 .client-resource-workbench,
+  .resource-workspace-v2 .client-resource-detail-stack,
+  .resource-workspace-v2 .client-resource-detail,
+  .resource-workspace-v2 .client-resource-view,
+  .resource-workspace-v2 .resource-preview-section,
+  .resource-workspace-v2 .resource-content,
+  .resource-workspace-v2 .resource-block {
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .resource-workspace-v2 .client-resources-head {
     display: grid;
     align-items: stretch;
+  }
+
+  .resource-workspace-v2 .client-resources-section.has-selection .client-resources-head {
+    display: none;
   }
 
   .resource-workspace-v2 .client-resource-search {
@@ -15396,6 +15424,25 @@ details.coaching-frame > .coaching-frame-body > article p {
 
   .resource-workspace-v2 .client-resource-view-title h3 {
     font-size: 34px;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+
+  .resource-workspace-v2 .resource-block__heading,
+  .resource-workspace-v2 .resource-next-step strong {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+
+  .resource-workspace-v2 .client-resource-view-lead,
+  .resource-workspace-v2 .client-coach-note > p,
+  .resource-workspace-v2 .resource-block__content,
+  .resource-workspace-v2 .resource-preview-section p,
+  .resource-workspace-v2 .resource-preview-section li {
+    max-width: 100%;
+    overflow-wrap: break-word;
   }
 
   .resource-workspace-v2 .client-resource-view > .resource-preview-section,

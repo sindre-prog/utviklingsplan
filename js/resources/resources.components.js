@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-103";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-104";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -284,12 +284,14 @@ export function createClientResourceView(sharedResource, options = {}) {
     !sameVisibleText(coachNote, resource.client_intro) &&
     !sameVisibleText(coachNote, resource.summary);
   const privateResponse = readOnly && sharedResource?.client_note_is_private;
+  const clientNoteText = displayText(sharedResource?.client_note);
+  const hasClientNote = Boolean(clientNoteText);
   let clientVisibility = sharedResource?.client_visibility === "shared_with_coach" ? "shared_with_coach" : "private";
   let saveStatus = null;
   let saveButton = null;
   const note = createElement("textarea", {
     class: "ui-edit-control client-resource-note",
-    text: displayText(sharedResource?.client_note),
+    text: clientNoteText,
     placeholder: "Hva vil du ta med deg?",
     rows: "6",
     disabled: readOnly
@@ -350,7 +352,11 @@ export function createClientResourceView(sharedResource, options = {}) {
     (resource.reflection_prompts || []).length ? listSection(createElement, "Spørsmål å tenke videre på", resource.reflection_prompts) : null,
     createElement("section", { class: "resource-preview-section client-resource-response" }, [
       createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
-      privateResponse ? createElement("p", { class: "muted", text: "Klienten har lagret en privat refleksjon som ikke er delt med coach." }) : note,
+      privateResponse
+        ? createElement("p", { class: "muted client-resource-empty-note", text: "Klienten har lagret en privat refleksjon som ikke er delt med coach." })
+        : readOnly && !hasClientNote
+          ? createElement("p", { class: "muted client-resource-empty-note", text: "Ingen refleksjon delt ennå." })
+          : note,
       readOnly || privateResponse ? null : createElement("div", { class: "visibility-control" }, [
         createElement("p", { text: "Privat: Bare du kan lese. Del med coach: Coachen kan lese teksten i forløpet." }),
         createElement("div", { class: "visibility-choice-row" }, [
