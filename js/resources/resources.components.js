@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-107";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-108";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -177,7 +177,7 @@ export function createResourcePreview(resource, options = {}) {
           ]),
           primaryAction.helpText ? createElement("p", { class: "resource-preview-action-help", text: primaryAction.helpText }) : null
         ]) : null
-      ])
+      ].filter(Boolean))
     ]),
     audience === "coach" ? createElement("details", { class: "resource-coach-guidance resource-preview-section client-coach-note", open: true }, [
       createElement("summary", {}, [

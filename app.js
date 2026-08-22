@@ -196,7 +196,9 @@ function el(tag, attrs = {}, children = []) {
     else if (key.startsWith("on")) node.addEventListener(key.slice(2).toLowerCase(), value);
     else node.setAttribute(key, value === true ? "" : value);
   });
-  children.forEach((child) => node.append(child));
+  children
+    .filter((child) => child !== null && child !== undefined && child !== false)
+    .forEach((child) => node.append(child));
   return node;
 }
 
@@ -2037,7 +2039,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-107")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-108")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
