@@ -15110,17 +15110,15 @@ details.coaching-frame > .coaching-frame-body > article p {
   gap: 0;
   max-width: 760px;
   margin-top: 20px;
-  counter-reset: resource-field;
   border-top: 1px solid rgba(0, 0, 0, .08);
 }
 
 .resource-workspace-v2 .resource-block__field {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 14px;
   align-items: start;
   padding: 15px 0;
-  counter-increment: resource-field;
   border: 0;
   border-bottom: 1px solid rgba(0, 0, 0, .08);
   border-radius: 0;
@@ -15132,12 +15130,13 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .resource-workspace-v2 .resource-block__field::before {
-  content: counter(resource-field, decimal-leading-zero);
-  color: var(--platform-muted);
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: .075em;
-  line-height: 1.9;
+  content: "";
+  width: 0;
+  height: 0;
+  margin-top: .52em;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--platform-muted);
 }
 
 .resource-workspace-v2 .resource-block__field span {
@@ -15150,29 +15149,33 @@ details.coaching-frame > .coaching-frame-body > article p {
   max-width: 780px;
   margin: 16px 0 0;
   padding: 0;
-  counter-reset: resource-question;
   border-top: 1px solid var(--platform-line);
   list-style: none;
 }
 
 .resource-workspace-v2 .resource-block__questions li {
   position: relative;
-  display: block;
-  padding: 15px 0 15px 52px;
-  counter-increment: resource-question;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 14px;
+  padding: 15px 0;
   border-bottom: 1px solid var(--platform-line);
+  list-style: none;
+}
+
+.resource-workspace-v2 .resource-block__questions li::marker {
+  content: "";
 }
 
 .resource-workspace-v2 .resource-block__questions li::before {
-  content: counter(resource-question, decimal-leading-zero);
-  position: absolute;
-  top: 15px;
-  left: 0;
-  color: var(--platform-muted);
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: .08em;
-  line-height: 1.8;
+  content: "";
+  position: static;
+  width: 0;
+  height: 0;
+  margin-top: .52em;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--platform-muted);
 }
 
 .resource-workspace-v2 .resource-next-step {
@@ -15230,7 +15233,14 @@ details.coaching-frame > .coaching-frame-body > article p {
 .resource-workspace-v2 .client-resource-response {
   display: grid;
   gap: 10px;
-  background: #fafafa;
+  margin-top: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.resource-workspace-v2 .client-resource-response > * {
+  max-width: 780px;
 }
 
 .resource-workspace-v2 .client-resource-empty-note {
