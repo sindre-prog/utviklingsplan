@@ -1395,6 +1395,7 @@ function createResourceAdminPreview(library, getResourceDraft) {
     try {
       previewSlot.replaceChildren(library.createResourcePreview(getResourceDraft(), {
         createElement: el,
+        createIcon: icon,
         onOpenFile: openResourceFile,
         audience: "client"
       }));
@@ -1990,6 +1991,7 @@ async function renderResources() {
     const shareableClients = getVisibleClients().filter((client) => canShareResourceToClient(client));
     previewSlot.replaceChildren(library.createResourcePreview(selected, {
       createElement: el,
+      createIcon: icon,
       onOpenFile: openResourceFile,
       primaryAction: canShareResources() ? {
         label: "Send ressurs",
@@ -2035,7 +2037,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-102")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-103")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -4978,6 +4980,7 @@ function resourcesFromCoachSection(data, canWriteReflection) {
       }}, [icon("arrow-left"), el("span", { text: "Tilbake til ressurser" })]),
       library.createClientResourceView(selected, {
         createElement: el,
+        createIcon: icon,
         readOnly: !canWriteReflection,
         onOpenFile: openResourceFile,
         onSave: (resource, values) => saveSharedResourceReflection(resource, values, renderSection)

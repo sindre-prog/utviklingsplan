@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-102";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-103";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -131,7 +131,7 @@ export function createResourceCard(resource, options = {}) {
 }
 
 export function createResourcePreview(resource, options = {}) {
-  const { createElement, primaryAction = null, onOpenFile = null, audience = "coach" } = options;
+  const { createElement, createIcon = null, primaryAction = null, onOpenFile = null, audience = "coach" } = options;
   requireCreateElement(createElement);
   const files = visibleResourceFiles(resource || {});
 
@@ -207,13 +207,7 @@ export function createResourcePreview(resource, options = {}) {
         ])
       )))
     ]) : null,
-    resource.next_step_prompt ? createElement("section", { class: "resource-next-step" }, [
-      createElement("span", { class: "resource-next-step-icon", text: "→" }),
-      createElement("div", {}, [
-        createElement("strong", { text: "Neste steg" }),
-        ...paragraphs(createElement, "", resource.next_step_prompt)
-      ])
-    ]) : null,
+    createResourceNextStep(createElement, resource, createIcon),
     (resource.reflection_prompts || []).length ? listSection(createElement, "Tenk videre", resource.reflection_prompts) : null
   ].filter(Boolean));
 }
@@ -280,7 +274,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
 }
 
 export function createClientResourceView(sharedResource, options = {}) {
-  const { createElement, onSave, onOpenFile = null, readOnly = false } = options;
+  const { createElement, createIcon = null, onSave, onOpenFile = null, readOnly = false } = options;
   requireCreateElement(createElement);
 
   const resource = sharedResource?.resource || {};
@@ -352,13 +346,7 @@ export function createClientResourceView(sharedResource, options = {}) {
         }, [createElement("span", { text: fileActionLabel(file) })]) : null
       ])))
     ]) : null,
-    resource.next_step_prompt ? createElement("section", { class: "resource-next-step" }, [
-      createElement("span", { class: "resource-next-step-icon", text: "→" }),
-      createElement("div", {}, [
-        createElement("strong", { text: "Neste steg" }),
-        ...paragraphs(createElement, "", resource.next_step_prompt)
-      ])
-    ]) : null,
+    createResourceNextStep(createElement, resource, createIcon),
     (resource.reflection_prompts || []).length ? listSection(createElement, "Spørsmål å tenke videre på", resource.reflection_prompts) : null,
     createElement("section", { class: "resource-preview-section client-resource-response" }, [
       createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
@@ -396,6 +384,20 @@ export function createClientResourceView(sharedResource, options = {}) {
       ])
     ].filter(Boolean))
   ].filter(Boolean));
+}
+
+function createResourceNextStep(createElement, resource, createIcon = null) {
+  if (!resource?.next_step_prompt) return null;
+
+  return createElement("section", { class: "resource-next-step" }, [
+    createElement("span", { class: "resource-next-step-icon", "aria-hidden": "true" }, [
+      createIcon ? createIcon("arrow-right") : createElement("span", { text: "→" })
+    ]),
+    createElement("div", { class: "resource-next-step-copy" }, [
+      createElement("strong", { text: "Neste steg" }),
+      ...paragraphs(createElement, "", resource.next_step_prompt)
+    ])
+  ]);
 }
 
 export function createSharedResourceStatus(status, options = {}) {
