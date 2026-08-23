@@ -714,6 +714,7 @@ function renderClients() {
         mainStat("Klienter", String(visibleClients.length), "aktive i oversikten", "users"),
         mainStat("Kommende samtaler", String(upcomingSessionCount), "dato satt i planen", "calendar-days")
       ]),
+      coachOwnershipOrientation(visibleClients, createInviteAction),
       clientActivitySection(visibleClients),
       el("section", { class: "panel list-panel main-section main-client-section" }, [
         el("div", { class: "toolbar main-section-head" }, [
@@ -732,6 +733,22 @@ function renderClients() {
     ].filter(Boolean))
   );
   render();
+}
+
+function coachOwnershipOrientation(clients, createInviteAction) {
+  if (!canInviteClient()) return null;
+  const hasRecentActivity = clientActivityItems(clients).length > 0;
+  const hasEstablishedClient = clients.some((client) => hasProgramContent(state.programSummaries[client.id]));
+  if (hasRecentActivity || hasEstablishedClient) return null;
+
+  return ownershipOrientationCard({
+    className: "coach-ownership-orientation main-section",
+    kicker: "Kom i gang",
+    title: "Klienten eier utviklingsløpet",
+    text: "Portalen skal hjelpe klienten å samle og følge egen utvikling. Som coach støtter du med samtaler, spørsmål og relevante ressurser uten å overta arbeidet.",
+    iconName: "user-check",
+    action: createInviteAction("ghost")
+  });
 }
 
 function clientActivitySection(clients) {
@@ -2110,7 +2127,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-147")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-148")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -3809,6 +3826,18 @@ function workspaceIntro(kicker, title, text, actions = []) {
   return pageIntro(kicker, title, text, actions);
 }
 
+function ownershipOrientationCard({ className = "", kicker, title, text, iconName = "compass", action = null }) {
+  return el("section", { class: `ownership-orientation ${className}`.trim() }, [
+    el("span", { class: "ownership-orientation-icon", "aria-hidden": "true" }, [icon(iconName)]),
+    el("div", { class: "ownership-orientation-copy" }, [
+      el("p", { class: "workspace-kicker", text: kicker }),
+      el("h3", { text: title }),
+      el("p", { text })
+    ]),
+    action ? el("div", { class: "ownership-orientation-action" }, [action]) : null
+  ].filter(Boolean));
+}
+
 function localIsoDate(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -4076,12 +4105,28 @@ function nowWorkspace(client, data, plan) {
   const supporting = actions.slice(1);
   const primaryCompetency = primaryLeadershipCompetency(data);
   const focusItems = nowFocusAssignments(plan);
+  const direction = nowDirectionSummary(plan);
+  const orientation = clientOwnershipOrientation(direction, editable);
+  const visiblePrimary = orientation && primary?.key === "direction" ? null : primary;
   return el("div", { class: "platform-page now-workspace now-workspace-v2" }, [
     pageIntro("Akkurat nå", "Oversikt akkurat nå", "Her samles det som er mest relevant i forløpet nå."),
-    primary ? nowPrimaryAction(primary, editable) : nowEmptyState(editable),
+    orientation,
+    visiblePrimary ? nowPrimaryAction(visiblePrimary, editable) : orientation ? null : nowEmptyState(editable),
     nowActionGrid(supporting, editable),
     nowProgressStrip({ primaryCompetency, focusItems, actions: data.actions || [], sessions: plan.sessions || [], resources: data.sharedResources || [] })
   ].filter(Boolean));
+}
+
+function clientOwnershipOrientation(direction, editable) {
+  if (state.profile.role !== "client" || !editable || direction.completed >= direction.total) return null;
+  return ownershipOrientationCard({
+    className: "client-ownership-orientation",
+    kicker: "Start her",
+    title: "Dette er ditt utviklingsløp",
+    text: "Portalen hjelper deg å samle det som er viktig i utviklingen din. Du trenger ikke fylle ut alt. Start med retningen og utviklingsfokuset, og bruk resten når det er nyttig.",
+    iconName: "compass",
+    action: el("button", { class: "ui-button ui-button-filled", type: "button", text: "Sett retning", onclick: () => activateWorkspacePane("direction") })
+  });
 }
 
 function nowPrimaryAction(item, editable) {
