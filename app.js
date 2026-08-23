@@ -2063,7 +2063,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-137")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-138")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -3918,7 +3918,7 @@ function nowActionItems({ data, plan, editable }) {
       priority: 20,
       kicker: "Fokus",
       title: "Hovedfokus er ikke valgt",
-      description: "Velg én lederkompetanse hvis dere vil samle forløpet rundt et tydelig tema.",
+      description: "Velg hovedfokus og to støttende lederkompetanser når dere vil samle forløpet rundt tydelige utviklingstemaer.",
       iconName: "compass",
       ctaLabel: "Velg lederkompetanse",
       onAction: () => openCompetencyChooser(data)
