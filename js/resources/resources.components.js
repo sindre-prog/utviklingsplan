@@ -146,7 +146,7 @@ export function createResourceCard(resource, options = {}) {
 }
 
 export function createResourcePreview(resource, options = {}) {
-  const { createElement, createIcon = null, primaryAction = null, onOpenFile = null, audience = "coach" } = options;
+  const { createElement, createIcon = null, primaryAction = null, secondaryAction = null, onOpenFile = null, audience = "coach" } = options;
   requireCreateElement(createElement);
   const files = visibleResourceFiles(resource || {});
   const showLegacyReflectionPrompts = !contentHasBlock(resource, "reflection_questions") && (resource?.reflection_prompts || []).length;
@@ -166,17 +166,25 @@ export function createResourcePreview(resource, options = {}) {
         createElement("h3", { text: displayText(resource.title, "Ressurs") }),
         ...paragraphs(createElement, "resource-preview-lead client-resource-view-lead", firstVisibleText(resource.client_intro, resource.summary)),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource)),
-        primaryAction ? createElement("div", { class: "resource-preview-actions" }, [
-          createElement("button", {
+        primaryAction || secondaryAction ? createElement("div", { class: "resource-preview-actions" }, [
+          primaryAction ? createElement("button", {
             class: "button primary",
             type: "button",
             disabled: primaryAction.disabled,
             onclick: () => primaryAction.onClick?.(resource)
           }, [
             createElement("span", { text: primaryAction.label || "Send ressurs" })
-          ]),
-          primaryAction.helpText ? createElement("p", { class: "resource-preview-action-help", text: primaryAction.helpText }) : null
-        ]) : null
+          ]) : null,
+          secondaryAction ? createElement("button", {
+            class: "button secondary",
+            type: "button",
+            disabled: secondaryAction.disabled,
+            onclick: () => secondaryAction.onClick?.(resource)
+          }, [
+            createElement("span", { text: secondaryAction.label || "Åpne" })
+          ]) : null,
+          primaryAction?.helpText ? createElement("p", { class: "resource-preview-action-help", text: primaryAction.helpText }) : null
+        ].filter(Boolean)) : null
       ].filter(Boolean))
     ]),
     audience === "coach" ? createElement("details", { class: "resource-coach-guidance resource-preview-section client-coach-note", open: true }, [
