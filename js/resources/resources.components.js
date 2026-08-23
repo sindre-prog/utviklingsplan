@@ -86,13 +86,13 @@ function visibleResourceFiles(resource) {
   ));
 }
 
-function listSection(createElement, title, items = []) {
+function listSection(createElement, title, items = [], extraClass = "") {
   const visibleItems = (Array.isArray(items) ? items : [])
     .map((item) => displayText(item))
     .filter(Boolean);
   if (!visibleItems.length) return null;
 
-  return createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
+  return createElement("section", { class: `resource-preview-section resource-preview-section--support ${extraClass}`.trim() }, [
     createElement("h4", { text: title }),
     createElement("ul", {}, visibleItems.map((item) => createElement("li", { text: item })))
   ]);
@@ -187,7 +187,7 @@ export function createResourcePreview(resource, options = {}) {
         ].filter(Boolean)) : null
       ].filter(Boolean))
     ]),
-    audience === "coach" ? createElement("details", { class: "resource-coach-guidance resource-preview-section client-coach-note", open: true }, [
+    audience === "coach" ? createElement("details", { class: "resource-coach-guidance" }, [
       createElement("summary", {}, [
         createElement("span", {}, [
           createElement("strong", { text: "Før du deler" }),
@@ -195,19 +195,19 @@ export function createResourcePreview(resource, options = {}) {
         ])
       ]),
       createElement("div", { class: "resource-coach-guidance-grid" }, [
-        createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
+        createElement("section", { class: "resource-preview-section resource-preview-section--support resource-coach-guidance-primary" }, [
           createElement("h4", { text: "Hva ressursen skal hjelpe med" }),
           ...paragraphs(createElement, "", resource.intended_outcome, "Ikke definert ennå.")
         ]),
-        listSection(createElement, "Best brukt når", resource.best_used_when || []),
-        listSection(createElement, "Ikke egnet når", resource.not_for || []),
-        createElement("section", { class: "resource-preview-section resource-preview-section--support" }, [
+        listSection(createElement, "Best brukt når", resource.best_used_when || [], "resource-coach-guidance-fit"),
+        createElement("section", { class: "resource-preview-section resource-preview-section--support resource-coach-guidance-advice" }, [
           createElement("h4", { text: "Veiledning til coach" }),
           ...paragraphs(createElement, "", resource.coach_guidance, "Ingen veiledning lagt inn ennå.")
-        ])
+        ]),
+        listSection(createElement, "Ikke egnet når", resource.not_for || [], "resource-coach-guidance-caution")
       ].filter(Boolean))
     ]) : null,
-    audience === "coach" ? createElement("div", { class: "resource-client-preview-label resource-preview-section" }, [
+    audience === "coach" ? createElement("div", { class: "resource-client-preview-label" }, [
       createElement("span", { text: "Dette ser klienten" })
     ]) : null,
     createElement("section", { class: "resource-preview-section" }, [

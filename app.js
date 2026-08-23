@@ -82,6 +82,17 @@ const RESOURCE_BLOCK_TYPE_LABELS = {
   illustration: "Illustrasjon",
   download: "PDF/vedlegg"
 };
+const RESOURCE_BLOCK_TYPE_DESCRIPTIONS = {
+  text: "Overskrift og vanlig tekst.",
+  reflection_questions: "Spørsmål som vises som en enkel punktliste.",
+  worksheet: "Arbeidsfelt klienten kan bruke som støtte.",
+  model_cards: "Korte kort for modeller, begreper eller valg.",
+  callout: "Et uthevet felt for viktige poeng eller coach-kommentar.",
+  quote: "Sitat eller nøkkelsetning med valgfri kilde.",
+  illustration: "Viser en opplastet illustrasjon i ressursen.",
+  download: "Legger inn PDF eller vedlegg der blokken står.",
+  intro: "Kort innledning i starten av ressursen."
+};
 const RESOURCE_BLOCK_ADD_TYPES = ["text", "reflection_questions", "worksheet", "model_cards", "callout", "quote", "illustration", "download", "intro"];
 const RESOURCE_CALLOUT_TONES = [
   ["note", "Nøytral"],
@@ -1217,6 +1228,13 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
       render(index + 1);
     });
   };
+  const blockTypeGuide = el("details", { class: "resource-block-type-guide" }, [
+    el("summary", { text: "Hva blokkene brukes til" }),
+    el("div", {}, RESOURCE_BLOCK_ADD_TYPES.map((type) => el("p", {}, [
+      el("strong", { text: RESOURCE_BLOCK_TYPE_LABELS[type] || type }),
+      el("span", { text: RESOURCE_BLOCK_TYPE_DESCRIPTIONS[type] || "" })
+    ])))
+  ]);
 
   const renderBlockControls = (block, index) => {
     if (block.type === "intro") {
@@ -1385,7 +1403,8 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
     hidden,
     el("div", { class: "resource-admin-helper-card" }, [
       el("strong", { text: "Innholdsblokker" }),
-      el("p", { text: "Bygg ressursen med enkle blokker. Dette lagres strukturert, men du slipper å skrive JSON." })
+      el("p", { text: "Bygg ressursen med enkle blokker. Dette lagres strukturert, men du slipper å skrive JSON." }),
+      blockTypeGuide
     ]),
     list,
     el("div", { class: "resource-block-editor-add" }, [
@@ -2067,7 +2086,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-109")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-113")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -2091,7 +2110,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-141")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-147")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
