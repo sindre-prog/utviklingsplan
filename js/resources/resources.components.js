@@ -187,7 +187,7 @@ export function createResourcePreview(resource, options = {}) {
         ].filter(Boolean)) : null
       ].filter(Boolean))
     ]),
-    audience === "coach" ? createElement("details", { class: "resource-coach-guidance resource-preview-section client-coach-note", open: true }, [
+    audience === "coach" ? createElement("details", { class: "resource-coach-guidance resource-preview-section", open: true }, [
       createElement("summary", {}, [
         createElement("span", {}, [
           createElement("strong", { text: "Før du deler" }),

@@ -2,7 +2,7 @@ export * from "./resources.constants.js?v=polish-108";
 export * from "./resources.queries.js?v=polish-108";
 export * from "./resources.mutations.js?v=polish-108";
 export * from "./resources.renderer.js?v=polish-108";
-export * from "./resources.components.js?v=polish-109";
+export * from "./resources.components.js?v=polish-110";
 export * from "./resources.seed.js?v=polish-108";
 
-export const RESOURCE_LIBRARY_MODULE_VERSION = "polish-109";
+export const RESOURCE_LIBRARY_MODULE_VERSION = "polish-110";
