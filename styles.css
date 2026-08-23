@@ -7563,10 +7563,30 @@ h3,
 .resource-readiness-item { padding: 4px 8px; border-radius: 999px; background: rgba(255,255,255,.8); font-size: 11px; }
 .resource-readiness-item.is-done { color: #316a38; }
 .resource-readiness-item.is-missing { color: #825959; }
+.resource-readiness-panel.is-ready {
+  border-color: rgba(49, 106, 56, .28);
+  background: #f7fbf6;
+}
+
+.resource-readiness-panel.has-blockers {
+  background: #fef8ee;
+}
 
 .resource-admin-preview { padding: 0; border: 0; background: transparent; }
 .resource-admin-preview-head { margin-bottom: 14px; }
 .resource-admin-preview .resource-preview { border: 1px solid var(--line); box-shadow: none; }
+.resource-admin-preview-slot.resource-workspace-v2 .resource-preview {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.resource-editor-preview .resource-workspace-v2 .client-resource-view-title h3 {
+  font-size: clamp(34px, 4vw, 48px);
+}
 
 .resource-coach-guidance {
   margin: 0 22px 20px;
