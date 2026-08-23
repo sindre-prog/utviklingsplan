@@ -2006,12 +2006,7 @@ async function renderResources() {
         ])
     );
     const shareableClients = getVisibleClients().filter((client) => canShareResourceToClient(client));
-    const resourceAction = state.profile.role === "admin"
-      ? {
-        label: "Rediger ressurs",
-        onClick: openResourceAdminEditor
-      }
-      : canShareResources() ? {
+    const resourceAction = canShareResources() ? {
         label: "Send ressurs",
         disabled: shareableClients.length === 0,
         helpText: shareableClients.length
@@ -2019,11 +2014,16 @@ async function renderResources() {
           : "Du har ingen klienter med åpne forløp som kan motta ressurser ennå.",
         onClick: openSendResourceDrawer
       } : null;
+    const adminResourceAction = state.profile.role === "admin" ? {
+      label: "Rediger ressurs",
+      onClick: openResourceAdminEditor
+    } : null;
     previewSlot.replaceChildren(library.createResourcePreview(selected, {
       createElement: el,
       createIcon: icon,
       onOpenFile: openResourceFile,
-      primaryAction: resourceAction
+      primaryAction: resourceAction,
+      secondaryAction: adminResourceAction
     }));
     hydrateResourceMedia(previewSlot);
     refreshIcons();
@@ -2060,7 +2060,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-108")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-109")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -2084,7 +2084,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-139")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-140")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -2100,7 +2100,7 @@ async function ensureLeadershipLibrary() {
 }
 
 function canShareResources() {
-  return state.profile?.role === "coach";
+  return state.profile?.role === "coach" || state.profile?.role === "admin";
 }
 
 function openSendResourceDrawer(resource) {
@@ -2256,6 +2256,7 @@ function createResourceContextPicker(resource, clients) {
 
 function canShareResourceToClient(client) {
   if (!client) return false;
+  if (state.profile?.role === "admin") return true;
   const coachId = state.coach?.id;
   return Boolean(coachId && (client.coach_ids || []).includes(coachId));
 }
