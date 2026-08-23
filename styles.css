@@ -15710,7 +15710,7 @@ details.coaching-frame > .coaching-frame-body > article p {
 .resource-workspace-v2 .client-resource-view > .resource-coach-guidance {
   display: grid;
   gap: 12px;
-  margin: 16px 32px 0;
+  margin: 18px 32px 0;
   padding: 14px 16px;
   border: 1px solid var(--platform-line);
   border-bottom: 1px solid var(--platform-line);
@@ -15821,7 +15821,9 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .resource-workspace-v2 .resource-client-preview-label {
-  padding-bottom: 16px;
+  margin: 22px 32px 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--platform-line);
 }
 
 .resource-workspace-v2 .resource-client-preview-label span {
@@ -15849,6 +15851,10 @@ details.coaching-frame > .coaching-frame-body > article p {
   .resource-workspace-v2 .resource-coach-guidance-caution {
     grid-column: auto;
     grid-row: auto;
+  }
+  .resource-workspace-v2 .resource-client-preview-label {
+    margin: 18px 18px 0;
+    padding-top: 12px;
   }
 }
 

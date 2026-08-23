@@ -187,7 +187,7 @@ export function createResourcePreview(resource, options = {}) {
         ].filter(Boolean)) : null
       ].filter(Boolean))
     ]),
-    audience === "coach" ? createElement("details", { class: "resource-coach-guidance resource-preview-section" }, [
+    audience === "coach" ? createElement("details", { class: "resource-coach-guidance" }, [
       createElement("summary", {}, [
         createElement("span", {}, [
           createElement("strong", { text: "Før du deler" }),
@@ -207,7 +207,7 @@ export function createResourcePreview(resource, options = {}) {
         listSection(createElement, "Ikke egnet når", resource.not_for || [], "resource-coach-guidance-caution")
       ].filter(Boolean))
     ]) : null,
-    audience === "coach" ? createElement("div", { class: "resource-client-preview-label resource-preview-section" }, [
+    audience === "coach" ? createElement("div", { class: "resource-client-preview-label" }, [
       createElement("span", { text: "Dette ser klienten" })
     ]) : null,
     createElement("section", { class: "resource-preview-section" }, [
