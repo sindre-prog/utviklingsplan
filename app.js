@@ -73,16 +73,16 @@ const RESOURCE_FILE_TYPE_OPTIONS = [
 ];
 const RESOURCE_BLOCK_TYPE_LABELS = {
   intro: "Intro",
-  text: "Tekstseksjon",
-  callout: "Callout",
-  model_cards: "Modellkort",
+  text: "Tekst",
+  callout: "Fremhevet tekst",
+  model_cards: "Kort/modell",
   quote: "Sitat",
-  worksheet: "Arbeidsfelt i ressursen",
-  reflection_questions: "Refleksjonsspørsmål",
+  worksheet: "Arbeidsfelt",
+  reflection_questions: "Spørsmål",
   illustration: "Illustrasjon",
-  download: "Nedlasting"
+  download: "PDF/vedlegg"
 };
-const RESOURCE_BLOCK_ADD_TYPES = ["intro", "text", "callout", "model_cards", "quote", "worksheet", "reflection_questions", "illustration", "download"];
+const RESOURCE_BLOCK_ADD_TYPES = ["text", "reflection_questions", "worksheet", "model_cards", "callout", "quote", "illustration", "download", "intro"];
 const RESOURCE_CALLOUT_TONES = [
   ["note", "Nøytral"],
   ["coach", "Coach-kommentar"],
@@ -1402,7 +1402,7 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
 }
 
 function createResourceAdminPreview(library, getResourceDraft) {
-  const previewSlot = el("div", { class: "resource-admin-preview-slot" });
+  const previewSlot = el("div", { class: "resource-admin-preview-slot resource-workspace-v2" });
   const renderPreview = () => {
     try {
       previewSlot.replaceChildren(library.createResourcePreview(getResourceDraft(), {
@@ -1420,8 +1420,8 @@ function createResourceAdminPreview(library, getResourceDraft) {
   const wrapper = el("section", { class: "resource-admin-preview" }, [
     el("div", { class: "resource-admin-preview-head" }, [
       el("div", {}, [
-        el("strong", { text: "Dette ser klienten" }),
-        el("p", { text: "Forhåndsvisningen oppdateres mens du skriver." })
+        el("strong", { text: "Forhåndsvisning" }),
+        el("p", { text: "Viser ressursen med samme design som klient og coach møter." })
       ]),
       el("button", { class: "button secondary", type: "button", onclick: renderPreview }, [
         icon("refresh-cw"),
@@ -1627,7 +1627,7 @@ function createResourceReadinessPanel(getDraftResource) {
   const list = el("div", { class: "resource-readiness-list" });
   const summary = el("p", { class: "resource-admin-inline-help" });
   const panel = el("section", { class: "resource-admin-helper-card resource-readiness-panel" }, [
-    el("strong", { text: "Publiseringsklar?" }),
+    el("strong", { text: "Før publisering" }),
     summary,
     list
   ]);
@@ -1639,15 +1639,22 @@ function createResourceReadinessPanel(getDraftResource) {
       const minimumMissing = items.filter((item) => item.group === "minimum" && !item.done);
       const recommendedMissing = items.filter((item) => item.group === "recommended" && !item.done);
       const qualityMissing = items.filter((item) => item.group === "quality" && !item.done);
+      panel.classList.toggle("has-blockers", minimumMissing.length > 0);
+      panel.classList.toggle("is-ready", minimumMissing.length === 0);
       summary.textContent = minimumMissing.length
-        ? `Kan ikke publiseres ennå. Mangler: ${minimumMissing.map((item) => item.label).join(", ")}.`
+        ? "Fyll ut disse feltene før ressursen kan publiseres."
         : recommendedMissing.length || qualityMissing.length
-          ? "Kan publiseres. Noe anbefalt innhold og faglig metadata mangler fortsatt."
-          : "Klar til publisering og godt utfylt.";
-      list.replaceChildren(...items.map((item) => el("span", {
-        class: `resource-readiness-item resource-readiness-item--${item.group} ${item.done ? "is-done" : "is-missing"}`,
-        text: `${item.done ? "OK" : item.group === "minimum" ? "Mangler" : "Anbefalt"}: ${item.label}`
-      })));
+          ? "Kan publiseres. Dette kan styrke kvaliteten før deling."
+          : "Klar til publisering.";
+      const visibleItems = minimumMissing.length
+        ? minimumMissing
+        : [...recommendedMissing, ...qualityMissing].slice(0, 6);
+      list.replaceChildren(...(visibleItems.length ? visibleItems.map((item) => el("span", {
+        class: `resource-readiness-item resource-readiness-item--${item.group} is-missing`,
+        text: item.group === "minimum" ? item.label : `Anbefalt: ${item.label}`
+      })) : [
+        el("span", { class: "resource-readiness-item is-done", text: "Klar" })
+      ]));
     } catch (error) {
       summary.textContent = userFacingError(error, "Fyll ut feltene for å se hva som mangler.");
       list.replaceChildren();
@@ -1789,7 +1796,7 @@ async function openResourceAdminEditor(resource = null) {
   };
   const editorMain = el("div", { class: "resource-editor-main" }, [
     createResourceReadinessPanel(getDraftResource),
-    editorSection("Det klienten ser", "Gi ressursen en tydelig inngang og et konkret neste steg.", [
+    editorSection("Start her", "Gi ressursen en tydelig tittel, inngang og anbefalt neste steg.", [
       inputSpec("title", "Tittel", "text", resource?.title || ""),
       textareaSpec("summary", "Kort beskrivelse", resource?.summary || "", { rows: "2", placeholder: "Én kort setning som gjør ressursen lett å velge." }),
       textareaSpec("client_intro", "Introduksjon til klient", resource?.client_intro || "", { rows: "3", placeholder: "Hvorfor er dette relevant, og hvordan bør ressursen brukes?" }),
@@ -1800,14 +1807,14 @@ async function openResourceAdminEditor(resource = null) {
       customSpec("content_json", blockEditor),
       customSpec("resource_files", createResourceFileManager(resource, library, { onFilesChange: refreshBlocks }))
     ]),
-    editorSection("Bruk i coaching", "Dette er arbeidsinformasjon for coachen og vises ikke til klienten.", [
+    editorSection("For coach og deling", "Hjelper coachen å vurdere når ressursen passer og hva som bør sendes med.", [
       textareaSpec("intended_outcome", "Hva ressursen skal hjelpe med", resource?.intended_outcome || "", { rows: "3" }),
       textareaSpec("best_used_when", "Best brukt når", (resource?.best_used_when || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" }),
       textareaSpec("not_for", "Ikke egnet når", (resource?.not_for || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" }),
       textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" }),
       textareaSpec("suggested_coach_note", "Forslag til sendemelding", resource?.suggested_coach_note || "", { rows: "3", placeholder: "Coachen kan redigere teksten før sending." })
     ], { collapsible: true, open: true }),
-    editorSection("Publisering og metadata", "Brukes til filtrering, kvalitetssikring og synlighet.", [
+    editorSection("Avansert: metadata og publisering", "Brukes til filtrering, kvalitetssikring og synlighet.", [
       el("div", { class: "resource-editor-field-grid" }, [
         renderSpec(selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework")),
         renderSpec(selectSpec("phase", "Fase", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection")),
@@ -2084,7 +2091,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-140")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-141")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
