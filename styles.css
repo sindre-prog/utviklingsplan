@@ -341,6 +341,23 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent-line); bo
   height: auto;
   display: block;
 }
+
+.brand-home {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.brand-home:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 6px;
+}
+
 .sidebar-user { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 0; border-top: 0; min-width: 0; }
 .sidebar-user > div { min-width: 0; }
 .sidebar-user strong {
@@ -14513,8 +14530,8 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .now-progress-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   overflow: hidden;
   border: 1px solid var(--platform-line);
   border-radius: 8px;
@@ -14524,6 +14541,7 @@ details.coaching-frame > .coaching-frame-body > article p {
 .now-progress-metric {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
+  flex: 1 1 190px;
   align-items: center;
   gap: 10px;
   min-height: 72px;
@@ -14654,8 +14672,12 @@ details.coaching-frame > .coaching-frame-body > article p {
     width: 100%;
   }
 
-  .now-action-grid,
+  .now-action-grid {
+    grid-template-columns: 1fr;
+  }
+
   .now-progress-strip {
+    display: grid;
     grid-template-columns: 1fr;
   }
 

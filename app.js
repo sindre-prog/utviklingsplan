@@ -329,6 +329,7 @@ function bindAuth() {
   });
 
   $("#logout-button").addEventListener("click", logout);
+  $("#brand-home")?.addEventListener("click", navigateHome);
   window.addEventListener("beforeunload", (event) => {
     if (!state.dirty) return;
     event.preventDefault();
@@ -526,15 +527,24 @@ function isActiveRecord(record) {
 function renderShell() {
   $("#user-name").textContent = state.user.email || state.profile.name || "Bruker";
   const nav = [
-    ["clients", state.profile.role === "client" ? "file-text" : "users", "Klienter"],
+    state.profile.role !== "client" && ["clients", "users", "Klienter"],
     state.profile.role !== "client" && ["resources", "library", "Ressurser"],
     state.profile.role === "admin" && ["admin", "shield-check", "Administrasjon"]
   ].filter(Boolean);
   const navList = $("#nav-list");
+  navList.hidden = nav.length === 0;
   navList.replaceChildren(...nav.map(([view, iconName, label]) => {
     return el("button", { class: "nav-item", "data-view": view, onclick: () => navigate(view), text: label });
   }));
   refreshIcons();
+}
+
+function navigateHome() {
+  if (state.profile?.role === "client") {
+    navigate("plan", state.client?.id);
+    return;
+  }
+  navigate("clients");
 }
 
 function navigate(view, clientId = null) {
@@ -1825,11 +1835,16 @@ async function openResourceAdminEditor(resource = null) {
     el("aside", { class: "resource-editor-preview" }, [createResourceAdminPreview(library, getDraftResource)])
   ]);
   specs = [customSpec(fieldNames, editorWorkspace)];
+  const returnView = state.view;
+  const renderAfterResourceEdit = async () => {
+    if (returnView === "resources") await renderResources();
+    else await renderAdmin();
+  };
   openEntityDrawer(isNew ? "Ny ressurs" : resource.title, "Fagbibliotek", specs, async (values) => {
     const payload = parseResourceAdminPayload(values, resource);
     if (isNew) await library.createResource(state.sb, payload);
     else await library.updateResource(state.sb, resource.id, payload);
-    await renderAdmin();
+    await renderAfterResourceEdit();
   }, {
     panelClass: "resource-editor-drawer",
     saveLabel: isNew || resource?.status === "draft" ? "Lagre utkast" : "Lagre endringer",
@@ -1838,7 +1853,7 @@ async function openResourceAdminEditor(resource = null) {
     onDanger: async () => {
       if (resource.status === "archived") await library.reactivateResource(state.sb, resource.id, "draft");
       else await library.archiveResource(state.sb, resource.id);
-      await renderAdmin();
+      await renderAfterResourceEdit();
       return true;
     }
     } : {})
@@ -1991,18 +2006,24 @@ async function renderResources() {
         ])
     );
     const shareableClients = getVisibleClients().filter((client) => canShareResourceToClient(client));
-    previewSlot.replaceChildren(library.createResourcePreview(selected, {
-      createElement: el,
-      createIcon: icon,
-      onOpenFile: openResourceFile,
-      primaryAction: canShareResources() ? {
+    const resourceAction = state.profile.role === "admin"
+      ? {
+        label: "Rediger ressurs",
+        onClick: openResourceAdminEditor
+      }
+      : canShareResources() ? {
         label: "Send ressurs",
         disabled: shareableClients.length === 0,
         helpText: shareableClients.length
           ? "Velg Send ressurs når du har vurdert at den passer klienten."
           : "Du har ingen klienter med åpne forløp som kan motta ressurser ennå.",
         onClick: openSendResourceDrawer
-      } : null
+      } : null;
+    previewSlot.replaceChildren(library.createResourcePreview(selected, {
+      createElement: el,
+      createIcon: icon,
+      onOpenFile: openResourceFile,
+      primaryAction: resourceAction
     }));
     hydrateResourceMedia(previewSlot);
     refreshIcons();
@@ -2063,7 +2084,7 @@ async function ensureLeadershipLibrary() {
   if (loaded) return loaded;
 
   if (!state.leadershipLibraryPromise) {
-    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-138")
+    state.leadershipLibraryPromise = import("./js/leadership/leadership.api.js?v=polish-139")
       .then((library) => {
         window.RaederLeadershipLibrary = library;
         return library;
@@ -4029,7 +4050,7 @@ function nowWorkspace(client, data, plan) {
   const primaryCompetency = primaryLeadershipCompetency(data);
   const focusItems = nowFocusAssignments(plan);
   return el("div", { class: "platform-page now-workspace now-workspace-v2" }, [
-    pageIntro("Akkurat nå", "Oversikt akkurat nå", "Her ser du det som er lagt inn akkurat nå."),
+    pageIntro("Akkurat nå", "Oversikt akkurat nå", "Her samles det som er mest relevant i forløpet nå."),
     primary ? nowPrimaryAction(primary, editable) : nowEmptyState(editable),
     nowActionGrid(supporting, editable),
     nowProgressStrip({ primaryCompetency, focusItems, actions: data.actions || [], sessions: plan.sessions || [], resources: data.sharedResources || [] })
