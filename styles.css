@@ -8080,6 +8080,65 @@ h3,
   white-space: nowrap;
 }
 
+.ownership-orientation {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
+}
+
+.ownership-orientation-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-cream);
+  color: var(--platform-ink);
+}
+
+.ownership-orientation-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
+}
+
+.ownership-orientation-copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.ownership-orientation-copy .workspace-kicker,
+.ownership-orientation-copy h3,
+.ownership-orientation-copy p {
+  margin: 0;
+}
+
+.ownership-orientation-copy h3 {
+  color: var(--platform-ink);
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.22;
+}
+
+.ownership-orientation-copy p:not(.workspace-kicker) {
+  max-width: 820px;
+  color: var(--platform-body);
+  font-size: var(--type-support);
+  line-height: 1.55;
+}
+
+.ownership-orientation-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .main-control-bar {
   padding: 20px 0;
   border-bottom: 1px solid var(--platform-line);
@@ -8406,6 +8465,30 @@ h3,
   .client-activity-card > svg {
     grid-column: 3;
     grid-row: 1 / span 2;
+  }
+
+  .ownership-orientation {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 14px;
+    padding: 18px 16px;
+  }
+
+  .ownership-orientation-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ownership-orientation-copy h3 {
+    font-size: 21px;
+  }
+
+  .ownership-orientation-action {
+    grid-column: 1 / -1;
+  }
+
+  .ownership-orientation-action .button,
+  .ownership-orientation-action .ui-button {
+    width: 100%;
   }
 
   .main-stat {
