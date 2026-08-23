@@ -15707,19 +15707,21 @@ details.coaching-frame > .coaching-frame-body > article p {
   line-height: 1.02;
 }
 
-.resource-workspace-v2 .resource-coach-guidance {
+.resource-workspace-v2 .client-resource-view > .resource-coach-guidance {
   display: grid;
-  gap: 20px;
-  margin: 28px 32px;
-  padding: 24px 26px 26px;
+  gap: 16px;
+  margin: 20px 32px 8px;
+  padding: 20px 22px 22px;
   border: 1px solid var(--platform-line);
+  border-bottom: 1px solid var(--platform-line);
   border-radius: 8px;
-  background: linear-gradient(90deg, #f3f8fb 0%, #fbfcfd 100%);
+  background: linear-gradient(90deg, #f5f9fb 0%, #fbfcfd 100%);
   box-shadow: inset 3px 0 0 rgba(83, 102, 121, .42);
 }
 
 .resource-workspace-v2 .resource-coach-guidance > summary {
   display: block;
+  padding: 0;
   cursor: default;
   list-style: none;
 }
@@ -15751,10 +15753,10 @@ details.coaching-frame > .coaching-frame-body > article p {
 .resource-workspace-v2 .resource-coach-guidance-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px 34px;
+  gap: 18px 30px;
   max-width: 920px;
   border-top: 1px solid var(--platform-line);
-  padding-top: 18px;
+  padding-top: 16px;
 }
 
 .resource-workspace-v2 .resource-coach-guidance-grid .resource-preview-section {
@@ -15789,7 +15791,7 @@ details.coaching-frame > .coaching-frame-body > article p {
   .resource-block-type-guide > div {
     grid-template-columns: minmax(0, 1fr);
   }
-  .resource-workspace-v2 .resource-coach-guidance {
+  .resource-workspace-v2 .client-resource-view > .resource-coach-guidance {
     margin: 18px;
     padding: 20px;
   }
