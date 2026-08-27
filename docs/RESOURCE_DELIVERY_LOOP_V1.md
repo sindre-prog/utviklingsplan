@@ -237,6 +237,7 @@ Production skal ikke få e-postfunksjonen aktivert før disse er satt og avsende
 - Ressursstatus bruker `responded_at`, ikke et ikke-eksisterende `reflected_at`.
 - Sending på nytt har konsistent produkt- og databaseoppførsel.
 - Feil ved e-postsending forklares uten å skape dobbeltdeling eller datatap.
+- Portalbekreftelsen beskriver at e-post er sendt, uten å love at mottakersystemet har plassert den i innboksen.
 - Ingen production-endring gjøres uten egen godkjenning.
 
 ## Godkjente Beslutninger

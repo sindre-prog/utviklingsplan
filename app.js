@@ -2235,7 +2235,7 @@ function createResourceContextPicker(resource, clients) {
   const existingSharedResourceId = el("input", { type: "hidden", name: "existingSharedResourceId", value: "" });
   const picker = el("select", { class: "resource-admin-compact-select" });
   const message = el("p", { class: "resource-admin-inline-help", text: "Velg hvor ressursen skal lande hos klienten. Bruk Hele forløpet når ressursen ikke hører til én konkret samtale eller øvelse." });
-  const resendMessage = el("p", { class: "resource-admin-inline-help", text: "Klienten får e-post når ressursen sendes." });
+  const resendMessage = el("p", { class: "resource-admin-inline-help", text: "Det sendes også en e-post til klientens registrerte adresse." });
   const wrapper = el("section", { class: "resource-admin-helper-card" }, [
     el("strong", { text: "Hvor skal ressursen ligge?" }),
     picker,
@@ -2312,8 +2312,8 @@ function createResourceContextPicker(resource, clients) {
     const saveLabel = $("#drawer-save span");
     if (saveLabel) saveLabel.textContent = isResend ? "Send på nytt" : "Send ressurs";
     resendMessage.textContent = isResend
-      ? "Denne ressursen er allerede delt her. Sender du nå, får klienten en ny e-post, og tidligere respons bevares."
-      : "Klienten får e-post når ressursen sendes.";
+      ? "Denne ressursen er allerede delt her. Sender du nå, sender portalen en ny e-post, og tidligere respons bevares."
+      : "Det sendes også en e-post til klientens registrerte adresse.";
   };
 
   const renderOptions = (options) => {
@@ -2399,8 +2399,8 @@ async function sendResourceToClient(resource, values) {
     const message = emailError
       ? `${resource.title} er sendt til ${recipient}, men e-post ble ikke sendt: ${userFacingError(emailError, "Prøv å sende på nytt senere.")}`
       : isResend
-        ? `${resource.title} er sendt på nytt til ${recipient}. Klienten får e-post om ressursen.`
-        : `${resource.title} er sendt til ${recipient}. Klienten får e-post om ressursen.`;
+        ? `${resource.title} er sendt på nytt til ${recipient}. E-post er sendt til klientens registrerte adresse.`
+        : `${resource.title} er sendt til ${recipient}. E-post er sendt til klientens registrerte adresse.`;
     showAppMessage(isResend ? "Ressurs sendt på nytt" : "Ressurs sendt", message, { kicker: "Ressurser" });
   }, 0);
 }
