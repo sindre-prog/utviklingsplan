@@ -205,6 +205,28 @@ export async function shareResourceWithClient(supabaseClient, payload) {
   return { id: data };
 }
 
+export async function sendSharedResourceEmail(supabaseClient, sharedResourceId) {
+  requireSupabaseClient(supabaseClient);
+
+  if (!supabaseClient.functions?.invoke) {
+    throw new TypeError("Supabase Functions support is required for resource email.");
+  }
+  if (!sharedResourceId) throw new Error("Mangler ressursdeling.");
+
+  const { data, error } = await supabaseClient.functions.invoke("send-resource-email", {
+    body: { sharedResourceId }
+  });
+
+  if (error) {
+    const details = await error.context?.json?.().catch(() => null);
+    if (details?.error) throw new Error(details.error);
+    throw error;
+  }
+  if (data?.error) throw new Error(data.error);
+
+  return data;
+}
+
 export async function updateSharedResourceStatus(supabaseClient, sharedResourceId, values) {
   requireSupabaseClient(supabaseClient);
 
