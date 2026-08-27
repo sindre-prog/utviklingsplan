@@ -2144,7 +2144,10 @@ async function ensureLeadershipLibrary() {
 }
 
 function canShareResources() {
-  return state.profile?.role === "coach";
+  return Boolean(
+    state.coach?.id
+    && ["coach", "admin"].includes(state.profile?.role)
+  );
 }
 
 function openSendResourceDrawer(resource) {
@@ -2356,8 +2359,7 @@ function createResourceContextPicker(resource, clients) {
 }
 
 function canShareResourceToClient(client) {
-  if (!client) return false;
-  if (state.profile?.role !== "coach") return false;
+  if (!client || !canShareResources()) return false;
   const coachId = state.coach?.id;
   return Boolean(coachId && (client.coach_ids || []).includes(coachId));
 }

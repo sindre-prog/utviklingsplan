@@ -97,7 +97,7 @@ async function currentProfile(supabaseAdmin: ReturnType<typeof createClient>, re
 }
 
 async function currentCoach(supabaseAdmin: ReturnType<typeof createClient>, profile: Profile) {
-  if (profile.role !== "coach") return null;
+  if (!["coach", "admin"].includes(profile.role)) return null;
   const { data, error } = await supabaseAdmin
     .from("coaches")
     .select("id, name")
@@ -106,7 +106,8 @@ async function currentCoach(supabaseAdmin: ReturnType<typeof createClient>, prof
     .maybeSingle();
 
   if (error) throw error;
-  if (!data?.id) throw new Error("Du har ikke en aktiv coachprofil.");
+  if (!data?.id && profile.role === "coach") throw new Error("Du har ikke en aktiv coachprofil.");
+  if (!data?.id) return null;
   return data as CoachRow;
 }
 
@@ -135,7 +136,9 @@ async function loadSharedResource(
 }
 
 function assertCanSend(profile: Profile, coach: CoachRow | null, sharedResource: SharedResourceRow) {
-  if (profile.role !== "coach" || !coach?.id) throw new Error("Du har ikke tilgang til å sende ressursvarsel.");
+  if (!["coach", "admin"].includes(profile.role) || !coach?.id) {
+    throw new Error("Du har ikke tilgang til å sende ressursvarsel.");
+  }
   if (!(sharedResource.clients?.coach_ids || []).includes(coach.id)) {
     throw new Error("Du kan bare sende ressursvarsel til egne klienter.");
   }
