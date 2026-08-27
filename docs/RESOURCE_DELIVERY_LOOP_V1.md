@@ -44,6 +44,8 @@ Coach trenger å:
 - se klientrespons bare når klienten eksplisitt deler den
 - kunne følge opp delt respons i neste samtale
 
+En bruker med profilrollen `admin` kan bruke coachflyten når brukeren også har en aktiv coachprofil. Tilgangen følger coachprofilens klienttildelinger; adminrollen gir ikke i seg selv tilgang til å sende ressurser.
+
 ### Klient
 
 Klient trenger å:
@@ -227,6 +229,7 @@ Production skal ikke få e-postfunksjonen aktivert før disse er satt og avsende
 
 - Første e-posttekst er eksplisitt godkjent før koding.
 - Coach kan sende ressurs som før.
+- Admin med aktiv coachprofil kan sende til egne tildelte klienter, mens ren admin ikke kan sende.
 - Klient mottar én rolig e-post ved ny ressursdeling.
 - E-post inneholder ikke sensitivt coachinginnhold utover ressursens tittel og coachens egen melding.
 - Klientrespons forblir privat som standard.
