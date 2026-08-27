@@ -442,7 +442,7 @@ async function loadProgramSummaries() {
     loadActiveSummaryRows("program_competencies", "id, program_id, status, created_at, updated_at, archived_at", "id, program_id, status", programIds),
     loadActiveSummaryRows("session_actions", "id, program_id, status, due_date, created_at, updated_at, archived_at", "id, program_id, status, due_date", programIds),
     loadActiveSummaryRows("client_reflections", "id, program_id, visibility, created_at", "id, program_id, visibility, created_at", programIds),
-    loadActiveSummaryRows("shared_resources", "id, program_id, status, shared_at, viewed_at, reflected_at, created_at, updated_at, archived_at", "id, program_id, status, viewed_at, reflected_at", programIds)
+    loadActiveSummaryRows("shared_resources", "id, program_id, status, shared_at, viewed_at, responded_at, created_at, updated_at, archived_at", "id, program_id, status, shared_at, viewed_at, responded_at", programIds)
   ]);
   (sessions || []).forEach((session) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === session.program_id);
@@ -495,8 +495,8 @@ async function loadProgramSummaries() {
     const summary = Object.values(state.programSummaries).find((item) => item.id === resource.program_id);
     if (!summary) return;
     summary.sharedResourceCount = (summary.sharedResourceCount || 0) + 1;
-    registerSummaryActivity(summary, resource, ["reflected_at", "viewed_at", "updated_at", "shared_at", "created_at"], resource.reflected_at ? "Ressurs besvart" : resource.viewed_at ? "Ressurs åpnet" : "Ressurs delt");
-    if (resource.status === "assigned" && !resource.viewed_at && !resource.reflected_at) {
+    registerSummaryActivity(summary, resource, ["responded_at", "viewed_at", "updated_at", "shared_at", "created_at"], resource.responded_at ? "Ressurs besvart" : resource.viewed_at ? "Ressurs åpnet" : "Ressurs delt");
+    if (resource.status === "assigned" && !resource.viewed_at && !resource.responded_at) {
       summary.newSharedResourceCount = (summary.newSharedResourceCount || 0) + 1;
     }
   });
@@ -558,7 +558,7 @@ function navigateHome() {
   navigate("clients");
 }
 
-function navigate(view, clientId = null) {
+function navigate(view, clientId = null, activePane = null) {
   state.view = view;
   if (clientId) state.selectedClientId = clientId;
   $$(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view || (view === "plan" && item.dataset.view === "clients")));
@@ -568,7 +568,8 @@ function navigate(view, clientId = null) {
     resources: renderResources,
     admin: renderAdmin
   };
-  (routes[view] || renderClients)();
+  if (view === "plan") renderPlan(activePane);
+  else (routes[view] || renderClients)();
   refreshIcons();
 }
 
@@ -676,7 +677,7 @@ function filterMenu(options, initialValue, ariaLabel, onChange) {
 }
 
 function renderClients() {
-  if (state.profile.role === "client") return navigate("plan", state.client?.id);
+  if (state.profile.role === "client") return navigate("plan", state.client?.id, initialWorkspacePane());
   const createInviteAction = (variant = "primary") => button("Inviter klient", variant === "ghost" ? "mail-plus" : "user-plus", () => openClientInvite(), variant);
   setHeader(
     "Klientarbeid",
@@ -2103,7 +2104,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-113")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-114")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -2143,7 +2144,7 @@ async function ensureLeadershipLibrary() {
 }
 
 function canShareResources() {
-  return state.profile?.role === "coach" || state.profile?.role === "admin";
+  return state.profile?.role === "coach";
 }
 
 function openSendResourceDrawer(resource) {
@@ -2167,7 +2168,7 @@ function openSendResourceDrawer(resource) {
     customSpec("send_resource_basis", createSendResourceBasis(resource)),
     sectionSpec("Mottaker og plassering", "Velg hvem som skal få ressursen og hvor den hører hjemme i forløpet."),
     selectSpec("clientId", "Klient", clients.map((client) => [client.id, client.name || client.email || "Uten navn"]), clients[0]?.id || ""),
-    customSpec(["contextType", "contextId"], createResourceContextPicker(resource, clients)),
+    customSpec(["contextType", "contextId", "existingSharedResourceId"], createResourceContextPicker(resource, clients)),
     sectionSpec("Personlig melding", "Forklar kort hvorfor du sender ressursen. Denne teksten vises tydelig for klienten."),
     textareaSpec("coachNote", "Melding fra deg", resource.suggested_coach_note || "", {
       placeholder: "Skriv kort hvorfor du sender ressursen, og hva klienten bør bruke den til."
@@ -2209,42 +2210,91 @@ function resourceDefaultContextTypes(resource) {
   return new Set(["program", ...values]);
 }
 
+function findExistingSharedResourceForContext(sharedResources = [], resource, contextType, contextId) {
+  const normalizedContextType = contextType || "program";
+  const normalizedContextId = contextId || "";
+  return (sharedResources || []).find((item) => {
+    const itemContextType = item.context_type || "program";
+    const itemContextId = item.context_id || "";
+    const itemResourceId = item.resource_id || item.resource?.id;
+    return itemResourceId === resource?.id
+      && itemContextType === normalizedContextType
+      && itemContextId === normalizedContextId
+      && item.status !== "archived"
+      && !item.archived_at;
+  }) || null;
+}
+
 function createResourceContextPicker(resource, clients) {
   const allowed = resourceDefaultContextTypes(resource);
   const contextType = el("input", { type: "hidden", name: "contextType", value: "program" });
   const contextId = el("input", { type: "hidden", name: "contextId", value: "" });
+  const existingSharedResourceId = el("input", { type: "hidden", name: "existingSharedResourceId", value: "" });
   const picker = el("select", { class: "resource-admin-compact-select" });
   const message = el("p", { class: "resource-admin-inline-help", text: "Velg hvor ressursen skal lande hos klienten. Bruk Hele forløpet når ressursen ikke hører til én konkret samtale eller øvelse." });
+  const resendMessage = el("p", { class: "resource-admin-inline-help", text: "Klienten får e-post når ressursen sendes." });
   const wrapper = el("section", { class: "resource-admin-helper-card" }, [
     el("strong", { text: "Hvor skal ressursen ligge?" }),
     picker,
     contextType,
     contextId,
-    message
+    existingSharedResourceId,
+    message,
+    resendMessage
   ]);
 
-  const option = (type, id, label, disabled = false) => ({ type, id, label, disabled });
+  const option = (type, id, label, disabled = false, existingShareId = "") => ({ type, id, label, disabled, existingShareId });
   const buildOptions = (data) => {
-    const options = [option("program", "", "Hele forløpet")];
+    const options = [option(
+      "program",
+      "",
+      "Hele forløpet",
+      false,
+      findExistingSharedResourceForContext(data?.sharedResources, resource, "program", "")?.id || ""
+    )];
     if (allowed.has("focus_area")) {
       (data?.areas || []).forEach((area) => {
-        options.push(option("focus_area", area.id, `Fokusoppdrag: ${area.title || "Uten tittel"}`, !area.id));
+        options.push(option(
+          "focus_area",
+          area.id,
+          `Fokusoppdrag: ${area.title || "Uten tittel"}`,
+          !area.id,
+          findExistingSharedResourceForContext(data?.sharedResources, resource, "focus_area", area.id)?.id || ""
+        ));
       });
     }
     if (allowed.has("session")) {
       (data?.sessions || []).forEach((session) => {
-        options.push(option("session", session.id, `Samtale: ${session.focus || formatDate(session.session_date) || "Uten tittel"}`, !session.id));
+        options.push(option(
+          "session",
+          session.id,
+          `Samtale: ${session.focus || formatDate(session.session_date) || "Uten tittel"}`,
+          !session.id,
+          findExistingSharedResourceForContext(data?.sharedResources, resource, "session", session.id)?.id || ""
+        ));
       });
     }
     if (allowed.has("experiment")) {
       (data?.actions || []).forEach((action) => {
-        options.push(option("experiment", action.id, `Eksperiment: ${action.title || "Uten tittel"}`, !action.id));
+        options.push(option(
+          "experiment",
+          action.id,
+          `Eksperiment: ${action.title || "Uten tittel"}`,
+          !action.id,
+          findExistingSharedResourceForContext(data?.sharedResources, resource, "experiment", action.id)?.id || ""
+        ));
       });
     }
     if (allowed.has("reflection")) {
       (data?.reflections || []).forEach((reflection) => {
         const text = (reflection.body || "").trim();
-        options.push(option("reflection", reflection.id, `Refleksjon: ${text ? text.slice(0, 48) : formatDate(reflection.created_at) || "Uten tittel"}`, !reflection.id));
+        options.push(option(
+          "reflection",
+          reflection.id,
+          `Refleksjon: ${text ? text.slice(0, 48) : formatDate(reflection.created_at) || "Uten tittel"}`,
+          !reflection.id,
+          findExistingSharedResourceForContext(data?.sharedResources, resource, "reflection", reflection.id)?.id || ""
+        ));
       });
     }
     return options;
@@ -2254,6 +2304,13 @@ function createResourceContextPicker(resource, clients) {
     const selected = picker.selectedOptions[0];
     contextType.value = selected?.dataset.contextType || "program";
     contextId.value = selected?.value || "";
+    existingSharedResourceId.value = selected?.dataset.existingShareId || "";
+    const isResend = Boolean(existingSharedResourceId.value);
+    const saveLabel = $("#drawer-save span");
+    if (saveLabel) saveLabel.textContent = isResend ? "Send på nytt" : "Send ressurs";
+    resendMessage.textContent = isResend
+      ? "Denne ressursen er allerede delt her. Sender du nå, får klienten en ny e-post, og tidligere respons bevares."
+      : "Klienten får e-post når ressursen sendes.";
   };
 
   const renderOptions = (options) => {
@@ -2261,7 +2318,8 @@ function createResourceContextPicker(resource, clients) {
       value: item.id,
       text: item.label,
       disabled: item.disabled,
-      "data-context-type": item.type
+      "data-context-type": item.type,
+      "data-existing-share-id": item.existingShareId || ""
     })));
     syncValue();
   };
@@ -2299,7 +2357,7 @@ function createResourceContextPicker(resource, clients) {
 
 function canShareResourceToClient(client) {
   if (!client) return false;
-  if (state.profile?.role === "admin") return true;
+  if (state.profile?.role !== "coach") return false;
   const coachId = state.coach?.id;
   return Boolean(coachId && (client.coach_ids || []).includes(coachId));
 }
@@ -2314,7 +2372,7 @@ async function sendResourceToClient(resource, values) {
   const program = await ensureClientProgram(client);
   if (!program?.id) throw new Error("Klienten mangler coachingforløp.");
 
-  await library.shareResourceWithClient(state.sb, {
+  const sharedResource = await library.shareResourceWithClient(state.sb, {
     resourceId: resource.id,
     clientId: client.id,
     programId: program.id,
@@ -2324,8 +2382,24 @@ async function sendResourceToClient(resource, values) {
   });
   delete state.programCache[client.id];
 
+  let emailError = null;
+  try {
+    if (!library?.sendSharedResourceEmail) throw new Error("E-postfunksjonen er ikke tilgjengelig.");
+    await library.sendSharedResourceEmail(state.sb, sharedResource.id);
+  } catch (error) {
+    emailError = error;
+    console.error("Could not send resource email", error);
+  }
+
   setTimeout(() => {
-    showAppMessage("Ressurs sendt", `${resource.title} er sendt til ${client.name || client.email || "klienten"}.`, { kicker: "Ressurser" });
+    const recipient = client.name || client.email || "klienten";
+    const isResend = Boolean(values.existingSharedResourceId);
+    const message = emailError
+      ? `${resource.title} er sendt til ${recipient}, men e-post ble ikke sendt: ${userFacingError(emailError, "Prøv å sende på nytt senere.")}`
+      : isResend
+        ? `${resource.title} er sendt på nytt til ${recipient}. Klienten får e-post om ressursen.`
+        : `${resource.title} er sendt til ${recipient}. Klienten får e-post om ressursen.`;
+    showAppMessage(isResend ? "Ressurs sendt på nytt" : "Ressurs sendt", message, { kicker: "Ressurser" });
   }, 0);
 }
 
@@ -6626,6 +6700,13 @@ function getVisibleClients() {
 
 function initialView() {
   return state.profile.role === "client" ? "clients" : "clients";
+}
+
+function initialWorkspacePane() {
+  const searchParams = new URLSearchParams(window.location.search || "");
+  const hashParams = new URLSearchParams((window.location.hash || "").replace(/^#/, ""));
+  const pane = searchParams.get("pane") || hashParams.get("pane") || "";
+  return ["now", "direction", "work", "sessions", "reflections", "resources"].includes(pane) ? pane : null;
 }
 
 function openClientPlan(client) {
