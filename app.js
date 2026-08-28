@@ -3434,7 +3434,7 @@ function leadershipSelectedList(items, detail, data, editable) {
   return el("div", { class: "leadership-master leadership-track-list workspace-master-rail" }, [
     el("div", { class: "leadership-track-head workspace-master-head" }, [
       el("strong", { text: "Indre prosjekter" }),
-      el("span", { text: `${items.length} av 3 aktive` })
+      el("span", { class: "ui-meta", text: `${items.length} av 3 aktive` })
     ]),
     ...rows,
     editable && (isClientCompetencyOwner() ? items.length < 3 : true)
@@ -4335,7 +4335,7 @@ function nowSetupSection({ data, plan, editable }) {
       objectLabel: "Fokusoppdrag",
       question: "Hva er viktigst å lykkes med i jobben nå?",
       valueLabel: outerFocus ? "Valgt fokusoppdrag" : "Status",
-      value: outerFocus?.area?.title || (draftOuterFocus ? "Ikke ferdigstilt" : "Ikke valgt ennå"),
+      value: outerFocus?.area?.title || (draftOuterFocus ? "Ikke opprettet" : "Ikke valgt ennå"),
       complete: Boolean(outerFocus),
       action: editable ? {
         label: "Åpne ytre prosjekter",
@@ -6435,15 +6435,15 @@ function openClientEdit(client) {
 
 function clientAccessSpec(client) {
   return customSpec(null, el("div", { class: "modal-section access-section" }, [
-    el("strong", { text: "Invitasjon" }),
-    el("p", { text: "Klienten har ikke aktivert tilgangen ennå." }),
+    el("strong", { text: "Tilgang" }),
+    el("p", { text: "Tilgangen er ikke aktivert ennå." }),
     el("button", {
       class: "button ghost",
       type: "button",
       onclick: () => resendClientInviteFromModal(client)
     }, [
       icon("mail-plus"),
-      el("span", { text: "Send invitasjon på nytt" })
+      el("span", { text: "Send tilgangslenke på nytt" })
     ])
   ]));
 }
@@ -6834,23 +6834,24 @@ async function inviteClient(values) {
 
 async function resendClientInviteFromModal(client) {
   try {
-    $("#modal-message").textContent = "Sender invitasjon...";
+    $("#modal-message").textContent = "Sender tilgangslenke...";
     await resendClientInvite(client);
     if ($("#entity-modal")?.open) $("#entity-modal").close();
     await reloadAndRender();
     setTimeout(() => {
-      showAppMessage("Invitasjon sendt på nytt", "Klienten kan bruke den nye lenken for å aktivere tilgangen.");
+      showAppMessage("Tilgangslenke sendt", "Klienten kan bruke den nye lenken for å aktivere tilgangen.");
     }, 0);
   } catch (error) {
-    $("#modal-message").textContent = userFacingError(error, "Kunne ikke sende invitasjonen på nytt. Prøv igjen.");
+    $("#modal-message").textContent = userFacingError(error, "Kunne ikke sende tilgangslenken. Prøv igjen.");
   }
 }
 
 async function resendClientInvite(client) {
-  if (!canResendClientInvite(client)) throw new Error("Invitasjon kan bare sendes på nytt før klienten har aktivert tilgangen.");
+  if (!canResendClientInvite(client)) throw new Error("Tilgangslenken kan bare sendes før klienten har aktivert tilgangen.");
   const coachIds = client.coach_ids?.length ? client.coach_ids : state.coach?.id ? [state.coach.id] : [];
   if (!coachIds.length) throw new Error("Klienten mangler coach.");
-  const result = await callInviteUser({
+  await callInviteUser({
+    mode: "resend",
     email: client.email,
     name: client.name,
     role: "client",
@@ -6858,9 +6859,7 @@ async function resendClientInvite(client) {
     jobRole: client.role || "",
     employer: client.employer || ""
   });
-  const verifiedClient = await verifyInvitedClient(result.email);
-  await ensureInvitedClientProgram(verifiedClient.id);
-  return verifiedClient;
+  return client;
 }
 
 async function inviteCoach(values) {
@@ -6963,7 +6962,7 @@ function getCurrentClient() {
 }
 
 function isClientActivated(client) {
-  return Boolean(client?.account_activated_at || client?.user_id || client?.consent_date);
+  return Boolean(client?.account_activated_at || client?.consent_date);
 }
 
 function hasClientConsent(client) {

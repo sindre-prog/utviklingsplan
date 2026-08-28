@@ -10,6 +10,7 @@ const corsHeaders = {
 type InviteRole = "admin" | "coach" | "client";
 
 type InviteBody = {
+  mode?: "invite" | "resend";
   email?: string;
   name?: string;
   role?: InviteRole;
@@ -25,9 +26,14 @@ type Profile = {
 
 type ExistingClient = {
   id: string;
+  user_id: string | null;
+  name: string | null;
+  email: string | null;
   coach_ids: string[] | null;
   role: string | null;
   employer: string | null;
+  account_activated_at: string | null;
+  consent_date: string | null;
 };
 
 type ExistingCoach = {
@@ -56,6 +62,65 @@ function uniqueIds(ids: unknown) {
 
 function mergeIds(current: string[] | null, next: string[]) {
   return [...new Set([...(current || []), ...next])];
+}
+
+function firstName(name = "", email = "") {
+  const fromName = cleanText(name).split(/\s+/)[0];
+  if (fromName) return fromName;
+  return normalizeEmail(email).split("@")[0] || "";
+}
+
+function escapeHtml(value = "") {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function portalUrl() {
+  return cleanText(Deno.env.get("PORTAL_URL") || "https://portal.raederog.no");
+}
+
+function accessEmailText(clientFirstName: string, actionLink: string) {
+  const greeting = clientFirstName ? `Hei ${clientFirstName},` : "Hei,";
+  return [
+    greeting,
+    "",
+    "Her er en ny tilgangslenke til Ræder& utviklingsportal. Bruk lenken under for å opprette passord og åpne utviklingsløpet ditt.",
+    "",
+    `Opprett passord og åpne portalen: ${actionLink}`,
+    "",
+    "Lenken er personlig og utløper av sikkerhetshensyn. Hvis du ikke forventet denne e-posten, kan du se bort fra den.",
+    "",
+    "Hilsen Ræder&",
+  ].join("\n");
+}
+
+function accessEmailHtml(clientFirstName: string, actionLink: string) {
+  const greeting = clientFirstName ? `Hei ${clientFirstName},` : "Hei,";
+  return `<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ny tilgangslenke til Ræder&amp; utviklingsportal</title>
+  </head>
+  <body style="margin:0;background:#f7f7f7;color:#111;font-family:Arial,sans-serif;">
+    <main style="max-width:640px;margin:0 auto;padding:32px 20px;">
+      <section style="background:#fff;border:1px solid #e4e4e4;border-radius:8px;padding:28px;">
+        <p>${escapeHtml(greeting)}</p>
+        <p>Her er en ny tilgangslenke til Ræder&amp; utviklingsportal. Bruk lenken under for å opprette passord og åpne utviklingsløpet ditt.</p>
+        <p style="margin:28px 0;">
+          <a href="${escapeHtml(actionLink)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;border-radius:6px;padding:12px 18px;font-weight:700;">Opprett passord og åpne portalen</a>
+        </p>
+        <p style="color:#666;font-size:13px;line-height:1.5;">Lenken er personlig og utløper av sikkerhetshensyn. Hvis du ikke forventet denne e-posten, kan du se bort fra den.</p>
+        <p>Hilsen Ræder&amp;</p>
+      </section>
+    </main>
+  </body>
+</html>`;
 }
 
 function bearerToken(req: Request) {
@@ -117,7 +182,7 @@ async function existingClientForInvite(
 ) {
   const byUser = await supabaseAdmin
     .from("clients")
-    .select("id, coach_ids, role, employer")
+    .select("id, user_id, name, email, coach_ids, role, employer, account_activated_at, consent_date")
     .eq("user_id", userId)
     .is("archived_at", null)
     .order("created_at", { ascending: true })
@@ -129,7 +194,7 @@ async function existingClientForInvite(
 
   const byEmail = await supabaseAdmin
     .from("clients")
-    .select("id, coach_ids, role, employer")
+    .select("id, user_id, name, email, coach_ids, role, employer, account_activated_at, consent_date")
     .ilike("email", email)
     .is("archived_at", null)
     .order("created_at", { ascending: true })
@@ -138,6 +203,94 @@ async function existingClientForInvite(
 
   if (byEmail.error) throw byEmail.error;
   return (byEmail.data as ExistingClient | null) || null;
+}
+
+async function existingClientForResend(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  email: string,
+) {
+  const { data, error } = await supabaseAdmin
+    .from("clients")
+    .select("id, user_id, name, email, coach_ids, role, employer, account_activated_at, consent_date")
+    .ilike("email", email)
+    .is("archived_at", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.id) throw new Error("Fant ingen aktiv klient med denne e-postadressen.");
+  return data as ExistingClient;
+}
+
+async function resendClientAccess(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  profile: Profile,
+  effectiveCoachIds: string[],
+  email: string,
+) {
+  const client = await existingClientForResend(supabaseAdmin, email);
+  if (profile.role !== "admin" && !effectiveCoachIds.some((coachId) => (client.coach_ids || []).includes(coachId))) {
+    throw new Error("Du kan bare sende tilgangslenke til egne klienter.");
+  }
+  if (client.account_activated_at || client.consent_date) {
+    throw new Error("Klienten har allerede aktivert tilgangen.");
+  }
+  if (!client.user_id) {
+    throw new Error("Klienten mangler en tilknyttet brukerkonto. Kontakt ansvarlig for portalen.");
+  }
+
+  const { data: targetProfile, error: targetProfileError } = await supabaseAdmin
+    .from("profiles")
+    .select("role")
+    .eq("id", client.user_id)
+    .maybeSingle();
+
+  if (targetProfileError) throw targetProfileError;
+  if (targetProfile?.role !== "client") {
+    throw new Error("Brukerkontoen er ikke koblet til riktig rolletype.");
+  }
+
+  const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo: portalUrl() },
+  });
+  if (linkError) {
+    console.log("access link generation error:", linkError.message);
+    throw new Error("Kunne ikke opprette en ny tilgangslenke. Kontakt ansvarlig for portalen.");
+  }
+
+  const actionLink = linkData?.properties?.action_link;
+  if (!actionLink) throw new Error("Kunne ikke opprette en ny tilgangslenke.");
+
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  const fromEmail = Deno.env.get("RESOURCE_EMAIL_FROM");
+  if (!resendApiKey || !fromEmail) throw new Error("E-post er ikke konfigurert.");
+
+  const clientFirstName = firstName(client.name || "", email);
+  const resendResponse = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: fromEmail,
+      to: [email],
+      subject: "Ny tilgangslenke til Ræder& utviklingsportal",
+      html: accessEmailHtml(clientFirstName, actionLink),
+      text: accessEmailText(clientFirstName, actionLink),
+    }),
+  });
+
+  const result = await resendResponse.json().catch(() => ({}));
+  if (!resendResponse.ok) {
+    console.log("access email error:", typeof result?.message === "string" ? result.message : resendResponse.status);
+    throw new Error("Kunne ikke sende tilgangslenken. Prøv igjen.");
+  }
+
+  return { clientId: client.id, userId: client.user_id, emailSent: true, emailId: result?.id || null };
 }
 
 async function existingCoachForInvite(
@@ -179,6 +332,7 @@ Deno.serve(async (req: Request) => {
     if (req.method !== "POST") throw new Error("Unsupported method.");
 
     const body = (await req.json()) as InviteBody;
+    const mode = body.mode || "invite";
     const email = normalizeEmail(body.email);
     const name = cleanText(body.name);
     const role = body.role;
@@ -186,6 +340,7 @@ Deno.serve(async (req: Request) => {
 
     if (!email || !name || !role) throw new Error("Missing required fields: email, name or role");
     if (!["admin", "coach", "client"].includes(role)) throw new Error(`Unsupported role: ${role}`);
+    if (!["invite", "resend"].includes(mode)) throw new Error(`Unsupported invite mode: ${mode}`);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -204,6 +359,12 @@ Deno.serve(async (req: Request) => {
       role === "client"
         ? await coachIdsForClientInvite(supabaseAdmin, profile, requestedCoachIds)
         : [];
+
+    if (mode === "resend") {
+      if (role !== "client") throw new Error("Tilgangslenke kan bare sendes på nytt til klienter.");
+      const result = await resendClientAccess(supabaseAdmin, profile, effectiveCoachIds, email);
+      return jsonResponse({ success: true, ...result });
+    }
 
     const { data: invited, error: inviteError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(email);

@@ -2504,20 +2504,6 @@ tr:last-child td { border-bottom: 0; }
   grid-row: 1;
   align-self: start;
 }
-.focus-add-card {
-  min-height: 58px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  background: transparent;
-  color: #000;
-  padding: 0 8px 0 18px;
-  font-size: 13px;
-  font-weight: 700;
-}
 .focus-detail-card {
   min-height: 520px;
   display: grid;
@@ -11806,11 +11792,6 @@ details.coaching-frame > .coaching-frame-body > article p {
   min-width: 0;
 }
 
-.focus-add-card {
-  border-top: 0;
-  border-radius: 0;
-}
-
 .workspace-detail-surface h3,
 .leadership-detail-card h3,
 .focus-detail-card h3,
@@ -12157,12 +12138,6 @@ details.coaching-frame > .coaching-frame-body > article p {
   display: grid;
 }
 
-.focus-add-card {
-  min-height: 54px;
-  border-top: 0;
-  border-radius: 0;
-}
-
 @media (max-width: 900px) {
   .workspace-split-view,
   .leadership-workbench,
@@ -12420,11 +12395,6 @@ details.coaching-frame > .coaching-frame-body > article p {
   gap: 8px;
 }
 
-.leadership-track-list .leadership-add-competency {
-  width: auto;
-  margin: 12px;
-}
-
 .plan-status-chip {
   flex: 0 0 auto;
   display: inline-flex;
@@ -12636,16 +12606,6 @@ details.coaching-frame > .coaching-frame-body > article p {
 
 .competency-preview-more-body .competency-preview-section + .competency-preview-section {
   border-top: 1px solid var(--platform-line);
-}
-
-.leadership-track-heading {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-.leadership-track-heading small {
-  white-space: normal;
 }
 
 .competency-reference .leadership-guidance {
@@ -14055,6 +14015,20 @@ details.coaching-frame > .coaching-frame-body > article p {
   border-radius: 8px;
   background: var(--platform-paper);
   box-shadow: none;
+}
+
+.workspace-master-rail > .ui-add-row {
+  grid-column: 1 / -1;
+  width: calc(100% - 24px);
+  min-height: 54px;
+  margin: 12px;
+  border: 1px dashed var(--platform-line-strong);
+  border-radius: 7px;
+  background: var(--platform-paper);
+}
+
+.workspace-master-rail > .ui-add-row:hover {
+  background: var(--neutral-50);
 }
 
 .workspace-master-button:hover,
