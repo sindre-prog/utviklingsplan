@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://use.typekit.net/ynv7fqd.css">
   <link rel="stylesheet" href="./styles.css?v=polish-154">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module">
     import * as resourceLibrary from "./js/resources/resources.api.js?v=polish-154";
@@ -53,6 +53,20 @@
         <button class="button primary" type="submit"><i data-lucide="key-round"></i><span>Aktiver konto</span></button>
         <p class="form-message" id="password-message" role="status"></p>
       </form>
+    </section>
+
+    <section class="auth-screen hidden" data-screen="reconnect">
+      <img class="auth-logo" src="./raeder-logo.svg" alt="Ræder&">
+      <section class="auth-panel" aria-labelledby="reconnect-title">
+        <div>
+          <p class="eyebrow">Forbindelse</p>
+          <h1 id="reconnect-title">Portalen kunne ikke åpnes</h1>
+          <p class="muted" id="reconnect-message">Innloggingen din er bevart. Prøv å koble til på nytt.</p>
+        </div>
+        <button class="button primary" id="reconnect-button" type="button"><i data-lucide="refresh-cw"></i><span>Prøv igjen</span></button>
+        <button class="button ghost" id="reconnect-logout" type="button"><i data-lucide="log-out"></i><span>Logg ut</span></button>
+        <p class="form-message" id="reconnect-status" role="status"></p>
+      </section>
     </section>
 
     <section class="app-shell hidden" data-screen="app">

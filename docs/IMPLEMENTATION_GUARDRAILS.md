@@ -50,6 +50,14 @@ The main navigation remains:
 
 ## Editing Patterns
 
+### Authentication Sessions
+
+- Browser sessions must be persisted and refreshed by the Supabase client.
+- A transient profile or reference-data error must never call `signOut()` or remove a valid local session.
+- Retry session recovery once, then show a reconnect state with explicit `Prøv igjen` and `Logg ut` actions.
+- Only show the login form when the browser has no valid session.
+- Pin the browser Supabase client to an exact tested version.
+
 ### Unsaved Changes
 
 All inline editing must handle unsaved changes explicitly:

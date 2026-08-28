@@ -232,8 +232,17 @@ async function init() {
   const isPasswordFlow = ["invite", "recovery"].includes(authType) || Boolean(authCode) || Boolean(tokenHash) || hasAuthTokens;
   const hasAuthCallback = Boolean(authCode) || Boolean(tokenHash) || hasAuthTokens;
 
-  state.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  state.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
   state.sb.auth.onAuthStateChange((event, session) => {
+    if (event === "TOKEN_REFRESHED" && session?.user) {
+      state.user = session.user;
+    }
     if ((event === "PASSWORD_RECOVERY" || (isPasswordFlow && event === "SIGNED_IN")) && session?.user) {
       state.user = session.user;
       state.passwordSessionUserId = session.user.id;
@@ -327,6 +336,8 @@ function bindAuth() {
   });
 
   $("#logout-button").addEventListener("click", logout);
+  $("#reconnect-button").addEventListener("click", resumeAuthenticatedApp);
+  $("#reconnect-logout").addEventListener("click", logout);
   $("#brand-home")?.addEventListener("click", navigateHome);
   window.addEventListener("beforeunload", (event) => {
     if (!state.dirty) return;
@@ -335,15 +346,74 @@ function bindAuth() {
   });
 }
 
-async function bootstrapApp() {
-  const { data: profile, error } = await state.sb.from("profiles").select("*").eq("id", state.user.id).single();
-  if (error || !profile) {
-    await state.sb.auth.signOut();
+async function resumeAuthenticatedApp() {
+  setMessage("#reconnect-status", "Kobler til...");
+  const { data: { session }, error } = await state.sb.auth.getSession();
+  if (error || !session?.user) {
+    state.user = null;
+    state.profile = null;
     setScreen("login");
+    setMessage("#login-message", "Økten er avsluttet. Logg inn på nytt.");
+    return;
+  }
+  state.user = session.user;
+  await bootstrapApp();
+}
+
+async function loadProfileWithSessionRecovery() {
+  const loadProfile = () => state.sb.from("profiles").select("*").eq("id", state.user.id).maybeSingle();
+  let profileResult = await loadProfile();
+  if (!profileResult.error && profileResult.data) {
+    return { profile: profileResult.data, sessionAvailable: true, error: null };
+  }
+
+  const { data: { session }, error: sessionError } = await state.sb.auth.getSession();
+  if (sessionError || !session?.user) {
+    return { profile: null, sessionAvailable: false, error: sessionError || profileResult.error };
+  }
+
+  state.user = session.user;
+  const { data: refreshed, error: refreshError } = await state.sb.auth.refreshSession();
+  if (!refreshError && refreshed?.session?.user) {
+    state.user = refreshed.session.user;
+    profileResult = await loadProfile();
+  }
+
+  return {
+    profile: profileResult.data || null,
+    sessionAvailable: true,
+    error: profileResult.error || refreshError || null
+  };
+}
+
+function showSessionRecovery(error = null) {
+  if (error) console.error("Could not restore authenticated portal state", error);
+  $("#reconnect-message").textContent = "Innloggingen din er bevart. Prøv å koble til på nytt.";
+  setMessage("#reconnect-status", "");
+  setScreen("reconnect");
+  refreshIcons();
+}
+
+async function bootstrapApp() {
+  const { profile, sessionAvailable, error } = await loadProfileWithSessionRecovery();
+  if (!sessionAvailable) {
+    state.user = null;
+    state.profile = null;
+    setScreen("login");
+    setMessage("#login-message", "Økten er avsluttet. Logg inn på nytt.");
+    return;
+  }
+  if (!profile) {
+    showSessionRecovery(error);
     return;
   }
   state.profile = profile;
-  await loadReferenceData();
+  try {
+    await loadReferenceData();
+  } catch (loadError) {
+    showSessionRecovery(loadError);
+    return;
+  }
   setScreen("app");
   renderShell();
   $("#view-kicker").textContent = "Utviklingsplaner";
