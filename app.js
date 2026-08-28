@@ -4315,12 +4315,8 @@ function nowSetupSection({ data, plan, editable }) {
   else if (!primaryCompetency) innerStatus = clientOwnsChoice ? "Ikke valgt ennå" : "Klienten har ikke valgt";
 
   let innerAction = null;
-  if (outerFocus && editable && primaryCompetency) {
-    innerAction = { label: "Åpne indre prosjekt", onAction: () => openNowCompetency(primaryCompetency) };
-  } else if (outerFocus && editable && suggestions.length) {
-    innerAction = { label: clientOwnsChoice ? "Se forslag" : "Åpne forslag", onAction: () => openNowCompetency(null) };
-  } else if (outerFocus && editable) {
-    innerAction = { label: clientOwnsChoice ? "Velg indre prosjekt" : "Foreslå lederkompetanse", onAction: () => openCompetencyChooser(data) };
+  if (outerFocus && editable) {
+    innerAction = { label: "Åpne indre prosjekter", onAction: () => openNowCompetency(primaryCompetency) };
   }
   const rows = [
     {
@@ -4342,7 +4338,7 @@ function nowSetupSection({ data, plan, editable }) {
       value: outerFocus?.area?.title || (draftOuterFocus ? "Ikke ferdigstilt" : "Ikke valgt ennå"),
       complete: Boolean(outerFocus),
       action: editable ? {
-        label: outerFocus ? "Åpne ytre prosjekt" : draftOuterFocus ? "Fullfør ytre prosjekt" : "Velg ytre prosjekt",
+        label: "Åpne ytre prosjekter",
         onAction: () => openNowFocusAssignment(outerFocus || draftOuterFocus)
       } : null
     },
