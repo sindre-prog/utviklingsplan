@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-108";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-154";
 import { resourceIntroduction } from "./resources.model.js?v=polish-153";
 
 const TYPE_LABELS = Object.freeze({
@@ -42,8 +42,8 @@ function displayText(value, fallback = "") {
 
 function metaPills(createElement, resource) {
   return [
-    resource.type ? createElement("span", { class: "badge", text: labelFor(TYPE_LABELS, resource.type) }) : null,
-    resource.estimated_duration ? createElement("span", { class: "badge", text: `${resource.estimated_duration} min` }) : null
+    resource.type ? createElement("span", { class: "badge resource-meta-pill resource-meta-pill--type", text: labelFor(TYPE_LABELS, resource.type) }) : null,
+    resource.estimated_duration ? createElement("span", { class: "badge resource-meta-pill resource-meta-pill--duration", text: `${resource.estimated_duration} min` }) : null
   ].filter(Boolean);
 }
 
@@ -67,12 +67,47 @@ function contentHasBlock(resource, type) {
   return (resource?.content_json || []).some((block) => block?.type === type);
 }
 
-function visibleResourceFiles(resource) {
+function fileReferences(file) {
+  return [file?.id, file?.storage_path, file?.display_name].filter(Boolean);
+}
+
+function sameResourceFile(first, second) {
+  if (!first || !second) return false;
+  const secondReferences = new Set(fileReferences(second));
+  return fileReferences(first).some((value) => secondReferences.has(value));
+}
+
+function firstResourceFile(resource, fileType) {
+  return (resource?.files || [])
+    .filter((file) => file?.file_type === fileType)
+    .slice()
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0] || null;
+}
+
+function blockReferencesFile(block, file) {
+  if (!block || !file) return false;
+  const references = new Set([
+    block.file_id,
+    block.storage_path,
+    block.file_url,
+    block.display_name
+  ].filter(Boolean));
+  return fileReferences(file).some((value) => references.has(value));
+}
+
+function contentWithoutPrimaryDownload(resource, primaryPrintable) {
+  return (resource?.content_json || []).filter((block) => (
+    block?.type !== "download" || !blockReferencesFile(block, primaryPrintable)
+  ));
+}
+
+function visibleResourceFiles(resource, excludedFiles = []) {
   const referencedDownloads = new Set((resource.content_json || [])
     .filter((block) => block?.type === "download")
     .flatMap((block) => [block.file_id, block.storage_path, block.file_url, block.display_name, block.label].filter(Boolean)));
   return (resource.files || []).filter((file) => (
     !["cover_image", "illustration"].includes(file.file_type) &&
+    !excludedFiles.some((excludedFile) => sameResourceFile(file, excludedFile)) &&
     !referencedDownloads.has(file.id) &&
     !referencedDownloads.has(file.storage_path) &&
     !referencedDownloads.has(file.display_name)
@@ -123,6 +158,81 @@ function fileActionLabel(file) {
   return "Åpne";
 }
 
+function createPrimaryPrintableSection(createElement, resource, options = {}) {
+  const { createIcon = null, onOpenFile = null, primaryPrintable = null } = options;
+  if (!primaryPrintable) return null;
+  const cover = firstResourceFile(resource, "cover_image");
+
+  return createElement("section", { class: `resource-primary-download ${cover ? "has-cover" : ""}` }, [
+    cover ? createElement("div", { class: "resource-primary-download-media" }, [
+      createElement("img", {
+        class: "resource-primary-download-cover",
+        alt: displayText(cover.display_name, `${displayText(resource.title, "Ressurs")} – forside`),
+        "data-storage-path": cover.storage_path
+      })
+    ]) : createElement("span", { class: "resource-primary-download-icon", "aria-hidden": "true" }, [
+      createIcon ? createIcon("file-text") : createElement("span", { text: "PDF" })
+    ]),
+    createElement("div", { class: "resource-primary-download-copy" }, [
+      createElement("span", { class: "resource-primary-download-kicker", text: "PDF-versjon" }),
+      createElement("h4", { text: "Ta med deg PDF-versjonen" }),
+      createElement("p", { text: "Arbeid videre i dokumentet, skriv det ut eller del det med andre." })
+    ]),
+    onOpenFile ? createElement("button", {
+      class: "button primary resource-primary-download-action",
+      type: "button",
+      onclick: () => onOpenFile(primaryPrintable)
+    }, [
+      createIcon ? createIcon("download") : null,
+      createElement("span", { text: "Last ned PDF" })
+    ].filter(Boolean)) : null
+  ].filter(Boolean));
+}
+
+function createResourceContentSections(createElement, resource, options = {}) {
+  const {
+    createIcon = null,
+    onOpenFile = null,
+    primaryPrintable = null,
+    legacyPromptTitle = "Tenk videre"
+  } = options;
+  const files = visibleResourceFiles(resource, [primaryPrintable].filter(Boolean));
+  const showLegacyReflectionPrompts = !contentHasBlock(resource, "reflection_questions") && (resource?.reflection_prompts || []).length;
+
+  return [
+    createElement("section", { class: "resource-preview-section resource-native-content" }, [
+      createElement("h4", { text: "Innhold" }),
+      createElement("div", { class: "resource-content" }, renderResourceContentBlocks(
+        contentWithoutPrimaryDownload(resource, primaryPrintable),
+        {
+          createElement,
+          createIcon,
+          resourceFiles: resource.files || [],
+          onOpenFile
+        }
+      ))
+    ]),
+    files.length ? createElement("section", { class: "resource-preview-section" }, [
+      createElement("h4", { text: "Filer" }),
+      createElement("ul", { class: "resource-files" }, files.map((file) => (
+        createElement("li", {}, [
+          createElement("span", { text: file.display_name }),
+          onOpenFile ? createElement("button", {
+            class: "button ghost resource-file-open",
+            type: "button",
+            onclick: () => onOpenFile(file)
+          }, [
+            createIcon ? createIcon("download") : null,
+            createElement("span", { text: fileActionLabel(file) })
+          ].filter(Boolean)) : createElement("small", { text: file.storage_path })
+        ])
+      )))
+    ]) : null,
+    createResourceNextStep(createElement, resource, createIcon),
+    showLegacyReflectionPrompts ? listSection(createElement, legacyPromptTitle, resource.reflection_prompts) : null
+  ].filter(Boolean);
+}
+
 export function createResourceCard(resource, options = {}) {
   const { createElement, onSelect, selected = false } = options;
   requireCreateElement(createElement);
@@ -141,8 +251,7 @@ export function createResourceCard(resource, options = {}) {
 export function createResourcePreview(resource, options = {}) {
   const { createElement, createIcon = null, primaryAction = null, secondaryAction = null, onOpenFile = null, audience = "coach" } = options;
   requireCreateElement(createElement);
-  const files = visibleResourceFiles(resource || {});
-  const showLegacyReflectionPrompts = !contentHasBlock(resource, "reflection_questions") && (resource?.reflection_prompts || []).length;
+  const primaryPrintable = firstResourceFile(resource, "printable");
 
   if (!resource) {
     return createElement("section", { class: "resource-preview empty-state" }, [
@@ -203,29 +312,13 @@ export function createResourcePreview(resource, options = {}) {
     audience === "coach" ? createElement("div", { class: "resource-client-preview-label" }, [
       createElement("span", { text: "Dette ser klienten" })
     ]) : null,
-    createElement("section", { class: "resource-preview-section" }, [
-      createElement("h4", { text: "Innhold" }),
-      createElement("div", { class: "resource-content" }, renderResourceContentBlocks(resource.content_json || [], {
-        createElement,
-        resourceFiles: resource.files || [],
-        onOpenFile
-      }))
-    ]),
-    files.length ? createElement("section", { class: "resource-preview-section" }, [
-      createElement("h4", { text: "Filer" }),
-      createElement("ul", { class: "resource-files" }, files.map((file) => (
-        createElement("li", {}, [
-          createElement("span", { text: file.display_name }),
-          onOpenFile ? createElement("button", {
-            class: "button ghost resource-file-open",
-            type: "button",
-            onclick: () => onOpenFile(file)
-          }, [createElement("span", { text: fileActionLabel(file) })]) : createElement("small", { text: file.storage_path })
-        ])
-      )))
-    ]) : null,
-    createResourceNextStep(createElement, resource, createIcon),
-    showLegacyReflectionPrompts ? listSection(createElement, "Tenk videre", resource.reflection_prompts) : null
+    createPrimaryPrintableSection(createElement, resource, { createIcon, onOpenFile, primaryPrintable }),
+    ...createResourceContentSections(createElement, resource, {
+      createIcon,
+      onOpenFile,
+      primaryPrintable,
+      legacyPromptTitle: "Tenk videre"
+    })
   ].filter(Boolean));
 }
 
@@ -296,8 +389,7 @@ export function createClientResourceView(sharedResource, options = {}) {
 
   const resource = sharedResource?.resource || {};
   const introduction = resourceIntroduction(resource);
-  const files = visibleResourceFiles(resource);
-  const showLegacyReflectionPrompts = !contentHasBlock(resource, "reflection_questions") && (resource.reflection_prompts || []).length;
+  const primaryPrintable = firstResourceFile(resource, "printable");
   const coachNote = displayText(sharedResource?.coach_note);
   const showCoachNote = Boolean(coachNote) &&
     !sameVisibleText(coachNote, introduction);
@@ -343,31 +435,17 @@ export function createClientResourceView(sharedResource, options = {}) {
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
       ].filter(Boolean))
     ]),
+    createPrimaryPrintableSection(createElement, resource, { createIcon, onOpenFile, primaryPrintable }),
     showCoachNote ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
       createElement("h4", { text: "Fra coach" }),
       ...paragraphs(createElement, "", coachNote)
     ]) : null,
-    createElement("section", { class: "resource-preview-section" }, [
-      createElement("h4", { text: "Innhold" }),
-      createElement("div", { class: "resource-content" }, renderResourceContentBlocks(resource.content_json || [], {
-        createElement,
-        resourceFiles: resource.files || [],
-        onOpenFile
-      }))
-    ]),
-    files.length ? createElement("section", { class: "resource-preview-section" }, [
-      createElement("h4", { text: "Filer" }),
-      createElement("ul", { class: "resource-files" }, files.map((file) => createElement("li", {}, [
-        createElement("span", { text: file.display_name }),
-        onOpenFile ? createElement("button", {
-          class: "button ghost resource-file-open",
-          type: "button",
-          onclick: () => onOpenFile(file)
-        }, [createElement("span", { text: fileActionLabel(file) })]) : null
-      ])))
-    ]) : null,
-    createResourceNextStep(createElement, resource, createIcon),
-    showLegacyReflectionPrompts ? listSection(createElement, "Spørsmål å tenke videre på", resource.reflection_prompts) : null,
+    ...createResourceContentSections(createElement, resource, {
+      createIcon,
+      onOpenFile,
+      primaryPrintable,
+      legacyPromptTitle: "Spørsmål å tenke videre på"
+    }),
     createElement("section", { class: "resource-preview-section client-resource-response" }, [
       createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
       privateResponse

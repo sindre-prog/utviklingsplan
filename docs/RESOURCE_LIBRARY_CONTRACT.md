@@ -13,6 +13,11 @@ Disse beslutningene gjelder foran eldre eksempler i dokumentet:
 - `Utviklingsløpet` brukes bare for tverrgående ressurser som støtter retning, avgrensning, utprøving, observasjon, refleksjon eller oppfølging i selve utviklingsarbeidet. Det er en kontrollert kategori, ikke en restkategori for innhold som er vanskelig å plassere.
 - Utviklingsområdet lagres som en kontrollert `area:<key>`-verdi i eksisterende `resource_tags`. Fritekst-tags skal ikke være et nødvendig editorvalg.
 - Eksisterende emneknagger bevares som søkeord. De skal ikke overskrives når utviklingsområdet endres.
+- Portalinnholdet skal kunne stå på egne ben. En PDF er en alternativ leveranseform og kan ha annet innhold; den skal aldri være en forutsetning for at ressursen gir mening i portalen.
+- Første fil av typen `printable` løftes frem som PDF-versjon høyt i ressursvisningen. `printable` skal bare brukes for en godkjent, klientrettet PDF som kan lastes ned og deles videre.
+- Kilder, forskningsartikler og supplerende dokumenter lagres som `attachment` og vises som vedlegg, ikke som ressursens primære PDF-versjon.
+- Bilder og illustrasjoner plasseres redaksjonelt med en `illustration`-blokk i `content_json`. Blokken kan flyttes fritt i innholdsrekkefølgen og må vise den valgte filen på samme sted i klientvisning, coachpreview og adminpreview.
+- `cover_image` brukes som forside i den fremhevede PDF-flaten når ressursen har en `printable`. Ressursen skal fungere uten forsidebilde.
 
 Denne kompatibilitetsløsningen unngår både nytt schema og en destruktiv masseendring av eksisterende ressurser.
 

@@ -77,7 +77,7 @@ function renderResourceStep(textBlock, worksheetBlock, options = {}) {
 }
 
 export function renderResourceBlock(block, options = {}) {
-  const { createElement = null, resourceFiles = [], onOpenFile = null } = options;
+  const { createElement = null, createIcon = null, resourceFiles = [], onOpenFile = null } = options;
   assertElementFactory(createElement);
 
   if (!block || typeof block !== "object") {
@@ -140,7 +140,7 @@ export function renderResourceBlock(block, options = {}) {
       {
         const file = findIllustrationFile(block, resourceFiles);
         const label = cleanText(file?.display_name || block.display_name, illustrationLabel(block.key));
-        return createElement("div", {
+        return createElement(file ? "figure" : "div", {
           class: `resource-block resource-block--illustration ${file ? "has-file" : ""}`,
           "data-illustration-key": block.key || "",
           "data-file-id": file?.id || block.file_id || ""
@@ -152,12 +152,17 @@ export function renderResourceBlock(block, options = {}) {
               "data-storage-path": file.storage_path
             })
             : createElement("span", { class: "resource-illustration-orb" }),
-          file ? null : createElement("p", { text: label }),
-          file && onOpenFile ? createElement("button", {
-            class: "button ghost resource-file-open",
-            type: "button",
-            onclick: () => onOpenFile(file)
-          }, [createElement("span", { text: "Last ned illustrasjon" })]) : null
+          file ? createElement("figcaption", { class: "resource-illustration-caption" }, [
+            createElement("span", { text: label }),
+            onOpenFile ? createElement("button", {
+              class: "button ghost resource-file-open",
+              type: "button",
+              onclick: () => onOpenFile(file)
+            }, [
+              createIcon ? createIcon("download") : null,
+              createElement("span", { text: "Last ned illustrasjon" })
+            ].filter(Boolean)) : null
+          ].filter(Boolean)) : createElement("p", { text: label })
         ].filter(Boolean));
       }
     case RESOURCE_BLOCK_TYPES.worksheet:

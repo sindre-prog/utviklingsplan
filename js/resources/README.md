@@ -45,6 +45,17 @@ De to databasefeltene beholdes foreløpig for kompatibilitet. Ikke introduser de
 
 Nye refleksjonsspørsmål redigeres som `reflection_questions` i `content_json`. Det eldre toppnivåfeltet `reflection_prompts` bevares i databasen, men vises ikke som et parallelt editorfelt. Når en eldre ressurs uten spørsmålsblokk åpnes i editoren, legges de eksisterende spørsmålene inn som en blokk i utkastet.
 
+### Portalinnhold, PDF og bilder
+
+Native `content_json` er et selvstendig redaksjonelt format. Det skal gi verdi uten PDF og kan avvike fra PDF-versjonen.
+
+- Første `printable` etter `sort_order` er ressursens fremhevede PDF-versjon.
+- `printable` betyr godkjent, klientrettet PDF. Faglige kilder og supplerende filer er `attachment`.
+- Primær PDF vises høyt, men skal ikke dupliseres i en senere nedlastingsblokk eller filliste.
+- `cover_image` brukes i PDF-flaten når det finnes.
+- `illustration`-blokken velger en opplastet illustrasjon og kan flyttes til ønsket sted i innholdsrekkefølgen.
+- Klientvisning, coachpreview og adminpreview skal bruke samme fil- og innholdslogikk.
+
 ### Utviklingsområde
 
 Ressursen kan ha ett primært område: `Utviklingsløpet` eller ett av lederkompetansenes etablerte utviklingsområder. Området lagres som `area:<key>` i `resource_tags`.
