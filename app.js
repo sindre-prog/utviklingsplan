@@ -2958,12 +2958,12 @@ function directionWorkspace(client, plan) {
   const completed = directionSpecs.filter(directionSpecHasValue).length;
   const nextSpec = directionSpecs.find((spec) => !directionSpecHasValue(spec)) || null;
   const groups = [
-    ["Retning", "Hva skal bli annerledes?", directionSpecs.slice(0, 2)],
+    ["Ønsket endring", "Hva skal bli annerledes?", directionSpecs.slice(0, 2)],
     ["Samarbeid", "Hva skal dere kunne forvente av hverandre?", directionSpecs.slice(2, 4)],
     ["Rammer", "Hva må være avklart rundt arbeidet?", directionSpecs.slice(4)]
   ];
   return el("section", { class: "platform-page ui-workspace direction-simple" }, [
-    pageIntro("Retning", "Hva skal utviklingen føre til?", "Avklar hva du vil oppnå, hvordan du vil merke fremgang og hva dere skal forvente av hverandre."),
+    pageIntro("Retning", "Hva skal bli annerledes gjennom forløpet?", "Beskriv ønsket endring, tegn på fremgang og rammene for samarbeidet."),
     el("section", { class: "direction-overview", "aria-label": "Status for retningen" }, [
       el("div", { class: "direction-progress-copy" }, [
         el("strong", { text: nextSpec ? `${completed} av ${directionSpecs.length} avklaringer på plass` : "Retningen er klar til bruk" }),
@@ -2972,7 +2972,7 @@ function directionWorkspace(client, plan) {
       editable ? el("button", {
         class: "ui-button ui-button-filled direction-next-action",
         type: "button",
-        text: nextSpec ? (status.tone === "ready" ? "Fullfør retningen" : status.action) : "Velg lederkompetanser",
+        text: nextSpec ? (status.tone === "ready" ? "Fullfør retningen" : status.action) : "Velg indre og ytre prosjekt",
         onclick: () => nextSpec ? activateDirectionEdit(nextSpec) : activateWorkspacePane("work")
       }) : null
     ].filter(Boolean)),
@@ -3163,7 +3163,7 @@ function directionStatus(plan) {
   return {
     tone: "ready",
     label: "Retning avklart",
-    text: "Du kan nå velge lederkompetanser og fokusoppdrag.",
+    text: "Bruk retningen til å velge et indre prosjekt og et ytre prosjekt.",
     action: "Gå videre"
   };
 }
@@ -3265,15 +3265,18 @@ function workWorkspace(client, data, plan) {
 function focusHubWorkspace(data, plan, focusItems, editable) {
   const selectedItems = (data.programCompetencies || []).filter((item) => item.status === "active");
   const activeView = ["competencies", "assignments", "experiments"].includes(state.focusView) ? state.focusView : "competencies";
-  const viewCopy = focusViewDescription(activeView);
   return el("div", { class: "platform-page work-stack focus-hub" }, [
     focusHubIntro(editable, data, activeView === "competencies" ? selectedItems.length : activeView === "assignments" ? focusItems.length : data.actions.length, true),
-    el("div", { class: "focus-navigation-row" }, [
-      focusViewTabs(activeView, data),
-      el("div", { class: "focus-view-description" }, [
-        el("strong", { text: viewCopy.question }),
-        el("p", { text: viewCopy.description })
-      ])
+    el("section", { class: "focus-navigation-row", "aria-label": "Fra retning til praksis" }, [
+      el("button", { class: "development-model-origin", type: "button", onclick: () => activateWorkspacePane("direction") }, [
+        el("span", { class: "development-model-origin-icon", "aria-hidden": "true" }, [icon("compass")]),
+        el("span", { class: "development-model-origin-copy" }, [
+          el("small", { text: "Retning" }),
+          el("strong", { text: "Hva skal bli annerledes?" })
+        ]),
+        icon("arrow-right")
+      ]),
+      focusViewTabs(activeView, data, focusItems)
     ]),
     el("section", { class: `focus-hub-panel ${activeView === "competencies" ? "active" : ""}`, id: "focus-panel-competencies", role: "tabpanel", "aria-labelledby": "focus-tab-competencies", "aria-hidden": activeView === "competencies" ? "false" : "true" }, [
       activeView === "competencies" ? leadershipWorkbench(data, editable) : null
@@ -3288,38 +3291,21 @@ function focusHubWorkspace(data, plan, focusItems, editable) {
   ]);
 }
 
-function focusViewDescription(activeView) {
-  const descriptions = {
-    competencies: {
-      question: "Hva vil du bli bedre på?",
-      description: "Den indre utviklingslinjen: atferd og ferdigheter du utvikler i måten du leder deg selv og andre på."
-    },
-    assignments: {
-      question: "Hvor skal utviklingen merkes?",
-      description: "Den ytre utviklingslinjen: Fokusoppdrag er konkrete strategiske prioriteringer, situasjoner eller oppgaver der utviklingen skal merkes. De kan legges til, justeres eller avsluttes underveis."
-    },
-    experiments: {
-      question: "Hva vil du prøve i praksis?",
-      description: "Små atferdsforsøk du prøver, observerer og justerer."
-    }
-  };
-  return descriptions[activeView] || descriptions.competencies;
-}
-
 function focusHubIntro(editable, data, itemCount = 0, hasCompetencies = true) {
   const competenciesActive = hasCompetencies && state.focusView === "competencies";
   const action = competenciesActive && editable && itemCount
     ? addAction("Endre prioritering", () => openCompetencyChooser(data))
     : null;
-  return workspaceIntro("Utviklingsfokus", "Hva skal du utvikle?", "Velg tre lederkompetanser som gir retning for utviklingen. Én kan være hovedfokus nå.", [action].filter(Boolean));
+  return workspaceIntro("Utviklingsfokus", "Fra retning til praksis", "Koble det du vil utvikle i deg selv til et konkret prosjekt i arbeidshverdagen, og prøv noe i praksis.", [action].filter(Boolean));
 }
 
-function focusViewTabs(activeView, data = {}) {
+function focusViewTabs(activeView, data = {}, focusItems = []) {
+  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active").length;
   const activeExperiments = (data.actions || []).filter((action) => isExperimentActive(action.status)).length;
   const items = [
-    ["competencies", "Lederkompetanser", ""],
-    ["assignments", "Fokusoppdrag", ""],
-    ["experiments", "Eksperimenter", activeExperiments ? String(activeExperiments) : ""]
+    ["competencies", "Indre prosjekt", "Lederkompetanse", "Hva vil du utvikle i deg selv?", activeCompetencies],
+    ["assignments", "Ytre prosjekt", "Fokusoppdrag", "Hvor skal det skape en forskjell?", focusItems.length],
+    ["experiments", "Prøv i praksis", "Eksperiment", "Hva vil du gjøre annerledes?", activeExperiments]
   ];
   const activate = (value, { focus = false } = {}) => {
     state.focusView = value;
@@ -3327,7 +3313,7 @@ function focusViewTabs(activeView, data = {}) {
     renderCachedProgram("work");
     if (focus) requestAnimationFrame(() => document.getElementById(`focus-tab-${value}`)?.focus());
   };
-  const tabs = items.map(([value, label, count], index) => el("button", {
+  const tabs = items.map(([value, label, typeLabel, question, count], index) => el("button", {
     class: `focus-view-tab ${activeView === value ? "active" : ""}`,
     type: "button",
     role: "tab",
@@ -3346,8 +3332,16 @@ function focusViewTabs(activeView, data = {}) {
           : (index + (event.key === "ArrowRight" ? 1 : -1) + items.length) % items.length;
       activate(items[nextIndex][0], { focus: true });
     }
-  }, [el("span", { text: label }), count ? el("small", { text: count }) : null].filter(Boolean)));
-  return el("div", { class: "focus-view-tabs", role: "tablist", "aria-label": "Velg arbeidsflate" }, tabs);
+  }, [
+    el("span", { class: "focus-model-marker", "aria-hidden": "true", text: String(index + 1) }),
+    el("span", { class: "focus-model-copy" }, [
+      el("span", { class: "focus-model-type", text: typeLabel }),
+      el("strong", { text: label }),
+      el("span", { class: "focus-model-question", text: question })
+    ]),
+    count ? el("span", { class: "focus-model-count", "aria-label": `${count} aktive`, text: String(count) }) : null
+  ].filter(Boolean)));
+  return el("div", { class: "focus-view-tabs", role: "tablist", "aria-label": "Indre prosjekt, ytre prosjekt og praksis" }, tabs);
 }
 
 function leadershipWorkbench(data, editable) {
@@ -3384,8 +3378,8 @@ function leadershipSuggestions(items, data, editable) {
   return el("section", { class: "competency-suggestions" }, [
     el("div", { class: "competency-suggestions-copy" }, [
       el("span", { class: "workspace-kicker", text: "Forslag fra coach" }),
-      el("strong", { text: items.length === 1 ? "Én lederkompetanse er foreslått" : `${items.length} lederkompetanser er foreslått` }),
-      el("p", { text: clientOwnsChoice ? "Du bestemmer om forslaget skal bli hovedfokus eller en støttende lederkompetanse." : "Forslaget blir ikke aktivt før klienten velger det." })
+      el("strong", { text: items.length === 1 ? "Ett indre prosjekt er foreslått" : `${items.length} indre prosjekter er foreslått` }),
+      el("p", { text: clientOwnsChoice ? "Du bestemmer om lederkompetansen skal bli hovedfokus eller støtte et annet indre prosjekt." : "Forslaget blir ikke aktivt før klienten velger det." })
     ]),
     el("div", { class: "competency-suggestion-list" }, items.map((item) => el("article", {}, [
       el("div", {}, [
@@ -3442,7 +3436,7 @@ function leadershipSelectedList(items, detail, data, editable) {
   });
   return el("div", { class: "leadership-master leadership-track-list workspace-master-rail" }, [
     el("div", { class: "leadership-track-head workspace-master-head" }, [
-      el("strong", { text: "Aktive lederkompetanser" }),
+      el("strong", { text: "Indre prosjekter" }),
       el("span", { text: `${items.length} aktive` })
     ]),
     ...rows
@@ -3471,7 +3465,7 @@ function leadershipDetail(item, data, editable) {
     el("header", { class: "competency-workspace-head" }, [
       el("div", { class: "competency-workspace-heading" }, [
         el("span", { class: "competency-context" }, [
-          el("span", { class: "workspace-kicker", text: item.roleLabel || "Valgt lederkompetanse" }),
+          el("span", { class: "workspace-kicker", text: `Indre prosjekt · ${item.roleLabel || "Valgt lederkompetanse"}` }),
           item.categoryLabel ? el("span", { class: "ui-meta type-chip", text: item.categoryLabel }) : null
         ].filter(Boolean)),
         el("h3", { text: item.title || "Lederkompetanse" }),
@@ -3652,9 +3646,9 @@ function leadershipEmptyState(data, editable) {
   return el("section", { class: "focus-empty-state leadership-empty-state" }, [
     el("span", { class: "empty-state-icon", "aria-hidden": "true" }, [icon("compass")]),
     el("div", { class: "leadership-empty-copy" }, [
-      el("p", { class: "eyebrow", text: "Bibliotek for lederkompetanser" }),
-      el("h3", { text: "Velg hva du vil bli bedre på" }),
-      el("p", { class: "muted", text: "Start med én lederkompetanse som vil gjøre størst forskjell i rollen din nå." })
+      el("p", { class: "eyebrow", text: "Indre prosjekt · Lederkompetanse" }),
+      el("h3", { text: "Velg ditt første indre prosjekt" }),
+      el("p", { class: "muted", text: "Start med én lederkompetanse du vil utvikle i måten du leder på." })
     ]),
     editable ? addAction("Velg lederkompetanse", () => openCompetencyChooser(data)) : null
   ].filter(Boolean));
@@ -4386,8 +4380,8 @@ function nowActionGrid(items = [], editable) {
 
 function nowProgressStrip({ primaryCompetency, focusItems, actions, sessions, resources }) {
   return el("section", { class: "now-progress-strip", "aria-label": "Status i utviklingsforløpet" }, [
-    nowProgressMetric("Hovedfokus", primaryCompetency?.title || "Ikke valgt", "compass", () => primaryCompetency ? openNowCompetency(primaryCompetency) : activateWorkspacePane("work")),
-    nowProgressMetric("Fokusoppdrag", focusItems.length ? String(focusItems.length) : "Ingen", "briefcase-business", () => activateWorkspacePane("work")),
+    nowProgressMetric("Indre prosjekt", primaryCompetency?.title || "Ikke valgt", "compass", () => primaryCompetency ? openNowCompetency(primaryCompetency) : activateWorkspacePane("work")),
+    nowProgressMetric("Ytre prosjekt", focusItems[0]?.area?.title || "Ikke valgt", "briefcase-business", () => activateWorkspacePane("work")),
     nowProgressMetric("Samtaler", String(sessions.length || 0), "messages-square", () => activateWorkspacePane("sessions")),
     nowProgressMetric("Ressurser", String(resources.length || 0), "book-open", () => activateWorkspacePane("resources")),
     nowProgressMetric("Arbeidsnotater", String(actions.length || 0), "file-text", () => {
@@ -4445,12 +4439,6 @@ function focusWorkbench(items, data, editable) {
       el("div", { class: "focus-detail-wrap" }, [detail])
     ])
   ]);
-}
-
-function focusIntro(editable = false) {
-  return workspaceIntro("Fokusoppdrag", "Hvor skal utviklingen merkes?", "Legg til konkrete prosjekter, leveranser eller situasjoner der du vil gjøre en forskjell.", [
-    editable ? addAction("Nytt fokusoppdrag", () => addFocusArea()) : null
-  ].filter(Boolean));
 }
 
 function freeExperimentSection(actions, data, editable) {
@@ -4561,7 +4549,7 @@ function experimentHubWorkspace(data, editable) {
 function focusList(items, editable, data, detail) {
   return el("div", { class: "focus-picker workspace-master-rail" }, [
     el("div", { class: "focus-picker-head workspace-master-head" }, [
-      el("strong", { text: "Fokusoppdrag" }),
+      el("strong", { text: "Ytre prosjekter" }),
       el("span", { class: "ui-meta", text: String(items.length) })
     ]),
     ...items.map(({ area, index }, itemIndex) => el("article", { class: `focus-nav-item workspace-master-row ${itemIndex === (state.selectedFocusIndex || 0) ? "active" : ""}` }, [
@@ -4616,7 +4604,7 @@ function focusDetail({ area, index }, data, editable) {
     el("header", { class: "competency-workspace-head" }, [
       el("div", { class: "competency-workspace-heading" }, [
         el("span", { class: "competency-context" }, [
-          el("span", { class: "workspace-kicker", text: area.projectType === "outer" ? `Fokusoppdrag ${index + 1}` : "Tidligere fokusområde" }),
+          el("span", { class: "workspace-kicker", text: area.projectType === "outer" ? `Ytre prosjekt ${index + 1}` : "Tidligere fokusområde" }),
           area.projectType === "outer" ? el("span", { class: `ui-meta type-chip ${projectTypeClass(area.projectType)}`, text: projectTypeLabel(area.projectType) }) : null
         ].filter(Boolean)),
         editableTitle({
@@ -4727,9 +4715,9 @@ function focusDetailBlock(label, value, emptyText, fieldKey = "", area = null, i
 
 function focusEmptyState(editable) {
   return el("section", { class: "focus-empty-state" }, [
-    el("p", { class: "eyebrow", text: "Fokusoppdrag" }),
-    el("h3", { text: "Legg til første fokusoppdrag" }),
-    el("p", { class: "muted", text: "Start med prosjektet, leveransen eller situasjonen som krever mest oppmerksomhet nå." }),
+    el("p", { class: "eyebrow", text: "Ytre prosjekt · Fokusoppdrag" }),
+    el("h3", { text: "Velg ditt første ytre prosjekt" }),
+    el("p", { class: "muted", text: "Start med et konkret prosjekt, en leveranse eller situasjon der utviklingen skal gjøre en forskjell." }),
     editable ? addAction("Nytt fokusoppdrag", () => addFocusArea()) : null
   ].filter(Boolean));
 }
@@ -6160,7 +6148,7 @@ function normalizeProjectType(value) {
 function projectTypeLabel(value) {
   return {
     inner: "Tidligere fokusområde",
-    outer: "Arbeidsoppdrag",
+    outer: "Fokusoppdrag",
     both: "Tidligere fokusområde"
   }[normalizeProjectType(value)];
 }

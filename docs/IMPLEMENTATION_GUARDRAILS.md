@@ -6,15 +6,21 @@ This document is the working contract for rebuilding the development portal with
 
 The portal is a coaching and leadership development workspace, not a generic development-plan editor.
 
-The core learning loop is:
+The visible development model is:
 
-`Retning -> Fokus -> Praksiseksperiment -> Observasjon -> Samtale -> Refleksjon -> Justering`
+`Retning -> Indre prosjekt -> Ytre prosjekt -> Prøv i praksis`
+
+The complete learning loop is:
+
+`Retning -> Indre prosjekt -> Ytre prosjekt -> Praksiseksperiment -> Observasjon -> Samtale -> Refleksjon -> Justering`
 
 The main navigation remains:
 
-`Retning -> Fokusomrader -> Samtaler -> Refleksjon`
+`Akkurat nå -> Retning -> Utviklingsfokus -> Samtaler -> Refleksjon -> Ressurser`
 
 `Praksiseksperiment` is the engine inside the flow, not a fifth top-level tab.
+
+In UI copy, `Indre prosjekt` must be paired with `Lederkompetanse`, and `Ytre prosjekt` must be paired with `Fokusoppdrag`, until the relationship is self-evident from context. Do not reintroduce leader competencies and focus assignments as unexplained parallel concepts.
 
 ## Enforcement Rules
 

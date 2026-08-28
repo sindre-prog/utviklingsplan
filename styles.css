@@ -13297,14 +13297,6 @@ details.coaching-frame > .coaching-frame-body > article p {
   background: transparent;
 }
 
-.focus-view-description {
-  max-width: 520px;
-  margin: 0;
-  color: var(--platform-muted);
-  font-size: var(--type-support);
-  line-height: 1.5;
-}
-
 .drawer-panel.experiment-editor-drawer {
   width: min(600px, 100vw);
 }
@@ -13471,39 +13463,159 @@ details.coaching-frame > .coaching-frame-body > article p {
     padding: 24px 20px;
   }
 
-  .focus-view-description {
-    max-width: none;
-  }
 }
 
-/* Focus and conversation polish: one clear next step, quieter supporting plans. */
+/* Focus model: retning, inner project, outer project and practice. */
 .focus-hub .focus-navigation-row {
   display: grid;
-  grid-template-columns: auto minmax(260px, 1fr);
-  align-items: center;
-  gap: 24px;
+  grid-template-columns: minmax(190px, .72fr) minmax(0, 2.28fr);
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
 }
 
-.focus-hub .focus-view-description {
-  justify-self: end;
+.development-model-origin {
+  min-width: 0;
   display: grid;
-  gap: 2px;
-  max-width: 560px;
-  margin: 0;
+  grid-template-columns: 34px minmax(0, 1fr) 18px;
+  gap: 12px;
+  align-items: center;
+  padding: 18px;
+  border: 0;
+  border-right: 1px solid var(--platform-line);
+  border-radius: 0;
+  background: #f8f6f2;
+  color: var(--platform-ink);
+  font: inherit;
   text-align: left;
+  cursor: pointer;
 }
 
-.focus-hub .focus-view-description strong {
+.development-model-origin:hover {
+  background: #f3f0ea;
+}
+
+.development-model-origin-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--platform-line);
+  border-radius: 50%;
+  background: var(--platform-paper);
+}
+
+.development-model-origin-icon svg,
+.development-model-origin > svg {
+  width: 17px;
+  height: 17px;
+}
+
+.development-model-origin-copy,
+.focus-model-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.development-model-origin-copy small,
+.focus-model-type {
+  color: var(--platform-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.development-model-origin-copy strong,
+.focus-model-copy strong {
   color: var(--platform-ink);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 750;
   line-height: 1.35;
 }
 
-.focus-hub .focus-view-description p {
-  margin: 0;
+.focus-hub .focus-view-tabs {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.focus-hub .focus-view-tab {
+  min-width: 0;
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 16px;
+  border: 0;
+  border-right: 1px solid var(--platform-line);
+  border-radius: 0;
+  background: var(--platform-paper);
+  color: var(--platform-ink);
+  text-align: left;
+}
+
+.focus-hub .focus-view-tab:last-child {
+  border-right: 0;
+}
+
+.focus-hub .focus-view-tab:hover {
+  background: var(--neutral-50);
+}
+
+.focus-hub .focus-view-tab.active {
+  background: rgba(255, 166, 166, .14);
+  box-shadow: inset 0 -3px 0 var(--brand-coral);
+}
+
+.focus-model-marker {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--platform-line);
+  border-radius: 50%;
+  background: var(--platform-paper);
   color: var(--platform-muted);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.focus-view-tab.active .focus-model-marker {
+  border-color: var(--brand-coral);
+  background: var(--brand-coral);
+  color: #4c1f24;
+}
+
+.focus-model-question {
+  color: var(--platform-muted);
+  font-size: 12px;
   line-height: 1.45;
+}
+
+.focus-model-count {
+  min-width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+  border: 1px solid var(--platform-line);
+  border-radius: 999px;
+  background: var(--platform-paper);
+  color: var(--platform-muted);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .focus-detail-card .focus-assignment-plan,
@@ -13632,11 +13744,11 @@ details.coaching-frame > .coaching-frame-body > article p {
 @media (max-width: 760px) {
   .focus-hub .focus-navigation-row {
     grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
   }
 
-  .focus-hub .focus-view-description {
-    justify-self: stretch;
+  .development-model-origin {
+    border-right: 0;
+    border-bottom: 1px solid var(--platform-line);
   }
 
   .focus-detail-card .focus-assignment-plan .workspace-plan-step,
@@ -13924,16 +14036,12 @@ details.coaching-frame > .coaching-frame-body > article p {
 
 /* Workspace UI consistency batch: keep rails, editing and resources on one grammar. */
 .focus-hub .focus-navigation-row {
-  align-items: start;
+  align-items: stretch;
 }
 
 .focus-hub .focus-view-tabs {
-  align-self: start;
+  align-self: stretch;
   margin-top: 0;
-}
-
-.focus-hub .focus-view-description {
-  min-height: 64px;
 }
 
 .workspace-master-rail,
@@ -14151,8 +14259,18 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 @media (max-width: 700px) {
-  .focus-hub .focus-view-description {
-    min-height: 0;
+  .focus-hub .focus-view-tabs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .focus-hub .focus-view-tab {
+    min-height: 78px;
+    border-right: 0;
+    border-bottom: 1px solid var(--platform-line);
+  }
+
+  .focus-hub .focus-view-tab:last-child {
+    border-bottom: 0;
   }
 
   .client-resource-workbench {

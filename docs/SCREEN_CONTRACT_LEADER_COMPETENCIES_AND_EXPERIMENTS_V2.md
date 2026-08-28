@@ -4,10 +4,30 @@ Status: godkjent produktretning for isolert implementasjon. Denne kontrakten pre
 
 ## Begrepsgrense
 
+- Retning beskriver hva som skal bli annerledes gjennom forløpet. Den er utgangspunktet, ikke et fjerde utviklingsobjekt.
+- Indre prosjekt er klientens utvikling i egen lederatferd, konkretisert som en lederkompetanse.
+- Ytre prosjekt er arenaen der utviklingen skal gjøre en forskjell, konkretisert som et Fokusoppdrag.
+- Prøv i praksis er broen mellom indre og ytre prosjekt, konkretisert som et eksperiment.
 - Kompetanse er en indre utviklingslinse.
 - Fokusoppdrag er et ytre prosjekt, en leveranse eller en kontekstuell utfordring.
 - Eksperiment er et konkret atferdsforsøk som kan koble kompetanse til arbeid.
 - Nye Fokusoppdrag opprettes som `outer`. Eksisterende `inner` og `both` bevares uendret som legacy.
+
+Den synlige modellen i klientens utviklingsflate er:
+
+`Retning -> Indre prosjekt -> Ytre prosjekt -> Prøv i praksis`
+
+Begrepene skal alltid vises med den konkrete objekttypen i nærheten: `Indre prosjekt · Lederkompetanse`, `Ytre prosjekt · Fokusoppdrag` og `Prøv i praksis · Eksperiment`. Klienten skal ikke måtte utlede forholdet mellom to parallelle begrepssett.
+
+## Skjermlogikk
+
+- Hovedfanen heter fortsatt `Utviklingsfokus`; modellen oppretter ingen ny hovednavigasjon.
+- Retning vises som en rolig inngang foran de tre arbeidstrinnene, og åpner eksisterende Retning-flate.
+- De tre arbeidstrinnene er én tablist i fast rekkefølge: Indre prosjekt, Ytre prosjekt og Prøv i praksis.
+- Hvert trinn viser ett beslutningsspørsmål, objekttypen og antall aktive objekter når antallet er større enn null.
+- På mobil stables Retning og arbeidstrinnene vertikalt uten horisontal rulling.
+- Klienten eier valg og prioritering av indre prosjekt. Coachen kan foreslå en lederkompetanse, men ikke aktivere den på klientens vegne.
+- Ytre prosjekter og eksperimenter bruker eksisterende redigerings- og tilgangsregler; denne modellen endrer ikke datakontrakten.
 
 ## Aktiv kompetansemodell
 
