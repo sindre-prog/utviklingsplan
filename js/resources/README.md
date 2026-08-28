@@ -55,6 +55,8 @@ Native `content_json` er et selvstendig redaksjonelt format. Det skal gi verdi u
 - `cover_image` brukes i PDF-flaten når det finnes.
 - `illustration`-blokken velger en opplastet illustrasjon og kan flyttes til ønsket sted i innholdsrekkefølgen.
 - Klientvisning, coachpreview og adminpreview skal bruke samme fil- og innholdslogikk.
+- Editor foreslår filtype fra den valgte filen: PDF blir `printable`, bilder blir `illustration`, og lyd/video får tilsvarende type. Redaktøren kan endre PDF til `attachment` når dokumentet er en kilde eller et supplement.
+- Editor skal avvise åpenbare typekonflikter, som PDF lagret som bilde/illustrasjon eller en ikke-PDF lagret som `printable`.
 
 ### Utviklingsområde
 
