@@ -1,3 +1,5 @@
+import { normalizeResourceProductFields } from "./resources.model.js?v=polish-153";
+
 function requireSupabaseClient(supabaseClient) {
   if (!supabaseClient || typeof supabaseClient.from !== "function") {
     throw new TypeError("A Supabase client is required for resource queries.");
@@ -6,14 +8,14 @@ function requireSupabaseClient(supabaseClient) {
 
 function normalizeResource(row) {
   if (!row) return null;
-  return {
+  return normalizeResourceProductFields({
     ...row,
     tags: (row.resource_tags || []).map((tag) => tag.tag).filter(Boolean).sort((a, b) => a.localeCompare(b, "no")),
     files: (row.resource_files || [])
       .filter((file) => !file.archived_at)
       .slice()
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-  };
+  });
 }
 
 function normalizeSharedResource(row, options = {}) {
@@ -30,20 +32,23 @@ function normalizeSharedResource(row, options = {}) {
 
 function applyResourceFilters(resources, filters = {}) {
   const query = (filters.query || "").trim().toLowerCase();
+  const developmentArea = filters.developmentArea || "all";
   const phase = filters.phase || "all";
   const type = filters.type || "all";
 
   return resources.filter((resource) => {
     const matchesQuery = !query || [
       resource.title,
-      resource.summary,
+      resource.introduction,
       resource.intended_outcome,
-      ...(resource.tags || [])
+      ...(resource.topic_tags || [])
     ].filter(Boolean).join(" ").toLowerCase().includes(query);
+    const resourceArea = resource.development_area || "uncategorized";
+    const matchesDevelopmentArea = developmentArea === "all" || resourceArea === developmentArea;
     const matchesPhase = phase === "all" || resource.phase === phase;
     const matchesType = type === "all" || resource.type === type;
 
-    return matchesQuery && matchesPhase && matchesType;
+    return matchesQuery && matchesDevelopmentArea && matchesPhase && matchesType;
   });
 }
 
