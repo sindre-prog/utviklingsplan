@@ -4312,8 +4312,8 @@ function nowSetupSection({ data, plan, editable }) {
   const rows = [
     {
       key: "direction",
-      label: "Forløpet",
-      objectLabel: "Mål og rammer",
+      label: "Mål og rammer",
+      objectLabel: "",
       question: "Hva skal utviklingsløpet bidra til?",
       status: directionStatus,
       complete: directionComplete,
@@ -4346,7 +4346,20 @@ function nowSetupSection({ data, plan, editable }) {
       el("h3", { id: "now-setup-title", text: "Sett grunnlaget for forløpet" }),
       el("p", { text: "Avklar hva forløpet skal bidra til, hvor utviklingen skal merkes og hva du vil utvikle." })
     ]),
-    el("div", { class: "now-setup-list" }, rows.map((row, index) => nowSetupRow(row, index, firstMissingKey)))
+    el("div", { class: "now-setup-list" }, [
+      nowSetupGroup("Forløpet", "direction", rows.slice(0, 1), 0, firstMissingKey),
+      nowSetupGroup("Utviklingsfokus", "focus", rows.slice(1), 1, firstMissingKey)
+    ])
+  ]);
+}
+
+function nowSetupGroup(title, key, rows, startIndex, firstMissingKey) {
+  const titleId = `now-setup-group-${key}`;
+  return el("section", { class: "now-setup-group", "aria-labelledby": titleId }, [
+    el("header", { class: "now-setup-group-head" }, [
+      el("h4", { class: "now-setup-group-title", id: titleId, text: title })
+    ]),
+    el("div", { class: "now-setup-group-rows" }, rows.map((row, index) => nowSetupRow(row, startIndex + index, firstMissingKey)))
   ]);
 }
 
@@ -4365,8 +4378,8 @@ function nowSetupRow(row, index, firstMissingKey) {
     el("div", { class: "now-setup-copy" }, [
       el("span", { class: "now-setup-labels" }, [
         el("strong", { text: row.label }),
-        el("small", { text: row.objectLabel })
-      ]),
+        row.objectLabel ? el("small", { text: row.objectLabel }) : null
+      ].filter(Boolean)),
       el("p", { text: row.question })
     ]),
     el("span", { class: "now-setup-status", text: row.status }),
