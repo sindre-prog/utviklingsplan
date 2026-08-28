@@ -1509,6 +1509,42 @@ async function hydrateResourceMedia(root) {
   }));
 }
 
+function resourceUploadKind(file) {
+  const mimeType = String(file?.type || "").toLowerCase();
+  const fileName = String(file?.name || "").toLowerCase();
+  if (mimeType === "application/pdf" || fileName.endsWith(".pdf")) return "pdf";
+  if (mimeType.startsWith("image/") || /\.(avif|gif|jpe?g|png|svg|webp)$/.test(fileName)) return "image";
+  if (mimeType.startsWith("audio/") || /\.(aac|m4a|mp3|ogg|wav)$/.test(fileName)) return "audio";
+  if (mimeType.startsWith("video/") || /\.(m4v|mov|mp4|webm)$/.test(fileName)) return "video";
+  return "other";
+}
+
+function inferredResourceFileType(file) {
+  const kind = resourceUploadKind(file);
+  if (kind === "pdf") return "printable";
+  if (kind === "image") return "illustration";
+  if (kind === "audio") return "audio";
+  if (kind === "video") return "video";
+  return "attachment";
+}
+
+function resourceFileTypeError(file, fileType) {
+  const kind = resourceUploadKind(file);
+  if (["cover_image", "illustration"].includes(fileType) && kind !== "image") {
+    return "Forsidebilde og illustrasjon må være en bildefil. Velg Print/PDF for en klientrettet PDF, eller Vedlegg for et supplerende dokument.";
+  }
+  if (fileType === "printable" && kind !== "pdf") {
+    return "Print/PDF må være en PDF-fil.";
+  }
+  if (fileType === "audio" && kind !== "audio") {
+    return "Lyd må være en lydfil.";
+  }
+  if (fileType === "video" && kind !== "video") {
+    return "Video må være en videofil.";
+  }
+  return "";
+}
+
 function createResourceFileManager(resource, library, options = {}) {
   const { onFilesChange = null } = options;
   if (!resource?.id) {
@@ -1524,8 +1560,15 @@ function createResourceFileManager(resource, library, options = {}) {
   const fileInput = el("input", { type: "file" });
   const fileType = el("select", {});
   RESOURCE_FILE_TYPE_OPTIONS.forEach(([value, label]) => fileType.append(el("option", { value, text: label })));
+  fileType.value = "attachment";
   const displayName = el("input", { type: "text", placeholder: "Visningsnavn, valgfritt" });
   const message = el("p", { class: "form-message", role: "status" });
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    fileType.value = inferredResourceFileType(file);
+    message.textContent = "";
+  });
 
   const renderFiles = () => {
     const files = resource.files || [];
@@ -1591,6 +1634,11 @@ function createResourceFileManager(resource, library, options = {}) {
           message.textContent = "Velg en fil først.";
           return;
         }
+        const fileTypeError = resourceFileTypeError(file, fileType.value);
+        if (fileTypeError) {
+          message.textContent = fileTypeError;
+          return;
+        }
         message.textContent = "Laster opp...";
         try {
           const uploaded = await library.uploadResourceFile(state.sb, resource.id, file, {
@@ -1601,6 +1649,7 @@ function createResourceFileManager(resource, library, options = {}) {
           resource.files = [...(resource.files || []), uploaded];
           onFilesChange?.(resource.files);
           fileInput.value = "";
+          fileType.value = "attachment";
           displayName.value = "";
           message.textContent = "Fil lastet opp.";
           renderFiles();
