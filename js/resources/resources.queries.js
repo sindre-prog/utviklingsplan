@@ -168,17 +168,18 @@ export async function getSharedResourcesForProgram(supabaseClient, programId, op
   return (data || []).map((row) => normalizeSharedResource(row, options));
 }
 
-export async function getResourceFileUrl(supabaseClient, storagePath, expiresIn = 3600) {
+export async function getResourceFileUrl(supabaseClient, storagePath, expiresIn = 3600, options = {}) {
   requireSupabaseClient(supabaseClient);
   if (!storagePath) return "";
   if (!supabaseClient.storage?.from) {
     throw new TypeError("Supabase Storage support is required for resource file URLs.");
   }
 
+  const signedUrlOptions = options.download ? { download: true } : undefined;
   const { data, error } = await supabaseClient
     .storage
     .from("resource-assets")
-    .createSignedUrl(storagePath, expiresIn);
+    .createSignedUrl(storagePath, expiresIn, signedUrlOptions);
 
   if (error) throw error;
   return data?.signedUrl || "";

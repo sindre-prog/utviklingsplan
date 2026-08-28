@@ -57,7 +57,8 @@ const RESOURCE_REVIEW_STATUS_OPTIONS = [
   ["needs_revision", "Må revideres"]
 ];
 const RESOURCE_FILE_TYPE_OPTIONS = [
-  ["illustration", "Illustrasjon"],
+  ["cover_image", "Forsidebilde"],
+  ["illustration", "Bilde / illustrasjon"],
   ["printable", "Print/PDF"],
   ["attachment", "Vedlegg"],
   ["audio", "Lyd"],
@@ -71,7 +72,7 @@ const RESOURCE_BLOCK_TYPE_LABELS = {
   quote: "Sitat",
   worksheet: "Arbeidsfelt",
   reflection_questions: "Spørsmål",
-  illustration: "Illustrasjon",
+  illustration: "Bilde / illustrasjon",
   download: "PDF/vedlegg"
 };
 const RESOURCE_BLOCK_TYPE_DESCRIPTIONS = {
@@ -81,8 +82,8 @@ const RESOURCE_BLOCK_TYPE_DESCRIPTIONS = {
   model_cards: "Korte kort for modeller, begreper eller valg.",
   callout: "Et uthevet felt for viktige poeng eller coach-kommentar.",
   quote: "Sitat eller nøkkelsetning med valgfri kilde.",
-  illustration: "Viser en opplastet illustrasjon i ressursen.",
-  download: "Legger inn PDF eller vedlegg der blokken står.",
+  illustration: "Viser et opplastet bilde eller en illustrasjon der blokken står.",
+  download: "Legger inn et vedlegg der blokken står. Primær PDF løftes automatisk frem øverst.",
   intro: "Kort innledning til selve faginnholdet, etter ressursens introduksjon."
 };
 const RESOURCE_BLOCK_ADD_TYPES = ["text", "reflection_questions", "worksheet", "model_cards", "callout", "quote", "illustration", "download", "intro"];
@@ -1318,10 +1319,10 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
       return [
         select,
         illustrations.length === 1 && !explicitValue
-          ? el("p", { class: "resource-admin-inline-help", text: "Én illustrasjon er lastet opp og brukes automatisk i preview. Velg den her hvis du vil lagre koblingen eksplisitt." })
+          ? el("p", { class: "resource-admin-inline-help", text: "Én illustrasjon er lastet opp og brukes automatisk i preview. Blokken kan flyttes til ønsket plassering i innholdet." })
           : illustrations.length
-            ? el("p", { class: "resource-admin-inline-help", text: "Velg hvilken opplastet illustrasjon denne blokken skal vise. Nye illustrasjoner legges til under Filer og bilder." })
-          : el("p", { class: "resource-admin-inline-help", text: "Last opp en fil med type Illustrasjon under Filer og bilder, og velg den her etterpå." }),
+            ? el("p", { class: "resource-admin-inline-help", text: "Velg hvilket opplastet bilde blokken skal vise, og flytt blokken til ønsket plassering med pilene over." })
+            : el("p", { class: "resource-admin-inline-help", text: "Last opp en fil med type Bilde / illustrasjon under Filer og bilder, og velg den her etterpå." }),
         el("details", { class: "resource-admin-advanced" }, [
           el("summary", { text: "Avansert: bruk gammel illustrasjonsnøkkel" }),
           el("input", {
@@ -1477,7 +1478,15 @@ async function openResourceFile(file) {
   const library = await ensureResourceLibrary();
   if (!library?.getResourceFileUrl || !file?.storage_path) return;
   try {
-    const url = await library.getResourceFileUrl(state.sb, file.storage_path);
+    const shouldDownload = ["printable", "attachment", "illustration"].includes(file.file_type);
+    const url = await library.getResourceFileUrl(state.sb, file.storage_path, 3600, { download: shouldDownload });
+    if (shouldDownload) {
+      const link = el("a", { href: url, download: "" });
+      document.body.append(link);
+      link.click();
+      link.remove();
+      return;
+    }
     const opened = window.open(url, "_blank", "noopener");
     if (!opened) window.location.href = url;
   } catch (error) {
@@ -1524,11 +1533,15 @@ function createResourceFileManager(resource, library, options = {}) {
       el("div", {}, [
         el("strong", { text: file.display_name }),
         el("span", { text: resourceLabel(RESOURCE_FILE_TYPE_OPTIONS, file.file_type) || file.file_type }),
-        el("small", { text: ["printable", "attachment"].includes(file.file_type)
-          ? "Kan velges i en nedlastingsblokk og vises for klient."
-          : file.file_type === "illustration"
-            ? "Kan velges i en illustrasjonsblokk."
-            : "Lagret som ressursfil." })
+        el("small", { text: file.file_type === "printable"
+          ? "Løftes automatisk frem som PDF-versjon øverst i ressursen."
+          : file.file_type === "cover_image"
+            ? "Vises sammen med den fremhevede PDF-versjonen."
+            : file.file_type === "attachment"
+              ? "Kan legges inn som vedlegg der det passer i innholdet."
+              : file.file_type === "illustration"
+                ? "Kan plasseres fritt med en Bilde / illustrasjon-blokk."
+                : "Lagret som ressursfil." })
       ]),
       el("button", { class: "button ghost", type: "button", onclick: async () => {
         if (!await confirmDelete(`Fjerne "${file.display_name}" fra ressursen?`)) return;
@@ -1538,12 +1551,16 @@ function createResourceFileManager(resource, library, options = {}) {
         renderFiles();
       } }, [icon("trash-2"), el("span", { text: "Fjern" })])
     ]);
+    const covers = files.filter((file) => file.file_type === "cover_image");
     const illustrations = files.filter((file) => file.file_type === "illustration");
-    const downloads = files.filter((file) => ["printable", "attachment"].includes(file.file_type));
-    const otherFiles = files.filter((file) => !["illustration", "printable", "attachment"].includes(file.file_type));
+    const printables = files.filter((file) => file.file_type === "printable");
+    const attachments = files.filter((file) => file.file_type === "attachment");
+    const otherFiles = files.filter((file) => !["cover_image", "illustration", "printable", "attachment"].includes(file.file_type));
     const groups = [
-      ["Illustrasjoner", "Brukes i illustrasjonsblokker inne i ressursen.", illustrations],
-      ["Nedlastbare filer for klient", "PDF-er og vedlegg vises når de velges i en nedlastingsblokk.", downloads],
+      ["Forsidebilder", "Brukes i den fremhevede PDF-flaten når ressursen har en PDF-versjon.", covers],
+      ["Bilder og illustrasjoner", "Plasseres fritt i innholdet med Bilde / illustrasjon-blokker.", illustrations],
+      ["PDF-versjoner", "Første PDF løftes automatisk frem øverst i ressursen.", printables],
+      ["Vedlegg", "Kan plasseres i innholdet med en PDF/vedlegg-blokk.", attachments],
       ["Andre filer", "Lyd, video og andre vedlegg.", otherFiles]
     ].filter(([, , groupFiles]) => groupFiles.length);
     fileList.replaceChildren(...groups.map(([title, help, groupFiles]) => el("section", { class: "resource-admin-file-group" }, [
@@ -2114,7 +2131,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-153")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-154")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
