@@ -24,6 +24,8 @@ The main navigation remains:
 
 In UI copy, `Ytre prosjekt` must be paired with `Fokusoppdrag`, and `Indre prosjekt` must be paired with `Lederkompetanse`, until the relationship is self-evident from context. Do not reverse the sequence or reintroduce leader competencies and focus assignments as unexplained parallel concepts.
 
+The next-step flow must preserve the same sequence. A completed `Ytre prosjekt` routes to `Indre prosjekt` when no active leadership competence exists; only after an inner project exists may the flow route to a practice experiment.
+
 ## Enforcement Rules
 
 1. No new UI without a screen contract.

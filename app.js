@@ -2958,7 +2958,7 @@ function directionWorkspace(client, plan) {
   const completed = directionSpecs.filter(directionSpecHasValue).length;
   const nextSpec = directionSpecs.find((spec) => !directionSpecHasValue(spec)) || null;
   const groups = [
-    ["Mål for forløpet", "Hva skal bli annerledes?", directionSpecs.slice(0, 2)],
+    ["Mål for forløpet", "Hva skal utviklingsløpet bidra til?", directionSpecs.slice(0, 2)],
     ["Samarbeid", "Hva skal dere kunne forvente av hverandre?", directionSpecs.slice(2, 4)],
     ["Rammer", "Hva må være avklart rundt arbeidet?", directionSpecs.slice(4)]
   ];
@@ -3268,12 +3268,12 @@ function focusHubWorkspace(data, plan, focusItems, editable) {
   return el("div", { class: "platform-page work-stack focus-hub" }, [
     focusHubIntro(editable, data, activeView === "competencies" ? selectedItems.length : activeView === "assignments" ? focusItems.length : data.actions.length, true),
     el("section", { class: "focus-navigation-row", "aria-label": "Fra forløpets mål til praksis" }, [
-      el("button", { class: "development-model-origin", type: "button", "aria-label": "Åpne Forløpet: Hva skal bli annerledes?", onclick: () => activateWorkspacePane("direction") }, [
+      el("button", { class: "development-model-origin", type: "button", "aria-label": "Åpne Forløpet: Hva skal utviklingsløpet bidra til?", onclick: () => activateWorkspacePane("direction") }, [
         el("span", { class: "development-model-origin-icon", "aria-hidden": "true" }, [icon("compass")]),
         el("span", { class: "development-model-origin-copy" }, [
           el("small", { text: "Utgangspunkt" }),
           el("strong", { text: "Forløpets mål" }),
-          el("span", { class: "development-model-origin-question", text: "Hva skal bli annerledes?" })
+          el("span", { class: "development-model-origin-question", text: "Hva skal utviklingsløpet bidra til?" })
         ]),
         icon("arrow-right")
       ]),
@@ -4603,19 +4603,36 @@ function selectFocusCard(buttonNode, item, data, editable, detail) {
 function focusDetail({ area, index }, data, editable) {
   const actions = data.actions.filter((action) => action.development_area_id === area.id);
   const activeActions = actions.filter((action) => isExperimentActive(action.status));
+  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active");
   const planStatus = focusPlanStatus(area);
   const missingStep = [
     ["movement", "Beskriv ønsket utfall", "Hva skal du oppnå – eller hva skal bli annerledes?", "Beskriv ønsket utfall"],
     ["typicalSituations", "Velg hvor forskjellen skal merkes", "Hvilken situasjon, leveranse, møte eller relasjon er viktigst – og for hvem?", "Velg arbeidsarena"],
     ["progressSigns", "Velg et tegn på fremgang", "Hva vil vise at arbeidet er på rett vei?", "Velg tegn på fremgang"]
   ].find(([fieldKey]) => !((fieldKey === "movement" ? area.movement || area.description : area[fieldKey]) || "").trim());
-  const nextLabel = missingStep?.[1] || (!activeActions.length ? "Planlegg første eksperiment" : "Følg opp eksperimentet");
-  const nextHelper = missingStep?.[2] || (!activeActions.length ? "Gjør neste steg lite nok til å prøve i en faktisk arbeidssituasjon." : "Åpne eksperimentet og noter hva du observerte.");
-  const nextHandler = missingStep
-    ? () => openFocusField(index, missingStep[0])
-    : !activeActions.length
-      ? () => createAction(data, area.id)
-      : () => editAction(activeActions[0], data);
+  const needsInnerProject = area.projectType === "outer" && !missingStep && !activeCompetencies.length;
+  let nextStep = activeActions.length
+    ? { label: "Følg opp eksperimentet", helper: "Åpne eksperimentet og noter hva du observerte.", actionLabel: "Følg opp eksperiment", onAction: () => editAction(activeActions[0], data) }
+    : { label: "Planlegg første eksperiment", helper: "Gjør neste steg lite nok til å prøve i en faktisk arbeidssituasjon.", actionLabel: "Legg til eksperiment", onAction: () => createAction(data, area.id) };
+  if (needsInnerProject) {
+    nextStep = {
+      label: "Velg hva du trenger å utvikle",
+      helper: "Velg en lederkompetanse som kan styrke deg i dette ytre prosjektet.",
+      actionLabel: "Gå til indre prosjekt",
+      onAction: () => {
+        state.focusView = "competencies";
+        renderCachedProgram("work");
+      }
+    };
+  }
+  if (missingStep) {
+    nextStep = {
+      label: missingStep[1],
+      helper: missingStep[2],
+      actionLabel: missingStep[3],
+      onAction: () => openFocusField(index, missingStep[0])
+    };
+  }
   return el("section", { class: "focus-detail-card competency-workspace workspace-detail-surface" }, [
     el("header", { class: "competency-workspace-head" }, [
       el("div", { class: "competency-workspace-heading" }, [
@@ -4638,10 +4655,10 @@ function focusDetail({ area, index }, data, editable) {
     ].filter(Boolean)),
     workspaceNextStep({
       complete: planStatus.ready,
-      label: nextLabel,
-      helper: nextHelper,
-      actionLabel: missingStep?.[3] || (!activeActions.length ? "Legg til eksperiment" : "Følg opp eksperiment"),
-      onAction: nextHandler,
+      label: nextStep.label,
+      helper: nextStep.helper,
+      actionLabel: nextStep.actionLabel,
+      onAction: nextStep.onAction,
       editable
     }),
     workspacePlan({

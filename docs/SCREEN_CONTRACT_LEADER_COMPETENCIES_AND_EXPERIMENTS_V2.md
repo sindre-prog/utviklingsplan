@@ -22,12 +22,13 @@ Begrepene skal alltid vises med den konkrete objekttypen i nærheten: `Indre pro
 ## Skjermlogikk
 
 - Hovedfanen heter fortsatt `Utviklingsfokus`; modellen oppretter ingen ny hovednavigasjon.
-- Forløpets mål vises som et separat, unummerert utgangspunkt foran de tre arbeidstrinnene, med teksten `Utgangspunkt · Forløpets mål`. Den skal ikke se ut som et fjerde undertab, og åpner eksisterende Forløpet-flate.
+- Forløpets mål vises som et separat, unummerert utgangspunkt foran de tre arbeidstrinnene, med teksten `Utgangspunkt · Forløpets mål` og spørsmålet `Hva skal utviklingsløpet bidra til?`. Den skal ikke se ut som et fjerde undertab, og åpner eksisterende Forløpet-flate.
 - De tre arbeidstrinnene er én tablist i fast rekkefølge: Ytre prosjekt, Indre prosjekt og Prøv i praksis.
 - Hvert trinn viser ett beslutningsspørsmål, objekttypen og antall aktive objekter når antallet er større enn null.
 - På mobil stables Forløpets mål og arbeidstrinnene vertikalt uten horisontal rulling.
 - Klienten eier valg og prioritering av indre prosjekt. Coachen kan foreslå en lederkompetanse, men ikke aktivere den på klientens vegne.
 - Ytre prosjekter og eksperimenter bruker eksisterende redigerings- og tilgangsregler; denne modellen endrer ikke datakontrakten.
+- Når arbeidsplanen for et ytre prosjekt er komplett, leder neste steg til Indre prosjekt dersom ingen aktiv lederkompetanse er valgt. Først når et indre prosjekt finnes, leder flyten videre til et praksiseksperiment.
 
 Beslutningsspørsmålene er:
 
