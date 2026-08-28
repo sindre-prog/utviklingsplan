@@ -32,7 +32,7 @@ const RESOURCE_TYPE_OPTIONS = [
   ["guided_session", "Veiledet økt"]
 ];
 const RESOURCE_PHASE_OPTIONS = [
-  ["direction", "Retning"],
+  ["direction", "Forløpet"],
   ["focus", "Utviklingsfokus"],
   ["experiment", "Eksperiment"],
   ["observation", "Observasjon"],
@@ -129,7 +129,7 @@ const state = {
   resourceLibraryPromise: null,
   leadershipLibraryPromise: null,
   selectedCompetencyId: null,
-  focusView: "competencies",
+  focusView: "assignments",
   experimentView: "active",
   experimentFilter: "all",
   reflectionComposerOpen: false,
@@ -779,7 +779,7 @@ function renderClients() {
           el("div", {}, [
             el("p", { class: "eyebrow", text: "Utviklingsforløp" }),
             el("h2", { text: "Klientoversikt" }),
-            el("p", { class: "muted", text: "Åpne en klient for å se dokumentert retning, fokus, samtaler, refleksjoner og ressurser." })
+            el("p", { class: "muted", text: "Åpne en klient for å se mål og rammer for forløpet, utviklingsfokus, samtaler, refleksjoner og ressurser." })
           ]),
           el("span", { class: "ui-meta", text: `${visibleClients.length} totalt` })
         ]),
@@ -2874,7 +2874,7 @@ function clientWorkspaceTabs(data = {}, activePane = null) {
   const newResourceCount = clientResources.filter((item) => item.status === "assigned").length;
   const items = [
     hasNowTab && ["now", "Akkurat nå"],
-    ["direction", "Retning"],
+    ["direction", "Forløpet"],
     ["work", "Utviklingsfokus"],
     ["sessions", "Samtaler"],
     ["reflections", "Refleksjon"],
@@ -2958,22 +2958,22 @@ function directionWorkspace(client, plan) {
   const completed = directionSpecs.filter(directionSpecHasValue).length;
   const nextSpec = directionSpecs.find((spec) => !directionSpecHasValue(spec)) || null;
   const groups = [
-    ["Ønsket endring", "Hva skal bli annerledes?", directionSpecs.slice(0, 2)],
+    ["Mål for forløpet", "Hva skal bli annerledes?", directionSpecs.slice(0, 2)],
     ["Samarbeid", "Hva skal dere kunne forvente av hverandre?", directionSpecs.slice(2, 4)],
     ["Rammer", "Hva må være avklart rundt arbeidet?", directionSpecs.slice(4)]
   ];
   return el("section", { class: "platform-page ui-workspace direction-simple" }, [
-    pageIntro("Retning", "Hva skal bli annerledes gjennom forløpet?", "Beskriv ønsket endring, tegn på fremgang og rammene for samarbeidet."),
-    el("section", { class: "direction-overview", "aria-label": "Status for retningen" }, [
+    pageIntro("Forløpet", "Mål og rammer for utviklingsløpet", "Avklar hvorfor forløpet er viktig, hva som skal bli annerledes, tegn på fremgang og hvordan dere skal samarbeide."),
+    el("section", { class: "direction-overview", "aria-label": "Status for mål og rammer" }, [
       el("div", { class: "direction-progress-copy" }, [
-        el("strong", { text: nextSpec ? `${completed} av ${directionSpecs.length} avklaringer på plass` : "Retningen er klar til bruk" }),
+        el("strong", { text: nextSpec ? `${completed} av ${directionSpecs.length} avklaringer på plass` : "Mål og rammer er klare til bruk" }),
         el("span", { text: status.text })
       ]),
       editable ? el("button", {
         class: "ui-button ui-button-filled direction-next-action",
         type: "button",
-        text: nextSpec ? (status.tone === "ready" ? "Fullfør retningen" : status.action) : "Velg indre og ytre prosjekt",
-        onclick: () => nextSpec ? activateDirectionEdit(nextSpec) : activateWorkspacePane("work")
+        text: nextSpec ? status.action : "Velg ytre prosjekt",
+        onclick: () => nextSpec ? activateDirectionEdit(nextSpec) : openNowFocusAssignment(null)
       }) : null
     ].filter(Boolean)),
     el("section", { class: "direction-plan platform-surface" }, [
@@ -3141,7 +3141,7 @@ function directionStatus(plan) {
       tone: "missing",
       label: "Ikke utfylt ennå",
       text: "Start med hva du vil oppnå og hvordan du vil merke fremgang.",
-      action: "Sett retning"
+      action: "Sett mål"
     };
   }
   if (!plan.c_expect_client || !plan.c_expect_coach) {
@@ -3157,13 +3157,13 @@ function directionStatus(plan) {
       tone: "partial",
       label: "Nesten klar",
       text: "Avklar praktiske rammer, konfidensialitet og hvem som påvirker arbeidet.",
-      action: "Fullfør retningen"
+      action: "Fullfør rammene"
     };
   }
   return {
     tone: "ready",
-    label: "Retning avklart",
-    text: "Bruk retningen til å velge et indre prosjekt og et ytre prosjekt.",
+    label: "Mål og rammer avklart",
+    text: "Bruk forløpets mål til å velge et ytre prosjekt.",
     action: "Gå videre"
   };
 }
@@ -3264,26 +3264,26 @@ function workWorkspace(client, data, plan) {
 
 function focusHubWorkspace(data, plan, focusItems, editable) {
   const selectedItems = (data.programCompetencies || []).filter((item) => item.status === "active");
-  const activeView = ["competencies", "assignments", "experiments"].includes(state.focusView) ? state.focusView : "competencies";
+  const activeView = ["assignments", "competencies", "experiments"].includes(state.focusView) ? state.focusView : "assignments";
   return el("div", { class: "platform-page work-stack focus-hub" }, [
     focusHubIntro(editable, data, activeView === "competencies" ? selectedItems.length : activeView === "assignments" ? focusItems.length : data.actions.length, true),
-    el("section", { class: "focus-navigation-row", "aria-label": "Fra retning til praksis" }, [
-      el("button", { class: "development-model-origin", type: "button", "aria-label": "Åpne Retning: Hva skal bli annerledes?", onclick: () => activateWorkspacePane("direction") }, [
+    el("section", { class: "focus-navigation-row", "aria-label": "Fra forløpets mål til praksis" }, [
+      el("button", { class: "development-model-origin", type: "button", "aria-label": "Åpne Forløpet: Hva skal bli annerledes?", onclick: () => activateWorkspacePane("direction") }, [
         el("span", { class: "development-model-origin-icon", "aria-hidden": "true" }, [icon("compass")]),
         el("span", { class: "development-model-origin-copy" }, [
           el("small", { text: "Utgangspunkt" }),
-          el("strong", { text: "Retningen din" }),
+          el("strong", { text: "Forløpets mål" }),
           el("span", { class: "development-model-origin-question", text: "Hva skal bli annerledes?" })
         ]),
         icon("arrow-right")
       ]),
       focusViewTabs(activeView, data, focusItems)
     ]),
-    el("section", { class: `focus-hub-panel ${activeView === "competencies" ? "active" : ""}`, id: "focus-panel-competencies", role: "tabpanel", "aria-labelledby": "focus-tab-competencies", "aria-hidden": activeView === "competencies" ? "false" : "true" }, [
-      activeView === "competencies" ? leadershipWorkbench(data, editable) : null
-    ].filter(Boolean)),
     el("section", { class: `focus-hub-panel ${activeView === "assignments" ? "active" : ""}`, id: "focus-panel-assignments", role: "tabpanel", "aria-labelledby": "focus-tab-assignments", "aria-hidden": activeView === "assignments" ? "false" : "true" }, [
       activeView === "assignments" ? focusWorkbench(focusItems, data, editable) : null
+    ].filter(Boolean)),
+    el("section", { class: `focus-hub-panel ${activeView === "competencies" ? "active" : ""}`, id: "focus-panel-competencies", role: "tabpanel", "aria-labelledby": "focus-tab-competencies", "aria-hidden": activeView === "competencies" ? "false" : "true" }, [
+      activeView === "competencies" ? leadershipWorkbench(data, editable) : null
     ].filter(Boolean)),
     el("section", { class: `focus-hub-panel ${activeView === "experiments" ? "active" : ""}`, id: "focus-panel-experiments", role: "tabpanel", "aria-labelledby": "focus-tab-experiments", "aria-hidden": activeView === "experiments" ? "false" : "true" }, [
       activeView === "experiments" ? experimentHubWorkspace(data, editable) : null
@@ -3297,16 +3297,17 @@ function focusHubIntro(editable, data, itemCount = 0, hasCompetencies = true) {
   const action = competenciesActive && editable && itemCount
     ? addAction("Endre prioritering", () => openCompetencyChooser(data))
     : null;
-  return workspaceIntro("Utviklingsfokus", "Fra retning til praksis", "Koble det du vil utvikle i deg selv til et konkret prosjekt i arbeidshverdagen, og prøv noe i praksis.", [action].filter(Boolean));
+  return workspaceIntro("Utviklingsfokus", "Fra lederoppdrag til praksis", "Ta utgangspunkt i det du må lykkes med i lederjobben, velg hva du trenger å utvikle, og prøv noe konkret i praksis.", [action].filter(Boolean));
 }
 
 function focusViewTabs(activeView, data = {}, focusItems = []) {
   const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active").length;
+  const outerFocusItems = focusItems.filter((item) => item.area?.projectType === "outer");
   const activeExperiments = (data.actions || []).filter((action) => isExperimentActive(action.status)).length;
   const items = [
-    ["competencies", "Indre prosjekt", "Lederkompetanse", "Hva vil du utvikle i deg selv?", activeCompetencies],
-    ["assignments", "Ytre prosjekt", "Fokusoppdrag", "Hvor skal det skape en forskjell?", focusItems.length],
-    ["experiments", "Prøv i praksis", "Eksperiment", "Hva vil du gjøre annerledes?", activeExperiments]
+    ["assignments", "Ytre prosjekt", "Fokusoppdrag", "Hva er viktigst å lykkes med i jobben nå?", outerFocusItems.length],
+    ["competencies", "Indre prosjekt", "Lederkompetanse", "Hva må du utvikle for å lykkes bedre med det?", activeCompetencies],
+    ["experiments", "Prøv i praksis", "Eksperiment", "Hva vil du prøve i praksis?", activeExperiments]
   ];
   const activate = (value, { focus = false } = {}) => {
     state.focusView = value;
@@ -3342,7 +3343,7 @@ function focusViewTabs(activeView, data = {}, focusItems = []) {
     ]),
     count ? el("span", { class: "focus-model-count", "aria-label": `${count} aktive`, text: String(count) }) : null
   ].filter(Boolean)));
-  return el("div", { class: "focus-view-tabs", role: "tablist", "aria-label": "Indre prosjekt, ytre prosjekt og praksis" }, tabs);
+  return el("div", { class: "focus-view-tabs", role: "tablist", "aria-label": "Ytre prosjekt, indre prosjekt og praksis" }, tabs);
 }
 
 function leadershipWorkbench(data, editable) {
@@ -4087,8 +4088,8 @@ function activeLeadershipCompetencies(data) {
 function nowFocusAssignments(plan) {
   return (plan.areas || [])
     .map((area, index) => ({ area: normalizeArea(area), index }))
-    .filter((item) => hasAreaContent(item.area))
-    .sort((a, b) => Number(b.area.projectType === "outer") - Number(a.area.projectType === "outer") || a.index - b.index);
+    .filter((item) => hasAreaContent(item.area) && item.area.projectType === "outer")
+    .sort((a, b) => a.index - b.index);
 }
 
 function latestRelevantResource(data) {
@@ -4184,6 +4185,7 @@ function nowDirectionSummary(plan) {
 
 function nowActionItems({ data, plan, editable }) {
   const direction = nowDirectionSummary(plan);
+  const outerFocusItems = nowFocusAssignments(plan);
   const primary = primaryLeadershipCompetency(data);
   const activeActions = (data.actions || []).filter((action) => isExperimentActive(action.status));
   const datedAction = activeActions.find((action) => action.due_date && action.due_date <= localIsoDate() && hasNowActionContent(action));
@@ -4197,24 +4199,37 @@ function nowActionItems({ data, plan, editable }) {
     items.push(createNowAction({
       key: "direction",
       priority: 10,
-      kicker: "Retning",
-      title: direction.completed === 0 ? "Retning er ikke satt ennå" : "Retningen er delvis utfylt",
+      kicker: "Forløpet",
+      title: direction.completed === 0 ? "Mål og rammer er ikke avklart ennå" : "Mål og rammer er delvis utfylt",
       description: direction.completed === 0
-        ? "Legg inn retning når dere vil samle mål, forventninger og rammer her."
+        ? "Samle mål, forventninger og rammer for utviklingsløpet her."
         : `${direction.completed} av ${direction.total} deler er fylt ut.`,
       iconName: "target",
-      ctaLabel: "Åpne retning",
+      ctaLabel: "Åpne forløpet",
       onAction: () => activateWorkspacePane("direction")
     }));
   }
 
-  if (!primary) {
+  if (!outerFocusItems.length) {
+    items.push(createNowAction({
+      key: "focus-assignment",
+      priority: 20,
+      kicker: "Ytre prosjekt",
+      title: "Ytre prosjekt er ikke valgt",
+      description: "Velg det lederoppdraget eller den utfordringen det er viktigst å lykkes med i jobben nå.",
+      iconName: "briefcase-business",
+      ctaLabel: "Velg ytre prosjekt",
+      onAction: () => openNowFocusAssignment(null)
+    }));
+  }
+
+  if (outerFocusItems.length && !primary) {
     items.push(createNowAction({
       key: "competency",
-      priority: 20,
-      kicker: "Fokus",
-      title: "Hovedfokus er ikke valgt",
-      description: "Velg hovedfokus og to støttende lederkompetanser når dere vil samle forløpet rundt tydelige utviklingstemaer.",
+      priority: 25,
+      kicker: "Indre prosjekt",
+      title: "Indre prosjekt er ikke valgt",
+      description: "Velg lederkompetansen du trenger å utvikle for å lykkes bedre med det ytre prosjektet.",
       iconName: "compass",
       ctaLabel: "Velg lederkompetanse",
       onAction: () => openCompetencyChooser(data)
@@ -4294,9 +4309,9 @@ function nowActionItems({ data, plan, editable }) {
       priority: 100,
       kicker: "Oversikt",
       title: "Ingenting krever oppfølging nå",
-      description: "Bruk retning, fokus, samtaler og ressurser når de er nyttige i forløpet.",
+      description: "Bruk forløpet, utviklingsfokus, samtaler og ressurser når de er nyttige.",
       iconName: "file-text",
-      ctaLabel: "Start i retning",
+      ctaLabel: "Åpne forløpet",
       onAction: () => activateWorkspacePane("direction")
     }));
   }
@@ -4307,7 +4322,7 @@ function nowActionItems({ data, plan, editable }) {
       priority: 100,
       kicker: "Oversikt",
       title: "Ingenting krever oppfølging nå",
-      description: "Her vises retning, fokus, samtaler og ressurser når de er lagt inn.",
+      description: "Her vises forløpet, utviklingsfokus, samtaler og ressurser når de er lagt inn.",
       iconName: "file-text",
       ctaLabel: "",
       onAction: null
@@ -4342,9 +4357,9 @@ function clientOwnershipOrientation(direction, editable) {
     className: "client-ownership-orientation",
     kicker: "Start her",
     title: "Dette er ditt utviklingsløp",
-    text: "Portalen hjelper deg å samle det som er viktig i utviklingen din. Du trenger ikke fylle ut alt. Start med retningen og utviklingsfokuset, og bruk resten når det er nyttig.",
+    text: "Start med hva utviklingsløpet skal bidra til. Velg deretter det ytre prosjektet som er viktigst i lederjobben din nå.",
     iconName: "compass",
-    action: el("button", { class: "ui-button ui-button-filled", type: "button", text: "Sett retning", onclick: () => activateWorkspacePane("direction") })
+    action: el("button", { class: "ui-button ui-button-filled", type: "button", text: "Avklar mål og rammer", onclick: () => activateWorkspacePane("direction") })
   });
 }
 
@@ -4381,8 +4396,8 @@ function nowActionGrid(items = [], editable) {
 
 function nowProgressStrip({ primaryCompetency, focusItems, actions, sessions, resources }) {
   return el("section", { class: "now-progress-strip", "aria-label": "Status i utviklingsforløpet" }, [
-    nowProgressMetric("Indre prosjekt", primaryCompetency?.title || "Ikke valgt", "compass", () => primaryCompetency ? openNowCompetency(primaryCompetency) : activateWorkspacePane("work")),
-    nowProgressMetric("Ytre prosjekt", focusItems[0]?.area?.title || "Ikke valgt", "briefcase-business", () => activateWorkspacePane("work")),
+    nowProgressMetric("Ytre prosjekt", focusItems[0]?.area?.title || "Ikke valgt", "briefcase-business", () => openNowFocusAssignment(focusItems[0] || null)),
+    nowProgressMetric("Indre prosjekt", primaryCompetency?.title || "Ikke valgt", "compass", () => openNowCompetency(primaryCompetency)),
     nowProgressMetric("Samtaler", String(sessions.length || 0), "messages-square", () => activateWorkspacePane("sessions")),
     nowProgressMetric("Ressurser", String(resources.length || 0), "book-open", () => activateWorkspacePane("resources")),
     nowProgressMetric("Arbeidsnotater", String(actions.length || 0), "file-text", () => {
@@ -4408,10 +4423,10 @@ function nowEmptyState(editable) {
     el("div", { class: "now-primary-copy" }, [
       el("span", { class: "workspace-kicker", text: "Oversikt" }),
       el("h3", { id: "now-empty-title", text: "Planen er tom foreløpig" }),
-      el("p", { text: "Fyll ut retning, fokus eller samtalenotater når det gir verdi i forløpet." }),
+      el("p", { text: "Fyll ut mål og rammer, utviklingsfokus eller samtalenotater når det gir verdi i forløpet." }),
       el("small", { text: "Portalen kan brukes som enkel dokumentasjon. Det er ikke meningen at alt skal fylles ut." })
     ]),
-    editable ? el("button", { class: "ui-button ui-button-filled now-primary-cta", type: "button", text: "Start i retning", onclick: () => activateWorkspacePane("direction") }) : null
+    editable ? el("button", { class: "ui-button ui-button-filled now-primary-cta", type: "button", text: "Åpne forløpet", onclick: () => activateWorkspacePane("direction") }) : null
   ].filter(Boolean));
 }
 

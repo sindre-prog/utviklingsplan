@@ -1,4 +1,6 @@
-# Screen Contract: Retning V2
+# Historical Screen Contract: Retning V2
+
+> Status: superseded terminology and sequence. The active UI calls this surface `Forløpet`, with the page title `Mål og rammer for utviklingsløpet`. It defines the coaching program's goal, working agreement, and frame. The leader's operative direction belongs to `Ytre prosjekt · Fokusoppdrag`, followed by `Indre prosjekt · Lederkompetanse`. Internal `direction` identifiers remain for data compatibility. Use `IMPLEMENTATION_GUARDRAILS.md` and `SCREEN_CONTRACT_LEADER_COMPETENCIES_AND_EXPERIMENTS_V2.md` as the current product contract.
 
 ## Status
 

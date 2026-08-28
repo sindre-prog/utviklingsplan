@@ -7,7 +7,7 @@ Dette dokumentet definerer minste nødvendige pilotpakke for å kunne vise og pr
 Portalen er pilotklar for en kontrollert V1-pilot når den brukes som:
 
 - en felles dokumentasjonsflate for leder og coach
-- en struktur for retning, utviklingsfokus, samtaler, refleksjoner og delte ressurser
+- en struktur for mål og rammer for forløpet, utviklingsfokus, samtaler, refleksjoner og delte ressurser
 - en rolig støtte mellom samtaler, ikke et aktivitetskrav
 
 Portalen skal ikke selges som et selvstendig læringssystem, LMS, oppgaveplattform eller komplett coach-CRM i V1.
@@ -18,7 +18,7 @@ Beste første pilot:
 
 - coacher som allerede jobber tett med lederutviklingsforløp
 - klienter som har 3-6 samtaler eller mer
-- forløp der dokumentasjon, retning og oppfølging er viktigere enn høy aktivitet mellom samtalene
+- forløp der dokumentasjon, tydelige mål og oppfølging er viktigere enn høy aktivitet mellom samtalene
 - coacher som tåler at produktet fortsatt er smalt og kuratert
 
 Ikke riktig første pilot:
@@ -35,7 +35,7 @@ Portalen gjør det lettere å holde oversikt over hva som er avtalt, dokumentert
 
 For leder:
 
-Portalen gir ett sted å finne retning, utviklingsfokus, samtaler, egne refleksjoner og relevante ressurser fra coach.
+Portalen gir ett sted å finne mål og rammer for forløpet, utviklingsfokus, samtaler, egne refleksjoner og relevante ressurser fra coach.
 
 Viktig framing:
 
@@ -46,14 +46,14 @@ Lederen trenger ikke bruke portalen aktivt hele tiden. Det er nok at portalen fu
 Før samtale:
 
 1. Åpne klienten.
-2. Se `Aktuelt` for siste dokumenterte aktivitet.
-3. Sjekk retning og utviklingsfokus hvis samtalen trenger kontekst.
+2. Se `Akkurat nå` for det som er mest relevant i forløpet.
+3. Sjekk forløpets mål og utviklingsfokus hvis samtalen trenger kontekst.
 4. Åpne relevante samtalenotater eller ressurser ved behov.
 
 Under eller rett etter samtale:
 
 1. Dokumenter samtalen kort.
-2. Juster retning eller utviklingsfokus bare hvis noe faktisk har endret seg.
+2. Juster mål, rammer eller utviklingsfokus bare hvis noe faktisk har endret seg.
 3. Del en ressurs hvis den støtter det klienten står i nå.
 4. Ikke legg inn aktivitet bare for å fylle portalen.
 
@@ -83,16 +83,17 @@ Demo-fortelling:
    - Vis at coachen ser nylig aktivitet og kan åpne en klient raskt.
 
 2. Åpne Peder.
-   - Vis `Aktuelt` som enkel oversikt over det som er relevant nå.
+   - Vis `Akkurat nå` som enkel oversikt over det som er relevant nå.
    - Poeng: coachen trenger ikke lete i alle faner først.
 
-3. Gå til `Retning`.
-   - Vis at forløpet kan ha en overordnet ramme.
+3. Gå til `Forløpet`.
+   - Vis at forløpet har tydelige mål, forventninger og rammer.
    - Ikke selg dette som et stort strategidokument.
 
 4. Gå til `Utviklingsfokus`.
-   - Forklar indre og ytre utviklingslinje.
-   - Poeng: lederkompetanser gir retning, fokusoppdrag gjør utviklingen konkret.
+   - Start med ytre prosjekt: lederoppdraget eller utfordringen det er viktigst å lykkes med nå.
+   - Vis deretter indre prosjekt: lederkompetansen som må utvikles for å lykkes bedre med det ytre prosjektet.
+   - Poeng: konteksten skaper utviklingsbehovet, og eksperimenter omsetter det til praksis.
 
 5. Gå til `Samtaler`.
    - Vis at samtalen kan dokumenteres kort.
@@ -102,7 +103,7 @@ Demo-fortelling:
    - Vis at coachen kan dele relevante ressurser med kontekst.
    - Poeng: ressursene er kuratert støtte, ikke et bibliotek klienten må jobbe seg gjennom.
 
-7. Avslutt tilbake på `Aktuelt`.
+7. Avslutt tilbake på `Akkurat nå`.
    - Vis hvordan hele forløpet samles i en enkel nå-status.
 
 Demo-budskap:
@@ -116,13 +117,13 @@ Kjør denne manuelt i production før en ekstern pilot:
 1. Coach kan logge inn.
 2. Coach kan åpne klientoversikt.
 3. Coach kan åpne Peder.
-4. `Aktuelt` viser relevant innhold uten tekniske feilmeldinger eller rådata.
-5. `Retning` åpner og viser eksisterende data.
-6. `Utviklingsfokus` åpner og viser lederkompetanser/fokusoppdrag.
+4. `Akkurat nå` viser relevant innhold uten tekniske feilmeldinger eller rådata.
+5. `Forløpet` åpner og viser eksisterende mål, forventninger og rammer.
+6. `Utviklingsfokus` åpner med Ytre prosjekt før Indre prosjekt og viser eksisterende data.
 7. `Samtaler` åpner og eksisterende samtalenotater vises.
 8. `Ressurser` viser Peder sine delte ressurser.
-9. Karen viser sine delte ressurser i coachflate.
-10. Klientvisning åpner og viser klientens egne data uten coach-only administrasjonstekst.
+9. Klientvisning for Peder åpner og viser klientens egne data uten coach-only administrasjonstekst.
+10. Ingen smoke- eller testhandlinger gjennomføres på aktive, reelle klienter. Karen er en reell klient og skal ikke brukes til test.
 
 Dette er en pilot-smoke, ikke full QA.
 
@@ -140,7 +141,7 @@ No-go hvis:
 
 - data ser borte ut eller inkonsistent ut
 - copy skaper feil forventning om at klienten skal dokumentere alt
-- coach ikke forstår hva `Aktuelt`, `Retning`, `Utviklingsfokus`, `Samtaler`, `Refleksjon` og `Ressurser` hver gjør
+- coach ikke forstår hva `Akkurat nå`, `Forløpet`, `Utviklingsfokus`, `Samtaler`, `Refleksjon` og `Ressurser` hver gjør
 - ressursdeling eller samtaledokumentasjon feiler
 
 ## Første Pilotoppsett
@@ -169,6 +170,6 @@ Ikke mål for pilot:
 
 ## Anbefalt Neste Steg
 
-Kjør pilot-smoke i production med Peder og Karen.
+Kjør pilot-smoke i production med Peder. Karen og andre aktive, reelle klienter skal ikke brukes til test.
 
 Hvis den passerer, bruk Peder-demoen i en intern salgsgjennomgang med en coach. Etter den gjennomgangen bør neste produktbeslutning være om portalen er klar for 1-2 eksterne pilotforløp, eller om én tydelig friksjon må fjernes først.

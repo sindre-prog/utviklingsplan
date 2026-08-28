@@ -4,9 +4,9 @@ Status: godkjent produktretning for isolert implementasjon. Denne kontrakten pre
 
 ## Begrepsgrense
 
-- Retning beskriver hva som skal bli annerledes gjennom forløpet. Den er utgangspunktet, ikke et fjerde utviklingsobjekt.
-- Indre prosjekt er klientens utvikling i egen lederatferd, konkretisert som en lederkompetanse.
-- Ytre prosjekt er arenaen der utviklingen skal gjøre en forskjell, konkretisert som et Fokusoppdrag.
+- Forløpet beskriver mål, forventninger og rammer for coachingsamarbeidet. Det er utgangspunktet, ikke et fjerde utviklingsobjekt.
+- Ytre prosjekt er lederoppdraget eller utfordringen det er viktigst å lykkes med i den aktuelle jobbkonteksten, konkretisert som et Fokusoppdrag.
+- Indre prosjekt er lederkompetansen klienten må utvikle for å bli bedre i stand til å levere på det ytre prosjektet.
 - Prøv i praksis er broen mellom indre og ytre prosjekt, konkretisert som et eksperiment.
 - Kompetanse er en indre utviklingslinse.
 - Fokusoppdrag er et ytre prosjekt, en leveranse eller en kontekstuell utfordring.
@@ -15,19 +15,25 @@ Status: godkjent produktretning for isolert implementasjon. Denne kontrakten pre
 
 Den synlige modellen i klientens utviklingsflate er:
 
-`Retning -> Indre prosjekt -> Ytre prosjekt -> Prøv i praksis`
+`Forløpet -> Ytre prosjekt -> Indre prosjekt -> Prøv i praksis`
 
 Begrepene skal alltid vises med den konkrete objekttypen i nærheten: `Indre prosjekt · Lederkompetanse`, `Ytre prosjekt · Fokusoppdrag` og `Prøv i praksis · Eksperiment`. Klienten skal ikke måtte utlede forholdet mellom to parallelle begrepssett.
 
 ## Skjermlogikk
 
 - Hovedfanen heter fortsatt `Utviklingsfokus`; modellen oppretter ingen ny hovednavigasjon.
-- Retning vises som et separat, unummerert utgangspunkt foran de tre arbeidstrinnene, med teksten `Utgangspunkt · Retningen din`. Den skal ikke se ut som et fjerde undertab, og åpner eksisterende Retning-flate.
-- De tre arbeidstrinnene er én tablist i fast rekkefølge: Indre prosjekt, Ytre prosjekt og Prøv i praksis.
+- Forløpets mål vises som et separat, unummerert utgangspunkt foran de tre arbeidstrinnene, med teksten `Utgangspunkt · Forløpets mål`. Den skal ikke se ut som et fjerde undertab, og åpner eksisterende Forløpet-flate.
+- De tre arbeidstrinnene er én tablist i fast rekkefølge: Ytre prosjekt, Indre prosjekt og Prøv i praksis.
 - Hvert trinn viser ett beslutningsspørsmål, objekttypen og antall aktive objekter når antallet er større enn null.
-- På mobil stables Retning og arbeidstrinnene vertikalt uten horisontal rulling.
+- På mobil stables Forløpets mål og arbeidstrinnene vertikalt uten horisontal rulling.
 - Klienten eier valg og prioritering av indre prosjekt. Coachen kan foreslå en lederkompetanse, men ikke aktivere den på klientens vegne.
 - Ytre prosjekter og eksperimenter bruker eksisterende redigerings- og tilgangsregler; denne modellen endrer ikke datakontrakten.
+
+Beslutningsspørsmålene er:
+
+- Ytre prosjekt: `Hva er viktigst å lykkes med i jobben nå?`
+- Indre prosjekt: `Hva må du utvikle for å lykkes bedre med det?`
+- Prøv i praksis: `Hva vil du prøve i praksis?`
 
 ## Aktiv kompetansemodell
 

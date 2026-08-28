@@ -8,19 +8,21 @@ The portal is a coaching and leadership development workspace, not a generic dev
 
 The visible development model is:
 
-`Retning -> Indre prosjekt -> Ytre prosjekt -> Prøv i praksis`
+`Forløpet (mål og rammer) -> Ytre prosjekt -> Indre prosjekt -> Prøv i praksis`
 
 The complete learning loop is:
 
-`Retning -> Indre prosjekt -> Ytre prosjekt -> Praksiseksperiment -> Observasjon -> Samtale -> Refleksjon -> Justering`
+`Forløpet -> Ytre prosjekt -> Indre prosjekt -> Praksiseksperiment -> Observasjon -> Samtale -> Refleksjon -> Justering`
 
 The main navigation remains:
 
-`Akkurat nå -> Retning -> Utviklingsfokus -> Samtaler -> Refleksjon -> Ressurser`
+`Akkurat nå -> Forløpet -> Utviklingsfokus -> Samtaler -> Refleksjon -> Ressurser`
 
 `Praksiseksperiment` is the engine inside the flow, not a fifth top-level tab.
 
-In UI copy, `Indre prosjekt` must be paired with `Lederkompetanse`, and `Ytre prosjekt` must be paired with `Fokusoppdrag`, until the relationship is self-evident from context. Do not reintroduce leader competencies and focus assignments as unexplained parallel concepts.
+`Forløpet` is the coaching program's goal, working agreement, and frame. It is not the leader's operative direction. `Ytre prosjekt` is the work-facing leadership assignment that matters most now. `Indre prosjekt` is the leadership competence the client develops to improve their ability to deliver on that assignment.
+
+In UI copy, `Ytre prosjekt` must be paired with `Fokusoppdrag`, and `Indre prosjekt` must be paired with `Lederkompetanse`, until the relationship is self-evident from context. Do not reverse the sequence or reintroduce leader competencies and focus assignments as unexplained parallel concepts.
 
 ## Enforcement Rules
 
@@ -31,7 +33,7 @@ In UI copy, `Indre prosjekt` must be paired with `Lederkompetanse`, and `Ytre pr
    A V2 surface must remove the old render path for that surface. Old UI must not be hidden, styled around, or kept as fallback unless there is an explicit temporary feature flag and a deletion date.
 
 3. One module at a time.
-   Finish and audit each module before starting the next. Do not redesign Retning, Fokusomrader, Samtaler, and Refleksjon in one pass.
+   Finish and audit each module before starting the next. Do not redesign Forløpet, Utviklingsfokus, Samtaler, and Refleksjon in one pass.
 
 4. Data contract before screen.
    Each object must have one source of truth for status, ownership, relations, deletion, and visibility before UI is built around it.
@@ -77,7 +79,7 @@ All inline editing must handle unsaved changes explicitly:
 
 Use for:
 
-- Retning fields
+- Forløpet fields
 - Focus area fields
 - Active practice summaries
 - Conversation notes
