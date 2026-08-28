@@ -713,6 +713,27 @@ tr:last-child td { border-bottom: 0; }
   display: grid;
   gap: 10px;
 }
+.resource-card-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 2px 2px;
+  color: var(--platform-muted);
+}
+.resource-card-group-head:first-child {
+  padding-top: 2px;
+}
+.resource-card-group-head strong {
+  color: var(--platform-ink);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+.resource-card-group-head span {
+  font-size: 11px;
+  font-weight: 700;
+}
 .resource-card {
   width: 100%;
   display: grid;

@@ -31,14 +31,6 @@ const RESOURCE_TYPE_OPTIONS = [
   ["template", "Mal"],
   ["guided_session", "Veiledet økt"]
 ];
-const RESOURCE_FORMAT_OPTIONS = [
-  ["native", "Native"],
-  ["pdf", "PDF"],
-  ["audio", "Lyd"],
-  ["video", "Video"],
-  ["link", "Lenke"],
-  ["mixed", "Blandet"]
-];
 const RESOURCE_PHASE_OPTIONS = [
   ["direction", "Retning"],
   ["focus", "Utviklingsfokus"],
@@ -72,7 +64,7 @@ const RESOURCE_FILE_TYPE_OPTIONS = [
   ["video", "Video"]
 ];
 const RESOURCE_BLOCK_TYPE_LABELS = {
-  intro: "Intro",
+  intro: "Innledning i innholdet",
   text: "Tekst",
   callout: "Fremhevet tekst",
   model_cards: "Kort/modell",
@@ -91,19 +83,13 @@ const RESOURCE_BLOCK_TYPE_DESCRIPTIONS = {
   quote: "Sitat eller nøkkelsetning med valgfri kilde.",
   illustration: "Viser en opplastet illustrasjon i ressursen.",
   download: "Legger inn PDF eller vedlegg der blokken står.",
-  intro: "Kort innledning i starten av ressursen."
+  intro: "Kort innledning til selve faginnholdet, etter ressursens introduksjon."
 };
 const RESOURCE_BLOCK_ADD_TYPES = ["text", "reflection_questions", "worksheet", "model_cards", "callout", "quote", "illustration", "download", "intro"];
 const RESOURCE_CALLOUT_TONES = [
   ["note", "Nøytral"],
   ["coach", "Coach-kommentar"],
   ["attention", "Viktig"]
-];
-const RESOURCE_DIFFICULTY_OPTIONS = [
-  ["", "Ikke satt"],
-  ["easy", "Enkel"],
-  ["medium", "Middels"],
-  ["advanced", "Avansert"]
 ];
 const RESOURCE_CONTEXT_OPTIONS = [
   ["program", "Forløp"],
@@ -1018,7 +1004,7 @@ async function renderResourceAdminSection(slot) {
     return;
   }
 
-  const search = el("input", { class: "search", placeholder: "Søk ressurs, type eller tag" });
+  const search = el("input", { class: "search", placeholder: "Søk ressurs, område eller type" });
   const tableSlot = el("div", { class: "resource-admin-list" });
   const statusFilter = filterMenu([
     { value: "all", label: "Alle statuser" },
@@ -1034,11 +1020,12 @@ async function renderResourceAdminSection(slot) {
       const haystack = [
         resource.title,
         resource.slug,
-        resource.summary,
+        resource.introduction,
         resource.type,
         resource.phase,
         resource.status,
-        ...(resource.tags || [])
+        resource.development_area_label,
+        ...(resource.topic_tags || [])
       ].filter(Boolean).join(" ").toLowerCase();
       return matchesStatus && (!query || haystack.includes(query));
     });
@@ -1051,11 +1038,11 @@ async function renderResourceAdminSection(slot) {
           el("span", { class: "resource-admin-row-icon" }, [icon(resource.type === "worksheet" ? "clipboard-list" : "book-open")]),
           el("span", { class: "resource-admin-row-copy" }, [
             el("span", { class: "resource-admin-row-title", text: resource.title || "Uten tittel" }),
-            el("span", { class: "resource-admin-row-summary", text: resource.summary || "Kort beskrivelse mangler." }),
+            el("span", { class: "resource-admin-row-summary", text: resource.introduction || "Kort introduksjon mangler." }),
             el("span", { class: "resource-admin-row-meta" }, [
               el("span", { class: `resource-status-pill status-${resource.status || "draft"}`, text: statusLabel }),
               el("span", { text: resourceLabel(RESOURCE_TYPE_OPTIONS, resource.type) }),
-              el("span", { text: resourceLabel(RESOURCE_PHASE_OPTIONS, resource.phase) })
+              el("span", { text: resource.development_area_label || "Ikke kategorisert" })
             ])
           ]),
           el("span", { class: `resource-readiness-compact ${missing ? "is-missing" : "is-ready"}` }, [
@@ -1627,12 +1614,12 @@ function hasPublishableContent(payload, files = []) {
 }
 
 function validateResourceForPublish(payload, files = []) {
+  const library = getResourceLibrary();
   const missing = [];
   if (!payload.title) missing.push("tittel");
-  if (!payload.summary) missing.push("kort beskrivelse");
+  if (!library?.resourceIntroduction?.(payload)) missing.push("kort introduksjon");
   if (!payload.type) missing.push("type");
   if (!payload.phase) missing.push("fase");
-  if (!payload.client_intro) missing.push("intro til klient");
   if (!hasPublishableContent(payload, files)) missing.push("minst én innholdsblokk, fil eller illustrasjon");
   if (missing.length) {
     throw new Error(`Mangler: ${missing.join(", ")}.`);
@@ -1640,20 +1627,20 @@ function validateResourceForPublish(payload, files = []) {
 }
 
 function resourceReadinessItems(payload) {
+  const library = getResourceLibrary();
   const files = payload.files || [];
   const items = [
     ["minimum", "Tittel", Boolean(payload.title)],
     ["minimum", "Type", Boolean(payload.type)],
     ["minimum", "Fase", Boolean(payload.phase)],
-    ["minimum", "Kort beskrivelse", Boolean(payload.summary)],
-    ["minimum", "Intro til klient", Boolean(payload.client_intro)],
+    ["minimum", "Kort introduksjon", Boolean(library?.resourceIntroduction?.(payload))],
     ["minimum", "Innhold, fil eller illustrasjon", hasPublishableContent(payload, files)],
+    ["recommended", "Utviklingsområde", Boolean(library?.resourceDevelopmentArea?.(payload))],
     ["recommended", "Hva ressursen skal hjelpe med", Boolean(payload.intended_outcome)],
     ["recommended", "Best brukt når", Array.isArray(payload.best_used_when) && payload.best_used_when.length > 0],
     ["recommended", "Ikke egnet når", Array.isArray(payload.not_for) && payload.not_for.length > 0],
     ["recommended", "Veiledning til coach", Boolean(payload.coach_guidance)],
     ["recommended", "Forslag til sendemelding", Boolean(payload.suggested_coach_note)],
-    ["recommended", "Tags", Array.isArray(payload.tags) && payload.tags.length > 0],
     ["quality", "Faglig vurdering", payload.review_status && payload.review_status !== "draft"],
     ["quality", "Faglig grunnlag", Boolean(payload.basis)]
   ];
@@ -1713,8 +1700,10 @@ function createResourceReadinessPanel(getDraftResource) {
 
 function parseResourceAdminPayload(values, currentResource = null, options = {}) {
   const { validatePublished = true } = options;
-  const title = values.title.trim();
-  const slug = (values.slug.trim() || resourceSlug(title));
+  const library = getResourceLibrary();
+  const valueText = (key) => String(values?.[key] ?? "").trim();
+  const title = valueText("title");
+  const slug = valueText("slug") || resourceSlug(title);
   if (!title) throw new Error("Tittel må fylles ut.");
   if (!slug) throw new Error("Slug må fylles ut.");
 
@@ -1724,35 +1713,41 @@ function parseResourceAdminPayload(values, currentResource = null, options = {})
   }
 
   const status = values.status || currentResource?.status || "draft";
+  const introduction = String(values.short_intro ?? library?.resourceIntroduction?.(currentResource) ?? "").trim();
+  const developmentArea = values.development_area || library?.resourceDevelopmentArea?.(currentResource) || "";
+  const reviewStatus = values.review_status || currentResource?.review_status || "approved_for_pilot";
+  const reviewCompleted = ["approved_for_pilot", "reviewed"].includes(reviewStatus);
+  const reviewChanged = reviewCompleted && reviewStatus !== currentResource?.review_status;
+  const reviewer = state.profile?.name || state.user?.email || "";
 
   const payload = {
     title,
     slug,
-    summary: values.summary.trim(),
+    summary: introduction,
     type: values.type || "framework",
     format: values.format || "native",
     phase: values.phase || "reflection",
     visibility: values.visibility || "client_assignable",
     status,
     archived_at: status === "archived" ? (currentResource?.archived_at || new Date().toISOString()) : null,
-    review_status: values.review_status || "approved_for_pilot",
-    language: values.language.trim() || "no",
+    review_status: reviewStatus,
+    language: currentResource?.language || "no",
     estimated_duration: estimatedDuration,
-    difficulty: values.difficulty || null,
-    intended_outcome: values.intended_outcome.trim() || null,
+    difficulty: currentResource?.difficulty || null,
+    intended_outcome: valueText("intended_outcome") || null,
     best_used_when: textLines(values.best_used_when),
     not_for: textLines(values.not_for),
-    coach_guidance: values.coach_guidance.trim() || null,
-    client_intro: values.client_intro.trim() || null,
-    suggested_coach_note: values.suggested_coach_note.trim() || null,
+    coach_guidance: valueText("coach_guidance") || null,
+    client_intro: introduction || null,
+    suggested_coach_note: valueText("suggested_coach_note") || null,
     default_context_types: Array.isArray(values.default_context_types) ? values.default_context_types : textLines(values.default_context_types),
     content_json: parseJsonArray(values.content_json, "Content JSON"),
-    reflection_prompts: textLines(values.reflection_prompts || ""),
-    next_step_prompt: values.next_step_prompt.trim() || null,
-    basis: values.basis.trim() || null,
-    reviewed_by: values.reviewed_by.trim() || null,
-    last_reviewed_at: values.last_reviewed_at || null,
-    tags: textLines(values.tags)
+    reflection_prompts: currentResource?.reflection_prompts || [],
+    next_step_prompt: valueText("next_step_prompt") || null,
+    basis: valueText("basis") || null,
+    reviewed_by: reviewChanged ? reviewer : currentResource?.reviewed_by || null,
+    last_reviewed_at: reviewChanged ? new Date().toISOString().slice(0, 10) : currentResource?.last_reviewed_at || null,
+    tags: library?.withResourceDevelopmentArea?.(currentResource?.tags || [], developmentArea) || currentResource?.tags || []
   };
   if (validatePublished && payload.status === "published") validateResourceForPublish(payload, currentResource?.files || []);
   return payload;
@@ -1773,7 +1768,7 @@ async function openResourceAdminEditor(resource = null) {
     const values = form ? collectSpecValues(specs, form) : {
       title: resource?.title || "Ny ressurs",
       slug: resource?.slug || "ny-ressurs",
-      summary: resource?.summary || "Ikke fylt ut ennå.",
+      short_intro: library.resourceIntroduction(resource) || "Ikke fylt ut ennå.",
       content_json: jsonText(resource?.content_json || [])
     };
     return {
@@ -1803,20 +1798,28 @@ async function openResourceAdminEditor(resource = null) {
 
   let blockEditor = null;
   const refreshBlocks = () => blockEditor?.refresh?.();
-  blockEditor = createResourceBlockEditor(resource?.content_json || [], {
+  const editorBlocks = [...(resource?.content_json || [])];
+  const legacyReflectionPrompts = resource?.reflection_prompts || [];
+  if (legacyReflectionPrompts.length && !editorBlocks.some((block) => block?.type === "reflection_questions")) {
+    editorBlocks.push({
+      type: "reflection_questions",
+      heading: "Refleksjonsspørsmål",
+      questions: legacyReflectionPrompts
+    });
+  }
+  blockEditor = createResourceBlockEditor(editorBlocks, {
     getFiles: () => resource?.files || [],
     onChange: () => {}
   });
 
   const fieldNames = [
-    "title", "summary", "slug", "content_json", "next_step_prompt", "reflection_prompts",
-    "intended_outcome", "best_used_when", "not_for", "coach_guidance", "client_intro",
-    "suggested_coach_note", "type", "format", "phase", "estimated_duration", "difficulty",
-    "default_context_types", "status", "visibility", "review_status", "language", "basis",
-    "reviewed_by", "last_reviewed_at", "tags"
+    "title", "short_intro", "slug", "content_json", "next_step_prompt",
+    "intended_outcome", "best_used_when", "not_for", "coach_guidance",
+    "suggested_coach_note", "development_area", "type", "format", "phase", "estimated_duration",
+    "default_context_types", "status", "visibility", "review_status", "basis"
   ];
   const editorSection = (title, text, fields, options = {}) => {
-    const body = el("div", { class: "resource-editor-section-body" }, fields.map((field) => field instanceof Node ? field : renderSpec(field)));
+    const body = el("div", { class: "resource-editor-section-body" }, fields.filter(Boolean).map((field) => field instanceof Node ? field : renderSpec(field)));
     if (options.collapsible) {
       return el("details", { class: "resource-editor-section resource-editor-section--details", open: options.open }, [
         el("summary", {}, [
@@ -1835,10 +1838,19 @@ async function openResourceAdminEditor(resource = null) {
     createResourceReadinessPanel(getDraftResource),
     editorSection("Start her", "Gi ressursen en tydelig tittel, inngang og anbefalt neste steg.", [
       inputSpec("title", "Tittel", "text", resource?.title || ""),
-      textareaSpec("summary", "Kort beskrivelse", resource?.summary || "", { rows: "2", placeholder: "Én kort setning som gjør ressursen lett å velge." }),
-      textareaSpec("client_intro", "Introduksjon til klient", resource?.client_intro || "", { rows: "3", placeholder: "Hvorfor er dette relevant, og hvordan bør ressursen brukes?" }),
-      textareaSpec("next_step_prompt", "Anbefalt neste steg", resource?.next_step_prompt || "", { rows: "2", placeholder: "Hva bør klienten gjøre etter å ha lest?" }),
-      textareaSpec("reflection_prompts", "Refleksjonsspørsmål", (resource?.reflection_prompts || []).join("\n"), { rows: "3", placeholder: "Ett spørsmål per linje" })
+      textareaSpec("short_intro", "Kort introduksjon", library.resourceIntroduction(resource), { rows: "3", placeholder: "Hva er ressursen, og hvorfor er den relevant? Vises i biblioteket og øverst i ressursen." }),
+      textareaSpec("next_step_prompt", "Anbefalt neste steg", resource?.next_step_prompt || "", { rows: "2", placeholder: "Hva kan klienten gjøre etter å ha brukt ressursen?" })
+    ]),
+    editorSection("Faglig plassering", "Gjør ressursen enkel å finne og vurdere i biblioteket.", [
+      el("div", { class: "resource-editor-field-grid" }, [
+        renderSpec(selectSpec("development_area", "Utviklingsområde", [
+          ["", "Velg utviklingsområde"],
+          ...library.RESOURCE_DEVELOPMENT_AREA_OPTIONS
+        ], library.resourceDevelopmentArea(resource))),
+        renderSpec(selectSpec("type", "Ressurstype", RESOURCE_TYPE_OPTIONS, resource?.type || "framework")),
+        renderSpec(inputSpec("estimated_duration", "Tidsbruk i minutter", "number", resource?.estimated_duration || "", { min: "1" })),
+        renderSpec(selectSpec("phase", "Brukes typisk i", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection"))
+      ])
     ]),
     editorSection("Innhold", "Bygg opp leseflyten med korte, tydelige innholdsblokker.", [
       customSpec("content_json", blockEditor),
@@ -1849,27 +1861,21 @@ async function openResourceAdminEditor(resource = null) {
       textareaSpec("best_used_when", "Best brukt når", (resource?.best_used_when || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" }),
       textareaSpec("not_for", "Ikke egnet når", (resource?.not_for || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" }),
       textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" }),
-      textareaSpec("suggested_coach_note", "Forslag til sendemelding", resource?.suggested_coach_note || "", { rows: "3", placeholder: "Coachen kan redigere teksten før sending." })
+      textareaSpec("suggested_coach_note", "Forslag til sendemelding", resource?.suggested_coach_note || "", { rows: "3", placeholder: "Coachen kan redigere teksten før sending." }),
+      checkboxGroupSpec("default_context_types", "Kan knyttes til", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"])
     ], { collapsible: true, open: true }),
-    editorSection("Avansert: metadata og publisering", "Brukes til filtrering, kvalitetssikring og synlighet.", [
+    editorSection("Publisering og kvalitet", "Styr synlighet og dokumenter faglig kvalitetssikring.", [
       el("div", { class: "resource-editor-field-grid" }, [
-        renderSpec(selectSpec("type", "Type", RESOURCE_TYPE_OPTIONS, resource?.type || "framework")),
-        renderSpec(selectSpec("phase", "Fase", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection")),
         renderSpec(selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "draft")),
         renderSpec(selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable")),
-        renderSpec(inputSpec("estimated_duration", "Varighet i minutter", "number", resource?.estimated_duration || "", { min: "1" })),
-        renderSpec(selectSpec("difficulty", "Vanskelighetsgrad", RESOURCE_DIFFICULTY_OPTIONS, resource?.difficulty || ""))
+        renderSpec(selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft"))
       ]),
-      checkboxGroupSpec("default_context_types", "Kan knyttes til", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"]),
-      textareaSpec("tags", "Tags", (resource?.tags || []).join(", "), { rows: "2" }),
-      el("div", { class: "resource-editor-field-grid" }, [
-        renderSpec(selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft")),
-        renderSpec(inputSpec("reviewed_by", "Vurdert av", "text", resource?.reviewed_by || "")),
-        renderSpec(inputSpec("last_reviewed_at", "Sist vurdert", "date", resource?.last_reviewed_at || "")),
-        renderSpec(inputSpec("language", "Språk", "text", resource?.language || "no"))
-      ]),
+      resource?.reviewed_by || resource?.last_reviewed_at ? el("p", {
+        class: "resource-admin-inline-help",
+        text: `Sist vurdert${resource?.reviewed_by ? ` av ${resource.reviewed_by}` : ""}${resource?.last_reviewed_at ? ` ${formatDate(resource.last_reviewed_at)}` : ""}. Oppdateres automatisk når faglig vurdering godkjennes.`
+      }) : null,
       textareaSpec("basis", "Faglig grunnlag", resource?.basis || "", { rows: "3" }),
-      inputSpec("slug", "Slug", "text", resource?.slug || "", { placeholder: "Genereres automatisk fra tittelen" }),
+      el("input", { type: "hidden", name: "slug", value: resource?.slug || "" }),
       el("input", { type: "hidden", name: "format", value: resource?.format || "native" })
     ], { collapsible: true }),
     duplicateAction
@@ -1987,7 +1993,7 @@ async function renderResources() {
     state.selectedResourceSlug = resources[0]?.slug || null;
   }
 
-  const search = el("input", { class: "search", placeholder: "Søk etter tema, ressurs eller tag" });
+  const search = el("input", { class: "search", placeholder: "Søk etter tema eller ressurs" });
   const listSlot = el("div", { class: "resource-list" });
   const previewSlot = el("div", { class: "resource-preview-slot resource-workspace-v2" });
   const mobilePicker = el("select", {
@@ -1999,14 +2005,11 @@ async function renderResources() {
     }
   });
 
-  const phaseFilter = filterMenu([
-    { value: "all", label: "Alle faser" },
-    { value: "direction", label: "Retning" },
-    { value: "focus", label: "Fokus" },
-    { value: "experiment", label: "Eksperiment" },
-    { value: "session", label: "Samtale" },
-    { value: "reflection", label: "Refleksjon" }
-  ], "all", "Filtrer på fase", () => render());
+  const developmentAreaFilter = filterMenu([
+    { value: "all", label: "Alle utviklingsområder" },
+    ...library.RESOURCE_DEVELOPMENT_AREA_OPTIONS.map(([value, label]) => ({ value, label })),
+    { value: "uncategorized", label: "Ikke kategorisert" }
+  ], "all", "Filtrer på utviklingsområde", () => render());
 
   const typeFilter = filterMenu([
     { value: "all", label: "Alle typer" },
@@ -2024,25 +2027,32 @@ async function renderResources() {
   const render = () => {
     const filtered = filterResourceList(resources, {
       query: search.value,
-      phase: phaseFilter.value,
+      developmentArea: developmentAreaFilter.value,
       type: typeFilter.value
     });
     if (!filtered.some((resource) => resource.slug === state.selectedResourceSlug)) {
       state.selectedResourceSlug = filtered[0]?.slug || resources[0]?.slug || null;
     }
-    const selected = resources.find((resource) => resource.slug === state.selectedResourceSlug) || filtered[0] || null;
+    const selected = filtered.find((resource) => resource.slug === state.selectedResourceSlug) || filtered[0] || null;
     mobilePicker.replaceChildren(...filtered.map((resource) => el("option", {
       value: resource.slug,
       text: resource.title,
       selected: selected?.slug === resource.slug
     })));
+    const groupedResources = library.groupResourcesByDevelopmentArea(filtered);
     listSlot.replaceChildren(
       filtered.length
-        ? el("div", { class: "resource-card-list" }, filtered.map((resource) => library.createResourceCard(resource, {
-          createElement: el,
-          selected: selected?.slug === resource.slug,
-          onSelect: selectResource
-        })))
+        ? el("div", { class: "resource-card-list" }, groupedResources.flatMap((group) => [
+          el("div", { class: "resource-card-group-head" }, [
+            el("strong", { text: group.label }),
+            el("span", { text: String(group.resources.length) })
+          ]),
+          ...group.resources.map((resource) => library.createResourceCard(resource, {
+            createElement: el,
+            selected: selected?.slug === resource.slug,
+            onSelect: selectResource
+          }))
+        ]))
         : el("section", { class: "panel empty-state resource-empty" }, [
           el("p", { class: "eyebrow", text: "Søk" }),
           el("h3", { text: "Ingen ressurser funnet" }),
@@ -2085,7 +2095,7 @@ async function renderResources() {
       ])
     ]),
     el("div", { class: "main-control-bar" }, [
-      el("div", { class: "filter-row resource-filter-row" }, [search, phaseFilter, typeFilter, mobilePicker])
+      el("div", { class: "filter-row resource-filter-row" }, [search, developmentAreaFilter, typeFilter, mobilePicker])
     ]),
     el("div", { class: "resource-library-grid" }, [
       el("aside", { class: "resource-library-list-panel" }, [listSlot]),
@@ -2104,7 +2114,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-114")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-152")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -2152,6 +2162,7 @@ function canShareResources() {
 
 function openSendResourceDrawer(resource) {
   if (!resource || !canShareResources()) return;
+  const library = getResourceLibrary();
   const clients = getVisibleClients().filter((client) => canShareResourceToClient(client));
   if (!clients.length) {
     showAppMessage("Ingen klienter å sende til", "Du har ingen klienter med åpne forløp som kan motta ressurser ennå.", { kicker: "Ressurser" });
@@ -2163,7 +2174,7 @@ function openSendResourceDrawer(resource) {
     el("div", {}, [
       el("span", { class: "eyebrow", text: "Ressursen klienten mottar" }),
       el("strong", { text: resource.title }),
-      el("p", { text: resource.client_intro || resource.summary || "" })
+      el("p", { text: library?.resourceIntroduction?.(resource) || "" })
     ])
   ]);
   openEntityDrawer(`Del ressurs`, "Fagbibliotek", [
@@ -2424,13 +2435,14 @@ function filterResourceList(resources, filters) {
   return resources.filter((resource) => {
     const matchesQuery = !query || [
       resource.title,
-      resource.summary,
+      resource.introduction,
       resource.intended_outcome,
-      ...(resource.tags || [])
+      ...(resource.topic_tags || [])
     ].filter(Boolean).join(" ").toLowerCase().includes(query);
-    const matchesPhase = filters.phase === "all" || resource.phase === filters.phase;
+    const resourceArea = resource.development_area || "uncategorized";
+    const matchesDevelopmentArea = filters.developmentArea === "all" || resourceArea === filters.developmentArea;
     const matchesType = filters.type === "all" || resource.type === filters.type;
-    return matchesQuery && matchesPhase && matchesType;
+    return matchesQuery && matchesDevelopmentArea && matchesType;
   });
 }
 
@@ -5120,10 +5132,10 @@ function resourcesFromCoachSection(data, canWriteReflection) {
     const query = String(state.sharedResourceQuery || "").trim().toLocaleLowerCase("nb-NO");
     const visibleResources = sharedResources.filter((item) => !query || [
       item.resource?.title,
-      item.resource?.summary,
+      item.resource?.introduction,
       item.resource?.type,
       item.coach_note,
-      ...(item.resource?.tags || [])
+      ...(item.resource?.topic_tags || [])
     ].filter(Boolean).join(" ").toLocaleLowerCase("nb-NO").includes(query));
     const compactLayout = window.matchMedia?.("(max-width: 700px)")?.matches;
     let selected = visibleResources.find((item) => item.id === state.selectedSharedResourceId) || null;

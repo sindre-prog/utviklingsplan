@@ -1,32 +1,60 @@
-# Resource Library Frontend Module
+# Ressursmodulen
 
-Batch 1A establishes the resource library as a bounded frontend module for the current static app.
+Dette er den avgrensede frontendmodulen for ressursbibliotek, ressursvisning, deling og ressursfiler.
 
-## Import Pattern
+## Importmønster
 
-`index.html` imports `resources.api.js` from the existing `<script type="module">` block and exposes it on:
+`index.html` importerer `resources.api.js` fra den eksisterende `<script type="module">`-blokken og eksponerer den på:
 
 ```js
 window.RaederResourceLibrary
 ```
 
-This keeps `app.js` as a classic deferred script for now, while giving future resource UI work a clean module boundary.
+`app.js` er fortsatt en klassisk deferred scriptfil. Ressurslogikk skal likevel ligge i denne modulen og eksponeres gjennom `resources.api.js`.
 
-## Boundary
+## Grense
 
-`app.js` may call the public API for routing, init and orchestration.
+`app.js` kan bruke det offentlige API-et for routing, initiering og orkestrering.
 
-Resource-specific code should stay in this folder:
+Ressursspesifikk logikk skal ligge her:
 
 - constants
 - queries
 - mutations
 - content block rendering
 - resource components
+- taksonomi og kompatibilitetsnormalisering
 - seed helpers
 
-Do not add resource business logic directly to `app.js`.
+Ikke legg ny ressursforretningslogikk direkte i `app.js`.
 
-## Current State
+## Produktkontrakter
 
-These modules are intentionally minimal. Database reads and writes are stubs until the Batch 1B/1C migrations and seed data exist.
+### Kort introduksjon
+
+Editor viser ett felt: `Kort introduksjon`.
+
+- Ved lesing brukes `client_intro`, deretter `summary` som fallback.
+- I biblioteket avkortes teksten visuelt.
+- I ressursvisningen brukes teksten som ingress.
+- Ved lagring fra editor skrives samme verdi til både `summary` og `client_intro`.
+
+De to databasefeltene beholdes foreløpig for kompatibilitet. Ikke introduser dem som to separate editorfelt igjen.
+
+### Refleksjonsspørsmål
+
+Nye refleksjonsspørsmål redigeres som `reflection_questions` i `content_json`. Det eldre toppnivåfeltet `reflection_prompts` bevares i databasen, men vises ikke som et parallelt editorfelt. Når en eldre ressurs uten spørsmålsblokk åpnes i editoren, legges de eksisterende spørsmålene inn som en blokk i utkastet.
+
+### Utviklingsområde
+
+Ressursen kan ha ett primært utviklingsområde fra lederkompetansenes etablerte områdestruktur. Området lagres som `area:<key>` i `resource_tags`.
+
+- Bruk kontrollert valg i UI, aldri fritekst for området.
+- Bevar eksisterende emneknagger når området endres.
+- Ukategoriserte ressurser skal fortsatt være synlige.
+
+Den autoritative produktbeskrivelsen ligger i `docs/RESOURCE_LIBRARY_CONTRACT.md`.
+
+### Editorgrense
+
+Den daglige editoren skal prioritere tittel, kort introduksjon, utviklingsområde, type, tidsbruk og faginnhold. `slug`, `format`, språk og eldre vanskelighetsgrad er kompatibilitetsdata og skal ikke gjeninnføres som ordinære brukerfelt uten en ny produktbeslutning. Status, synlighet og faglig vurdering hører hjemme under `Publisering og kvalitet`.

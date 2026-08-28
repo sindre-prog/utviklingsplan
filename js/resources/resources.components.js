@@ -1,4 +1,5 @@
 import { renderResourceContentBlocks } from "./resources.renderer.js?v=polish-108";
+import { resourceIntroduction } from "./resources.model.js?v=polish-152";
 
 const TYPE_LABELS = Object.freeze({
   article: "Artikkel",
@@ -37,14 +38,6 @@ function displayText(value, fallback = "") {
   const text = String(value ?? "").trim();
   if (!text || text.toLowerCase() === "null" || text.toLowerCase() === "undefined") return fallback;
   return text;
-}
-
-function firstVisibleText(...values) {
-  for (const value of values) {
-    const text = displayText(value);
-    if (text) return text;
-  }
-  return "";
 }
 
 function metaPills(createElement, resource) {
@@ -141,7 +134,7 @@ export function createResourceCard(resource, options = {}) {
   }, [
     createElement("span", { class: "resource-card__meta" }, metaPills(createElement, resource)),
     createElement("strong", { class: "resource-card__title", text: displayText(resource.title, "Ressurs") }),
-    createElement("span", { class: "resource-card__summary", text: displayText(resource.summary) })
+    createElement("span", { class: "resource-card__summary", text: resourceIntroduction(resource) })
   ]);
 }
 
@@ -164,7 +157,7 @@ export function createResourcePreview(resource, options = {}) {
       createElement("div", { class: "resource-preview-title client-resource-view-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs" }),
         createElement("h3", { text: displayText(resource.title, "Ressurs") }),
-        ...paragraphs(createElement, "resource-preview-lead client-resource-view-lead", firstVisibleText(resource.client_intro, resource.summary)),
+        ...paragraphs(createElement, "resource-preview-lead client-resource-view-lead", resourceIntroduction(resource)),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource)),
         primaryAction || secondaryAction ? createElement("div", { class: "resource-preview-actions" }, [
           primaryAction ? createElement("button", {
@@ -282,7 +275,7 @@ export function createClientResourceList(sharedResources = [], options = {}) {
         createElement("span", { class: "client-resource-main" }, [
           createElement("span", { class: "client-resource-meta" }, metaPills(createElement, resource)),
           createElement("strong", { text: displayText(resource.title, "Ressurs") }),
-          createElement("span", { class: "client-resource-summary", text: displayText(resource.summary || resource.client_intro, "") }),
+          createElement("span", { class: "client-resource-summary", text: resourceIntroduction(resource) }),
           createElement("span", { class: "client-resource-footer" }, [
             contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null,
             createSharedResourceStatus(sharedResource.status, { createElement, assignedLabel })
@@ -302,12 +295,12 @@ export function createClientResourceView(sharedResource, options = {}) {
   requireCreateElement(createElement);
 
   const resource = sharedResource?.resource || {};
+  const introduction = resourceIntroduction(resource);
   const files = visibleResourceFiles(resource);
   const showLegacyReflectionPrompts = !contentHasBlock(resource, "reflection_questions") && (resource.reflection_prompts || []).length;
   const coachNote = displayText(sharedResource?.coach_note);
   const showCoachNote = Boolean(coachNote) &&
-    !sameVisibleText(coachNote, resource.client_intro) &&
-    !sameVisibleText(coachNote, resource.summary);
+    !sameVisibleText(coachNote, introduction);
   const privateResponse = readOnly && sharedResource?.client_note_is_private;
   const clientNoteText = displayText(sharedResource?.client_note);
   const hasClientNote = Boolean(clientNoteText);
@@ -346,7 +339,7 @@ export function createClientResourceView(sharedResource, options = {}) {
       createElement("div", { class: "client-resource-view-title" }, [
         createElement("p", { class: "eyebrow", text: "Ressurs fra coach" }),
         createElement("h3", { text: displayText(resource.title, "Ressurs") }),
-        ...paragraphs(createElement, "client-resource-view-lead", resource.client_intro, displayText(resource.summary)),
+        ...paragraphs(createElement, "client-resource-view-lead", introduction),
         createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
       ].filter(Boolean))
     ]),

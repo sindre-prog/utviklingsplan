@@ -2,6 +2,19 @@
 
 Dette dokumentet definerer ressursbiblioteket som produktkontrakt. Det er ikke en implementeringsplan og ikke appkode.
 
+## Autoritative produktbeslutninger
+
+Disse beslutningene gjelder foran eldre eksempler i dokumentet:
+
+- Editor skal ha ett synlig tekstfelt, `Kort introduksjon`, for ressursens korte presentasjon.
+- Den samme introduksjonen brukes avkortet i biblioteket og fullt øverst i ressursvisningen.
+- Databasen beholder foreløpig både `summary` og `client_intro` av kompatibilitetshensyn. Ved lesing brukes `client_intro` først og `summary` som fallback. Ved lagring fra editor synkroniseres samme verdi til begge feltene.
+- Ressurser plasseres primært i ett av de etablerte utviklingsområdene for lederkompetanser. Dette er navigasjon og filtrering, ikke en påstand om at ressursen bare er relevant for ett fagtema.
+- Utviklingsområdet lagres som en kontrollert `area:<key>`-verdi i eksisterende `resource_tags`. Fritekst-tags skal ikke være et nødvendig editorvalg.
+- Eksisterende emneknagger bevares som søkeord. De skal ikke overskrives når utviklingsområdet endres.
+
+Denne kompatibilitetsløsningen unngår både nytt schema og en destruktiv masseendring av eksisterende ressurser.
+
 ## Produktbeslutning
 
 Ressursbiblioteket skal være et coachingverktøy, ikke en filbank.
@@ -699,7 +712,7 @@ Navnet på ressursen.
 Stabil teknisk identifikator.
 
 `summary`:
-Kort beskrivelse for kort, søk og preview.
+Kompatibilitetsfelt for ressursens korte introduksjon. Editor viser ikke dette som et eget felt. Se `Kort introduksjon` under autoritative produktbeslutninger.
 
 `type`:
 Hva ressursen er faglig, for eksempel `template`, `exercise`, `reflection`, `framework`, `worksheet`, `article`, `audio`, `video`, `guided_session` eller `assessment`.
@@ -711,7 +724,7 @@ Hvordan ressursen leveres, for eksempel `native`, `pdf`, `audio`, `video`, `exte
 Anbefalt faglig plassering i coachingløpet.
 
 `tags`:
-Flate søke- og filtreringstags.
+Søkeord og kontrollerte systemverdier. Utviklingsområdet lagres som nøyaktig én `area:<key>`-verdi. Brukeren skal velge området med et navngitt felt, ikke skrive systemtaggen manuelt.
 
 `estimated_duration`:
 Estimert tidsbruk for klient.
@@ -741,7 +754,7 @@ Når ressursen ikke bør brukes, eller når coach bør velge noe annet.
 Kort faglig veiledning til coach.
 
 `client_intro`:
-Rolig forklaring til klienten om hvorfor ressursen finnes og hvordan den kan brukes.
+Primær lagringskilde for `Kort introduksjon`. Teksten vises avkortet i biblioteket og fullt i ressursvisningen. `summary` brukes som fallback for eldre data, og editor synkroniserer begge feltene ved lagring.
 
 `suggested_coach_note`:
 Forslag coach kan bruke eller tilpasse når ressursen sendes.
