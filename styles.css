@@ -12420,6 +12420,11 @@ details.coaching-frame > .coaching-frame-body > article p {
   gap: 8px;
 }
 
+.leadership-track-list .leadership-add-competency {
+  width: auto;
+  margin: 12px;
+}
+
 .plan-status-chip {
   flex: 0 0 auto;
   display: inline-flex;
@@ -14723,7 +14728,7 @@ details.coaching-frame > .coaching-frame-body > article p {
   min-width: 0;
   min-height: 94px;
   display: grid;
-  grid-template-columns: 38px minmax(240px, 1fr) minmax(140px, 220px) auto;
+  grid-template-columns: 38px minmax(240px, 1fr) auto;
   gap: 16px;
   align-items: center;
   padding: 16px 24px;
@@ -14809,21 +14814,36 @@ details.coaching-frame > .coaching-frame-body > article p {
   line-height: 1.45;
 }
 
-.now-setup-status {
+.now-setup-selection {
   min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 7px;
+  margin-top: 3px;
+}
+
+.now-setup-selection small {
   color: var(--platform-muted);
+  font-size: var(--type-meta);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.now-setup-selection small::after {
+  content: ":";
+}
+
+.now-setup-selection strong {
+  min-width: 0;
+  color: var(--platform-body);
   font-size: var(--type-support);
   font-weight: 700;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
 
-.now-setup-row.is-complete .now-setup-status {
-  color: var(--status-success);
-}
-
-.now-setup-row.is-blocked .now-setup-copy,
-.now-setup-row.is-blocked .now-setup-status {
+.now-setup-row.is-blocked .now-setup-copy {
   opacity: .72;
 }
 
@@ -15143,7 +15163,6 @@ details.coaching-frame > .coaching-frame-body > article p {
     height: 32px;
   }
 
-  .now-setup-status,
   .now-setup-action {
     grid-column: 2;
   }

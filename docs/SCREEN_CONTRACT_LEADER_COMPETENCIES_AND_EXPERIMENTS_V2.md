@@ -6,7 +6,7 @@ Status: godkjent produktretning for isolert implementasjon. Denne kontrakten pre
 
 - Forløpet beskriver mål, forventninger og rammer for coachingsamarbeidet. Det er utgangspunktet, ikke et fjerde utviklingsobjekt.
 - Ytre prosjekt er lederoppdraget eller utfordringen det er viktigst å lykkes med i den aktuelle jobbkonteksten, konkretisert som et Fokusoppdrag.
-- Indre prosjekt er lederkompetansen klienten må utvikle for å bli bedre i stand til å levere på det ytre prosjektet.
+- Indre prosjekt er utviklingssporet der klienten velger lederkompetansene som skal styrke evnen til å levere på det ytre prosjektet.
 - Prøv i praksis er broen mellom indre og ytre prosjekt, konkretisert som et eksperiment.
 - Kompetanse er en indre utviklingslinse.
 - Fokusoppdrag er et ytre prosjekt, en leveranse eller en kontekstuell utfordring.
@@ -17,7 +17,7 @@ Den synlige modellen i klientens utviklingsflate er:
 
 `Forløpet -> Ytre prosjekt -> Indre prosjekt -> Prøv i praksis`
 
-Begrepene skal alltid vises med den konkrete objekttypen i nærheten: `Indre prosjekt · Lederkompetanse`, `Ytre prosjekt · Fokusoppdrag` og `Prøv i praksis · Eksperiment`. Klienten skal ikke måtte utlede forholdet mellom to parallelle begrepssett.
+Begrepene skal alltid vises med den konkrete objekttypen i nærheten: `Indre prosjekt · Lederkompetanser`, `Ytre prosjekt · Fokusoppdrag` og `Prøv i praksis · Eksperiment`. På detaljnivå for én konkret kompetanse brukes entall. Klienten skal ikke måtte utlede forholdet mellom to parallelle begrepssett.
 
 ## Skjermlogikk
 
@@ -38,8 +38,9 @@ Beslutningsspørsmålene er:
 
 ## Aktiv kompetansemodell
 
-- Klienten kan ha ett `Hovedfokus` (`priority = 1`).
-- Klienten kan ha inntil to `Støttende kompetanser` (`priority = 2/3`).
+- Klienten kan ha inntil tre aktive lederkompetanser.
+- Én kompetanse er `Prioritert nå` (`priority = 1`).
+- Andre aktive kompetanser vises som `Aktiv` (`priority = 2/3`), ikke som støttekompetanser.
 - En coach kan opprette `Foreslått av coach` (`status = suggested`, `priority = 0`).
 - Forslaget blir ikke aktivt før klienten velger det.
 - Kompetansespor arkiveres; eksperiment- og læringshistorikk slettes ikke når sporet tas ut av aktiv plan.
@@ -62,7 +63,7 @@ Mobil:
 
 ## Kompetansearbeidsflate
 
-Masterlisten viser én rad som `Hovedfokus` og inntil to som `Støttende kompetanse`. Planstatus uttrykkes med ord, aldri prosent.
+Masterlisten viser inntil tre aktive lederkompetanser. Én rad kan merkes `Prioritert nå`; øvrige rader merkes `Aktiv`. Når klienten har færre enn tre aktive, avsluttes listen med `Legg til lederkompetanse`. Ved tre aktive viser listehodet `3 av 3 aktive`, og klienten kan arkivere en kompetanse før en ny legges til. Coachen får handlingen `Foreslå lederkompetanse`, ikke en handling som antyder at coachen kan endre klientens prioritering. Planstatus uttrykkes med ord, aldri prosent.
 
 Detaljflaten består av:
 

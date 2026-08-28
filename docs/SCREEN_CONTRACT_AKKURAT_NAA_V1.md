@@ -12,11 +12,13 @@ Seksjonen `Sett grunnlaget for forløpet` vises når minst én av disse mangler:
 
 1. `Forløpet · Mål og rammer`
 2. `Ytre prosjekt · Fokusoppdrag`
-3. `Indre prosjekt · Lederkompetanse`
+3. `Indre prosjekt · Lederkompetanser`
 
-Hver rad viser beslutningsspørsmål, faktisk status og en handling når rollen har tilgang. Første uløste steg får tydeligst handling. Ytre prosjekt kan åpnes før alle mål og rammer er ferdige; indre prosjekt blir handlingsbart når et ytre prosjekt finnes.
+Hver rad viser beslutningsspørsmål, faktisk status eller et tydelig merket valg og en handling når rollen har tilgang. Valgte verdier vises i kopifeltet som `Valgt fokusoppdrag: ...` og `Valgte lederkompetanser: ...`; de skal ikke stå som løs tekst i en egen statuskolonne. Første uløste steg får tydeligst handling. Ytre prosjekt kan åpnes før alle mål og rammer er ferdige; indre prosjekt blir handlingsbart når et ytre prosjekt finnes.
 
-`Forløpet` og `Utviklingsfokus` vises med samme typografiske behandling som to toppnivåer. `Mål og rammer` ligger under Forløpet; ytre og indre prosjekt ligger under Utviklingsfokus. Objekttypene `Fokusoppdrag` og `Lederkompetanse` er nøytral metadata, ikke fargekodede kategorier.
+Den tekniske opprettelsestittelen `Nytt fokusoppdrag` er ikke et reelt valg. Et slikt utkast vises som `Ikke ferdigstilt`, teller ikke som valgt og åpnes igjen når klienten fortsetter arbeidet. Fokusoppdraget må få et faktisk navn før det inngår som valgt i oversikten.
+
+`Forløpet` og `Utviklingsfokus` vises med samme typografiske behandling som to toppnivåer. `Mål og rammer` ligger under Forløpet; ytre og indre prosjekt ligger under Utviklingsfokus. Objekttypene `Fokusoppdrag` og `Lederkompetanser` er nøytral metadata, ikke fargekodede kategorier.
 
 Farge uttrykker bare tilstand: korall markerer anbefalt neste steg, grønt markerer avklart, nøytral behandling markerer tilgjengelig og grå behandling markerer ikke tilgjengelig ennå. Dekorative fargemarkører skal ikke brukes til å forklare hierarkiet.
 
@@ -44,6 +46,8 @@ Samtaler, ressurser, refleksjoner og andre samtalerelevante elementer kan fortsa
 - Alle manglende deler er synlige samtidig uten å fremstå som tre likeverdige oppgaver.
 - Første uløste steg er visuelt prioritert.
 - Indre prosjekt forklarer avhengigheten til ytre prosjekt.
+- Et tomt fokusoppdragsutkast kan ikke markere ytre prosjekt som valgt.
+- Valgte fokusoppdrag og lederkompetanser har en språklig etikett som forklarer verdien.
 - Ytre og indre prosjekt har en tydelig, felles tilhørighet til Utviklingsfokus.
 - Forløpet og Utviklingsfokus har samme toppnivå i teksthierarkiet.
 - Klienten eier aktivering av lederkompetansen.

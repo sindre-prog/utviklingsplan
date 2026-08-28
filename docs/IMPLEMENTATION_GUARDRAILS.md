@@ -20,9 +20,11 @@ The main navigation remains:
 
 `Praksiseksperiment` is the engine inside the flow, not a fifth top-level tab.
 
-`Forløpet` is the coaching program's goal, working agreement, and frame. It is not the leader's operative direction. `Ytre prosjekt` is the work-facing leadership assignment that matters most now. `Indre prosjekt` is the leadership competence the client develops to improve their ability to deliver on that assignment.
+`Forløpet` is the coaching program's goal, working agreement, and frame. It is not the leader's operative direction. `Ytre prosjekt` is the work-facing leadership assignment that matters most now. `Indre prosjekt` is the development track containing the leadership competencies the client develops to improve their ability to deliver on that assignment.
 
-In UI copy, `Ytre prosjekt` must be paired with `Fokusoppdrag`, and `Indre prosjekt` must be paired with `Lederkompetanse`, until the relationship is self-evident from context. Do not reverse the sequence or reintroduce leader competencies and focus assignments as unexplained parallel concepts.
+In section-level UI copy, `Ytre prosjekt` must be paired with `Fokusoppdrag`, and `Indre prosjekt` must be paired with `Lederkompetanser`, until the relationship is self-evident from context. Singular `Lederkompetanse` is retained for one selected competency or one detail view. Do not reverse the sequence or reintroduce leader competencies and focus assignments as unexplained parallel concepts.
+
+The client may have up to three active leadership competencies. One is `Prioritert nå`; the others are simply `Aktiv`. Do not reintroduce `Støttende kompetanse` in visible copy. Keep the existing priority values for compatibility, and let the client own activation and reprioritization.
 
 The next-step flow must preserve the same sequence. A completed `Ytre prosjekt` routes to `Indre prosjekt` when no active leadership competence exists; only after an inner project exists may the flow route to a practice experiment.
 
