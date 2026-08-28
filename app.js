@@ -3268,11 +3268,12 @@ function focusHubWorkspace(data, plan, focusItems, editable) {
   return el("div", { class: "platform-page work-stack focus-hub" }, [
     focusHubIntro(editable, data, activeView === "competencies" ? selectedItems.length : activeView === "assignments" ? focusItems.length : data.actions.length, true),
     el("section", { class: "focus-navigation-row", "aria-label": "Fra retning til praksis" }, [
-      el("button", { class: "development-model-origin", type: "button", onclick: () => activateWorkspacePane("direction") }, [
+      el("button", { class: "development-model-origin", type: "button", "aria-label": "Åpne Retning: Hva skal bli annerledes?", onclick: () => activateWorkspacePane("direction") }, [
         el("span", { class: "development-model-origin-icon", "aria-hidden": "true" }, [icon("compass")]),
         el("span", { class: "development-model-origin-copy" }, [
-          el("small", { text: "Retning" }),
-          el("strong", { text: "Hva skal bli annerledes?" })
+          el("small", { text: "Utgangspunkt" }),
+          el("strong", { text: "Retningen din" }),
+          el("span", { class: "development-model-origin-question", text: "Hva skal bli annerledes?" })
         ]),
         icon("arrow-right")
       ]),

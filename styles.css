@@ -13468,13 +13468,9 @@ details.coaching-frame > .coaching-frame-body > article p {
 /* Focus model: retning, inner project, outer project and practice. */
 .focus-hub .focus-navigation-row {
   display: grid;
-  grid-template-columns: minmax(190px, .72fr) minmax(0, 2.28fr);
+  grid-template-columns: minmax(190px, .62fr) minmax(0, 2.38fr);
   align-items: stretch;
-  gap: 0;
-  overflow: hidden;
-  border: 1px solid var(--platform-line);
-  border-radius: 8px;
-  background: var(--platform-paper);
+  gap: 12px;
 }
 
 .development-model-origin {
@@ -13483,10 +13479,9 @@ details.coaching-frame > .coaching-frame-body > article p {
   grid-template-columns: 34px minmax(0, 1fr) 18px;
   gap: 12px;
   align-items: center;
-  padding: 18px;
-  border: 0;
-  border-right: 1px solid var(--platform-line);
-  border-radius: 0;
+  padding: 16px;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
   background: #f8f6f2;
   color: var(--platform-ink);
   font: inherit;
@@ -13539,15 +13534,22 @@ details.coaching-frame > .coaching-frame-body > article p {
   line-height: 1.35;
 }
 
+.development-model-origin-question {
+  color: var(--platform-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .focus-hub .focus-view-tabs {
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
   padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  overflow: hidden;
+  border: 1px solid var(--platform-line);
+  border-radius: 8px;
+  background: var(--platform-paper);
 }
 
 .focus-hub .focus-view-tab {
@@ -13744,11 +13746,6 @@ details.coaching-frame > .coaching-frame-body > article p {
 @media (max-width: 760px) {
   .focus-hub .focus-navigation-row {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .development-model-origin {
-    border-right: 0;
-    border-bottom: 1px solid var(--platform-line);
   }
 
   .focus-detail-card .focus-assignment-plan .workspace-plan-step,

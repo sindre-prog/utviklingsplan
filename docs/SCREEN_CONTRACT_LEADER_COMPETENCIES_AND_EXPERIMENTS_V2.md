@@ -22,7 +22,7 @@ Begrepene skal alltid vises med den konkrete objekttypen i nærheten: `Indre pro
 ## Skjermlogikk
 
 - Hovedfanen heter fortsatt `Utviklingsfokus`; modellen oppretter ingen ny hovednavigasjon.
-- Retning vises som en rolig inngang foran de tre arbeidstrinnene, og åpner eksisterende Retning-flate.
+- Retning vises som et separat, unummerert utgangspunkt foran de tre arbeidstrinnene, med teksten `Utgangspunkt · Retningen din`. Den skal ikke se ut som et fjerde undertab, og åpner eksisterende Retning-flate.
 - De tre arbeidstrinnene er én tablist i fast rekkefølge: Indre prosjekt, Ytre prosjekt og Prøv i praksis.
 - Hvert trinn viser ett beslutningsspørsmål, objekttypen og antall aktive objekter når antallet er større enn null.
 - På mobil stables Retning og arbeidstrinnene vertikalt uten horisontal rulling.
