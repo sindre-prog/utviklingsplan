@@ -2,8 +2,13 @@ import { LEADERSHIP_COMPETENCY_CATEGORIES } from "../leadership/leadership.const
 
 export const RESOURCE_DEVELOPMENT_AREA_TAG_PREFIX = "area:";
 
+export const RESOURCE_DEVELOPMENT_AREA_LABELS = Object.freeze({
+  development_process: "Utviklingsløpet",
+  ...LEADERSHIP_COMPETENCY_CATEGORIES
+});
+
 export const RESOURCE_DEVELOPMENT_AREA_OPTIONS = Object.freeze(
-  Object.entries(LEADERSHIP_COMPETENCY_CATEGORIES)
+  Object.entries(RESOURCE_DEVELOPMENT_AREA_LABELS)
 );
 
 function cleanText(value) {
@@ -30,12 +35,12 @@ export function resourceDevelopmentArea(resourceOrTags = []) {
     String(value || "").startsWith(RESOURCE_DEVELOPMENT_AREA_TAG_PREFIX)
   ));
   const key = String(tag || "").slice(RESOURCE_DEVELOPMENT_AREA_TAG_PREFIX.length);
-  return Object.hasOwn(LEADERSHIP_COMPETENCY_CATEGORIES, key) ? key : "";
+  return Object.hasOwn(RESOURCE_DEVELOPMENT_AREA_LABELS, key) ? key : "";
 }
 
 export function resourceDevelopmentAreaLabel(resourceOrTags = []) {
   const key = resourceDevelopmentArea(resourceOrTags);
-  return key ? LEADERSHIP_COMPETENCY_CATEGORIES[key] : "Ikke kategorisert";
+  return key ? RESOURCE_DEVELOPMENT_AREA_LABELS[key] : "Ikke kategorisert";
 }
 
 export function resourceTopicTags(resourceOrTags = []) {
@@ -46,7 +51,7 @@ export function resourceTopicTags(resourceOrTags = []) {
 
 export function withResourceDevelopmentArea(tags = [], area = "") {
   const topicTags = resourceTopicTags(tags);
-  if (!Object.hasOwn(LEADERSHIP_COMPETENCY_CATEGORIES, area)) return topicTags;
+  if (!Object.hasOwn(RESOURCE_DEVELOPMENT_AREA_LABELS, area)) return topicTags;
   return [...topicTags, `${RESOURCE_DEVELOPMENT_AREA_TAG_PREFIX}${area}`];
 }
 

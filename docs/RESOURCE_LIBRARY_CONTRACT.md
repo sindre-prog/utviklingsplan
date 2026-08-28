@@ -9,7 +9,8 @@ Disse beslutningene gjelder foran eldre eksempler i dokumentet:
 - Editor skal ha ett synlig tekstfelt, `Kort introduksjon`, for ressursens korte presentasjon.
 - Den samme introduksjonen brukes avkortet i biblioteket og fullt øverst i ressursvisningen.
 - Databasen beholder foreløpig både `summary` og `client_intro` av kompatibilitetshensyn. Ved lesing brukes `client_intro` først og `summary` som fallback. Ved lagring fra editor synkroniseres samme verdi til begge feltene.
-- Ressurser plasseres primært i ett av de etablerte utviklingsområdene for lederkompetanser. Dette er navigasjon og filtrering, ikke en påstand om at ressursen bare er relevant for ett fagtema.
+- Ressurser plasseres primært i `Utviklingsløpet` eller ett av de etablerte utviklingsområdene for lederkompetanser. Dette er navigasjon og filtrering, ikke en påstand om at ressursen bare er relevant for ett fagtema.
+- `Utviklingsløpet` brukes bare for tverrgående ressurser som støtter retning, avgrensning, utprøving, observasjon, refleksjon eller oppfølging i selve utviklingsarbeidet. Det er en kontrollert kategori, ikke en restkategori for innhold som er vanskelig å plassere.
 - Utviklingsområdet lagres som en kontrollert `area:<key>`-verdi i eksisterende `resource_tags`. Fritekst-tags skal ikke være et nødvendig editorvalg.
 - Eksisterende emneknagger bevares som søkeord. De skal ikke overskrives når utviklingsområdet endres.
 

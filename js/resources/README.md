@@ -47,11 +47,12 @@ Nye refleksjonsspørsmål redigeres som `reflection_questions` i `content_json`.
 
 ### Utviklingsområde
 
-Ressursen kan ha ett primært utviklingsområde fra lederkompetansenes etablerte områdestruktur. Området lagres som `area:<key>` i `resource_tags`.
+Ressursen kan ha ett primært område: `Utviklingsløpet` eller ett av lederkompetansenes etablerte utviklingsområder. Området lagres som `area:<key>` i `resource_tags`.
 
 - Bruk kontrollert valg i UI, aldri fritekst for området.
 - Bevar eksisterende emneknagger når området endres.
 - Ukategoriserte ressurser skal fortsatt være synlige.
+- Bruk `Utviklingsløpet` for tverrgående metodeinnhold i selve utviklingsarbeidet, aldri som en generell `Annet`-kategori.
 
 Den autoritative produktbeskrivelsen ligger i `docs/RESOURCE_LIBRARY_CONTRACT.md`.
 
