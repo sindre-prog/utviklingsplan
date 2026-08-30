@@ -136,7 +136,8 @@ const state = {
   previewCompetencyId: null,
   competencyChooserQuery: "",
   competencyChooserCategory: "all",
-  passwordSessionUserId: null
+  passwordSessionUserId: null,
+  justActivated: false
 };
 
 const planFields = [
@@ -293,6 +294,7 @@ async function init() {
 function bindAuth() {
   $("#login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
+    state.justActivated = false;
     setMessage("#login-message", "Logger inn...");
     const email = $("#login-email").value.trim();
     const password = $("#login-password").value;
@@ -327,6 +329,7 @@ function bindAuth() {
     const { error } = await state.sb.auth.updateUser({ password });
     if (error) return setMessage("#password-message", `Feil: ${error.message}`);
     state.passwordSessionUserId = null;
+    state.justActivated = true;
     await state.sb
       .from("clients")
       .update({ account_activated_at: new Date().toISOString() })
@@ -416,7 +419,7 @@ async function bootstrapApp() {
   }
   setScreen("app");
   renderShell();
-  $("#view-kicker").textContent = "Utviklingsplaner";
+  $("#view-kicker").textContent = "Klientforløp";
   $("#view-title").textContent = "Klienter";
   navigate(initialView());
 }
@@ -434,6 +437,7 @@ async function loadReferenceData() {
     state.client = isActiveRecord(data) ? data : null;
     if (state.client && !isClientActivated(state.client)) {
       const activatedAt = new Date().toISOString();
+      state.justActivated = true;
       await state.sb
         .from("clients")
         .update({ account_activated_at: activatedAt })
@@ -2611,10 +2615,10 @@ async function renderPlan(activePane = null) {
   const isClientWorkspace = state.profile.role === "client";
   const clientFirstName = (client.name || "").trim().split(/\s+/)[0] || "";
   setHeader(
-    isClientWorkspace ? "Din utviklingsplan" : "Utviklingsplan",
-    isClientWorkspace ? `Velkommen tilbake${clientFirstName ? `, ${clientFirstName}` : ""}` : client.name || "Klient",
+    isClientWorkspace ? "Din utviklingsportal" : "Klientforløp",
+    isClientWorkspace ? `${state.justActivated ? "Velkommen" : "Velkommen tilbake"}${clientFirstName ? `, ${clientFirstName}` : ""}` : client.name || "Klient",
     headerActions,
-    isClientWorkspace ? "Her finner du planen din og det du arbeider med mellom samtalene." : ""
+    isClientWorkspace ? "Hold oversikt over det du jobber med nå, følg utviklingen din og forbered deg til neste samtale." : ""
   );
   $("#content").replaceChildren(el("section", { class: "panel portal-loading-state", role: "status", "aria-live": "polite" }, [
     el("span", { class: "sr-only", text: "Henter utviklingsplanen …" }),
@@ -2963,7 +2967,7 @@ function directionWorkspace(client, plan) {
     ["Rammer", "Hva må være avklart rundt arbeidet?", directionSpecs.slice(4)]
   ];
   return el("section", { class: "platform-page ui-workspace direction-simple" }, [
-    pageIntro("Forløpet", "Mål og rammer for utviklingsløpet", "Avklar hvorfor forløpet er viktig, hva som skal bli annerledes, tegn på fremgang og hvordan dere skal samarbeide."),
+    pageIntro("Forløpet", "Mål og rammer for utviklingsforløpet", "Avklar hvorfor forløpet er viktig, hva som skal bli annerledes, hvordan du vil merke fremgang og hvordan du og ledercoachen din skal samarbeide."),
     el("section", { class: "direction-overview", "aria-label": "Status for mål og rammer" }, [
       el("div", { class: "direction-progress-copy" }, [
         el("strong", { text: nextSpec ? `${completed} av ${directionSpecs.length} avklaringer på plass` : "Mål og rammer er klare til bruk" }),
@@ -3003,7 +3007,10 @@ function directionCard(spec, editable) {
         el("h3", { text: spec.label }),
         el("span", { text: spec.subhead || "" })
       ]),
-      value ? directionValueContent(spec) : el("p", { class: "direction-row-empty", text: spec.placeholder || spec.helper })
+      value ? directionValueContent(spec) : el("div", { class: "direction-empty-content" }, [
+        el("p", { class: "direction-row-empty", text: spec.placeholder || spec.helper }),
+        directionExample(spec.examples)
+      ].filter(Boolean))
     ]),
     editable ? el("button", {
       class: "ui-field-action direction-edit-trigger",
@@ -3031,7 +3038,10 @@ function directionInlineEditor(spec) {
         el("p", { text: spec.helper || spec.valueLabel || "" })
       ])
     ]),
-    el("div", { class: "direction-edit-fields" }, controls.map((control, index) => el("label", { text: fields[index].label || spec.valueLabel || spec.label }, [control]))),
+    el("div", { class: "direction-edit-fields" }, controls.map((control, index) => el("label", { text: fields[index].label || spec.valueLabel || spec.label }, [
+      control,
+      !(fields[index].value || "").trim() ? directionExample(fields[index].examples || spec.examples) : null
+    ].filter(Boolean)))),
     el("div", { class: "ui-inline-editor-actions" }, [
       el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: () => {
         state.inlineEditKey = null;
@@ -3053,6 +3063,17 @@ function activateFirstMissingDirectionField(specs) {
   if (target) activateDirectionEdit(target);
 }
 
+function directionExample(examples) {
+  if (!examples?.length) return null;
+  return el("details", { class: "direction-example" }, [
+    el("summary", { text: "Se eksempel" }),
+    el("div", { class: "direction-example-copy" }, examples.map((example) => el("p", {}, [
+      example.label ? el("strong", { text: example.label }) : null,
+      el("span", { text: example.text })
+    ].filter(Boolean))))
+  ]);
+}
+
 function activateWorkspacePane(paneName) {
   const tab = $(`.workspace-tab[data-tab='${paneName}']`);
   if (tab) tab.click();
@@ -3068,7 +3089,10 @@ function getDirectionSpecs(plan) {
       valueLabel: "Hva ønsker du at coachingforløpet skal hjelpe deg med?",
       value: plan.c_purpose,
       helper: "Hva ønsker du at coachingforløpet skal hjelpe deg med?",
-      placeholder: "Beskriv hva du vil oppnå."
+      placeholder: "Beskriv hva du vil oppnå.",
+      examples: [{
+        text: "Jeg vil lukke de viktigste utviklingsgapene som 360-evalueringen og medarbeiderundersøkelsen har synliggjort, slik at måten jeg leder på i større grad samsvarer med det medarbeiderne og virksomheten trenger."
+      }]
     },
     {
       key: "c_success",
@@ -3078,27 +3102,36 @@ function getDirectionSpecs(plan) {
       valueLabel: "Hva vil du, coachen din eller andre merke hvis dette begynner å virke?",
       value: plan.c_success,
       helper: "Hva vil du, coachen din eller andre merke hvis dette begynner å virke?",
-      placeholder: "Beskriv hva du eller andre vil legge merke til."
+      placeholder: "Beskriv hva du eller andre vil legge merke til.",
+      examples: [{
+        text: "Jeg vil merke fremgang ved at medarbeiderne opplever tydeligere retning, bedre støtte og større handlingsrom, tar mer ansvar og får brukt kompetansen sin bedre. Det bør etter hvert også vise seg i tilbakemeldinger, samarbeid og resultater."
+      }]
     },
     {
       key: "c_expect_client",
       iconName: "user-check",
-      label: "Hva vil du gjøre mellom samtalene?",
-      subhead: "Din innsats",
-      valueLabel: "Hva vil du prøve, observere eller forberede mellom samtalene?",
+      label: "Hvordan vil du holde fokus mellom samtalene?",
+      subhead: "Din arbeidsform",
+      valueLabel: "Hvordan vil du sikre at utviklingsarbeidet får plass og oppmerksomhet i hverdagen?",
       value: plan.c_expect_client,
-      helper: "Hva vil du prøve, observere eller forberede mellom samtalene?",
-      placeholder: "Beskriv hva du vil prøve, observere eller forberede."
+      helper: "Hvordan vil du sikre at utviklingsarbeidet får plass og oppmerksomhet i hverdagen?",
+      placeholder: "Beskriv når og hvordan du vil stoppe opp, fange opp observasjoner og forberede deg til neste samtale.",
+      examples: [{
+        text: "Jeg setter av 20 minutter hver fredag til å stoppe opp, notere hva jeg har lagt merke til og forberede det jeg vil ta med inn i neste samtale."
+      }]
     },
     {
       key: "c_expect_coach",
       iconName: "messages-square",
-      label: "Hva trenger du fra coachen?",
-      subhead: "Coachens bidrag",
-      valueLabel: "Hva trenger du at coachen bidrar med, utfordrer deg på eller følger opp?",
+      label: "Hva trenger du fra ledercoachen din?",
+      subhead: "Ledercoachens bidrag",
+      valueLabel: "Hva trenger du at ledercoachen din bidrar med, utfordrer deg på eller følger opp?",
       value: plan.c_expect_coach,
-      helper: "Hva trenger du at coachen bidrar med, utfordrer deg på eller følger opp?",
-      placeholder: "Beskriv hva du trenger fra coachen."
+      helper: "Hva trenger du at ledercoachen din bidrar med, utfordrer deg på eller følger opp?",
+      placeholder: "Beskriv hva du trenger fra ledercoachen din.",
+      examples: [{
+        text: "Jeg trenger at ledercoachen min utfordrer antakelsene mine, hjelper meg å se mønstre og følger opp det vi blir enige om."
+      }]
     },
     {
       key: "frame",
@@ -3112,13 +3145,29 @@ function getDirectionSpecs(plan) {
           key: "c_practical",
           label: "Praktiske rammer",
           value: plan.c_practical,
-          placeholder: "Hva bør være avklart om tid og rolle?"
+          placeholder: "Hva bør være avklart om tid og rolle?",
+          examples: [{
+            text: "Vi møtes hver tredje uke i 60 minutter, og jeg setter av tid før samtalene til å samle det jeg vil arbeide med."
+          }]
         },
         {
           key: "c_confidentiality",
           label: "Konfidensialitet",
           value: plan.c_confidentiality,
-          placeholder: "Hva skal være privat, delt eller utenfor coachingens mandat?"
+          placeholder: "Hva skal være privat, delt eller utenfor coachingens mandat?",
+          examples: [{
+            text: "Det som deles i samtalene er konfidensielt. Eventuell deling med arbeidsgiver avtales med meg på forhånd."
+          }]
+        }
+      ],
+      examples: [
+        {
+          label: "Praktiske rammer",
+          text: "Vi møtes hver tredje uke i 60 minutter, og jeg setter av tid før samtalene til å samle det jeg vil arbeide med."
+        },
+        {
+          label: "Konfidensialitet",
+          text: "Det som deles i samtalene er konfidensielt. Eventuell deling med arbeidsgiver avtales med meg på forhånd."
         }
       ]
     },
@@ -3130,7 +3179,10 @@ function getDirectionSpecs(plan) {
       valueLabel: "Hvilke personer, roller, team eller forventninger påvirker det du jobber med?",
       value: plan.c_context,
       helper: "Hvilke personer, roller, team eller forventninger påvirker det du jobber med?",
-      placeholder: "Beskriv hvem eller hva som påvirker arbeidet."
+      placeholder: "Beskriv hvem eller hva som påvirker arbeidet.",
+      examples: [{
+        text: "Min leder forventer raskere fremdrift, ledergruppen må samle seg om tydeligere prioriteringer, og teamet trenger mer forutsigbarhet."
+      }]
     }
   ];
 }
@@ -3140,7 +3192,7 @@ function directionStatus(plan) {
     return {
       tone: "missing",
       label: "Ikke utfylt ennå",
-      text: "Start med hva du vil oppnå og hvordan du vil merke fremgang.",
+      text: "Start med hva utviklingsforløpet skal bidra til, og hvordan du vil merke at det gjør en forskjell.",
       action: "Sett mål"
     };
   }
@@ -3292,7 +3344,7 @@ function focusHubWorkspace(data, plan, focusItems, editable) {
 }
 
 function focusHubIntro() {
-  return workspaceIntro("Utviklingsfokus", "Fra lederoppdrag til praksis", "Ta utgangspunkt i det du må lykkes med i lederjobben, velg hva du trenger å utvikle, og prøv noe konkret i praksis.");
+  return workspaceIntro("Utviklingsfokus", "Fra ambisjon til praksis", "Ta utgangspunkt i det du må lykkes med i din lederjobb, velg hva du trenger å utvikle, og planlegg hva du konkret vil prøve i praksis.");
 }
 
 function focusViewTabs(activeView, data = {}, focusItems = []) {
@@ -4282,7 +4334,7 @@ function nowWorkspace(client, data, plan) {
   const focusItems = nowFocusAssignments(plan);
   const setup = nowSetupSection({ data, plan, editable });
   return el("div", { class: "platform-page now-workspace now-workspace-v2" }, [
-    pageIntro("Akkurat nå", "Oversikt akkurat nå", "Her samles det som er mest relevant i forløpet nå."),
+    pageIntro("Akkurat nå", "Oversikt akkurat nå", "Se hvor du står, hva du jobber med og hva som venter."),
     setup,
     primary ? nowPrimaryAction(primary, editable) : setup ? null : nowEmptyState(editable),
     nowActionGrid(supporting, editable),
@@ -5736,19 +5788,19 @@ function experimentEditorSpecs(data, values = {}, action = null) {
       })),
       el("p", { class: "experiment-field-help", text: "Gjør forsøket lite nok til å prøve i en faktisk situasjon." })
     ]),
-    el("div", { class: "field-pair experiment-field-pair experiment-field-triple" }, [
+    el("div", { class: `field-pair experiment-field-pair ${action ? "experiment-field-triple" : ""}`.trim() }, [
       renderSpec(inputSpec("arena", "Hvor skal du prøve det?", "text", values.arena || parsed.arena || "", {
         placeholder: "Et møte eller en samtale"
       })),
       renderSpec(inputSpec("dueDate", "Når vil du se tilbake?", "date", values.dueDate || "")),
-      renderSpec(selectSpec("status", "Status", EXPERIMENT_STATUS_OPTIONS, statusValue, false))
-    ]),
+      action ? renderSpec(selectSpec("status", "Status", EXPERIMENT_STATUS_OPTIONS, statusValue, false)) : null
+    ].filter(Boolean)),
     renderSpec(textareaSpec("signals", "Hva skal du se etter?", values.signals || parsed.signals || "", {
       placeholder: "Et observerbart tegn på effekt eller respons..."
     }))
   ]);
   return [
-    customSpec(["title", "action", "arena", "dueDate", "status", "signals"], coreFields),
+    customSpec(["title", "action", "arena", "dueDate", ...(action ? ["status"] : []), "signals"], coreFields),
     experimentContextSpec(data, values.areaId || "", values.competencyId || ""),
     action ? experimentReviewSpec(action, parsed) : null
   ].filter(Boolean);
@@ -6828,6 +6880,10 @@ async function inviteClient(values) {
   await ensureInvitedClientProgram(client.id);
   await reloadAndRender();
   setTimeout(() => {
+    if (result.emailSent === false) {
+      showAppMessage("Klienten er opprettet", "Velkomstmailen ble ikke sendt. Åpne Rediger klient og send tilgangslenken på nytt.");
+      return;
+    }
     showAppMessage("Invitasjon sendt", "Klienten er opprettet med et utviklingsforløp. Invitasjonen kan sendes på nytt fra Rediger klient frem til tilgangen er aktivert.");
   }, 0);
 }
@@ -6907,6 +6963,7 @@ async function logout() {
   state.coaches = [];
   state.selectedClientId = null;
   state.passwordSessionUserId = null;
+  state.justActivated = false;
   state.dirty = false;
   setScreen("login");
 }
