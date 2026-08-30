@@ -35,6 +35,8 @@ Saving core client work must preserve the user's place in the portal.
 Required behavior:
 
 - Show `Lagrer …` followed by `Lagret` while a write is in progress.
+- Place save feedback in its own stable row below workspace navigation; it must never cover tabs, actions or content.
+- Keep successful save feedback visible briefly, then remove it without collapsing the reserved status row.
 - Preserve the active main tab, active subview, selected object and scroll position.
 - Update the active pane from the local program cache after ordinary field edits.
 - Do not replace the whole workspace with a loading skeleton after a successful inline save.

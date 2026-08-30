@@ -114,6 +114,7 @@ const state = {
   selectedClientId: null,
   dirty: false,
   saveTimer: null,
+  saveStatusTimer: null,
   modal: null,
   drawer: null,
   confirmResolve: null,
@@ -2913,7 +2914,7 @@ function clientWorkspaceTabs(data = {}, activePane = null) {
     ["reflections", "Refleksjon"],
     ["resources", "Ressurser"]
   ].filter(Boolean);
-  return el("div", { class: `workspace-tabs ${hasNowTab ? "has-now" : ""}`.trim() }, [
+  const tabs = el("div", { class: `workspace-tabs ${hasNowTab ? "has-now" : ""}`.trim() }, [
     el("div", { class: "workspace-tab-group workspace-tab-group-main", role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label]) => {
       const showResourceCount = pane === "resources" && resourceCount > 0;
       const resourceLabel = showResourceCount
@@ -2935,8 +2936,11 @@ function clientWorkspaceTabs(data = {}, activePane = null) {
           newResourceCount ? el("span", { class: "workspace-tab-new-dot" }) : null
         ].filter(Boolean)) : null
       ].filter(Boolean));
-    })),
-    el("span", { class: "save-strip", role: "status", "aria-live": "polite" }, [
+    }))
+  ]);
+  return el("div", { class: "workspace-navigation" }, [
+    tabs,
+    el("div", { class: "workspace-save-row", id: "workspace-save-state", role: "status", "aria-live": "polite", "aria-hidden": "true" }, [
       icon("cloud-check"),
       el("span", { class: "save-status", id: "save-status", text: "Lagret" })
     ])
@@ -6168,6 +6172,7 @@ function markDirty() {
 
 function setSaveState(mode, text = "") {
   const status = $("#save-status");
+  const row = $("#workspace-save-state");
   const values = {
     clean: "Lagret",
     dirty: "Endringer lagres …",
@@ -6177,6 +6182,17 @@ function setSaveState(mode, text = "") {
   };
   const statusText = values[mode] || values.clean;
   if (status) status.textContent = mode === "saved" && text ? text : statusText;
+  if (!row) return;
+  clearTimeout(state.saveStatusTimer);
+  row.classList.toggle("is-visible", mode !== "clean");
+  row.classList.toggle("is-error", mode === "error");
+  row.setAttribute("aria-hidden", mode === "clean" ? "true" : "false");
+  if (mode === "saved") {
+    state.saveStatusTimer = setTimeout(() => {
+      row.classList.remove("is-visible", "is-error");
+      row.setAttribute("aria-hidden", "true");
+    }, 2500);
+  }
 }
 
 async function savePlan() {
