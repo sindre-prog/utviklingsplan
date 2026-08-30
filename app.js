@@ -2716,6 +2716,35 @@ function renderCachedProgram(activePane = null) {
   refreshIcons();
 }
 
+function workspacePaneContent(pane, client, data, plan) {
+  const content = {
+    now: () => nowWorkspace(client, data, plan),
+    direction: () => directionWorkspace(client, plan, data),
+    work: () => workWorkspace(client, data, plan),
+    sessions: () => sessionsWorkspace(plan.sessions, data),
+    reflections: () => reflectionsWorkspace(data),
+    resources: () => coachResourcesWorkspace(data)
+  }[pane];
+  return content ? content() : null;
+}
+
+function renderProgramPane(activePane, { preserveScroll = true } = {}) {
+  const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
+  const data = client ? state.programCache[client.id] : null;
+  const pane = $(`.workspace-pane[data-pane='${activePane}']`);
+  if (!client || !data || !pane) {
+    renderCachedProgram(activePane);
+    return;
+  }
+  const scrollY = window.scrollY;
+  const content = workspacePaneContent(activePane, client, data, programToFormState(data));
+  if (!content) return;
+  pane.replaceChildren(content);
+  if (!canEditProgram(client)) setFormReadonly(pane);
+  refreshIcons();
+  if (preserveScroll) requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: "auto" }));
+}
+
 function renderConsentGate(client) {
   state.selectedClientId = client.id;
   setHeader("Velkommen", "Før vi starter", []);
@@ -2906,7 +2935,11 @@ function clientWorkspaceTabs(data = {}, activePane = null) {
           newResourceCount ? el("span", { class: "workspace-tab-new-dot" }) : null
         ].filter(Boolean)) : null
       ].filter(Boolean));
-    }))
+    })),
+    el("span", { class: "save-strip", role: "status", "aria-live": "polite" }, [
+      icon("cloud-check"),
+      el("span", { class: "save-status", id: "save-status", text: "Lagret" })
+    ])
   ]);
 }
 
@@ -3049,10 +3082,12 @@ function directionInlineEditor(spec) {
       }}),
       el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => {
         fields.forEach((field, index) => setPlanValue(field.key, controls[index].value || ""));
-        state.inlineEditKey = null;
         markDirty();
         const saved = await savePlan();
-        if (saved) await reloadProgramAndRender("direction");
+        if (saved) {
+          state.inlineEditKey = null;
+          renderProgramPane("direction");
+        }
       }})
     ])
   ]);
@@ -4049,14 +4084,17 @@ async function makeLeadershipCompetencyPrimary(item) {
 async function updateLeadershipCompetencyField(programCompetencyId, fieldKey, value) {
   const library = await ensureLeadershipLibrary();
   if (!library?.updateProgramCompetency) return;
+  setSaveState("saving");
   const { error } = await state.sb.from("program_competencies").update({ [fieldKey]: value || "" }).eq("id", programCompetencyId);
   if (error) {
+    setSaveState("error");
     await showAppMessage("Kunne ikke lagre kompetansen", userFacingError(error, "Prøv igjen."));
     return;
   }
   state.inlineEditKey = null;
   state.selectedCompetencyId = programCompetencyId;
   await reloadProgramAndRender("work");
+  setSaveState("saved");
 }
 
 async function removeLeadershipCompetency(item) {
@@ -5143,11 +5181,11 @@ async function saveFocusField(index, fieldKey, value) {
     description: fieldKey === "movement" ? value || "" : area.description
   };
   setAreas(next.filter(hasAreaContent));
-  state.inlineEditKey = null;
   markDirty();
   const saved = await savePlan();
   if (!saved) return;
-  await reloadProgramAndRender("work");
+  state.inlineEditKey = null;
+  renderProgramPane("work");
 }
 
 async function saveSessionField(index, fieldKey, value) {
@@ -5156,11 +5194,11 @@ async function saveSessionField(index, fieldKey, value) {
   const next = [...sessions];
   next[index] = { ...session, [fieldKey]: value || "" };
   setSessions(next.filter((item) => item.date || item.focus || item.goal || item.notes || item.actions || item.reflection));
-  state.inlineEditKey = null;
   markDirty();
   const saved = await savePlan();
   if (!saved) return;
-  await reloadProgramAndRender("sessions");
+  state.inlineEditKey = null;
+  renderProgramPane("sessions");
 }
 
 function sessionEmptyState(editable) {
@@ -5696,6 +5734,7 @@ function reflectionInlineCard(reflection, data) {
         renderCachedProgram("reflections");
       }}),
       el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => {
+        setSaveState("saving");
         const { error } = await state.sb.from("client_reflections").update({
           body: body.value || "",
           visibility,
@@ -5703,11 +5742,13 @@ function reflectionInlineCard(reflection, data) {
           program_competency_id: competency.value || null
         }).eq("id", reflection.id);
         if (error) {
+          setSaveState("error");
           await showAppMessage("Kunne ikke lagre refleksjonen", userFacingError(error, "Prøv igjen."));
           return;
         }
         state.inlineEditKey = null;
         await reloadProgramAndRender("reflections");
+        setSaveState("saved");
       }})
     ])
   ]);
@@ -6045,8 +6086,16 @@ async function createReflection(programId) {
 
 async function reloadProgramAndRender(activePane = null) {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
-  if (client) delete state.programCache[client.id];
-  await renderPlan(activePane);
+  if (!client) return;
+  const scrollY = window.scrollY;
+  delete state.programCache[client.id];
+  const data = await loadClientProgram(client);
+  if (!data) {
+    await showAppMessage("Kunne ikke oppdatere visningen", "Endringen kan være lagret. Last siden på nytt for å kontrollere.");
+    return;
+  }
+  renderProgramPane(activePane || defaultWorkspacePane(), { preserveScroll: false });
+  requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: "auto" }));
 }
 
 function experimentRow(action, data, editable) {
@@ -6121,8 +6170,8 @@ function setSaveState(mode, text = "") {
   const status = $("#save-status");
   const values = {
     clean: "Lagret",
-    dirty: "Endringer lagres...",
-    saving: "Lagrer...",
+    dirty: "Endringer lagres …",
+    saving: "Lagrer …",
     saved: "Lagret",
     error: "Lagring feilet"
   };
@@ -6142,10 +6191,10 @@ async function savePlan() {
     if (!current) throw new Error("Klientforløpet kunne ikke åpnes. Last siden på nytt og prøv igjen.");
     const plan = collectPlan();
     await savePlanTransactionally(current.program.id, plan);
-    delete state.programCache[client.id];
-    await loadProgramSummaries();
+    applyPlanToProgramCache(current, plan);
     state.dirty = false;
     setSaveState("saved", `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`);
+    loadProgramSummaries().catch((summaryError) => console.warn("Kunne ikke oppdatere klientoversikten etter lagring", summaryError));
     return true;
   } catch (error) {
     console.error("Kunne ikke lagre utviklingsplan", error);
@@ -6154,6 +6203,26 @@ async function savePlan() {
     await showAppMessage("Kunne ikke lagre", userFacingError(error, "Prøv igjen."));
     return false;
   }
+}
+
+function applyPlanToProgramCache(current, plan) {
+  const programId = current.program.id;
+  const programValues = programValuesFromPlan(plan);
+  const areaRows = areaRowsForSave(programId, plan.areas);
+  const sessionRows = sessionRowsForSave(programId, plan.sessions);
+  const currentAreas = current.areas || [];
+  const currentSessions = current.sessions || [];
+
+  current.program = { ...current.program, ...programValues };
+  current.areas = areaRows.map((row) => {
+    const existing = currentAreas.find((item) => item.id === row.id) || {};
+    return { ...existing, ...row };
+  });
+  current.sessions = sessionRows.map((row) => {
+    const existing = currentSessions.find((item) => item.id === row.id) || {};
+    return { ...existing, ...row };
+  }).reverse();
+  current.evaluation = { ...(current.evaluation || {}), ...evaluationPayloadForSave(programId, plan) };
 }
 
 function programValuesFromPlan(plan) {

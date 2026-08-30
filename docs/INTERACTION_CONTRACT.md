@@ -15,8 +15,9 @@ This contract is the implementation boundary for shared editing patterns in the 
 
 Use inline editing for the main work surfaces:
 
-- Retning fields.
-- Fokusområde fields.
+- Forløp fields.
+- Ytre prosjekt fields.
+- Indre prosjekt fields.
 - Samtale fields.
 - Refleksjon body and visibility.
 
@@ -26,6 +27,19 @@ Required behavior:
 - Clicking the field opens editing for that field only.
 - Local `Lagre` and `Avbryt` controls live next to the field being edited.
 - Unsaved changes must be handled before changing tab or active field.
+
+## Calm Saving
+
+Saving core client work must preserve the user's place in the portal.
+
+Required behavior:
+
+- Show `Lagrer …` followed by `Lagret` while a write is in progress.
+- Preserve the active main tab, active subview, selected object and scroll position.
+- Update the active pane from the local program cache after ordinary field edits.
+- Do not replace the whole workspace with a loading skeleton after a successful inline save.
+- Fetch the program again in the background only when server-created identity or related server state is required, such as after creating a new conversation, focus assignment, reflection or experiment.
+- Background refreshes update only the active pane and must not move the user to the top of the page.
 
 ## Drawer
 
@@ -51,8 +65,8 @@ Dialogs are limited to:
 
 Dialogs are not allowed for:
 
-- Editing Retning.
-- Editing Fokusområder.
+- Editing Forløp.
+- Editing ytre or indre projects.
 - Editing Samtaler.
 - Editing Refleksjon.
 
