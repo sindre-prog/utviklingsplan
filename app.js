@@ -6966,7 +6966,11 @@ async function inviteClient(values) {
   await reloadAndRender();
   setTimeout(() => {
     if (result.emailSent === false) {
-      showAppMessage("Klienten er opprettet", "Velkomstmailen ble ikke sendt. Åpne Rediger klient og send tilgangslenken på nytt.");
+      const emailError = userFacingError(
+        { message: result.emailError },
+        "Velkomstmailen ble ikke sendt."
+      );
+      showAppMessage("Klienten er opprettet", `${emailError} Tilgangslenken kan sendes på nytt fra Rediger klient når e-postoppsettet er rettet.`);
       return;
     }
     showAppMessage("Invitasjon sendt", "Klienten er opprettet med et utviklingsforløp. Invitasjonen kan sendes på nytt fra Rediger klient frem til tilgangen er aktivert.");

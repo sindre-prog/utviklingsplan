@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { classifyResendFailure } from "../_shared/resend-errors.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://portal.raederog.no",
@@ -196,8 +197,9 @@ async function sendPortalEmail({
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    console.log("portal email error:", typeof result?.message === "string" ? result.message : response.status);
-    throw new Error(errorMessage);
+    const failure = classifyResendFailure(result, response.status, errorMessage);
+    console.log("portal email error:", failure.providerMessage);
+    throw new Error(failure.userMessage);
   }
   return result?.id || null;
 }

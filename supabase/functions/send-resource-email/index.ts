@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { classifyResendFailure } from "../_shared/resend-errors.ts";
 
 const allowedOrigins = new Set([
   "https://portal.raederog.no",
@@ -281,8 +282,9 @@ Deno.serve(async (req: Request) => {
 
     const result = await resendResponse.json().catch(() => ({}));
     if (!resendResponse.ok) {
-      const message = typeof result?.message === "string" ? result.message : "Kunne ikke sende e-post.";
-      throw new Error(message);
+      const failure = classifyResendFailure(result, resendResponse.status, "Kunne ikke sende e-post.");
+      console.log("resource email provider error:", failure.providerMessage);
+      throw new Error(failure.userMessage);
     }
 
     return jsonResponse(req, { success: true, emailSent: true, id: result?.id || null });
