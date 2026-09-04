@@ -27,7 +27,8 @@ function resourceTags(resourceOrTags) {
 
 export function resourceIntroduction(resource = {}) {
   // client_intro remains first only to preserve existing editorial choices while the fields coexist.
-  return cleanText(resource.client_intro) || cleanText(resource.summary);
+  const source = resource || {};
+  return cleanText(source.client_intro) || cleanText(source.summary);
 }
 
 export function resourceDevelopmentArea(resourceOrTags = []) {

@@ -1,4 +1,4 @@
-import { normalizeResourceProductFields } from "./resources.model.js?v=polish-153";
+import { normalizeResourceProductFields } from "./resources.model.js?v=polish-155";
 
 function requireSupabaseClient(supabaseClient) {
   if (!supabaseClient || typeof supabaseClient.from !== "function") {
