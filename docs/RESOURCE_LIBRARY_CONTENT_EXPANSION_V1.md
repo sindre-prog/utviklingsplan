@@ -2,7 +2,9 @@
 
 ## Status
 
-Dette dokumentet er et redaksjonelt og faglig beslutningsgrunnlag. Det inneholder ikke appkode, databaseendringer eller ferdig publiseringsinnhold.
+Dette dokumentet er det redaksjonelle og faglige beslutningsgrunnlaget for innholdsutvidelsen.
+
+Alle tolv ressurser ble 12. september 2026 implementert lokalt som utkast i `supabase/migrations/20260912173000_seed_resource_content_expansion_v1.sql`. Migrasjonen bruker eksisterende ressursmodell, innholdsblokker og utviklingsområder. Den er verifisert mot lokal PostgreSQL, men er ikke kjørt mot production. Ressursene har `status = draft` og `review_status = draft` frem til innholdet er gjennomgått i admin-preview.
 
 Formålet er å definere tolv nye ressurser som kan utvikles videre uten å gjøre biblioteket til en generell kursportal. Ressursene skal sendes av coach i en konkret sammenheng og støtte lederens arbeid mellom samtalene.
 
