@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1070" viewBox="0 0 800 1070" role="img" aria-labelledby="title desc">
+<title id="title">Kontrollsirkelen</title><desc id="desc">Tre sirkler skiller egen valgt handling, påvirkning sammen med andre og det som ikke kan endres nå. Automatiske følelser og tanker regnes ikke som fullt kontrollerbare.</desc>
+<rect width="800" height="1070" fill="#fff"/>
+<g fill="#242424" font-family="Arial, sans-serif">
+<text x="40" y="48" font-size="24" font-weight="600" >Ræder&amp;</text><text x="760" y="48" font-size="22" font-weight="400" text-anchor="end">raederog.no</text>
+<text x="40" y="118" font-size="38" font-weight="600" >Kontrollsirkelen</text>
+<path d="M40 148 H760" stroke="#dcdcdc"/>
+<circle cx="400" cy="478" r="289" fill="#f4f4f4" stroke="#a0a0a0"/>
+<circle cx="400" cy="533" r="205" fill="#edf4f8" stroke="#8298a6"/>
+<circle cx="400" cy="584" r="118" fill="#ffdedf" stroke="#d58b8b"/>
+<text x="400" y="259" font-size="30" font-weight="600" text-anchor="middle">Får ikke endret nå</text>
+<text x="400" y="302" font-size="24" font-weight="400" text-anchor="middle">Det som allerede har skjedd</text>
+<text x="400" y="387" font-size="30" font-weight="600" text-anchor="middle">Kan påvirke</text>
+<text x="400" y="427" font-size="26" font-weight="400" text-anchor="middle">Avtaler og samarbeid</text>
+<text x="400" y="553" font-size="28" font-weight="600" text-anchor="middle">Kan velge</text>
+<text x="400" y="594" font-size="23" font-weight="400" text-anchor="middle">Neste handling</text>
+<text x="400" y="627" font-size="23" font-weight="400" text-anchor="middle">Hva jeg ber om</text>
+<text x="40" y="835" font-size="26" font-weight="400" >Én situasjon kan inneholde alle tre deler.</text>
+<text x="40" y="875" font-size="26" font-weight="400" >Tanker og følelser er ikke alltid noe du velger.</text>
+<text x="40" y="915" font-size="26" font-weight="400" >Se etter hva du kan gjøre når de oppstår.</text>
+<text x="40" y="955" font-size="26" font-weight="400" >Handlingsrom kan endres med støtte og samarbeid.</text>
+<text x="40" y="1030" font-size="23" font-weight="400" >Praktisk sortering, ikke en måling av kontroll.</text>
+</g></svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1040" viewBox="0 0 800 1040" role="img" aria-labelledby="title desc">
+<title id="title">Tankefeller</title><desc id="desc">Ti vanlige tankemønstre, med samme navn og nummerering som ressursens tekst. Punkt fire er Å avvise det positive.</desc>
+<rect width="800" height="1040" fill="#fff"/>
+<g fill="#242424" font-family="Arial, sans-serif">
+<text x="40" y="48" font-size="24" font-weight="600" >Ræder&amp;</text><text x="760" y="48" font-size="22" font-weight="400" text-anchor="end">raederog.no</text>
+<text x="40" y="118" font-size="38" font-weight="600" >Tankefeller</text>
+<path d="M40 148 H760" stroke="#dcdcdc"/>
+<text x="40" y="207" font-size="26" font-weight="600" >01</text><text x="101" y="207" font-size="28" font-weight="400" >Alt-eller-ingenting-tenkning</text><path d="M40 230 H760" stroke="#dcdcdc"/>
+<text x="40" y="275" font-size="26" font-weight="600" >02</text><text x="101" y="275" font-size="28" font-weight="400" >Overgeneralisering</text><path d="M40 298 H760" stroke="#dcdcdc"/>
+<text x="40" y="343" font-size="26" font-weight="600" >03</text><text x="101" y="343" font-size="28" font-weight="400" >Mentalt filter</text><path d="M40 366 H760" stroke="#dcdcdc"/>
+<text x="40" y="411" font-size="26" font-weight="600" >04</text><text x="101" y="411" font-size="28" font-weight="400" >Å avvise det positive</text><path d="M40 434 H760" stroke="#dcdcdc"/>
+<text x="40" y="479" font-size="26" font-weight="600" >05</text><text x="101" y="479" font-size="28" font-weight="400" >Å trekke konklusjoner</text><path d="M40 502 H760" stroke="#dcdcdc"/>
+<text x="40" y="547" font-size="26" font-weight="600" >06</text><text x="101" y="547" font-size="28" font-weight="400" >Emosjonell resonnering</text><path d="M40 570 H760" stroke="#dcdcdc"/>
+<text x="40" y="615" font-size="26" font-weight="600" >07</text><text x="101" y="615" font-size="28" font-weight="400" >Bør-tanker</text><path d="M40 638 H760" stroke="#dcdcdc"/>
+<text x="40" y="683" font-size="26" font-weight="600" >08</text><text x="101" y="683" font-size="28" font-weight="400" >Merking</text><path d="M40 706 H760" stroke="#dcdcdc"/>
+<text x="40" y="751" font-size="26" font-weight="600" >09</text><text x="101" y="751" font-size="28" font-weight="400" >Skyldplassering</text><path d="M40 774 H760" stroke="#dcdcdc"/>
+<text x="40" y="819" font-size="26" font-weight="600" >10</text><text x="101" y="819" font-size="28" font-weight="400" >Forstørring og forminsking</text><path d="M40 842 H760" stroke="#dcdcdc"/><text x="40" y="927" font-size="26" font-weight="400" >Undersøk en konkret tanke, ikke hele personen.</text>
+<text x="40" y="965" font-size="26" font-weight="400" >Hva vet du? Hva antar du? Hva nyanserer bildet?</text>
+</g></svg>

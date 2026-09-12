@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="770" viewBox="0 0 800 770" role="img" aria-labelledby="title desc">
+<title id="title">Eisenhower-matrisen</title><desc id="desc">Fire felt som skiller betydning fra hastegrad. Haster og ikke viktig betyr deleger eller avklar, ikke automatisk delegering.</desc>
+<rect width="800" height="770" fill="#fff"/>
+<g fill="#242424" font-family="Arial, sans-serif">
+<text x="40" y="48" font-size="24" font-weight="600" >Ræder&amp;</text><text x="760" y="48" font-size="22" font-weight="400" text-anchor="end">raederog.no</text>
+<text x="40" y="118" font-size="38" font-weight="600" >Eisenhower-matrisen</text>
+<path d="M40 148 H760" stroke="#dcdcdc"/>
+<text x="275" y="209" font-size="28" font-weight="600" text-anchor="middle">Haster</text><text x="605" y="209" font-size="28" font-weight="600" text-anchor="middle">Haster ikke</text><rect x="130" y="236" width="630" height="386" fill="#f6f6f6"/><path d="M445 236 V622 M130 429 H760" stroke="#aaa"/>
+<text x="40" y="335" font-size="26" font-weight="600" >Viktig</text><text x="40" y="512" font-size="26" font-weight="400" >Ikke</text>
+<text x="40" y="544" font-size="26" font-weight="400" >viktig</text>
+<text x="166" y="294" font-size="30" font-weight="600" >Gjør nå</text><text x="166" y="340" font-size="24" font-weight="400" >Avklar neste handling</text>
+<text x="166" y="374" font-size="24" font-weight="400" >og ansvar.</text>
+<text x="476" y="294" font-size="30" font-weight="600" >Planlegg</text><text x="476" y="340" font-size="24" font-weight="400" >Sett av tid før det</text>
+<text x="476" y="374" font-size="24" font-weight="400" >blir akutt.</text>
+<text x="166" y="482" font-size="30" font-weight="600" >Deleger</text>
+<text x="166" y="518" font-size="30" font-weight="600" >eller avklar</text><text x="166" y="571" font-size="24" font-weight="400" >Hvem bør eie dette?</text>
+<text x="476" y="482" font-size="30" font-weight="600" >Fjern eller</text>
+<text x="476" y="518" font-size="30" font-weight="600" >nedprioriter</text><text x="476" y="571" font-size="24" font-weight="400" >Vurder konsekvensen.</text>
+<text x="40" y="685" font-size="24" font-weight="400" >Vurder betydning ut fra mål, ansvar, mennesker og risiko.</text>
+<text x="40" y="719" font-size="24" font-weight="400" >Hastegrad alene avgjør ikke hva som er viktig.</text>
+</g></svg>

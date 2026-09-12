@@ -6,6 +6,8 @@ Redaksjonelt beslutningsgrunnlag for neste innholdsutvidelse ligger i `docs/RESO
 
 ## Autoritative produktbeslutninger
 
+Lokal rettingsrunde etter QA av hele biblioteket er dokumentert i `docs/RESOURCE_LIBRARY_EDITORIAL_QA_V2.md`. Den omfatter 24 tekstrettelser og åtte filutskiftninger i 25 eksisterende publiserte ressurser. Batchen er ikke produksjonsgodkjent; tekst og filer må vurderes og legges inn samlet. Den endrer ikke appkode, schema eller klientdata.
+
 Avgrensede redaksjonelle rettelser i tolv eksisterende ressurser er dokumentert i `docs/RESOURCE_LIBRARY_EDITORIAL_V1.md` og produksjonsført 12. september 2026 etter godkjenning. Identiteter, publiseringsstatus, filer og delinger er bevart. Nye innholds- eller UI-endringer krever egen avklaring.
 
 Disse beslutningene gjelder foran eldre eksempler i dokumentet:
