@@ -6,6 +6,8 @@ Redaksjonelt beslutningsgrunnlag for neste innholdsutvidelse ligger i `docs/RESO
 
 ## Autoritative produktbeslutninger
 
+Avgrensede redaksjonelle rettelser i eksisterende ressurser er dokumentert i `docs/RESOURCE_LIBRARY_EDITORIAL_V1.md`. Batchen er lokal og krever egen produksjonsgodkjenning. Den må ikke følge med en generell database-push uten godkjenning.
+
 Disse beslutningene gjelder foran eldre eksempler i dokumentet:
 
 - Editor skal ha ett synlig tekstfelt, `Kort introduksjon`, for ressursens korte presentasjon.
