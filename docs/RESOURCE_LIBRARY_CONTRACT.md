@@ -8,6 +8,8 @@ Redaksjonelt beslutningsgrunnlag for neste innholdsutvidelse ligger i `docs/RESO
 
 13. september 2026: Den lokale QA V2-batchen er avvist og tilbakeført. **Ikke lag eller erstatt illustrasjoner/PDF-er, og ikke bygg om modeller som del av redaksjonell QA.** Bevar originalene og skill konkrete tekstfeil fra forslag som krever avklaring. Status og arbeidsform står i `docs/RESOURCE_LIBRARY_EDITORIAL_QA_V2.md`.
 
+Avgrenset tekstpolering er implementert lokalt i `docs/RESOURCE_LIBRARY_EDITORIAL_POLISH_V1.md`. Den bevarer alle illustrasjoner, PDF-er, oppgaver og modellstrukturer. **Ikke produksjonsgodkjent.** Dette er ikke en gjeninnføring av QA V2.
+
 Avgrensede redaksjonelle rettelser i tolv eksisterende ressurser er dokumentert i `docs/RESOURCE_LIBRARY_EDITORIAL_V1.md` og produksjonsført 12. september 2026 etter godkjenning. Identiteter, publiseringsstatus, filer og delinger er bevart. Nye innholds- eller UI-endringer krever egen avklaring.
 
 Disse beslutningene gjelder foran eldre eksempler i dokumentet:
