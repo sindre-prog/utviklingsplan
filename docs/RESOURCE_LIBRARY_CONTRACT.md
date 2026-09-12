@@ -2,6 +2,8 @@
 
 Dette dokumentet definerer ressursbiblioteket som produktkontrakt. Det er ikke en implementeringsplan og ikke appkode.
 
+Redaksjonelt beslutningsgrunnlag for neste innholdsutvidelse ligger i `docs/RESOURCE_LIBRARY_CONTENT_EXPANSION_V1.md`. Dokumentet beskriver foreslåtte ressurser, faggrunnlag, avgrensning og forholdet til eksisterende bibliotek. Det gir ikke i seg selv godkjenning til publisering.
+
 ## Autoritative produktbeslutninger
 
 Disse beslutningene gjelder foran eldre eksempler i dokumentet:
