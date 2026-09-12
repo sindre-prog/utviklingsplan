@@ -4,7 +4,11 @@
 
 Dette dokumentet er det redaksjonelle og faglige beslutningsgrunnlaget for innholdsutvidelsen.
 
-Alle tolv ressurser ble 12. september 2026 implementert lokalt som utkast i `supabase/migrations/20260912173000_seed_resource_content_expansion_v1.sql`. Migrasjonen bruker eksisterende ressursmodell, innholdsblokker og utviklingsområder. Den er verifisert mot lokal PostgreSQL, men er ikke kjørt mot production. Ressursene har `status = draft` og `review_status = draft` frem til innholdet er gjennomgått i admin-preview.
+Alle tolv ressurser ble 12. september 2026 implementert og lagt inn i produksjon som utkast etter eksplisitt godkjenning. Migrasjonen `supabase/migrations/20260912173000_seed_resource_content_expansion_v1.sql` er registrert i produksjonens migrasjonshistorikk og bruker eksisterende ressursmodell, innholdsblokker og utviklingsområder. Ressursene har `status = draft` og `review_status = draft`. Innleggingen er ikke en faglig godkjenning eller publisering av innholdet.
+
+Etterkontrollen i produksjon bekreftet tolv nye utkast med synkronisert introduksjon, refleksjonsspørsmål og ett utviklingsområde hver. Antall ressurser gikk fra 51 til 63; antall publiserte er fortsatt 36. Sammenligning av kontrollsummer før og etter viste at eksisterende ressurser, emneknagger og delinger er uendret. Ingen filer eller klientdelinger ble opprettet for batchen.
+
+Gjeldende tilgangsregler gir admin tilgang til utkastene. Coacher kan bare lese publiserte ressurser, og klienter kan bare lese ressurser som er delt med dem. Neste steg er innholdsgjennomgang under `Administrasjon > Ressurser`, med statusfilter `Utkast`. Innlogget admin-preview er ikke visuelt kontrollert ved denne innleggingen; nettleseren viste innloggingssiden. Publisering krever egen innholdsgodkjenning.
 
 Formålet er å definere tolv nye ressurser som kan utvikles videre uten å gjøre biblioteket til en generell kursportal. Ressursene skal sendes av coach i en konkret sammenheng og støtte lederens arbeid mellom samtalene.
 
