@@ -6,7 +6,7 @@ Redaksjonelt beslutningsgrunnlag for neste innholdsutvidelse ligger i `docs/RESO
 
 ## Autoritative produktbeslutninger
 
-Avgrensede redaksjonelle rettelser i eksisterende ressurser er dokumentert i `docs/RESOURCE_LIBRARY_EDITORIAL_V1.md`. Batchen er lokal og krever egen produksjonsgodkjenning. Den må ikke følge med en generell database-push uten godkjenning.
+Avgrensede redaksjonelle rettelser i tolv eksisterende ressurser er dokumentert i `docs/RESOURCE_LIBRARY_EDITORIAL_V1.md` og produksjonsført 12. september 2026 etter godkjenning. Identiteter, publiseringsstatus, filer og delinger er bevart. Nye innholds- eller UI-endringer krever egen avklaring.
 
 Disse beslutningene gjelder foran eldre eksempler i dokumentet:
 

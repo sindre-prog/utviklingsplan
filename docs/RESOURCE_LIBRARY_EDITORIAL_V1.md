@@ -2,11 +2,15 @@
 
 ## Status og godkjenning
 
-12. september 2026: lokalt implementert etter brukerens «Kjør» til en avgrenset redaksjonell batch. Ikke produksjonsført eller pushet. Dette er rettelser i tolv eksisterende ressurser, ikke ytterligere tolv nye ressurser.
+12. september 2026: implementert lokalt, gjennomgått i før/etter-visning og produksjonsført etter brukerens «fint. få det live.». Dette er rettelser i tolv eksisterende ressurser, ikke ytterligere tolv nye ressurser.
 
-Autoritativ endring ligger i `supabase/migrations/20260912190000_resource_editorial_corrections_v1.sql`. SQL-payloaden er den nøyaktige teksten som skal vurderes. Eldre seed-migrasjoner skal ikke omskrives.
+Autoritativ endring ligger i `supabase/migrations/20260912190000_resource_editorial_corrections_v1.sql`. SQL-payloaden er den godkjente teksten som er lagt inn. Eldre seed-migrasjoner skal ikke omskrives.
 
-Produksjonsinnlegging krever egen godkjenning. Ikke kjør generell database-push som del av annen publisering uten å ta stilling til denne ventende migrasjonen.
+Migrasjonen er registrert i produksjon. Dette gir ikke godkjenning til ytterligere innholdsendringer eller UI-endringer.
+
+Produksjonskontrollen viste at alle tolv berørte feltsett samsvarte med godkjent baseline før innlegging, og at alle tolv samsvarte med rettelsen etterpå. Antall ressurser (63), publiserte ressurser (48), filer (21) og delinger (12) er uendret. Kontrollsummer er identiske for øvrige ressurser, uberørte felt i de tolv ressursene, illustrasjons-/nedlastingsreferanser, filer, emneknagger og hele delingsradene inkludert klientrespons. Ingen deling eller e-post ble utløst.
+
+Originale berørte felt og etterkontroll er bevart uten klienttekst i denne taskens `artifacts/resource-editorial-before-production-20260912.json` og `artifacts/resource-editorial-after-production-20260912.json` under `/Users/sindrejobb/Documents/Codex/2026-08-27/raeder-conversation-readiness-v1/`.
 
 ## Omfang
 
@@ -30,11 +34,11 @@ Ingen generell språkvask. AIDA, Mandatkort, Spørsmål i coachende ledelse og O
 ## Redaksjonelle avklaringer
 
 - Delegeringskart er en struktur for notater om oppgaver, nåværende eier, ønsket eier og nødvendige avklaringer. Det innføres ikke et nytt lagringsskjema. Planlegging av selve overføringen hører til «Deleger for utvikling, ikke bare avlastning».
-- ABCDE-variantene beholdes. Forslaget er å bruke grunnvarianten til etterrefleksjon og prestasjonsvarianten til forberedelse. Begge må undersøke tolkninger, ikke bare erstatte ubehagelige tanker med positive. Dette er redaksjonelle tilpasninger, ikke to selvstendig validerte metoder.
+- ABCDE-variantene beholdes. Grunnvarianten brukes til etterrefleksjon og prestasjonsvarianten til forberedelse. Begge må undersøke tolkninger, ikke bare erstatte ubehagelige tanker med positive. Dette er redaksjonelle tilpasninger, ikke to selvstendig validerte metoder.
 - Mitt lederprosjekt skal ikke innføre et tredje prosjektbegrep. Refleksjonen brukes som grunnlag for ytre prosjekt. Indre prosjekt er lederkompetansene som støtter dette. Forløpet samler mål og rammer.
 - Pusteøvelsene lover ikke behandling eller dokumentert lik effekt på tvers av teknikker. Et kort forsøk i portalen er ikke identisk med en studie av daglig praksis.
 - Introduksjonen synkroniseres til `summary` og `client_intro` bare i de to ressursene der introduksjonen faktisk endres: ABCDE-modellen og Pusteøvelser for stressregulering. Historiske forskjeller i andre ressurser ryddes ikke som sidearbeid.
-- PDF-er og illustrasjoner oppdateres ikke. Portaltekst og PDF kan ha ulike roller. Eventuell faglig motstrid i en eksisterende PDF må vurderes før produksjonsgo; denne batchen har ikke gjennomgått selve PDF-filene.
+- PDF-er og illustrasjoner er uendret. Portaltekst og PDF kan ha ulike roller. Godkjenningen og denne batchen gjelder portaltekst; det er ikke gjort en faglig revisjon av selve PDF-filene.
 
 ## Datavern og produksjonskontroll
 
@@ -44,7 +48,7 @@ Migrasjonen oppdaterer eksisterende rader etter stabil slug. Den endrer ikke ID,
 
 Hver rad har kontrollsum av bare feltene som skal endres. Alle tolv rader låses og valideres før noen oppdateres. Hvis et berørt felt har fått en nyere redigering, eller en ressurs mangler, avbrytes hele SQL-blokken. Endringer i andre felter bevares. En rad som allerede har den nøyaktige rettelsen hoppes over, også uten endring av `updated_at`.
 
-Ved senere produksjonsgo:
+Rutine for produksjonsinnlegging:
 
 1. Kontroller at arbeidsmappen og migrasjonslisten bare inneholder godkjente endringer.
 2. Kontroller gjeldende berørte felt mot baseline; ikke fjern konfliktsjekken for å tvinge gjennom en batch.
@@ -54,7 +58,7 @@ Ved senere produksjonsgo:
 
 ## Verifikasjon
 
-Lokal PostgreSQL-test kjører migrasjonen mot midlertidige kopier av eksisterende ressurstabell, med dagens tolv ressursversjoner som testgrunnlag. Alt rulles tilbake; lokal hoveddatabase og produksjon er uendret.
+Lokal PostgreSQL-test kjørte migrasjonen mot midlertidige kopier av eksisterende ressurstabell, med de tolv ressursversjonene som testgrunnlag. Alt ble rullet tilbake; testen endret verken lokal hoveddatabase eller produksjon. Produksjonen ble oppdatert separat etter godkjenning som beskrevet øverst.
 
 Kontrollert:
 - Alle tolv rettelser gir forventede feltverdier.
