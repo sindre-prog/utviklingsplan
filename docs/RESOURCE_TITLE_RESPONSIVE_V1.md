@@ -1,6 +1,6 @@
 # Lange ressurstitler: responsiv retting
 
-Status 13. september 2026: Brukeren har godkjent produksjonssetting etter før/etter-visning. Publisering klargjort med CSS-cacheversjon `polish-169`. Produksjonskontroll gjenstår.
+Status 13. september 2026: Produksjonsført og verifisert etter brukerens godkjenning av før/etter-visningen. Publisert fra commit `621b097` med CSS-cacheversjon `polish-169`.
 
 ## Avgrensning
 
@@ -36,3 +36,10 @@ Lokal før/etter-visning: `http://localhost:8027/resource-title.html?ressurs=bes
 Godkjent med «fint. få det live.» 13. september 2026. Bruk eksisterende GitHub Pages-flyt fra `main`. `index.html` peker på `styles.css?v=polish-169`, slik at nettleseren henter rettelsen også når forrige stilark er mellomlagret. Ingen databasemigrasjon er nødvendig.
 
 Den første lokale før/etter-visningen lastet mellomlagret CSS i brukerens åpne fane. Previewens CSS- og rammelenke er nå versjonsmerket. Faktisk lastet stil og synlig linjebryting er kontrollert i samme fane, ikke bare i en ren testnettleser.
+
+Produksjonskontroll 13. september 2026:
+
+- GitHub Pages-kjøring `34747216539` fullført med `success` for commit `621b097`.
+- `https://portal.raederog.no/` peker på `styles.css?v=polish-169`. Hentet HTML og CSS er byte-identiske med de godkjente lokale filene, kontrollert med SHA-256.
+- Portalens innloggingsflate åpnet i nettleseren med korrekt CSS-versjon og uten registrerte JavaScript-feil. Ingen innlogging eller klienthandlinger utført i denne publiseringskontrollen; ressursenes visuelle tester er de lokale kontrollene beskrevet over.
+- Ingen databaseoperasjoner, filopplastinger eller klientendringer utført. Den tidligere godkjente og allerede produksjonsførte tekstpoleringen følger med i Git-historikken, men migrasjonen er ikke kjørt på nytt.

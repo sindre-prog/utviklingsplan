@@ -6,7 +6,7 @@ Redaksjonelt beslutningsgrunnlag for neste innholdsutvidelse ligger i `docs/RESO
 
 ## Autoritative produktbeslutninger
 
-13. september 2026: Retting av linjebryting for lange ressurstitler er dokumentert i `docs/RESOURCE_TITLE_RESPONSIVE_V1.md`. Titler, skriftstørrelser og innhold er uendret. Brukeren har **godkjent produksjonssetting** etter korrigert før/etter-visning. Verifisert publiseringsstatus føres i rettelsesdokumentet.
+13. september 2026: Retting av linjebryting for lange ressurstitler er **produksjonsført og verifisert** etter godkjent før/etter-visning. Titler, skriftstørrelser og innhold er uendret. Implementering, cacheversjon og publiseringskontroll er dokumentert i `docs/RESOURCE_TITLE_RESPONSIVE_V1.md`.
 
 13. september 2026: Den lokale QA V2-batchen er avvist og tilbakeført. **Ikke lag eller erstatt illustrasjoner/PDF-er, og ikke bygg om modeller som del av redaksjonell QA.** Bevar originalene og skill konkrete tekstfeil fra forslag som krever avklaring. Status og arbeidsform står i `docs/RESOURCE_LIBRARY_EDITORIAL_QA_V2.md`.
 
