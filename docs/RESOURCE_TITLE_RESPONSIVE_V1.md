@@ -1,6 +1,6 @@
-# Lange ressurstitler: lokal retting
+# Lange ressurstitler: responsiv retting
 
-Status 13. september 2026: Implementert og kontrollert lokalt etter brukerens godkjenning. Ikke produksjonsført. Brukeren skal se før/etter-visningen før eventuell produksjonsgodkjenning.
+Status 13. september 2026: Brukeren har godkjent produksjonssetting etter før/etter-visning. Publisering klargjort med CSS-cacheversjon `polish-169`. Produksjonskontroll gjenstår.
 
 ## Avgrensning
 
@@ -31,6 +31,8 @@ Testen bruker en lagret ressurssnapshot og syntetiske delinger i minnet. Ingen b
 
 Lokal før/etter-visning: `http://localhost:8027/resource-title.html?ressurs=beslutningsprinsipper`. Testresultat og skjermbilder ligger i den tilhørende oppgavens `artifacts/resource-title-responsive-v1-test.json` og `artifacts/resource-title-*.png`.
 
-## Ved Eventuell Publisering
+## Publisering
 
-Krever eksplisitt produksjonsgodkjenning. Følg eksisterende publiseringsrutine, oppdater stylesheetens cacheversjon i `index.html`, og kontroller den publiserte visningen. Ingen databasemigrasjon er nødvendig.
+Godkjent med «fint. få det live.» 13. september 2026. Bruk eksisterende GitHub Pages-flyt fra `main`. `index.html` peker på `styles.css?v=polish-169`, slik at nettleseren henter rettelsen også når forrige stilark er mellomlagret. Ingen databasemigrasjon er nødvendig.
+
+Den første lokale før/etter-visningen lastet mellomlagret CSS i brukerens åpne fane. Previewens CSS- og rammelenke er nå versjonsmerket. Faktisk lastet stil og synlig linjebryting er kontrollert i samme fane, ikke bare i en ren testnettleser.
