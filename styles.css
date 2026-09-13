@@ -15560,12 +15560,14 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 .resource-workspace-v2 .client-resource-view-title {
+  min-width: 0;
   max-width: 840px;
   display: grid;
   gap: 12px;
 }
 
 .resource-workspace-v2 .client-resource-view-title h3 {
+  min-width: 0;
   margin: 0;
   color: var(--platform-ink);
   font-family: var(--font-display);
@@ -15573,6 +15575,9 @@ details.coaching-frame > .coaching-frame-body > article p {
   font-weight: 400;
   line-height: 1.02;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  text-wrap: balance;
 }
 
 .resource-workspace-v2 .client-resource-view-lead {
@@ -16244,7 +16249,6 @@ details.coaching-frame > .coaching-frame-body > article p {
     font-size: 34px;
     max-width: 100%;
     white-space: normal;
-    overflow-wrap: break-word;
   }
 
   .resource-workspace-v2 .resource-block__heading,

@@ -6,6 +6,8 @@ Redaksjonelt beslutningsgrunnlag for neste innholdsutvidelse ligger i `docs/RESO
 
 ## Autoritative produktbeslutninger
 
+13. september 2026: Lokal retting av linjebryting for lange ressurstitler er dokumentert i `docs/RESOURCE_TITLE_RESPONSIVE_V1.md`. Titler, skriftstørrelser og innhold er uendret. Rettelsen er **ikke produksjonsført** og krever egen godkjenning før publisering.
+
 13. september 2026: Den lokale QA V2-batchen er avvist og tilbakeført. **Ikke lag eller erstatt illustrasjoner/PDF-er, og ikke bygg om modeller som del av redaksjonell QA.** Bevar originalene og skill konkrete tekstfeil fra forslag som krever avklaring. Status og arbeidsform står i `docs/RESOURCE_LIBRARY_EDITORIAL_QA_V2.md`.
 
 Avgrenset tekstpolering er dokumentert i `docs/RESOURCE_LIBRARY_EDITORIAL_POLISH_V1.md` og **produksjonsført 13. september 2026** etter godkjent før/etter-visning. Den bevarer alle illustrasjoner, PDF-er, oppgaver og modellstrukturer. Dette er ikke en gjeninnføring av QA V2 og gir ikke godkjenning til ytterligere endringer.
