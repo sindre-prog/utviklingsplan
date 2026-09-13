@@ -2,11 +2,15 @@
 
 ## Status
 
-13. september 2026: lokal implementering etter brukerens «go» til polering, ikke remake. **Ikke produksjonsført.** Produksjon krever egen godkjenning etter før/etter-visning.
+13. september 2026: implementert lokalt, gjennomgått i før/etter-visning og **produksjonsført** etter brukerens «kjør. ser greit ut.». Godkjenningen gjelder denne avgrensede tekstpoleringen, ikke remake eller ytterligere endringer.
 
 Dette er en ny, avgrenset batch. Den avviste QA V2-batchen forblir tilbakeført. Ingen tekster eller illustrasjoner fra den avviste batchen er brukt som utgangspunkt.
 
 Autoritativ rettelse: `supabase/migrations/20260913010000_resource_editorial_polish_v1.sql`. Payloaden inneholder både forventede originalfelt og korrigerte felt. Eldre migrasjoner er urørt.
+
+Produksjonsført fra commit `55576ca`. Den eksakte migrasjonen og registreringen i `supabase_migrations.schema_migrations` ble kjørt i samme transaksjon, med konfliktsjekk og låsetidsgrense. Ingen app- eller CSS-deploy var nødvendig. Den avviste V2-migrasjonen finnes ikke i produksjonens migrasjonshistorikk.
+
+Førkontrollen bekreftet originalverdier og identitet/status for alle 16 ressurser. Etterkontrollen bekreftet de 16 godkjente feltsettene. Antall ressurser (63), publiserte (49), utkast (14), filer (21, hvorav 10 aktive) og delinger (12) er uendret. Kontrollsummer er identiske for de 47 øvrige ressursene, uberørte felt, alle illustrasjons-/nedlastingsblokker, filrader, emneknagger, delinger inkludert klientrespons og lagringsobjektene i ressursbøtten. Ingen klientmelding eller e-post ble sendt.
 
 ## Avgrensning
 
@@ -60,10 +64,10 @@ Kildene under er kontrollert for de konkrete presiseringene. Praktiske arbeidsar
 
 Modellvarianter og forskjeller mellom enkelte figurer og tekster er notert i QA-kartleggingen, men gir ikke mandat til ombygging. Kübler-Ross, ABCDE, Kontrollsirkelen, Pareto og Karrieregrafen beholdes. Tankefeller og Eisenhower får bare tekstrettelsene angitt over. Faglige alternativer fra den gamle QA-rapporten er ikke en godkjent restliste.
 
-## Lokal kontroll og senere produksjon
+## Kontroll og produksjonsføring
 
 Kontrollert lokalt:
-- PostgreSQL mot midlertidige kopier av eksisterende ressurstabell med de 63 originalressursene. Hele testen ble rullet tilbake; lokal hoveddatabase og produksjon er urørt.
+- PostgreSQL mot midlertidige kopier av eksisterende ressurstabell med de 63 originalressursene. Hele testen ble rullet tilbake; testen endret verken lokal hoveddatabase eller produksjon. Produksjonsføringen skjedde separat etter godkjenning, som beskrevet øverst.
 - Forventede rettelser i alle 16 ressurser; alle andre felt/rader og 14 utkast identiske. Oppgaver, spørsmål, modellkort og filreferanser er kontrollert separat, inkludert hele Kübler-Ross-ressursen.
 - Gjentatt kjøring er en no-op, også med særskilt tidsstempeltest. Konflikt i siste ressurs, manglende ressurs, endret ID/status og arkivering avviser hele batchen. Nyere endring i et uberørt felt bevares.
 - 64 før/etter-sammenligninger: alle 16 ressurser i klient- og coachvisning ved 1280 og 390 pikslers bredde. Ingen JavaScript-feil, ukjente blokker eller nye overflytfeil.
@@ -76,12 +80,14 @@ Lokal gjennomgang: `http://localhost:8027/editorial-polish.html`. Den viser konk
 
 Feltvis endringslogg, databasekontroll, UI-kontroll og skjermbilder ligger i denne taskens `artifacts/` under `/Users/sindrejobb/Documents/Codex/2026-08-27/raeder-conversation-readiness-v1/`, med prefiks `resource-editorial-polish-v1` eller `polish-`. Det er ikke hentet klientdata til kontrollen.
 
+Produksjonens førverdier og etterkontroll er bevart i `resource-editorial-polish-v1-before-production-20260913.json` og `resource-editorial-polish-v1-after-production-20260913.json` i samme mappe. Bare ressursfelt er hentet ut; klientdelinger er kontrollert med antall og kontrollsum, ikke innholdseksport.
+
 Migrasjonen følger eksisterende mønster: stabil slug, låsing og validering av hele batchen før første oppdatering, og typet `jsonb_populate_record`. Den sammenligner bare feltene som skal endres, med originale verdier i payloaden. Nyere endring i et berørt felt, manglende ressurs, endret identitet/status eller arkivering avbryter hele batchen. Uvedkommende redigeringer bevares. Allerede identiske rettelser hoppes over uten nytt tidsstempel.
 
-Før eventuell produksjon:
+Rutinen som ble fulgt ved produksjonsføring:
 1. Innhent eksplisitt godkjenning av før/etter-visningen.
 2. Les gjeldende ressursfelt og kontroller mot baseline; ikke overstyr en konflikt.
 3. Kontroller at bare denne godkjente migrasjonen inngår. Den avviste V2 skal ikke gjeninnføres.
 4. Bevar førverdier og kontroller felter, filer og delinger etterpå.
 
-Publiserte ressurser leses også gjennom eksisterende delinger. En senere produksjonsført tekstrettelse blir derfor synlig der, men endrer ikke klientrespons eller eksisterende coachmelding. Migrasjonen sender ingen e-post.
+Publiserte ressurser leses også gjennom eksisterende delinger. Tekstrettelsene er derfor synlige der, men endrer ikke klientrespons eller eksisterende coachmelding. Migrasjonen sender ingen e-post.
