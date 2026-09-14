@@ -6,6 +6,10 @@ Redaksjonelt beslutningsgrunnlag for neste innholdsutvidelse ligger i `docs/RESO
 
 ## Autoritative produktbeslutninger
 
+14. september 2026: Kategorioverskriftene i coach-/adminbiblioteket er justert **lokalt, ikke produksjonsført**, etter godkjenning. De skal samle ressursene visuelt med 14 px mørk, halvfet tekst, 12 px vertikal luft, 20 px sideinnrykk og eksisterende nøytral bakgrunnsfarge. Antallet vises som `1 ressurs` / `5 ressurser` og følger gjeldende søk og filtre. Lange kategorinavn kan brytes; antallet holdes samlet til høyre. Eksisterende regler i `styles.css` er rettet, inkludert fjerning av det gamle unntaket for første kategori. Ingen ekstra CSS-overstyringer eller nye komponenter.
+
+Lokal kontroll: 49 ressurskort har identisk HTML, padding og tittelstørrelse før/etter. Åtte kategorier, lange navn, entall/flertall, null treff, område- og typefilter er kontrollert. Coach-/adminvisning er kontrollert ved desktop- og nettbrettbredder; ved 390 px brukes fortsatt den eksisterende mobilvelgeren, og ressursvalg er testet. Ingen registrerte JavaScript-feil. Kontrollen bruker portalens faktiske liste-/filterfunksjoner og ressurskomponenter med en lagret ressurssnapshot, uten backendtilkobling. Ingen innholds-, fil-, klient- eller databaseendringer. Produksjon krever egen godkjenning og ny cacheversjon for både `app.js` og `styles.css` i `index.html`.
+
 13. september 2026: Retting av linjebryting for lange ressurstitler er **produksjonsført og verifisert** etter godkjent før/etter-visning. Titler, skriftstørrelser og innhold er uendret. Implementering, cacheversjon og publiseringskontroll er dokumentert i `docs/RESOURCE_TITLE_RESPONSIVE_V1.md`.
 
 13. september 2026: Den lokale QA V2-batchen er avvist og tilbakeført. **Ikke lag eller erstatt illustrasjoner/PDF-er, og ikke bygg om modeller som del av redaksjonell QA.** Bevar originalene og skill konkrete tekstfeil fra forslag som krever avklaring. Status og arbeidsform står i `docs/RESOURCE_LIBRARY_EDITORIAL_QA_V2.md`.

@@ -2186,7 +2186,7 @@ async function renderResources() {
         ? el("div", { class: "resource-card-list" }, groupedResources.flatMap((group) => [
           el("div", { class: "resource-card-group-head" }, [
             el("strong", { text: group.label }),
-            el("span", { text: String(group.resources.length) })
+            el("span", { text: `${group.resources.length} ${group.resources.length === 1 ? "ressurs" : "ressurser"}` })
           ]),
           ...group.resources.map((resource) => library.createResourceCard(resource, {
             createElement: el,
