@@ -16873,3 +16873,95 @@ details.coaching-frame > .coaching-frame-body > article p {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
+
+/* Design pass v1 (UX_DIRECTION_AMINO_REFERENCE): display type, one header, calm status colour. */
+#content h2,
+#content h3:not(.competency-browser-group-title),
+.competency-chooser h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+#content h3:not(.competency-browser-group-title) {
+  font-size: max(1em, 22px);
+  line-height: 1.2;
+}
+
+#content .workspace-pane .ui-page-intro > div > .workspace-kicker {
+  display: none;
+}
+
+.workspace:has(.workspace-pane.active:not([data-pane="now"])) #view-title {
+  font-size: 30px;
+}
+
+.workspace:has(.workspace-pane.active:not([data-pane="now"])) #view-kicker {
+  display: none;
+}
+
+.ui-meta.type-chip,
+.leadership-track-head .ui-meta,
+.competency-browser-count .ui-meta {
+  border-color: var(--platform-line-strong);
+  background: var(--neutral-50);
+  color: var(--platform-muted);
+}
+
+#content .focus-view-tab .focus-model-type {
+  font-size: 11px;
+}
+
+#content .focus-view-tab strong {
+  font-size: 16px;
+}
+
+#content .focus-view-tab .focus-model-question {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#content .focus-view-tab .focus-model-count {
+  border-radius: 999px;
+  background: var(--neutral-100);
+  color: var(--platform-muted);
+}
+
+#content .competency-workspace-head h3 {
+  font-size: 30px;
+}
+
+#content .direction-row-status:has(.lucide-check) {
+  border-color: var(--status-success-border);
+  background: var(--status-success-container);
+  color: var(--status-success);
+}
+
+@media (max-width: 700px) {
+  #content .workspace-tabs {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  #content .workspace-tabs .workspace-tab-group-main {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  #content .workspace-tabs .workspace-tab-group-main::-webkit-scrollbar {
+    display: none;
+  }
+
+  #content .workspace-tabs .workspace-tab-group-main .workspace-tab {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    grid-column: auto;
+    white-space: nowrap;
+  }
+}
