@@ -16992,8 +16992,8 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
   }
 
   .app-shell.is-client-workspace #content .workspace-tabs {
-    position: fixed;
-    top: 12px;
+    position: absolute;
+    top: -64px;
     left: 50%;
     z-index: 61;
     margin: 0;
@@ -17009,7 +17009,7 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
   }
 
   .app-shell.is-client-workspace #content .workspace-navigation {
-    position: absolute;
+    display: contents;
   }
 
   .app-shell.is-client-workspace .workspace:has(.workspace-pane.active[data-pane="now"]) #content {
@@ -17017,8 +17017,8 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
   }
 
   .app-shell.is-client-workspace #content .workspace-save-row {
-    position: fixed;
-    top: 86px;
+    position: absolute;
+    top: 10px;
     right: 84px;
     z-index: 61;
     padding: 4px 10px;
