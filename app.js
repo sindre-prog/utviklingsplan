@@ -4,9 +4,9 @@ const CONSENT_VERSION = "coaching-portal-v1";
 
 const EXPERIMENT_STATUS = {
   planned: "Planlagt",
-  active: "I gang",
+  active: "Prøves ut",
   reviewed: "Prøvd og reflektert",
-  continued: "Videreføres",
+  continued: "Videreført",
   closed: "Avsluttet"
 };
 const EXPERIMENT_STATUS_OPTIONS = Object.entries(EXPERIMENT_STATUS);
