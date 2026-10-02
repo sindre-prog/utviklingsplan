@@ -17244,3 +17244,47 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
   background: var(--platform-ink);
   color: var(--platform-paper);
 }
+
+/* Design prototype: calmer type for client (darker grey, fewer capitals, 13px floor for meta text). */
+.app-shell.is-client-workspace {
+  --platform-muted: var(--neutral-700);
+  --platform-faint: var(--neutral-600);
+  --type-body: 16px;
+}
+
+.app-shell.is-client-workspace #view-kicker,
+.app-shell.is-client-workspace #content .now-setup-head .workspace-kicker {
+  display: none;
+}
+
+.app-shell.is-client-workspace #content :is(.eyebrow, .workspace-kicker, .focus-model-type, .development-model-origin-copy small) {
+  color: var(--platform-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.app-shell.is-client-workspace #content :is(
+  .content-card-body,
+  .leadership-suggestion-note,
+  .focus-model-question,
+  .development-model-origin-question,
+  .competency-reference li,
+  .competency-reference p
+) {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.app-shell.is-client-workspace #content :is(
+  .leadership-track-heading small,
+  .competency-reference-title,
+  .ui-meta,
+  .plan-status-chip,
+  .focus-model-count,
+  .now-setup-selection small,
+  .now-setup-labels small
+) {
+  font-size: 13px;
+}
