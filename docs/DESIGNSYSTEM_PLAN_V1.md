@@ -174,7 +174,7 @@ Hvert steg er én PR til `main`. Produkteier tester innlogget før merge.
 | 8 | Skisser av Samtaler, Refleksjon og Ressurser til godkjenning | Nei |
 | 9 | Samtaler, Refleksjon og Ressurser bygges om. `legacy` tømmes og fjernes. | Ja |
 
-Steg 7 kan flyttes før steg 5 hvis produkteier ønsker det. Byggeklossen `ds-qa` lages slik at den kan brukes både med og uten automatisk lagring.
+Byggeklossen `ds-qa` lages slik at den kan brukes både med og uten automatisk lagring.
 
 ### Når et steg er ferdig
 
