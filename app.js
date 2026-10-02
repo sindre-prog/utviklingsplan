@@ -3519,15 +3519,14 @@ function leadershipSelectedList(items, suggestions, detail, data, editable) {
       ])
     ]);
   });
-  const atLimit = clientOwnsChoice && items.length >= 3;
   return el("div", { class: "leadership-master leadership-track-list workspace-master-rail" }, [
     el("div", { class: "leadership-track-head workspace-master-head" }, [
       el("strong", { text: "Lederkompetanser" }),
-      el("span", { class: "ui-meta", text: `${items.length} av 3 aktive` })
+      el("span", { class: "ui-meta", text: `${items.length} aktive` })
     ]),
     ...rows,
     ...suggestions.map((item) => leadershipSuggestionRow(item, data, editable)),
-    editable && !atLimit
+    editable
       ? el("button", {
         class: "ui-add-row leadership-add-competency",
         type: "button",
@@ -3536,8 +3535,7 @@ function leadershipSelectedList(items, suggestions, detail, data, editable) {
         el("span", { class: "ui-add-icon add-orb", "aria-hidden": "true" }, [icon("plus")]),
         el("strong", { text: clientOwnsChoice ? "Legg til lederkompetanse" : "Foreslå lederkompetanse" })
       ])
-      : null,
-    editable && atLimit ? el("p", { class: "muted leadership-limit-note", text: "Arkiver en aktiv lederkompetanse for å gjøre plass." }) : null
+      : null
   ].filter(Boolean));
 }
 
@@ -3804,7 +3802,7 @@ function competencyChooserLayout(data, competencies, selectedIds) {
   const selectedCount = selectedItems.length;
   const hasPrimary = selectedItems.some((item) => Number(item.priority) === 1);
   const selectionSummary = selectedCount
-    ? `${selectedCount} av 3 aktive${hasPrimary ? " · én prioritert nå" : ""}`
+    ? `${selectedCount} aktive${hasPrimary ? " · én prioritert nå" : ""}`
     : "Ingen aktive valgt";
   const categoryOrder = ["foundation", "self_capacity", "relationships_influence", "team_people", "execution_decisions", "strategy_business_change", "derailer"];
   const categoryOptions = [["all", "Alle utviklingsområder"], ...Array.from(new Map(competencies.map((item) => [item.category, item.categoryLabel || "Andre"])).entries())
@@ -3957,7 +3955,6 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
   const suggested = selectedItem?.status === "suggested";
   const clientOwnsSelection = isClientCompetencyOwner();
   const canActivateSuggestion = suggested && clientOwnsSelection;
-  const maxReached = clientOwnsSelection && selectedCount >= 3 && !selected;
   const previewList = (title, iconName, items, tone = "") => items?.length ? el("section", { class: `competency-preview-section ${tone}`.trim() }, [
     el("div", { class: "competency-preview-section-title" }, [icon(iconName), el("h4", { text: title })]),
     el("ul", {}, items.map((item) => el("li", { text: item })))
@@ -3977,11 +3974,11 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
   const chooseAction = () => el("button", {
     class: "ui-button ui-button-filled competency-select-action",
     type: "button",
-    disabled: selected || (suggested && !canActivateSuggestion) || (maxReached && !canActivateSuggestion),
+    disabled: selected || (suggested && !canActivateSuggestion),
     onclick: async () => {
       await selectLeadershipCompetency(data, competency, { closeChooser: true });
     }
-  }, [icon(selected || suggested ? "check" : "plus"), el("span", { text: selected ? "Allerede aktiv" : suggested && canActivateSuggestion ? clientSelectionLabel : suggested ? "Foreslått for klienten" : maxReached ? "Tre lederkompetanser er aktive" : clientOwnsSelection ? clientSelectionLabel : "Foreslå for klienten" })]);
+  }, [icon(selected || suggested ? "check" : "plus"), el("span", { text: selected ? "Allerede aktiv" : suggested && canActivateSuggestion ? clientSelectionLabel : suggested ? "Foreslått for klienten" : clientOwnsSelection ? clientSelectionLabel : "Foreslå for klienten" })]);
 
   return el("article", { class: "competency-preview-card" }, [
     el("button", { class: "competency-preview-back mobile-only", type: "button", onclick: onBack }, [icon("arrow-left"), el("span", { text: "Til biblioteket" })]),
@@ -4025,7 +4022,7 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
       ].filter(Boolean))
     ]),
     el("footer", { class: "competency-preview-footer" }, [
-      el("span", { class: "muted", text: selected ? "Denne lederkompetansen er aktiv i utviklingsplanen." : suggested && maxReached ? "Forslaget er ikke aktivt. Arkiver en aktiv lederkompetanse før du kan aktivere det." : suggested ? "Coachen har foreslått lederkompetansen; klienten eier aktiveringen." : maxReached ? "Arkiver en aktiv lederkompetanse for å gjøre plass." : "Valget kan endres senere." }),
+      el("span", { class: "muted", text: selected ? "Denne lederkompetansen er aktiv i utviklingsplanen." : suggested ? "Coachen har foreslått lederkompetansen; klienten eier aktiveringen." : "Valget kan endres senere." }),
       chooseAction()
     ])
   ].filter(Boolean));
@@ -4053,13 +4050,9 @@ async function selectLeadershipCompetency(data, competency, { closeChooser = fal
     await reloadProgramAndRender("work");
     return;
   }
-  if (selectedItems.length >= 3) {
-    await showAppMessage("Velg maks tre aktive kompetanser", "Du kan ha inntil tre aktive lederkompetanser. Arkiver en aktiv kompetanse før du legger til en ny.");
-    return;
-  }
   const usedPriorities = new Set(selectedItems.map((item) => Number(item.priority)));
-  const nextPriority = [1, 2, 3].find((priority) => !usedPriorities.has(priority));
-  if (!nextPriority) return;
+  let nextPriority = 1;
+  while (usedPriorities.has(nextPriority)) nextPriority += 1;
   let created = null;
   try {
     created = await library.selectProgramCompetency(state.sb, data.program.id, competency.id, nextPriority);
