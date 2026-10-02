@@ -16866,3 +16866,10 @@ details.coaching-frame > .coaching-frame-body > article p {
     overflow: visible;
   }
 }
+
+.now-progress-metric strong {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}

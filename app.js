@@ -539,7 +539,7 @@ async function loadProgramSummaries() {
   (actions || []).forEach((action) => {
     const summary = Object.values(state.programSummaries).find((item) => item.id === action.program_id);
     if (!summary) return;
-    registerSummaryActivity(summary, action, ["updated_at", "created_at"], "Arbeidsnotat endret");
+    registerSummaryActivity(summary, action, ["updated_at", "created_at"], "Eksperiment endret");
     if (isExperimentActive(action.status)) {
       summary.activeExperimentCount = (summary.activeExperimentCount || 0) + 1;
       if (action.due_date && action.due_date < localIsoDate()) summary.overdueExperimentCount = (summary.overdueExperimentCount || 0) + 1;
@@ -4333,11 +4333,11 @@ function nowActionItems({ data, plan }) {
     items.push(createNowAction({
       key: "action-note",
       priority: 50,
-      kicker: "Arbeidsnotat",
-      title: datedAction.title || "Notat med tilbakeblikkdato",
-      description: summary || (datedAction.due_date ? `Dato satt til ${formatDate(datedAction.due_date)}.` : "Dette notatet kan åpnes hvis du vil oppdatere det."),
+      kicker: "Eksperiment",
+      title: datedAction.title || "Eksperiment",
+      description: summary || `Dato satt til ${formatDate(datedAction.due_date)}.`,
       iconName: "calendar-clock",
-      ctaLabel: "Åpne notat",
+      ctaLabel: "Følg opp eksperiment",
       onAction: () => editAction(datedAction, data)
     }));
   }
@@ -4382,9 +4382,9 @@ function nowWorkspace(client, data, plan) {
   return el("div", { class: "platform-page now-workspace now-workspace-v2" }, [
     pageIntro("Akkurat nå", "Oversikt akkurat nå", "Se hvor du står, hva du jobber med og hva som venter."),
     setup,
-    primary ? nowPrimaryAction(primary, editable) : setup ? null : nowEmptyState(editable),
+    primary ? nowPrimaryAction(primary, editable) : null,
     nowActionGrid(supporting, editable),
-    setup ? null : nowProgressStrip({ primaryCompetency, focusItems, actions: data.actions || [], sessions: plan.sessions || [], resources: data.sharedResources || [] })
+    setup ? null : nowProgressStrip({ primaryCompetency, activeCompetencies: activeLeadershipCompetencies(data), focusItems, actions: data.actions || [], sessions: plan.sessions || [], resources: data.sharedResources || [] })
   ].filter(Boolean));
 }
 
@@ -4394,28 +4394,26 @@ function nowSetupSection({ data, plan, editable }) {
   const draftOuterFocus = nowDraftFocusAssignment(plan);
   const activeCompetencies = activeLeadershipCompetencies(data);
   const primaryCompetency = activeCompetencies[0] || null;
-  if (direction.completed >= direction.total && outerFocus && primaryCompetency) return null;
+  const openExperiments = (data.actions || []).filter((action) => isExperimentActive(action.status));
+  const directionComplete = Boolean((plan.c_purpose || "").trim());
+  if (directionComplete && outerFocus && primaryCompetency && openExperiments.length) return null;
 
   const suggestions = (data.programCompetencies || []).filter((item) => item.status === "suggested");
   const clientOwnsChoice = state.profile.role === "client";
-  const directionComplete = direction.completed >= direction.total;
-  let firstMissingKey = "inner";
+  let firstMissingKey = "experiment";
   if (!directionComplete) firstMissingKey = "direction";
   else if (!outerFocus) firstMissingKey = "outer";
+  else if (!primaryCompetency) firstMissingKey = "inner";
 
   let directionStatus = "Avklart";
   if (direction.completed === 0) directionStatus = "Ikke avklart";
-  else if (!directionComplete) directionStatus = `${direction.completed} av ${direction.total} avklaringer`;
+  else if (!directionComplete || direction.completed < direction.total) directionStatus = `${direction.completed} av ${direction.total} avklaringer`;
 
   let innerStatus = activeCompetencies.map((item) => item.title || "Lederkompetanse").join(" · ") || "Valgt";
-  if (!primaryCompetency && !outerFocus) innerStatus = "Velges etter ytre prosjekt";
-  else if (!primaryCompetency && suggestions.length) innerStatus = clientOwnsChoice ? "Forslag fra coach" : "Forslag sendt til klienten";
+  if (!primaryCompetency && suggestions.length) innerStatus = clientOwnsChoice ? "Forslag fra coach" : "Forslag sendt til klienten";
   else if (!primaryCompetency) innerStatus = clientOwnsChoice ? "Ikke valgt ennå" : "Klienten har ikke valgt";
 
-  let innerAction = null;
-  if (outerFocus && editable) {
-    innerAction = { label: "Åpne indre prosjekter", onAction: () => openNowCompetency(primaryCompetency) };
-  }
+  const innerAction = editable ? { label: "Åpne indre prosjekter", onAction: () => openNowCompetency(primaryCompetency) } : null;
   const rows = [
     {
       key: "direction",
@@ -4433,7 +4431,7 @@ function nowSetupSection({ data, plan, editable }) {
       objectLabel: "Fokusoppdrag",
       question: "Hva er viktigst å lykkes med i jobben nå?",
       valueLabel: outerFocus ? "Valgt fokusoppdrag" : "Status",
-      value: outerFocus?.area?.title || (draftOuterFocus ? "Ikke opprettet" : "Ikke valgt ennå"),
+      value: outerFocus?.area?.title || (draftOuterFocus ? "Ikke ferdigstilt" : "Ikke valgt ennå"),
       complete: Boolean(outerFocus),
       action: editable ? {
         label: "Åpne ytre prosjekter",
@@ -4448,8 +4446,25 @@ function nowSetupSection({ data, plan, editable }) {
       valueLabel: primaryCompetency ? "Valgte lederkompetanser" : "Status",
       value: innerStatus,
       complete: Boolean(primaryCompetency),
-      blocked: !outerFocus,
       action: innerAction
+    },
+    {
+      key: "experiment",
+      label: "Prøv i praksis",
+      objectLabel: "Eksperiment",
+      question: "Hva vil du prøve i praksis?",
+      valueLabel: openExperiments.length ? `Åpne · ${openExperiments.length}` : "Status",
+      value: openExperiments.length
+        ? openExperiments.map((action) => action.title || "Eksperiment").join(" · ")
+        : "Ingen åpne eksperimenter",
+      complete: openExperiments.length > 0,
+      action: editable ? {
+        label: "Se alle eksperimenter",
+        onAction: () => {
+          state.focusView = "experiments";
+          renderCachedProgram("work");
+        }
+      } : null
     }
   ];
 
@@ -4539,13 +4554,14 @@ function nowActionGrid(items = [], editable) {
   ]);
 }
 
-function nowProgressStrip({ primaryCompetency, focusItems, actions, sessions, resources }) {
+function nowProgressStrip({ primaryCompetency, activeCompetencies = [], focusItems, actions, sessions, resources }) {
+  const competencyNames = activeCompetencies.map((item) => item.title || "Lederkompetanse").join(" · ");
   return el("section", { class: "now-progress-strip", "aria-label": "Status i utviklingsforløpet" }, [
     nowProgressMetric("Ytre prosjekt", focusItems[0]?.area?.title || "Ikke valgt", "briefcase-business", () => openNowFocusAssignment(focusItems[0] || null)),
-    nowProgressMetric("Indre prosjekt", primaryCompetency?.title || "Ikke valgt", "compass", () => openNowCompetency(primaryCompetency)),
+    nowProgressMetric("Indre prosjekt", competencyNames || "Ikke valgt", "compass", () => openNowCompetency(primaryCompetency)),
     nowProgressMetric("Samtaler", String(sessions.length || 0), "messages-square", () => activateWorkspacePane("sessions")),
     nowProgressMetric("Ressurser", String(resources.length || 0), "book-open", () => activateWorkspacePane("resources")),
-    nowProgressMetric("Arbeidsnotater", String(actions.length || 0), "file-text", () => {
+    nowProgressMetric("Eksperimenter", String(actions.filter((action) => isExperimentActive(action.status)).length), "flask-conical", () => {
       state.focusView = "experiments";
       renderCachedProgram("work");
     })
@@ -4560,19 +4576,6 @@ function nowProgressMetric(label, value, iconName, onAction) {
       el("strong", { text: value })
     ])
   ]);
-}
-
-function nowEmptyState(editable) {
-  return el("section", { class: "now-primary-action now-empty-action", "aria-labelledby": "now-empty-title" }, [
-    el("span", { class: "now-primary-icon", "aria-hidden": "true" }, [icon("file-text")]),
-    el("div", { class: "now-primary-copy" }, [
-      el("span", { class: "workspace-kicker", text: "Oversikt" }),
-      el("h3", { id: "now-empty-title", text: "Planen er tom foreløpig" }),
-      el("p", { text: "Fyll ut mål og rammer, utviklingsfokus eller samtalenotater når det gir verdi i forløpet." }),
-      el("small", { text: "Portalen kan brukes som enkel dokumentasjon. Det er ikke meningen at alt skal fylles ut." })
-    ]),
-    editable ? el("button", { class: "ui-button ui-button-filled now-primary-cta", type: "button", text: "Åpne forløpet", onclick: () => activateWorkspacePane("direction") }) : null
-  ].filter(Boolean));
 }
 
 function focusWorkbench(items, data, editable) {
@@ -4749,12 +4752,7 @@ function focusDetail({ area, index }, data, editable) {
   const activeActions = actions.filter((action) => isExperimentActive(action.status));
   const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active");
   const planStatus = focusPlanStatus(area);
-  const missingStep = [
-    ["movement", "Beskriv ønsket utfall", "Hva skal du oppnå – eller hva skal bli annerledes?", "Beskriv ønsket utfall"],
-    ["typicalSituations", "Velg hvor forskjellen skal merkes", "Hvilken situasjon, leveranse, møte eller relasjon er viktigst – og for hvem?", "Velg arbeidsarena"],
-    ["progressSigns", "Velg et tegn på fremgang", "Hva vil vise at arbeidet er på rett vei?", "Velg tegn på fremgang"]
-  ].find(([fieldKey]) => !((fieldKey === "movement" ? area.movement || area.description : area[fieldKey]) || "").trim());
-  const needsInnerProject = area.projectType === "outer" && !missingStep && !activeCompetencies.length;
+  const needsInnerProject = area.projectType === "outer" && !activeCompetencies.length;
   let nextStep = activeActions.length
     ? { label: "Følg opp eksperimentet", helper: "Åpne eksperimentet og noter hva du observerte.", actionLabel: "Følg opp eksperiment", onAction: () => editAction(activeActions[0], data) }
     : { label: "Planlegg første eksperiment", helper: "Gjør neste steg lite nok til å prøve i en faktisk arbeidssituasjon.", actionLabel: "Legg til eksperiment", onAction: () => createAction(data, area.id) };
@@ -4767,14 +4765,6 @@ function focusDetail({ area, index }, data, editable) {
         state.focusView = "competencies";
         renderCachedProgram("work");
       }
-    };
-  }
-  if (missingStep) {
-    nextStep = {
-      label: missingStep[1],
-      helper: missingStep[2],
-      actionLabel: missingStep[3],
-      onAction: () => openFocusField(index, missingStep[0])
     };
   }
   return el("section", { class: "focus-detail-card competency-workspace workspace-detail-surface" }, [
@@ -4798,7 +4788,6 @@ function focusDetail({ area, index }, data, editable) {
       editable ? iconAction("Arkiver fokusoppdrag", "archive", () => deleteFocusArea(index), "danger") : null
     ].filter(Boolean)),
     workspaceNextStep({
-      complete: planStatus.ready,
       label: nextStep.label,
       helper: nextStep.helper,
       actionLabel: nextStep.actionLabel,
