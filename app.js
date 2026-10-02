@@ -2,6 +2,7 @@ const SUPABASE_URL = "https://upuffmfgsxlzybifxveg.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_YLVxFqksi1wCmh-jF14mLA_0AGV03Gq";
 const CONSENT_VERSION = "coaching-portal-v1";
 
+const ACTIVE_COMPETENCY_RECOMMENDATION = "Tre lederkompetanser samtidig er ofte nok til å holde fokus og prøve dem i praksis. Du kan likevel legge til flere.";
 const EXPERIMENT_STATUS = {
   planned: "Planlagt",
   active: "Prøves ut",
@@ -3535,7 +3536,8 @@ function leadershipSelectedList(items, suggestions, detail, data, editable) {
         el("span", { class: "ui-add-icon add-orb", "aria-hidden": "true" }, [icon("plus")]),
         el("strong", { text: clientOwnsChoice ? "Legg til lederkompetanse" : "Foreslå lederkompetanse" })
       ])
-      : null
+      : null,
+    clientOwnsChoice && items.length >= 3 ? el("p", { class: "muted leadership-limit-note", text: ACTIVE_COMPETENCY_RECOMMENDATION }) : null
   ].filter(Boolean));
 }
 
@@ -4022,7 +4024,7 @@ function competencyPreview(competency, data, selectedIds, selectedCount, onBack)
       ].filter(Boolean))
     ]),
     el("footer", { class: "competency-preview-footer" }, [
-      el("span", { class: "muted", text: selected ? "Denne lederkompetansen er aktiv i utviklingsplanen." : suggested ? "Coachen har foreslått lederkompetansen; klienten eier aktiveringen." : "Valget kan endres senere." }),
+      el("span", { class: "muted", text: selected ? "Denne lederkompetansen er aktiv i utviklingsplanen." : suggested ? "Coachen har foreslått lederkompetansen; klienten eier aktiveringen." : clientOwnsSelection && selectedCount >= 3 ? ACTIVE_COMPETENCY_RECOMMENDATION : "Valget kan endres senere." }),
       chooseAction()
     ])
   ].filter(Boolean));
