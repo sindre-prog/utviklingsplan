@@ -4410,7 +4410,7 @@ function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
   ]);
 
   return el("section", { class: "now-focus-overview", "aria-labelledby": "now-focus-overview-title" }, [
-    el("h2", { class: "now-focus-overview-title", id: "now-focus-overview-title", text: "Ditt utviklingsfokus" }),
+    el("h2", { class: "now-focus-overview-title", id: "now-focus-overview-title", text: state.profile?.role === "client" ? "Det du jobber med" : "Det klienten jobber med" }),
     el("div", { class: "now-focus-columns" }, [
       column({
         key: "outer",

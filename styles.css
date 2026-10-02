@@ -16967,11 +16967,15 @@ details.coaching-frame > .coaching-frame-body > article p {
 }
 
 /* Design prototype: «Ditt utviklingsfokus», tabs in the top bar, warm canvas with white cards. */
+:root {
+  --client-canvas: color-mix(in srgb, var(--brand-cream) 55%, #ffffff);
+}
+
 body:has(.app-shell.is-client-workspace:not(.hidden)),
 .app-shell.is-client-workspace,
 .app-shell.is-client-workspace .sidebar,
 .app-shell.is-client-workspace .topline {
-  background: var(--brand-cream);
+  background: var(--client-canvas);
 }
 
 .app-shell.is-client-workspace .workspace:has(.workspace-pane.active:not([data-pane="now"])) .topline {
@@ -17027,7 +17031,7 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
   display: grid;
   gap: 24px;
   padding: 28px 32px 32px;
-  border-radius: 16px;
+  border-radius: 8px;
   background: var(--platform-paper);
   box-shadow: 0 1px 2px rgba(30, 25, 28, .04), 0 12px 32px rgba(30, 25, 28, .06);
 }
@@ -17121,7 +17125,7 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
   align-content: center;
   padding: 12px 14px 12px 16px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--neutral-50);
   color: var(--platform-ink);
   text-align: left;
@@ -17164,7 +17168,7 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
   margin: 0;
   padding: 16px;
   border: 1px dashed var(--platform-line-strong);
-  border-radius: 10px;
+  border-radius: 6px;
   color: var(--platform-muted);
   font-size: 14px;
 }
