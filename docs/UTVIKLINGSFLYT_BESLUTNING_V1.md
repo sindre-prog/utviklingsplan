@@ -1,6 +1,6 @@
 # Beslutningsnotat: utviklingsflyten V1
 
-Status: utkast til godkjenning. Ingen kode, skjerm eller kontrakt endres før notatet er godkjent.
+Status: godkjent av produkteier 2. oktober 2026. Migreringen som fjerner grensen på tre aktive krever egen godkjenning før den kjøres.
 
 ## Hensikt
 
@@ -157,5 +157,5 @@ Gjennomgått i biblioteket (velgeren) og arbeidsflaten, desktop og mobil, klient
 
 1. Tre aktive lederkompetanser er en anbefaling, ikke en grense.
 2. Forløpet er på plass når `Hva vil du oppnå?` er fylt ut.
-3. Statusord for eksperimenter: se egen del. Venter på godkjenning.
+3. Statusord for eksperimenter: se egen del.
 4. Planstatusen beholdes som beskrivelse og styrer ikke neste steg.

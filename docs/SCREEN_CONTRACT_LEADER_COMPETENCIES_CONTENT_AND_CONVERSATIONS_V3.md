@@ -2,6 +2,8 @@
 
 Status: implementert på isolert feature-branch. Overstyrer V2 der innhold, refleksjonskobling og Samtaler berøres.
 
+`Hovedfokus` og `Støttende kompetanse` i denne kontrakten er erstattet av `Prioritert nå` og `Aktiv`. Se `IMPLEMENTATION_GUARDRAILS.md`.
+
 ## Brukerflyt
 
 ```text

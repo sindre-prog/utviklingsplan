@@ -14,7 +14,7 @@ Seksjonen `Sett grunnlaget for forløpet` vises når minst én av disse mangler:
 2. `Ytre prosjekt · Fokusoppdrag`
 3. `Indre prosjekt · Lederkompetanser`
 
-Hver rad viser beslutningsspørsmål, faktisk status eller et tydelig merket valg og en handling når rollen har tilgang. Valgte verdier vises i kopifeltet som `Valgt fokusoppdrag: ...` og `Valgte lederkompetanser: ...`; de skal ikke stå som løs tekst i en egen statuskolonne. Første uløste steg får tydeligst handling. Ytre prosjekt kan åpnes før alle mål og rammer er ferdige; indre prosjekt blir handlingsbart når et ytre prosjekt finnes.
+Hver rad viser beslutningsspørsmål, faktisk status eller et tydelig merket valg og en handling når rollen har tilgang. Valgte verdier vises i kopifeltet som `Valgt fokusoppdrag: ...` og `Valgte lederkompetanser: ...`; de skal ikke stå som løs tekst i en egen statuskolonne. Første uløste steg får tydeligst handling. Rekkefølgen er anbefalt, ikke låst: hver rad har egen handling, uavhengig av de andre radene. Se `UTVIKLINGSFLYT_BESLUTNING_V1.md`.
 
 Den tekniske opprettelsestittelen `Nytt fokusoppdrag` er ikke et reelt valg. Et slikt utkast vises som `Ikke ferdigstilt`, teller ikke som valgt og åpnes igjen når klienten fortsetter arbeidet. Fokusoppdraget må få et faktisk navn før det inngår som valgt i oversikten.
 
@@ -45,7 +45,7 @@ Samtaler, ressurser, refleksjoner og andre samtalerelevante elementer kan fortsa
 
 - Alle manglende deler er synlige samtidig uten å fremstå som tre likeverdige oppgaver.
 - Første uløste steg er visuelt prioritert.
-- Indre prosjekt forklarer avhengigheten til ytre prosjekt.
+- Ingen rad står uten handling på grunn av en annen rad.
 - Et tomt fokusoppdragsutkast kan ikke markere ytre prosjekt som valgt.
 - Valgte fokusoppdrag og lederkompetanser har en språklig etikett som forklarer verdien.
 - Ytre og indre prosjekt har en tydelig, felles tilhørighet til Utviklingsfokus.

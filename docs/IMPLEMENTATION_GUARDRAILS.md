@@ -24,9 +24,16 @@ The main navigation remains:
 
 In section-level UI copy, `Ytre prosjekt` must be paired with `Fokusoppdrag`, and `Indre prosjekt` must be paired with `Lederkompetanser`, until the relationship is self-evident from context. Singular `Lederkompetanse` is retained for one selected competency or one detail view. Do not reverse the sequence or reintroduce leader competencies and focus assignments as unexplained parallel concepts.
 
-The client may have up to three active leadership competencies. One is `Prioritert nå`; the others are simply `Aktiv`. Do not reintroduce `Støttende kompetanse` in visible copy. Keep the existing priority values for compatibility, and let the client own activation and reprioritization.
+Three active leadership competencies at a time is a recommendation, not a limit. One is `Prioritert nå`; the others are simply `Aktiv`. Do not reintroduce `Støttende kompetanse` in visible copy. Keep the existing priority values for compatibility, and let the client own activation and reprioritization. Until the database migration that removes the limit is approved and applied, the database still stops a fourth active competency.
 
-The next-step flow must preserve the same sequence. A completed `Ytre prosjekt` routes to `Indre prosjekt` when no active leadership competence exists; only after an inner project exists may the flow route to a practice experiment.
+The sequence is recommended, not locked. Each part can be created, edited and archived without another part existing, and no part may require fields in another part to be filled in. The next step points only to the first missing part of the model and never blocks or hides other parts. A part is in place when:
+
+- `Forløpet`: `Hva vil du oppnå?` is filled in.
+- `Ytre prosjekt · Fokusoppdrag`: at least one Fokusoppdrag has a real name. `Nytt fokusoppdrag` does not count.
+- `Indre prosjekt · Lederkompetanser`: at least one leadership competency is `Aktiv`.
+- `Prøv i praksis · Eksperiment`: at least one experiment is `planned` or `active`.
+
+See `UTVIKLINGSFLYT_BESLUTNING_V1.md`.
 
 ## Enforcement Rules
 
@@ -135,7 +142,7 @@ The following must be resolved before building heavy new UI:
    UI labels:
    - `planned` -> `Planlagt`
    - `active` -> `Prøves ut`
-   - `reviewed` -> `Avlest`
+   - `reviewed` -> `Prøvd og reflektert`
    - `continued` -> `Videreført`
    - `closed` -> `Avsluttet`
 
