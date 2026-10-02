@@ -2909,15 +2909,15 @@ function clientWorkspaceTabs(data = {}, activePane = null) {
   const resourceCount = clientResources.length;
   const newResourceCount = clientResources.filter((item) => item.status === "assigned").length;
   const items = [
-    hasNowTab && ["now", "Akkurat nå"],
-    ["direction", "Forløpet"],
-    ["work", "Utviklingsfokus"],
-    ["sessions", "Samtaler"],
-    ["reflections", "Refleksjon"],
-    ["resources", "Ressurser"]
+    hasNowTab && ["now", "Akkurat nå", "house"],
+    ["direction", "Forløpet", "route"],
+    ["work", "Utviklingsfokus", "target", "Utviklings\u00ADfokus"],
+    ["sessions", "Samtaler", "messages-square"],
+    ["reflections", "Refleksjon", "notebook-pen"],
+    ["resources", "Ressurser", "book-open"]
   ].filter(Boolean);
   const tabs = el("div", { class: `workspace-tabs ${hasNowTab ? "has-now" : ""}`.trim() }, [
-    el("div", { class: "workspace-tab-group workspace-tab-group-main", role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label]) => {
+    el("div", { class: "workspace-tab-group workspace-tab-group-main", role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label, iconName, visibleLabel = label]) => {
       const showResourceCount = pane === "resources" && resourceCount > 0;
       const resourceLabel = showResourceCount
         ? `Ressurser, ${resourceCount} ${resourceCount === 1 ? "ressurs" : "ressurser"}${newResourceCount ? state.profile?.role === "client" ? `, ${newResourceCount} ${newResourceCount === 1 ? "ny" : "nye"}` : `, ${newResourceCount} ikke åpnet av klienten` : ""}`
@@ -2932,7 +2932,8 @@ function clientWorkspaceTabs(data = {}, activePane = null) {
         "aria-label": resourceLabel,
         "aria-selected": pane === resolvedPane ? "true" : "false"
       }, [
-        el("span", { text: label }),
+        el("span", { class: "workspace-tab-icon", "aria-hidden": "true" }, [icon(iconName)]),
+        el("span", { class: "workspace-tab-label", text: visibleLabel }),
         showResourceCount ? el("span", { class: `workspace-tab-count ${newResourceCount ? "has-new" : ""}`.trim(), "aria-hidden": "true" }, [
           el("span", { text: String(resourceCount) }),
           newResourceCount ? el("span", { class: "workspace-tab-new-dot" }) : null
