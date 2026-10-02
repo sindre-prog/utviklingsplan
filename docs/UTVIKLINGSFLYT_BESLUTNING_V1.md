@@ -98,11 +98,11 @@ Ved godkjenning endres, i en egen commit:
 
 ## Modulen for lederkompetanser
 
-Gjennomgått i biblioteket (velgeren) og arbeidsflaten, desktop og mobil, klient og coach. Modulen oppleves rotete fordi den har for mange lag, dobbelte handlinger og ord som avviker fra de låste begrepene.
+Gjennomgått i biblioteket (velgeren) og arbeidsflaten, desktop og mobil, klient og coach. Modulen oppleves rotete fordi den har for mange lag, uklare handlinger og ord som avviker fra de låste begrepene.
 
 ### Funn i biblioteket
 
-1. Valgknappen finnes to ganger i samme forhåndsvisning, øverst og nederst.
+1. Valgknappen er plassert øverst på desktop og fast nederst på mobil. Den vises bare én gang per skjermstørrelse.
 2. Knappeteksten skifter mellom `Velg og prioriter nå`, `Legg til som aktiv` og `Tre lederkompetanser er aktive`. Kontrakten sier `Velg denne kompetansen`.
 3. Biblioteket blir stående åpent etter valg. Klienten ser bare et lite `Valgt`-merke og vet ikke hvor valget ble av.
 4. Coachens forslag vises også som `Valgt` i listen. Det er feil: et forslag er ikke aktivt.
@@ -124,7 +124,7 @@ Gjennomgått i biblioteket (velgeren) og arbeidsflaten, desktop og mobil, klient
 
 ### Anbefaling for biblioteket
 
-1. Én valgknapp per forhåndsvisning: øverst på desktop, fast nederst på mobil. Tekst: `Velg denne kompetansen` for klient og `Foreslå for klienten` for coach. Den første som velges, blir `Prioritert nå`, slik som i dag. Klienten kan endre prioriteringen etterpå.
+1. Plasseringen av valgknappen beholdes. Tekst: `Velg denne kompetansen` for klient og `Foreslå for klienten` for coach. Den første som velges, blir `Prioritert nå`, slik som i dag. Klienten kan endre prioriteringen etterpå.
 2. Etter valg lukkes biblioteket, og klienten kommer til den valgte lederkompetansen i arbeidsflaten.
 3. Første visning: navn, definisjon, `Relevant når`, `Skille mot nærliggende kompetanser` og valgknappen. Alt annet samles under én `Se mer`.
 4. Praksisforslaget heter `Foreslått startforsøk`, som det allerede gjør i arbeidsflaten.

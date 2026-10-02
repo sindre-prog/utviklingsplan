@@ -66,7 +66,7 @@ Mobil:
 
 ## Kompetansearbeidsflate
 
-Masterlisten viser inntil tre aktive lederkompetanser. Én rad kan merkes `Prioritert nå`; øvrige rader merkes `Aktiv`. Når klienten har færre enn tre aktive, avsluttes listen med `Legg til lederkompetanse`. Ved tre aktive viser listehodet `3 av 3 aktive`, og klienten kan arkivere en kompetanse før en ny legges til. Coachen får handlingen `Foreslå lederkompetanse`, ikke en handling som antyder at coachen kan endre klientens prioritering. Planstatus uttrykkes med ord, aldri prosent.
+Masterlisten viser aktive lederkompetanser. Én rad kan merkes `Prioritert nå`; øvrige rader merkes `Aktiv`. Til migreringen som fjerner grensen er kjørt: når klienten har færre enn tre aktive, avsluttes listen med `Legg til lederkompetanse`; ved tre aktive viser listehodet `3 av 3 aktive`, og listen viser `Arkiver en aktiv lederkompetanse for å gjøre plass.` Etter migreringen avsluttes listen alltid med `Legg til lederkompetanse`, listehodet viser antall aktive, og teksten om anbefalingen skrives av produkteier. Coachen får handlingen `Foreslå lederkompetanse`, ikke en handling som antyder at coachen kan endre klientens prioritering. Planstatus uttrykkes med ord, aldri prosent.
 
 Listen heter `Lederkompetanser`. Coachens forslag vises som rader i samme liste, merket `Foreslått av coach`, med `Aktiver forslag` og `Skjul`. Arkivering er en tekstknapp, `Arkiver`. Detaljflaten har ingen egen `Anbefalt neste steg`-boks; planstatusen er beskrivelse. Praksisdelen heter `Prøv i praksis · Eksperiment`.
 
