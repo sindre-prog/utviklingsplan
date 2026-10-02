@@ -1,6 +1,6 @@
 # Designsystem for utviklingsportalen – plan v1
 
-Status: forslag til godkjenning av produkteier, 2. oktober 2026.
+Status: godkjent av produkteier 2. oktober 2026, med Inter i stedet for Roboto.
 Grunnlag: skisserunde 2 (PR #33), design-review 2. oktober og avklaringene om scope samme dag.
 
 Planen beskriver hvordan portalen får ett felles visuelt språk i koden, og i hvilken rekkefølge skjermene bygges om. Den endrer ikke produktlogikk, ord, ruter eller data.
@@ -35,7 +35,9 @@ Disse reglene gjelder alle skjermer. De kommer fra skisserunde 2.
 6. **Handlinger der de brukes.** Det er én primærknapp per side. Sjeldne valg som «Rediger tittel» og «Arkiver» ligger i en «···»-meny.
 7. **Skriv uten modus.** Man klikker og skriver, og teksten lagres av seg selv med et stille «Lagret». Dette innføres som eget steg (se punkt 6, steg 7).
 
-Mackinac brukes bare til side-, seksjons- og objekttitler (h1–h3). Spørsmål, etiketter og brødtekst står i Roboto.
+Mackinac brukes bare til side-, seksjons- og objekttitler (h1–h3). Spørsmål, etiketter og brødtekst står i Inter.
+
+Inter erstatter Roboto i hele portalen. Byttet gjøres i steg 3, ikke i grunnmuren, fordi Inter er litt bredere enn Roboto og kan gi nye linjeskift som må sjekkes på alle skjermer.
 
 ## 3. Teknisk grep
 
@@ -114,10 +116,10 @@ All tekst holder minst 4,5 : 1 mot både arket og sidebakgrunnen. Hjelpetekst i 
 | `--ds-title-page` | Mackinac 400 | 36 / 1,15 (mobil 28) | Sidetittel |
 | `--ds-title-object` | Mackinac 400 | 34 / 1,15 (mobil 24) | Fokusoppdrag, lederkompetanse |
 | `--ds-title-section` | Mackinac 400 | 24 / 1,2 | Seksjon i arket |
-| `--ds-question` | Roboto 600 | 16 / 1,4 | Spørsmål |
-| `--ds-body` | Roboto 400 | 16 / 1,55 | Svar og brødtekst |
-| `--ds-support` | Roboto 400 | 15 / 1,5 | Hjelpetekst |
-| `--ds-label` | Roboto 600 | 13 / 1,35 | Etiketter, status, overtitler |
+| `--ds-question` | Inter 600 | 16 / 1,4 | Spørsmål |
+| `--ds-body` | Inter 400 | 16 / 1,55 | Svar og brødtekst |
+| `--ds-support` | Inter 400 | 15 / 1,5 | Hjelpetekst |
+| `--ds-label` | Inter 600 | 13 / 1,35 | Etiketter, status, overtitler |
 
 Ingen tekst er mindre enn 13 px, og ingen tekst står i versaler.
 
@@ -164,7 +166,7 @@ Hvert steg er én PR til `main`. Produkteier tester innlogget før merge.
 |---|---|---|
 | 1 | Denne planen | Nei |
 | 2 | Grunnmur: lag i CSS, `design-system.css` med faste verdier og byggeklosser, hjelpefunksjoner i `app.js`, gjennomgang av de 10 `!important`-reglene og skjermbildesett i repoet | Nei. Skjermbildene før og etter skal være like. |
-| 3 | Toppfelt og bunnmeny (byggekloss 1–2). Den midlertidige prototype-CSS-en fra #32 slettes. | Ja, men nær dagens uttrykk |
+| 3 | Toppfelt og bunnmeny (byggekloss 1–2), og Inter i stedet for Roboto. Den midlertidige prototype-CSS-en fra #32 slettes. | Ja, men nær dagens uttrykk |
 | 4 | Utviklingsfokus: fokusoppdrag, lederkompetanser og eksperimenter (byggekloss 3–15). Forløpets mål flyttes ut av stegvelgeren. | Ja |
 | 5 | Forløpet | Ja |
 | 6 | Akkurat nå | Ja |
@@ -215,6 +217,8 @@ Frister og datoer, samtalen som anker på Akkurat nå, tidslinje, påminnelser o
 
 ## 11. Beslutninger fra produkteier
 
-1. Godkjenne prinsippene i punkt 2 og de faste verdiene i punkt 4.
-2. Godkjenne rekkefølgen i punkt 6, inkludert om steg 7 (skriv uten modus) skal komme før Forløpet.
-3. Om testoppsettet kan ligge i repoet og dermed publiseres sammen med portalen, eller om publiseringen skal begrenses til de filene portalen trenger. Det siste krever en liten endring i `pages.yml`.
+Besluttet 2. oktober 2026:
+
+1. Prinsippene i punkt 2 og de faste verdiene i punkt 4 er godkjent, med Inter i stedet for Roboto.
+2. Rekkefølgen i punkt 6 er godkjent som den står. Steg 7 (skriv uten modus) kommer etter Akkurat nå.
+3. Skjermbildesettet kan ligge i repoet og publiseres sammen med portalen. Det inneholder bare fiktive data.
