@@ -28,7 +28,7 @@ Begrepene skal alltid vises med den konkrete objekttypen i nærheten: `Indre pro
 - På mobil stables Forløpets mål og arbeidstrinnene vertikalt uten horisontal rulling.
 - Klienten eier valg og prioritering av indre prosjekt. Coachen kan foreslå en lederkompetanse, men ikke aktivere den på klientens vegne.
 - Ytre prosjekter og eksperimenter bruker eksisterende redigerings- og tilgangsregler; denne modellen endrer ikke datakontrakten.
-- Når arbeidsplanen for et ytre prosjekt er komplett, leder neste steg til Indre prosjekt dersom ingen aktiv lederkompetanse er valgt. Først når et indre prosjekt finnes, leder flyten videre til et praksiseksperiment.
+- Rekkefølgen er anbefalt, ikke låst. Hvert trinn kan brukes uten at et annet trinn finnes. Neste steg peker bare til den første delen som mangler, og ber ikke klienten fylle ut felter i den delen klienten står i. Se `UTVIKLINGSFLYT_BESLUTNING_V1.md`.
 
 Beslutningsspørsmålene er:
 
@@ -38,7 +38,7 @@ Beslutningsspørsmålene er:
 
 ## Aktiv kompetansemodell
 
-- Klienten kan ha inntil tre aktive lederkompetanser.
+- Tre aktive lederkompetanser er en anbefaling, ikke en grense. Til migreringen som fjerner grensen er godkjent og kjørt, stopper databasen en fjerde.
 - Én kompetanse er `Prioritert nå` (`priority = 1`).
 - Andre aktive kompetanser vises som `Aktiv` (`priority = 2/3`), ikke som støttekompetanser.
 - En coach kan opprette `Foreslått av coach` (`status = suggested`, `priority = 0`).
@@ -53,7 +53,10 @@ Desktop:
 2. Valgt rad åpner full faglig beslutningsstøtte i forhåndsvisningen.
 3. Forhåndsvisningen viser definisjon, Relevant når og Skille mot først.
 4. God praksis, for lite, for mye, barrierer, praksisforslag, effekt og refleksjon følger med rolig, progressiv struktur.
-5. Klientens CTA er `Velg denne kompetansen`; coachens er `Foreslå for klienten`.
+5. Klientens CTA er `Velg denne kompetansen`; coachens er `Foreslå for klienten`. CTA-en vises én gang per forhåndsvisning.
+6. Etter valg lukkes biblioteket, og klienten kommer til den valgte lederkompetansen.
+7. Rader merkes `Prioritert nå`, `Aktiv` eller `Foreslått av coach`.
+8. Praksisforslaget i biblioteket heter `Foreslått startforsøk`.
 
 Mobil:
 
@@ -63,7 +66,9 @@ Mobil:
 
 ## Kompetansearbeidsflate
 
-Masterlisten viser inntil tre aktive lederkompetanser. Én rad kan merkes `Prioritert nå`; øvrige rader merkes `Aktiv`. Når klienten har færre enn tre aktive, avsluttes listen med `Legg til lederkompetanse`. Ved tre aktive viser listehodet `3 av 3 aktive`, og klienten kan arkivere en kompetanse før en ny legges til. Coachen får handlingen `Foreslå lederkompetanse`, ikke en handling som antyder at coachen kan endre klientens prioritering. Planstatus uttrykkes med ord, aldri prosent.
+Masterlisten viser aktive lederkompetanser. Én rad kan merkes `Prioritert nå`; øvrige rader merkes `Aktiv`. Til migreringen som fjerner grensen er kjørt: når klienten har færre enn tre aktive, avsluttes listen med `Legg til lederkompetanse`; ved tre aktive viser listehodet `3 av 3 aktive`, og listen viser `Arkiver en aktiv lederkompetanse for å gjøre plass.` Etter migreringen avsluttes listen alltid med `Legg til lederkompetanse`, listehodet viser antall aktive, og teksten om anbefalingen skrives av produkteier. Coachen får handlingen `Foreslå lederkompetanse`, ikke en handling som antyder at coachen kan endre klientens prioritering. Planstatus uttrykkes med ord, aldri prosent.
+
+Listen heter `Lederkompetanser`. Coachens forslag vises som rader i samme liste, merket `Foreslått av coach`, med `Aktiver forslag` og `Skjul`. Arkivering er en tekstknapp, `Arkiver`. Detaljflaten har ingen egen `Anbefalt neste steg`-boks; planstatusen er beskrivelse. Praksisdelen heter `Prøv i praksis · Eksperiment`.
 
 Detaljflaten består av:
 

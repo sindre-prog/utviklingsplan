@@ -47,7 +47,7 @@ Norwegian UI labels:
 
 - `planned` -> `Planlagt`
 - `active` -> `Prøves ut`
-- `reviewed` -> `Avlest`
+- `reviewed` -> `Prøvd og reflektert`
 - `continued` -> `Videreført`
 - `closed` -> `Avsluttet`
 
