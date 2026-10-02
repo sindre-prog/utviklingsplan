@@ -211,6 +211,190 @@ function refreshIcons() {
   if (window.lucide) window.lucide.createIcons();
 }
 
+// Designsystem (ds): byggeklossene i design-system.css. Tekster sendes alltid inn av den som
+// bruker byggeklossen, slik at ingen ord oppstår her. Se docs/DESIGNSYSTEM_PLAN_V1.md.
+
+function dsClass(...names) {
+  return names.filter(Boolean).join(" ");
+}
+
+function dsButton(label, { variant = "secondary", iconName = "", onClick, type = "button", ariaLabel, disabled = false, className = "" } = {}) {
+  return el("button", {
+    class: dsClass("ds-button", variant !== "secondary" && `ds-button--${variant}`, className),
+    type,
+    "aria-label": ariaLabel,
+    disabled,
+    onclick: onClick
+  }, [iconName ? icon(iconName) : null, el("span", { text: label })]);
+}
+
+function dsStatus(label, tone = "neutral") {
+  return el("span", { class: "ds-status", "data-tone": tone, text: label });
+}
+
+function dsPage({ title, intro = "", read = false, className = "" } = {}, children = []) {
+  return el("section", { class: dsClass("ds-page", read && "ds-page--read", className) }, [
+    title || intro ? el("header", { class: "ds-page-head" }, [
+      title ? el("h1", { class: "ds-page-title", text: title }) : null,
+      intro ? el("p", { class: "ds-page-intro", text: intro }) : null
+    ]) : null,
+    ...children
+  ]);
+}
+
+function dsSheet(children = [], { list = null, className = "" } = {}) {
+  return el("div", { class: dsClass("ds-sheet", list && "ds-sheet--split", className) }, [
+    list,
+    el("div", { class: "ds-sheet-body" }, children)
+  ]);
+}
+
+function dsSection({ title, intro = "", actions = [], headingLevel = 3, className = "" } = {}, children = []) {
+  return el("section", { class: dsClass("ds-section", className) }, [
+    el("div", { class: "ds-section-head" }, [
+      el("div", {}, [
+        el(`h${headingLevel}`, { class: "ds-section-title", text: title }),
+        intro ? el("p", { class: "ds-section-intro", text: intro }) : null
+      ]),
+      actions.length ? el("div", { class: "ds-object-actions" }, actions) : null
+    ]),
+    ...children
+  ]);
+}
+
+function dsList({ title = "", label = "", rows = [], foot = null } = {}) {
+  return el("nav", { class: "ds-list", "aria-label": label || title || undefined }, [
+    title ? el("p", { class: "ds-list-title", text: title }) : null,
+    ...rows,
+    foot ? el("div", { class: "ds-list-foot" }, [foot]) : null
+  ]);
+}
+
+function dsRow({ title, meta = "", selected = false, onClick } = {}) {
+  return el("button", {
+    class: "ds-row",
+    type: "button",
+    "aria-current": selected ? "true" : undefined,
+    onclick: onClick
+  }, [
+    el("span", { class: "ds-row-title", text: title }),
+    meta ? el("span", { class: "ds-row-meta", text: meta }) : null
+  ]);
+}
+
+function dsSteps(steps = [], { label } = {}) {
+  return el("nav", { class: "ds-steps", "aria-label": label }, steps.map((step) => el("button", {
+    class: "ds-step",
+    type: "button",
+    "data-step": step.id,
+    "aria-current": step.current ? "step" : undefined,
+    onclick: step.onClick
+  }, [
+    el("span", { class: "ds-step-title", text: step.title }),
+    step.hint ? el("span", { class: "ds-step-hint", text: step.hint }) : null
+  ])));
+}
+
+function dsMenu(items = [], { label } = {}) {
+  const menu = el("details", { class: "ds-menu" });
+  const close = () => menu.removeAttribute("open");
+  menu.append(
+    el("summary", { class: "ds-menu-trigger", "aria-label": label, title: label }, [icon("ellipsis")]),
+    el("div", { class: "ds-menu-list" }, items.filter(Boolean).map((item) => el("button", {
+      class: dsClass("ds-menu-item", item.danger && "ds-menu-item--danger"),
+      type: "button",
+      onclick: (event) => {
+        close();
+        item.onClick?.(event);
+      }
+    }, [item.iconName ? icon(item.iconName) : null, el("span", { text: item.label })])))
+  );
+  menu.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      close();
+      menu.querySelector("summary")?.focus();
+    }
+  });
+  menu.addEventListener("focusout", (event) => {
+    if (!menu.contains(event.relatedTarget)) close();
+  });
+  return menu;
+}
+
+function dsObjectHead({ kicker = "", title, lead = "", actions = [], menu = null, headingLevel = 2 } = {}) {
+  return el("header", { class: "ds-object-head" }, [
+    el("div", {}, [
+      kicker ? el("p", { class: "ds-object-kicker", text: kicker }) : null,
+      el(`h${headingLevel}`, { class: "ds-object-title", text: title }),
+      lead ? el("p", { class: "ds-object-lead", text: lead }) : null
+    ]),
+    actions.length || menu ? el("div", { class: "ds-object-actions" }, [...actions, menu]) : null
+  ]);
+}
+
+function dsQuestion({ question, help = "", answer = "", done = false, number = null, field = null, side = null, foot = [], headingLevel = 4 } = {}) {
+  const hasAnswer = Boolean(String(answer || "").trim());
+  return el("div", { class: "ds-qa" }, [
+    el("span", { class: dsClass("ds-qa-mark", done && "is-done"), "aria-hidden": "true" }, [done ? icon("check") : number === null ? null : String(number)]),
+    el("div", { class: "ds-qa-main" }, [
+      el(`h${headingLevel}`, { class: "ds-qa-question", text: question }),
+      help && !hasAnswer ? el("p", { class: "ds-qa-help", text: help }) : null,
+      hasAnswer && !field ? el("p", { class: "ds-qa-answer", text: answer }) : null,
+      field,
+      foot.length ? el("div", { class: "ds-qa-foot" }, foot) : null
+    ]),
+    side ? el("div", { class: "ds-qa-side" }, [side]) : null
+  ]);
+}
+
+function dsField({ value = "", placeholder = "", label, rows = 3, onInput, onBlur } = {}) {
+  const field = el("textarea", { class: "ds-qa-field", rows, placeholder, "aria-label": label, oninput: onInput, onblur: onBlur });
+  field.value = value || "";
+  return field;
+}
+
+function dsNext({ label, title, text = "", action = null } = {}) {
+  return el("section", { class: "ds-next" }, [
+    el("div", {}, [
+      el("p", { class: "ds-next-label", text: label }),
+      el("strong", { class: "ds-next-title", text: title }),
+      text ? el("p", { class: "ds-next-text", text }) : null
+    ]),
+    action
+  ]);
+}
+
+function dsContext({ label, text, action = null } = {}) {
+  return el("div", { class: "ds-context" }, [
+    el("div", {}, [
+      el("p", { class: "ds-context-label", text: label }),
+      el("p", { class: "ds-context-text", text, title: text })
+    ]),
+    action
+  ]);
+}
+
+function dsDisclosure(summary, children = [], { open = false } = {}) {
+  return el("details", { class: "ds-disclosure", open }, [
+    el("summary", { text: summary }),
+    el("div", { class: "ds-disclosure-body" }, children)
+  ]);
+}
+
+function dsEmpty(text, action = null) {
+  return el("div", { class: "ds-empty" }, [el("p", { class: "ds-empty-text", text }), action]);
+}
+
+function dsSaved() {
+  return el("span", { class: "ds-saved", role: "status", "aria-live": "polite" });
+}
+
+function setDsSaved(node, state, text) {
+  if (!node) return;
+  node.dataset.state = state;
+  node.textContent = text || "";
+}
+
 function setScreen(name) {
   $$("[data-screen]").forEach((screen) => screen.classList.toggle("hidden", screen.dataset.screen !== name));
 }

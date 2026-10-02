@@ -1,3 +1,8 @@
+/* Lagrekkefølge: alt i legacy taper mot designsystemet i ds (design-system.css).
+   Ikke legg til nye regler i denne filen. Se docs/DESIGNSYSTEM_PLAN_V1.md. */
+@layer legacy, ds;
+
+@layer legacy {
 :root {
   --md-sys-color-primary: #24351b;
   --md-sys-color-on-primary: #ffffff;
@@ -17534,3 +17539,5 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
     padding-bottom: 8px;
   }
 }
+
+} /* @layer legacy */
