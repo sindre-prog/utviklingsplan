@@ -16965,3 +16965,278 @@ details.coaching-frame > .coaching-frame-body > article p {
     white-space: nowrap;
   }
 }
+
+/* Design prototype: «Ditt utviklingsfokus», tabs in the top bar, warm canvas with white cards. */
+body:has(.app-shell.is-client-workspace:not(.hidden)),
+.app-shell.is-client-workspace,
+.app-shell.is-client-workspace .sidebar,
+.app-shell.is-client-workspace .topline {
+  background: var(--brand-cream);
+}
+
+.app-shell.is-client-workspace .workspace:has(.workspace-pane.active:not([data-pane="now"])) .topline {
+  display: none;
+}
+
+.app-shell.is-client-workspace .workspace:has(.workspace-pane.active:not([data-pane="now"])) #content {
+  padding-top: 32px;
+}
+
+@media (min-width: 1240px) {
+  .app-shell.is-client-workspace .workspace {
+    z-index: auto;
+  }
+
+  .app-shell.is-client-workspace #content .workspace-tabs {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    z-index: 61;
+    margin: 0;
+    transform: translateX(-50%);
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .app-shell.is-client-workspace #content .workspace-tab.active {
+    background: var(--platform-paper);
+    box-shadow: 0 1px 2px rgba(30, 25, 28, .06), 0 4px 12px rgba(30, 25, 28, .06);
+  }
+
+  .app-shell.is-client-workspace #content .workspace-navigation {
+    position: absolute;
+  }
+
+  .app-shell.is-client-workspace .workspace:has(.workspace-pane.active[data-pane="now"]) #content {
+    padding-top: 8px;
+  }
+
+  .app-shell.is-client-workspace #content .workspace-save-row {
+    position: fixed;
+    top: 86px;
+    right: 84px;
+    z-index: 61;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--platform-paper);
+  }
+}
+
+.now-focus-overview {
+  display: grid;
+  gap: 24px;
+  padding: 28px 32px 32px;
+  border-radius: 16px;
+  background: var(--platform-paper);
+  box-shadow: 0 1px 2px rgba(30, 25, 28, .04), 0 12px 32px rgba(30, 25, 28, .06);
+}
+
+#content .now-focus-overview-title {
+  margin: 0;
+  color: var(--brand-black);
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.now-focus-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.now-focus-column {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  padding: 0 24px;
+  border-left: 1px solid var(--platform-line);
+}
+
+.now-focus-column:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.now-focus-column:last-child {
+  padding-right: 0;
+}
+
+.now-focus-column-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.now-focus-column-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand-cream);
+  color: var(--platform-ink);
+}
+
+.now-focus-column-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.now-focus-column-label {
+  display: grid;
+  gap: 1px;
+  line-height: 1.3;
+}
+
+.now-focus-column-label strong {
+  color: var(--platform-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.now-focus-column-label small {
+  color: var(--platform-muted);
+  font-size: 13px;
+}
+
+.now-focus-items {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.now-focus-item {
+  display: grid;
+  grid-template-areas: "title icon" "meta icon";
+  grid-template-columns: minmax(0, 1fr) 16px;
+  column-gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  align-content: center;
+  padding: 12px 14px 12px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--neutral-50);
+  color: var(--platform-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .15s ease;
+}
+
+.now-focus-item:hover {
+  background: var(--neutral-100);
+}
+
+.now-focus-item:focus-visible {
+  outline: 2px solid var(--platform-ink);
+  outline-offset: 2px;
+}
+
+.now-focus-item-title {
+  grid-area: title;
+  font-family: var(--font-display);
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.now-focus-item-meta {
+  grid-area: meta;
+  margin-top: 3px;
+  color: var(--platform-muted);
+  font-size: 13px;
+}
+
+.now-focus-item svg {
+  grid-area: icon;
+  align-self: center;
+  width: 16px;
+  height: 16px;
+  color: var(--platform-faint);
+}
+
+.now-focus-empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--platform-line-strong);
+  border-radius: 10px;
+  color: var(--platform-muted);
+  font-size: 14px;
+}
+
+.now-workspace .now-primary-action {
+  box-shadow: inset 3px 0 0 var(--brand-coral);
+}
+
+@media (max-width: 900px) {
+  .now-focus-overview {
+    gap: 20px;
+    padding: 22px 18px 18px;
+  }
+
+  #content .now-focus-overview-title {
+    font-size: 26px;
+  }
+
+  .now-focus-columns {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .now-focus-column,
+  .now-focus-column:first-child,
+  .now-focus-column:last-child {
+    padding: 20px 0 0;
+    border-top: 1px solid var(--platform-line);
+    border-left: 0;
+  }
+
+  .now-focus-column:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+.app-shell.is-client-workspace #content :is(
+  .now-progress-strip,
+  .now-setup-section,
+  .now-primary-action,
+  .now-action-card,
+  .direction-overview,
+  .direction-plan,
+  .platform-reference,
+  .focus-view-tabs,
+  .workspace-master-rail,
+  .workspace-detail-surface,
+  .session-empty-state,
+  .reflection-launcher,
+  .client-resource-rail,
+  .client-resource-detail-empty
+) {
+  border-color: transparent;
+  box-shadow: 0 1px 2px rgba(30, 25, 28, .04), 0 8px 24px rgba(30, 25, 28, .05);
+}
+
+.app-shell.is-client-workspace #content .now-workspace .now-primary-action {
+  box-shadow: inset 3px 0 0 var(--brand-coral), 0 1px 2px rgba(30, 25, 28, .04), 0 8px 24px rgba(30, 25, 28, .05);
+}
+
+.app-shell.is-client-workspace #content .ui-page-intro {
+  border-bottom-color: transparent;
+}
+
+.app-shell.is-client-workspace #content .focus-view-tab.active {
+  background: var(--neutral-50);
+  box-shadow: inset 0 -3px 0 var(--platform-ink);
+}
+
+.app-shell.is-client-workspace #content .focus-view-tab.active .focus-model-marker {
+  border-color: var(--platform-ink);
+  background: var(--platform-ink);
+  color: var(--platform-paper);
+}
