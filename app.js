@@ -3047,11 +3047,13 @@ function directionCard(spec, editable) {
         el("span", { text: spec.subhead || "" })
       ]),
       value ? directionValueContent(spec) : el("div", { class: "direction-empty-content" }, [
-        el("p", { class: "direction-row-empty", text: spec.placeholder || spec.helper }),
+        editable
+          ? el("button", { class: "ui-write-prompt", type: "button", "aria-label": spec.label, onclick: () => activateDirectionEdit(spec) }, [el("span", { text: spec.placeholder || spec.helper })])
+          : el("p", { class: "direction-row-empty", text: spec.placeholder || spec.helper }),
         directionExample(spec.examples)
       ].filter(Boolean))
     ]),
-    editable ? el("button", {
+    editable && value ? el("button", {
       class: "ui-field-action direction-edit-trigger",
       type: "button",
       text: value ? "Rediger" : "Fyll ut",
@@ -3616,6 +3618,11 @@ function workspacePlanStep({ number, eyebrow, label, value = "", emptyText, edit
   const text = (value || "").trim();
   if (editable && isEditing) {
     const textarea = el("textarea", { class: "ui-edit-control competency-step-textarea", text, placeholder: emptyText });
+    requestAnimationFrame(() => {
+      if (!textarea.isConnected) return;
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    });
     return el("article", { class: "competency-plan-step workspace-plan-step is-editing" }, [
       el("span", { class: "competency-step-marker", text: String(number) }),
       el("div", { class: "competency-step-content" }, [
@@ -3634,14 +3641,16 @@ function workspacePlanStep({ number, eyebrow, label, value = "", emptyText, edit
     el("div", { class: "competency-step-content" }, [
       eyebrow ? el("span", { class: "workspace-kicker", text: eyebrow }) : null,
       el("strong", { text: label }),
-      el("p", { text: text || emptyText })
+      editable && !text
+        ? el("button", { class: "ui-write-prompt", type: "button", "aria-label": label, onclick: () => onEdit?.() }, [el("span", { text: emptyText })])
+        : el("p", { text: text || emptyText })
     ].filter(Boolean)),
-    editable ? el("div", { class: "workspace-step-actions" }, [
-      secondaryAction && text ? el("button", { class: "competency-step-action", type: "button", onclick: secondaryAction.onClick }, [
+    editable && text ? el("div", { class: "workspace-step-actions" }, [
+      secondaryAction ? el("button", { class: "competency-step-action", type: "button", onclick: secondaryAction.onClick }, [
         el("span", { text: secondaryAction.label }), icon(secondaryAction.icon || "flask-conical")
       ]) : null,
       el("button", { class: "competency-step-action", type: "button", onclick: () => onEdit?.() }, [
-        el("span", { text: text ? "Rediger" : "Legg til" }), icon(text ? "pencil" : "plus")
+        el("span", { text: "Rediger" }), icon("pencil")
       ])
     ].filter(Boolean)) : null
   ].filter(Boolean));

@@ -17371,3 +17371,54 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
   background: var(--platform-paper);
   box-shadow: inset 3px 0 0 var(--brand-coral);
 }
+
+/* Design prototype: writing-first plan fields. An empty field is a place to write, not a button to find. */
+.ui-write-prompt {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  margin-top: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--platform-line-strong);
+  border-radius: 6px;
+  background: var(--platform-paper);
+  color: var(--platform-faint);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: left;
+  cursor: text;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.ui-write-prompt:hover {
+  border-color: var(--neutral-500);
+}
+
+.ui-write-prompt:focus-visible {
+  border-color: var(--platform-ink);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(23, 21, 23, .12);
+}
+
+.workspace-plan-step.is-empty {
+  background: var(--platform-paper);
+}
+
+.direction-empty-content .ui-write-prompt {
+  max-width: 720px;
+}
+
+.app-shell.is-client-workspace #content .ui-field-action.direction-edit-trigger {
+  min-height: 36px;
+  padding: 0 4px;
+  border-color: transparent;
+  background: transparent;
+  text-decoration: underline;
+  text-decoration-color: var(--platform-line-strong);
+  text-underline-offset: 4px;
+}
+
+.app-shell.is-client-workspace #content .ui-field-action.direction-edit-trigger:hover {
+  text-decoration-color: currentColor;
+}
