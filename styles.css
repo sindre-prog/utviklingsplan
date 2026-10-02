@@ -17510,6 +17510,10 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
   }
 }
 
+.app-shell.is-client-workspace #content .now-progress-metric {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (max-width: 700px) {
   .app-shell.is-client-workspace #content .workspace-navigation {
     display: contents;
