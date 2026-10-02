@@ -17288,3 +17288,86 @@ body:has(.app-shell.is-client-workspace:not(.hidden)),
 ) {
   font-size: 13px;
 }
+
+/* Design prototype: one button system (primary, secondary, text) and fewer decorative icons for client. */
+.app-shell.is-client-workspace #content :is(.ui-button, .ui-field-action, .ui-title-action, .ui-add-action),
+.app-shell.is-client-workspace .logout-button {
+  min-height: 40px;
+  height: auto;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.app-shell.is-client-workspace #content :is(.ui-button-outlined, .ui-button-tonal, .ui-field-action, .ui-title-action, .ui-add-action),
+.app-shell.is-client-workspace .logout-button {
+  border: 1px solid var(--platform-line-strong);
+  background: var(--platform-paper);
+  color: var(--platform-ink);
+}
+
+.app-shell.is-client-workspace #content :is(.ui-button-outlined, .ui-button-tonal, .ui-field-action, .ui-title-action, .ui-add-action):hover,
+.app-shell.is-client-workspace .logout-button:hover {
+  border-color: var(--neutral-400);
+  background: var(--neutral-50);
+}
+
+.app-shell.is-client-workspace #content .ui-button.ui-button-filled {
+  border: 1px solid var(--platform-ink);
+  background: var(--platform-ink);
+  color: var(--platform-paper);
+}
+
+.app-shell.is-client-workspace #content .ui-button.ui-button-filled:hover {
+  border-color: var(--neutral-800);
+  background: var(--neutral-800);
+}
+
+.app-shell.is-client-workspace #content :is(.ui-button, .ui-field-action, .ui-title-action, .competency-step-action) svg {
+  display: none;
+}
+
+.app-shell.is-client-workspace #content .competency-step-action {
+  min-height: 36px;
+  padding: 0 4px;
+  border-radius: 6px;
+  color: var(--platform-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--platform-line-strong);
+  text-underline-offset: 4px;
+}
+
+.app-shell.is-client-workspace #content .competency-step-action:hover {
+  text-decoration-color: currentColor;
+}
+
+.app-shell.is-client-workspace #content .ui-add-row {
+  border-radius: 6px;
+}
+
+.app-shell.is-client-workspace #content .workspace-master-button {
+  grid-template-columns: minmax(0, 1fr) 16px;
+}
+
+.app-shell.is-client-workspace #content .workspace-master-button > .leadership-track-index,
+.app-shell.is-client-workspace #content .now-progress-icon {
+  display: none;
+}
+
+.app-shell.is-client-workspace #content .leadership-suggestion-body > .leadership-track-index {
+  display: none;
+}
+
+.app-shell.is-client-workspace #content .leadership-suggestion-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell.is-client-workspace #content .workspace-next-step {
+  border-color: var(--platform-line);
+  background: var(--platform-paper);
+  box-shadow: inset 3px 0 0 var(--brand-coral);
+}
