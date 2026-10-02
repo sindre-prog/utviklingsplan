@@ -63,7 +63,7 @@ Mobil:
 
 ## Kompetansearbeidsflate
 
-Masterlisten viser inntil tre aktive lederkompetanser. Én rad kan merkes `Prioritert nå`; øvrige rader merkes `Aktiv`. Når klienten har færre enn tre aktive, avsluttes listen med `Legg til lederkompetanse`. Ved tre aktive viser listehodet `3 av 3 aktive`, og klienten kan arkivere en kompetanse før en ny legges til. Coachen får handlingen `Foreslå lederkompetanse`, ikke en handling som antyder at coachen kan endre klientens prioritering. Planstatus uttrykkes med ord, aldri prosent.
+Masterlisten viser alle aktive lederkompetanser. Én rad kan merkes `Prioritert nå`; øvrige rader merkes `Aktiv`. Listen avsluttes alltid med `Legg til lederkompetanse`. Listehodet viser antall aktive. Tre er en anbefaling; teksten om anbefalingen skrives av produkteier. Coachen får handlingen `Foreslå lederkompetanse`, ikke en handling som antyder at coachen kan endre klientens prioritering. Planstatus uttrykkes med ord, aldri prosent.
 
 Detaljflaten består av:
 
