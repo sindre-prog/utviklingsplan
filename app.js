@@ -3612,7 +3612,7 @@ function dsPlanSection({ title, description, status, steps }) {
 }
 
 
-function dsTitleEditor({ title, empty = false, editable = true, editKey, value = "", placeholder = "", onSave }) {
+function dsTitleEditor({ title, empty = false, editable = true, editKey, value = "", placeholder = "", onSave, pane = "work" }) {
   if (editable && state.inlineEditKey === editKey) {
     const input = el("input", { class: "ds-title-input", value, placeholder, "aria-label": placeholder });
     requestAnimationFrame(() => input.isConnected && input.focus());
@@ -3621,7 +3621,7 @@ function dsTitleEditor({ title, empty = false, editable = true, editKey, value =
       el("div", { class: "ds-qa-foot" }, [
         dsButton("Avbryt", { onClick: () => {
           state.inlineEditKey = null;
-          renderCachedProgram("work");
+          renderCachedProgram(pane);
         } }),
         dsButton("Lagre", { variant: "primary", onClick: () => onSave(input.value) })
       ])
@@ -5158,142 +5158,104 @@ function editableTitle({ className = "", title, empty = false, editable = true, 
 
 function sessionsWorkspace(sessions, data) {
   const editable = canEditProgram(getCurrentClient());
-  return el("section", { class: "platform-page sessions-stack" }, [
-    workspaceIntro("Samtaler", "Forbered og følg opp", "Samle det viktigste før, under og etter samtalene.", [
-      editable ? addAction("Opprett samtale", () => addSession()) : null
-    ].filter(Boolean)),
-    sessions.length ? sessionsWorkbench(sessions, data, editable) : sessionEmptyState(editable),
+  if (!sessions.length) {
+    return dsPage({ title: "Forbered og følg opp", intro: "Samle det viktigste før, under og etter samtalene.", className: "sessions-page" }, [
+      sessionEmptyState(editable),
+      sessionsEditor(sessions)
+    ]);
+  }
+  const selectedIndex = Math.max(0, Math.min(state.selectedSessionIndex || 0, sessions.length - 1));
+  state.selectedSessionIndex = selectedIndex;
+  const showList = sessions.length > 1;
+  const detail = el("div", { class: "ds-detail-slot" }, [sessionDetail(sessions[selectedIndex], selectedIndex, editable, data, { showAdd: !showList })]);
+  return dsPage({ title: "Forbered og følg opp", className: "sessions-page" }, [
+    dsSheet([detail], { list: showList ? sessionList(sessions, editable, data, detail) : null }),
     sessionsEditor(sessions)
   ]);
 }
 
-function sessionsWorkbench(sessions, data, editable) {
-  const selectedIndex = Math.max(0, Math.min(state.selectedSessionIndex || 0, sessions.length - 1));
-  const detail = el("aside", { class: "session-detail" }, [
-    sessionDetail(sessions[selectedIndex], selectedIndex, editable, data)
-  ]);
-  return el("section", { class: "sessions-workbench workspace-split-view" }, [
-    sessionRail(sessions, detail, editable, data),
-    el("div", { class: "session-detail-wrap" }, [detail])
-  ]);
+function sessionList(sessions, editable, data, detail) {
+  return dsList({
+    title: `Samtaler · ${sessions.length}`,
+    label: "Samtaler",
+    rows: sessions.map((session, index) => {
+      const progress = sessionProgress(session, sessionActions(session, data));
+      return dsRow({
+        title: session.focus || "Samtale uten tittel",
+        meta: [session.date ? formatDate(session.date) : `Samtale ${index + 1}`, sessionPlanStatus(progress).label].join(" · "),
+        selected: index === state.selectedSessionIndex,
+        onClick: (event) => selectSession(event.currentTarget, index, editable, data, detail)
+      });
+    }),
+    foot: editable ? dsButton("Opprett samtale", { variant: "text", iconName: "plus", onClick: () => addSession() }) : null
+  });
 }
 
-function sessionRail(sessions, detail, editable, data) {
-  const mobilePicker = el("select", {
-    class: "session-mobile-picker-select",
-    "aria-label": "Velg samtale",
-    onchange: (event) => {
-      const index = Number(event.currentTarget.value);
-      selectSessionCard(sessions[index], index, detail, editable, data);
-    }
-  }, sessions.map((session, index) => el("option", {
-    value: String(index),
-    selected: index === (state.selectedSessionIndex || 0),
-    text: `${session.date ? formatDate(session.date) : `Samtale ${index + 1}`} - ${session.focus || "Samtale uten tittel"}`
-  })));
-  return el("div", { class: "session-rail workspace-master-rail" }, [
-    el("header", { class: "session-rail-head workspace-master-head" }, [
-      el("strong", { text: "Samtaler" }),
-      el("span", { class: "ui-meta", text: `${sessions.length} ${sessions.length === 1 ? "samtale" : "samtaler"}` })
-    ]),
-    el("label", { class: "session-mobile-picker", text: "Velg samtale" }, [mobilePicker]),
-    el("div", { class: "session-rail-list" }, sessions.map((session, index) => {
-      const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id);
-      const progress = sessionProgress(session, linkedActions);
-      return el("article", { class: `session-nav-item workspace-master-row ${index === (state.selectedSessionIndex || 0) ? "active" : ""}` }, [
-        el("button", { class: "session-nav-button workspace-master-button", type: "button", onclick: () => selectSessionCard(session, index, detail, editable, data) }, [
-          el("span", { class: "leadership-track-index workspace-master-marker", "aria-hidden": "true" }, [icon("messages-square")]),
-          el("span", { class: "leadership-track-main workspace-master-main" }, [
-            el("span", { class: "leadership-track-heading workspace-master-heading" }, [
-              el("strong", { text: session.focus || "Samtale uten tittel" }),
-              el("small", { text: sessionPlanStatus(progress).label })
-            ]),
-            el("span", { class: "workspace-master-meta" }, [
-              el("span", { text: session.date ? formatDate(session.date) : `Samtale ${index + 1}` })
-            ]),
-            contentPreview(session.goal, "Hva skal samtalen hjelpe med?", 2)
-          ]),
-          icon("chevron-right")
-        ])
-      ]);
-    }))
-  ]);
-}
-
-function selectSessionCard(session, index, detail, editable, data) {
-  const cards = $$(".session-nav-item", detail.closest(".sessions-workbench"));
+// Samtalen leses fra skjemaet, slik at det som er skrevet siden siste tegning av siden, kommer med.
+function selectSession(buttonNode, index, editable, data, detail) {
   state.selectedSessionIndex = index;
-  cards.forEach((node, itemIndex) => node.classList.toggle("active", itemIndex === index));
-  const mobilePicker = $(".session-mobile-picker-select", detail.closest(".sessions-workbench"));
-  if (mobilePicker) mobilePicker.value = String(index);
-  detail.replaceChildren(sessionDetail(session, index, editable, data));
+  $$(".ds-row", buttonNode.closest(".ds-list")).forEach((node) => {
+    if (node === buttonNode) node.setAttribute("aria-current", "true");
+    else node.removeAttribute("aria-current");
+  });
+  detail.replaceChildren(sessionDetail(getSessions()[index], index, editable, data));
   refreshIcons();
 }
 
-function sessionDetail(session, index, editable, data = null) {
-  const linkedActions = (data?.actions || []).filter((action) => action.session_id === session.id);
+function sessionActions(session, data) {
+  return session?.id ? (data?.actions || []).filter((action) => action.session_id === session.id) : [];
+}
+
+function sessionDetail(session, index, editable, data = null, { showAdd = false } = {}) {
+  const linkedActions = sessionActions(session, data);
   const activeLinkedActions = linkedActions.filter((action) => isExperimentActive(action.status));
   const progress = sessionProgress(session, linkedActions);
   const nextField = sessionNextField(session);
-  const nextLabel = nextField?.label || (!activeLinkedActions.length ? "Gjør neste steg om til et lite eksperiment" : "Følg opp eksperimentet");
-  const nextHelper = nextField?.helper || (!activeLinkedActions.length ? "Knytt handlingen til en situasjon og bestem hva du vil se etter." : "Åpne eksperimentet og noter hva du observerte.");
-  const nextHandler = nextField
-    ? () => openSessionField(index, nextField.key)
+  const next = nextField
+    ? { label: nextField.label, helper: nextField.helper, actionLabel: nextField.actionLabel, onAction: () => openSessionField(index, nextField.key) }
     : !activeLinkedActions.length
-      ? () => createActionFromSessionNextStep(index, session.actions || "")
-      : () => editAction(activeLinkedActions[0], data);
-  return el("section", { class: "session-detail-card competency-workspace workspace-detail-surface" }, [
-    el("header", { class: "competency-workspace-head" }, [
-      el("div", { class: "competency-workspace-heading" }, [
-        el("span", { class: "competency-context" }, [
-          el("span", { class: "workspace-kicker", text: `Samtale ${index + 1}` }),
-          session.date ? el("span", { class: "ui-meta type-chip", text: formatDate(session.date) }) : null
-        ].filter(Boolean)),
-        editableTitle({
-          className: "session-title-edit",
+      ? { label: "Gjør neste steg om til et lite eksperiment", helper: "Knytt handlingen til en situasjon og bestem hva du vil se etter.", actionLabel: "Legg til eksperiment", onAction: () => createActionFromSessionNextStep(index, session.actions || "") }
+      : { label: "Følg opp eksperimentet", helper: "Åpne eksperimentet og noter hva du observerte.", actionLabel: "Følg opp eksperiment", onAction: () => editAction(activeLinkedActions[0], data) };
+  return el("article", { class: "ds-detail" }, [
+    el("header", { class: "ds-object-head" }, [
+      el("div", {}, [
+        el("p", { class: "ds-object-kicker", text: [`Samtale ${index + 1}`, session.date ? formatDate(session.date) : ""].filter(Boolean).join(" · ") }),
+        dsTitleEditor({
           title: session.focus || "Gi samtalen en tittel",
           empty: !session.focus,
           editable,
           editKey: `session:${index}:focus`,
           value: session.focus || "",
           placeholder: "Gi samtalen en kort tittel.",
+          pane: "sessions",
           onSave: async (nextValue) => saveSessionField(index, "focus", nextValue)
         })
       ]),
-      editable ? iconAction("Arkiver samtale", "archive", () => deleteSession(index), "danger") : null
+      editable ? el("div", { class: "ds-object-actions" }, [
+        showAdd ? dsButton("Opprett samtale", { variant: "text", iconName: "plus", className: "ds-hide-mobile", onClick: () => addSession() }) : null,
+        dsMenu([
+          showAdd ? { label: "Opprett samtale", iconName: "plus", className: "ds-only-mobile", onClick: () => addSession() } : null,
+          { label: session.focus ? "Rediger tittel" : "Legg til tittel", iconName: "pencil", onClick: () => openSessionField(index, "focus") },
+          { label: "Arkiver samtale", iconName: "archive", danger: true, onClick: () => deleteSession(index) }
+        ], { label: "Flere valg" })
+      ].filter(Boolean)) : null
     ].filter(Boolean)),
-    workspaceNextStep({
-      complete: progress.completed === 5,
-      label: nextLabel,
-      helper: nextHelper,
-      actionLabel: nextField?.actionLabel || (!activeLinkedActions.length ? "Legg til eksperiment" : "Følg opp eksperiment"),
-      onAction: nextHandler,
-      editable
-    }),
-    workspacePlan({
-      className: "session-conversation-plan",
+    editable ? dsNext({
+      label: "Anbefalt neste steg",
+      title: next.label,
+      text: next.helper,
+      action: dsButton(next.actionLabel, { variant: "primary", onClick: next.onAction })
+    }) : null,
+    dsPlanSection({
       title: "Samtaleplan",
       description: "Avklar hva samtalen skal hjelpe med. Etterpå samler du det som ble tydelig og det du vil prøve.",
       status: sessionPlanStatus(progress),
       steps: [
-        sessionPlanStep(session, index, 1, "Før samtalen", "Hva skal samtalen hjelpe med?", session.goal, "Hva håper dere å forstå, avklare eller komme videre på?", "goal", editable),
-        sessionPlanStep(session, index, 2, "Etter samtalen", "Hva ble tydelig?", session.notes, "Noter det viktigste mens det er ferskt.", "notes", editable),
-        sessionPlanStep(session, index, 3, "Til neste gang", "Hva vil du prøve eller følge opp?", session.actions, "Beskriv én konkret handling.", "actions", editable, {
-          label: "Gjør til eksperiment",
-          icon: "flask-conical",
-          onClick: () => createActionFromSessionNextStep(index, session.actions || "")
-        }),
-        sessionPlanStep(session, index, 4, "Ta med videre", "Hva vil du huske til neste samtale?", session.reflection, "Noter det du vil vende tilbake til.", "reflection", editable),
-        workspaceExperimentStep({
-          number: 5,
-          actions: linkedActions,
-          data,
-          editable,
-          onCreate: () => createActionFromSessionNextStep(index, session.actions || ""),
-          emptyLabel: "Planlegg første forsøk",
-          completeLabel: "Eksperimenter fra samtalen",
-          emptyText: "Gjør neste steg lite nok til å prøve i en konkret situasjon."
-        })
+        sessionPlanStep(session, index, 1, "Før samtalen", "Hva skal samtalen hjelpe med?", "Hva håper dere å forstå, avklare eller komme videre på?", "goal", editable, linkedActions),
+        sessionPlanStep(session, index, 2, "Etter samtalen", "Hva ble tydelig?", "Noter det viktigste mens det er ferskt.", "notes", editable, linkedActions),
+        sessionPlanStep(session, index, 3, "Til neste gang", "Hva vil du prøve eller følge opp?", "Beskriv én konkret handling.", "actions", editable, linkedActions),
+        sessionPlanStep(session, index, 4, "Ta med videre", "Hva vil du huske til neste samtale?", "Noter det du vil vende tilbake til.", "reflection", editable, linkedActions),
+        sessionExperimentStep(session, index, linkedActions, data, editable)
       ]
     })
   ].filter(Boolean));
@@ -5322,63 +5284,64 @@ function sessionNextField(session = {}) {
 }
 
 function openSessionField(index, fieldKey) {
-  state.inlineEditKey = `session:${index}:${fieldKey}`;
-  renderCachedProgram("sessions");
+  if (fieldKey === "focus") {
+    state.inlineEditKey = `session:${index}:focus`;
+    renderCachedProgram("sessions");
+    return;
+  }
+  const field = $(`#session-field-${fieldKey}`);
+  field?.scrollIntoView({ block: "center", behavior: "smooth" });
+  field?.focus({ preventScroll: true });
 }
 
-function sessionPlanStep(session, index, number, eyebrow, label, value, emptyText, fieldKey, editable, secondaryAction = null) {
-  const editKey = `session:${index}:${fieldKey}`;
-  return workspacePlanStep({
-    number, eyebrow, label, value, emptyText, editable, secondaryAction,
-    isEditing: state.inlineEditKey === editKey,
-    onEdit: () => openSessionField(index, fieldKey),
-    onCancel: () => {
-      state.inlineEditKey = null;
-      renderCachedProgram("sessions");
+function sessionPlanStep(session, index, number, eyebrow, label, emptyText, fieldKey, editable, linkedActions) {
+  const value = session[fieldKey] || "";
+  let experimentAction = null;
+  if (fieldKey === "actions" && editable) {
+    experimentAction = dsButton("Gjør til eksperiment", {
+      variant: "text",
+      iconName: "flask-conical",
+      onClick: () => createActionFromSessionNextStep(index, getSessions()[index]?.actions || "")
+    });
+  }
+  const qa = dsAutoQuestion({
+    number, eyebrow, label, value, emptyText, editable,
+    onChange: (nextValue, node) => {
+      const next = changeSessionField(index, fieldKey, nextValue);
+      setDsSectionStatus(node, sessionPlanStatus(sessionProgress(next, linkedActions)));
+      if (experimentAction) experimentAction.parentElement.hidden = !nextValue.trim();
     },
-    onSave: (nextValue) => saveSessionField(index, fieldKey, nextValue)
+    onCommit: commitPlanChanges,
+    foot: [experimentAction]
+  });
+  $(".ds-qa-field", qa)?.setAttribute("id", `session-field-${fieldKey}`);
+  if (experimentAction) experimentAction.parentElement.hidden = !value.trim();
+  return qa;
+}
+
+function sessionExperimentStep(session, index, linkedActions, data, editable) {
+  return dsQuestion({
+    number: 5,
+    eyebrow: "Eksperiment",
+    question: linkedActions.length ? "Eksperimenter fra samtalen" : "Planlegg første forsøk",
+    help: linkedActions.length ? "" : "Gjør neste steg lite nok til å prøve i en konkret situasjon.",
+    done: Boolean(linkedActions.length),
+    field: linkedActions.length ? el("div", { class: "ds-entries" }, linkedActions.map((action) => dsExperimentRow(action, data, editable))) : null,
+    foot: editable ? [dsButton("Legg til eksperiment", { iconName: "plus", onClick: () => createActionFromSessionNextStep(index, getSessions()[index]?.actions || "") })] : []
   });
 }
 
-function sessionDetailBlock(label, value, emptyText, fieldKey = "", index = 0, editable = false, variant = "") {
-  const text = (value || "").trim();
-  const editKey = `session:${index}:${fieldKey}`;
-  if (editable && state.inlineEditKey === editKey) {
-    return inlineTextAreaBlock({
-      className: `session-detail-block ${variant}`,
-      label,
-      value: text,
-      placeholder: emptyText,
-      onCancel: () => {
-        state.inlineEditKey = null;
-        renderCachedProgram("sessions");
-      },
-      onSave: async (nextValue) => {
-        await saveSessionField(index, fieldKey, nextValue);
-      }
-    });
-  }
-  return el("article", { class: `session-detail-block ${variant} ${text ? "" : "is-empty"}` }, [
-    el("p", { class: "session-detail-label", text: label }),
-    el("p", { class: "session-detail-text", text: text || emptyText }),
-    editable && fieldKey ? el("div", { class: "field-inline-row" }, [
-      fieldKey === "actions" && text ? el("button", {
-        class: "ui-field-action field-inline-action",
-        type: "button",
-        text: "Gjør til eksperiment",
-        onclick: () => createActionFromSessionNextStep(index, text)
-      }) : null,
-      el("button", {
-        class: "ui-field-action field-inline-action",
-        type: "button",
-        text: text ? "Rediger" : "Legg til",
-        onclick: () => {
-          state.inlineEditKey = editKey;
-          renderCachedProgram("sessions");
-        }
-      })
-    ].filter(Boolean)) : null
-  ].filter(Boolean));
+// Endringen skrives til skjemaet og cachen med en gang og lagres samlet med kort forsinkelse, som i Forløpet.
+function changeSessionField(index, fieldKey, value) {
+  const card = $(`#sessions-editor [data-session='${index}']`);
+  const control = card && $(`[name='session.${fieldKey}']`, card);
+  if (control) control.value = value || "";
+  const session = getSessions()[index] || {};
+  const column = { goal: "conversation_goal", notes: "insights", actions: "decisions", reflection: "client_notes" }[fieldKey];
+  const cached = session.id ? (currentProgramData()?.sessions || []).find((item) => item.id === session.id) : null;
+  if (cached && column) cached[column] = value || "";
+  markDirty();
+  return session;
 }
 
 function inlineTextAreaBlock({ className, label, value, placeholder, onCancel, onSave }) {
@@ -5520,12 +5483,16 @@ async function saveSessionField(index, fieldKey, value) {
 }
 
 function sessionEmptyState(editable) {
-  return el("section", { class: "focus-empty-state session-empty-state" }, [
-    el("p", { class: "eyebrow", text: "Samtaler" }),
-    el("h3", { text: "Planlegg første coachingsamtale" }),
-    el("p", { class: "muted", text: "Start med hva samtalen skal hjelpe med. Etterpå kan du samle det som ble tydelig og hva du vil prøve videre." }),
-    editable ? addAction("Opprett samtale", () => addSession()) : null
-  ].filter(Boolean));
+  return dsSheet([el("div", { class: "ds-detail" }, [
+    dsObjectHead({
+      kicker: "Samtaler",
+      title: "Planlegg første coachingsamtale",
+      lead: "Start med hva samtalen skal hjelpe med. Etterpå kan du samle det som ble tydelig og hva du vil prøve videre."
+    }),
+    editable ? el("div", { class: "ds-section-foot" }, [
+      dsButton("Opprett samtale", { variant: "primary", iconName: "plus", onClick: () => addSession() })
+    ]) : null
+  ].filter(Boolean))]);
 }
 
 function areasEditor(areas) {
