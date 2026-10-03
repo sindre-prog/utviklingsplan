@@ -17,10 +17,11 @@ python3 -m http.server 8770
 
 | Parameter | Verdier |
 |---|---|
-| `scene` | `now-empty`, `now-draft`, `now-inner-only`, `now-complete`, `workspace`, `focus-detail`, `focus-many`, `chooser-empty`, `chooser-two`, `chooser-three` |
+| `scene` | `now-empty`, `now-draft`, `now-inner-only`, `now-complete`, `workspace`, `focus-detail`, `focus-many`, `direction-partial`, `chooser-empty`, `chooser-two`, `chooser-three` |
 | `pane` | `now`, `direction`, `work`, `sessions`, `reflections`, `resources` |
 | `role` | `client` (standard) eller `coach` |
 | `view` | Utviklingsfokus: `assignments`, `competencies` eller `experiments` |
+| `edit` | Åpner et felt for redigering, for eksempel `direction:c_expect_client` eller `direction:frame` |
 
 Ta hele settet og sammenlign (krever `puppeteer-core` og Chrome):
 

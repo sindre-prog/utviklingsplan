@@ -498,6 +498,18 @@
   .ds-qa-prompt:hover { border-color: var(--ds-muted); }
   .ds-qa-prompt:focus-visible { border-color: var(--ds-ink); outline: none; box-shadow: var(--ds-focus-ring); }
   .ds-qa-list { margin-top: var(--ds-space-8); }
+  .ds-sheet-body > .ds-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .ds-qa-fields { display: grid; gap: var(--ds-space-16); }
+  .ds-qa-sublabel { display: block; margin: 10px 0 0; color: var(--ds-ink); font: var(--ds-label); }
+  .ds-qa-sublabel + .ds-qa-field { margin-top: var(--ds-space-4); }
+  .ds-qa-subvalues { display: grid; gap: 2px; margin: 6px 0 0; }
+  .ds-qa-subvalues dt { margin: 10px 0 0; color: var(--ds-muted); font: var(--ds-label); }
+  .ds-qa-subvalues dt:first-child { margin-top: 0; }
+  .ds-qa-subvalues dd { margin: 0; color: var(--ds-text); font: var(--ds-body); white-space: pre-wrap; overflow-wrap: break-word; }
+  .ds-qa-subvalues dd.is-empty { color: var(--ds-muted); }
+  .ds-qa .ds-disclosure-body { display: grid; gap: var(--ds-space-8); }
+  .ds-example { display: grid; gap: 2px; margin: 0; }
+  .ds-example strong { color: var(--ds-ink); font: var(--ds-label); }
 
   .ds-title-editor { display: grid; gap: var(--ds-space-4); margin-top: var(--ds-space-8); }
   .ds-title-input {
@@ -599,6 +611,24 @@
   .ds-next-label { display: block; margin: 0; color: var(--ds-next-ink); font: var(--ds-label); }
   .ds-next-title { display: block; margin: 2px 0 0; color: var(--ds-ink); font: var(--ds-question); }
   .ds-next-text { margin: 2px 0 0; color: var(--ds-muted); font: var(--ds-support); }
+
+  /* Fremdrift over arket (Forløpet) */
+  .ds-progress {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--ds-space-24);
+    margin: 0 0 var(--ds-space-16);
+    padding: var(--ds-space-16) var(--ds-space-24);
+    border-radius: var(--ds-radius);
+    background: var(--ds-paper);
+    box-shadow: var(--ds-shadow-sheet);
+  }
+  .ds-progress-title { display: block; color: var(--ds-ink); font: var(--ds-question); }
+  .ds-progress-text { margin: 2px 0 0; color: var(--ds-muted); font: var(--ds-support); }
+  .ds-progress-bar { display: flex; gap: var(--ds-space-4); margin-top: var(--ds-space-12); }
+  .ds-progress-bar > span { width: 28px; height: 4px; border-radius: 2px; background: var(--ds-line); }
+  .ds-progress-bar > span[data-done="true"] { background: var(--ds-done); }
 
   /* 11 · Status */
   .ds-status {
@@ -764,6 +794,8 @@
   }
 
   @media (max-width: 700px) {
+    .ds-progress { grid-template-columns: minmax(0, 1fr); gap: var(--ds-space-12); padding: var(--ds-space-16) 18px; }
+    .ds-progress > .ds-button { justify-self: start; }
     .ds-appbar-inner {
       min-height: 60px;
       padding: var(--ds-space-8) var(--ds-space-16);

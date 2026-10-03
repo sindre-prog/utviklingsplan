@@ -365,6 +365,19 @@ function dsNext({ label, title, text = "", action = null } = {}) {
   ]);
 }
 
+function dsProgress({ title, text = "", done = 0, total = 0, label, action = null } = {}) {
+  return el("section", { class: "ds-progress", "aria-label": label }, [
+    el("div", { class: "ds-progress-copy" }, [
+      el("strong", { class: "ds-progress-title", text: title }),
+      text ? el("p", { class: "ds-progress-text", text }) : null,
+      total ? el("div", { class: "ds-progress-bar", "aria-hidden": "true" }, Array.from({ length: total }, (_, index) => (
+        el("span", { "data-done": index < done ? "true" : undefined })
+      ))) : null
+    ]),
+    action
+  ]);
+}
+
 function dsContext({ label, text, action = null } = {}) {
   return el("div", { class: "ds-context" }, [
     el("div", {}, [
@@ -3193,96 +3206,88 @@ function directionWorkspace(client, plan) {
   const directionSpecs = getDirectionSpecs(plan);
   const status = directionStatus(plan);
   const completed = directionSpecs.filter(directionSpecHasValue).length;
-  const nextSpec = directionSpecs.find((spec) => !directionSpecHasValue(spec)) || null;
+  const ready = completed === directionSpecs.length;
   const groups = [
     ["Mål for forløpet", "Hva skal utviklingsløpet bidra til?", directionSpecs.slice(0, 2)],
     ["Samarbeid", "Hva skal dere kunne forvente av hverandre?", directionSpecs.slice(2, 4)],
     ["Rammer", "Hva må være avklart rundt arbeidet?", directionSpecs.slice(4)]
   ];
-  return el("section", { class: "platform-page ui-workspace direction-simple" }, [
-    pageIntro("Forløpet", "Mål og rammer for utviklingsforløpet", "Avklar hvorfor forløpet er viktig, hva som skal bli annerledes, hvordan du vil merke fremgang og hvordan du og ledercoachen din skal samarbeide."),
-    el("section", { class: "direction-overview", "aria-label": "Status for mål og rammer" }, [
-      el("div", { class: "direction-progress-copy" }, [
-        el("strong", { text: nextSpec ? `${completed} av ${directionSpecs.length} avklaringer på plass` : "Mål og rammer er klare til bruk" }),
-        el("span", { text: status.text })
-      ]),
-      editable ? el("button", {
-        class: "ui-button ui-button-filled direction-next-action",
-        type: "button",
-        text: nextSpec ? status.action : "Velg ytre prosjekt",
-        onclick: () => nextSpec ? activateDirectionEdit(nextSpec) : openNowFocusAssignment(null)
-      }) : null
-    ].filter(Boolean)),
-    el("section", { class: "direction-plan platform-surface" }, [
-      ...groups.map(([label, helper, specs]) => el("section", { class: "direction-plan-group" }, [
-        el("header", { class: "direction-plan-group-head" }, [
-          el("p", { class: "eyebrow", text: label }),
-          el("p", { text: helper })
-        ]),
-        el("div", { class: "direction-plan-rows" }, specs.map((spec) => directionCard(spec, editable)))
-      ]))
-    ]),
-    coachingFrame()
-  ].filter(Boolean));
+  return dsPage({
+    title: "Mål og rammer for utviklingsforløpet",
+    intro: ready ? "" : "Avklar hvorfor forløpet er viktig, hva som skal bli annerledes, hvordan du vil merke fremgang og hvordan du og ledercoachen din skal samarbeide.",
+    read: true
+  }, [
+    dsProgress({
+      title: ready ? "Mål og rammer er klare til bruk" : `${completed} av ${directionSpecs.length} avklaringer på plass`,
+      text: status.text,
+      done: completed,
+      total: directionSpecs.length,
+      label: "Status for mål og rammer",
+      action: ready && editable ? dsButton("Velg ytre prosjekt", { variant: "primary", onClick: () => openNowFocusAssignment(null) }) : null
+    }),
+    dsSheet([
+      ...groups.map(([title, intro, specs]) => dsSection({ title, intro }, [
+        el("div", { class: "ds-qa-list" }, specs.map((spec) => directionQuestion(spec, editable)))
+      ])),
+      coachingFrame()
+    ])
+  ]);
 }
 
-function directionCard(spec, editable) {
-  const value = directionSpecPreview(spec);
-  const isEditing = state.inlineEditKey === `direction:${spec.key}`;
-  if (isEditing) return directionInlineEditor(spec);
-  return el("article", {
-    class: `direction-plan-row direction-field ${value ? "has-value" : "is-empty"}`,
-    "data-direction-key": spec.key
-  }, [
-    el("span", { class: "direction-row-status", "aria-hidden": "true" }, [icon(value ? "check" : spec.iconName || "circle")]),
-    el("div", { class: "direction-row-copy" }, [
-      el("div", { class: "direction-row-title" }, [
-        el("h3", { text: spec.label }),
-        el("span", { text: spec.subhead || "" })
-      ]),
-      value ? directionValueContent(spec) : el("div", { class: "direction-empty-content" }, [
-        editable
-          ? el("button", { class: "ui-write-prompt", type: "button", "aria-label": spec.label, onclick: () => activateDirectionEdit(spec) }, [el("span", { text: spec.placeholder || spec.helper })])
-          : el("p", { class: "direction-row-empty", text: spec.placeholder || spec.helper }),
-        directionExample(spec.examples)
-      ].filter(Boolean))
-    ]),
-    editable && value ? el("button", {
-      class: "ui-field-action direction-edit-trigger",
-      type: "button",
-      text: value ? "Rediger" : "Fyll ut",
-      onclick: () => activateDirectionEdit(spec)
-    }) : null
-  ]);
+function directionQuestion(spec, editable) {
+  if (editable && state.inlineEditKey === `direction:${spec.key}`) return directionInlineEditor(spec);
+  const hasValue = Boolean(directionSpecPreview(spec).trim());
+  const emptyText = spec.placeholder || spec.helper;
+  return dsQuestion({
+    eyebrow: spec.subhead,
+    question: spec.label,
+    done: directionSpecHasValue(spec),
+    answer: spec.fields ? "" : spec.value,
+    help: editable ? "" : emptyText,
+    field: hasValue && spec.fields
+      ? directionValueContent(spec)
+      : editable && !hasValue
+        ? el("button", { class: "ds-qa-field ds-qa-prompt", type: "button", "aria-label": spec.label, onclick: () => activateDirectionEdit(spec) }, [el("span", { text: emptyText })])
+        : null,
+    side: editable && hasValue ? dsButton("Rediger", { variant: "text", onClick: () => activateDirectionEdit(spec) }) : null
+  });
 }
 
 function directionInlineEditor(spec) {
   const fields = spec.fields || [spec];
-  const controls = fields.map((field) => el("textarea", {
-    class: "ui-edit-control",
-    "data-direction-control": field.key,
-    rows: spec.fields ? "4" : "6",
-    text: field.value || "",
-    placeholder: field.placeholder || spec.placeholder || spec.helper
-  }));
-  return el("article", { class: "ui-inline-editor direction-plan-row direction-plan-editor is-editing" }, [
-    el("div", { class: "direction-editor-head" }, [
-      el("span", { class: "direction-row-status", "aria-hidden": "true" }, [icon(spec.iconName || "circle")]),
-      el("div", {}, [
-        el("h3", { text: spec.label }),
-        el("p", { text: spec.helper || spec.valueLabel || "" })
-      ])
-    ]),
-    el("div", { class: "direction-edit-fields" }, controls.map((control, index) => el("label", { text: fields[index].label || spec.valueLabel || spec.label }, [
-      control,
-      !(fields[index].value || "").trim() ? directionExample(fields[index].examples || spec.examples) : null
-    ].filter(Boolean)))),
-    el("div", { class: "ui-inline-editor-actions" }, [
-      el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: () => {
+  const controls = fields.map((field) => {
+    const control = dsField({
+      value: field.value || "",
+      placeholder: field.placeholder || spec.placeholder || spec.helper,
+      label: field.label || spec.label,
+      rows: spec.fields ? 3 : 4
+    });
+    control.dataset.directionControl = field.key;
+    return control;
+  });
+  const editor = el("div", { class: "ds-qa-fields" }, fields.map((field, index) => el("div", { class: "ds-qa-subfield" }, [
+    spec.fields ? el("label", { class: "ds-qa-sublabel", text: field.label }) : null,
+    controls[index],
+    !(field.value || "").trim() ? directionExample(field.examples || spec.examples) : null
+  ].filter(Boolean))));
+  if (spec.fields) {
+    editor.querySelectorAll(".ds-qa-subfield").forEach((node, index) => {
+      const id = `direction-field-${fields[index].key}`;
+      controls[index].id = id;
+      node.querySelector("label")?.setAttribute("for", id);
+    });
+  }
+  return dsQuestion({
+    eyebrow: spec.subhead,
+    question: spec.label,
+    help: spec.helper || spec.valueLabel || "",
+    field: editor,
+    foot: [
+      dsButton("Avbryt", { onClick: () => {
         state.inlineEditKey = null;
         renderCachedProgram("direction");
-      }}),
-      el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => {
+      } }),
+      dsButton("Lagre", { variant: "primary", onClick: async () => {
         fields.forEach((field, index) => setPlanValue(field.key, controls[index].value || ""));
         markDirty();
         const saved = await savePlan();
@@ -3290,9 +3295,9 @@ function directionInlineEditor(spec) {
           state.inlineEditKey = null;
           renderProgramPane("direction");
         }
-      }})
-    ])
-  ]);
+      } })
+    ]
+  });
 }
 
 function activateFirstMissingDirectionField(specs) {
@@ -3302,13 +3307,10 @@ function activateFirstMissingDirectionField(specs) {
 
 function directionExample(examples) {
   if (!examples?.length) return null;
-  return el("details", { class: "direction-example" }, [
-    el("summary", { text: "Se eksempel" }),
-    el("div", { class: "direction-example-copy" }, examples.map((example) => el("p", {}, [
-      example.label ? el("strong", { text: example.label }) : null,
-      el("span", { text: example.text })
-    ].filter(Boolean))))
-  ]);
+  return dsDisclosure("Se eksempel", examples.map((example) => el("p", { class: "ds-example" }, [
+    example.label ? el("strong", { text: example.label }) : null,
+    el("span", { text: example.text })
+  ].filter(Boolean))));
 }
 
 function activateWorkspacePane(paneName) {
@@ -3472,39 +3474,31 @@ function directionSpecPreview(spec) {
 }
 
 function directionValueContent(spec) {
-  if (spec.fields) {
-    return el("div", { class: "direction-subvalues" }, spec.fields.map((field) => (
-      el("div", {}, [
-        el("strong", { text: field.label }),
-        el("p", { text: field.value || "Ikke satt ennå." })
-      ])
-    )));
-  }
-  return el("p", { text: spec.value });
+  return el("dl", { class: "ds-qa-subvalues" }, spec.fields.flatMap((field) => [
+    el("dt", { text: field.label }),
+    el("dd", { class: dsClass(!(field.value || "").trim() && "is-empty"), text: field.value || "Ikke satt ennå." })
+  ]));
 }
 
 function coachingFrame() {
   const items = [
-    ["lock-keyhole", "Konfidensialitet", "Det du deler i coachingrommet behandles konfidensielt."],
-    ["heart-handshake", "Rolleavklaring", "Coaching er ikke terapi. Ved psykiske helseutfordringer bør du kontakte kvalifisert helsepersonell."],
-    ["compass", "Ansvar", "Du eier egne mål, valg og handlinger. Coachen hjelper deg å tenke tydeligere, prioritere og holde fremdrift."]
+    ["Konfidensialitet", "Det du deler i coachingrommet behandles konfidensielt."],
+    ["Rolleavklaring", "Coaching er ikke terapi. Ved psykiske helseutfordringer bør du kontakte kvalifisert helsepersonell."],
+    ["Ansvar", "Du eier egne mål, valg og handlinger. Coachen hjelper deg å tenke tydeligere, prioritere og holde fremdrift."]
   ];
-  return el("details", { class: "platform-reference coaching-frame" }, [
-    el("summary", {}, [
-      el("span", { class: "platform-reference-icon", "aria-hidden": "true" }, [icon("shield-check")]),
-      el("span", {}, [
-        el("strong", { text: "Rammene for coaching" }),
-        el("small", { text: "Konfidensialitet, roller og ansvar" })
+  return el("section", { class: "ds-section" }, [
+    el("details", { class: "ds-disclosure ds-disclosure--block" }, [
+      el("summary", {}, [
+        el("span", {}, [
+          el("strong", { class: "ds-disclosure-title", text: "Rammene for coaching" }),
+          el("span", { class: "ds-disclosure-hint", text: "Konfidensialitet, roller og ansvar" })
+        ])
       ]),
-      icon("chevron-down")
-    ]),
-    el("div", { class: "coaching-frame-body" }, items.map(([iconName, title, text]) => el("article", {}, [
-      icon(iconName),
-      el("div", {}, [
-        el("strong", { text: title }),
+      el("div", { class: "ds-disclosure-body" }, items.map(([title, text]) => el("section", { class: "ds-guidance-group" }, [
+        el("h4", { class: "ds-guidance-title", text: title }),
         el("p", { text })
-      ])
-    ])))
+      ])))
+    ])
   ]);
 }
 
