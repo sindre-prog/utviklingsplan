@@ -4,7 +4,6 @@ Viser portalen med fiktive data, uten innlogging og uten kobling til databasen. 
 
 - `preview.html` leser `index.html` og `app.js` direkte, så settet følger alltid portalen slik den er. Supabase byttes ut med en frakoblet stub, slik at ingenting kan leses fra eller skrives til databasen.
 - `components.html` viser byggeklossene i `design-system.css`, laget med `ds`-funksjonene i `app.js`.
-- `sketches.html` viser skissene for steg 8 (Samtaler, Refleksjon og Ressurser). Portalen startes som i `preview.html`, og innholdet i fanen byttes ut med skissen fra `sketches.js`. Forslag til nye varianter ligger i `sketches.css`, ikke i portalen. Se `docs/DESIGNSKISSER_STEG8.md`.
 
 ## Bruk
 
@@ -18,7 +17,7 @@ python3 -m http.server 8770
 
 | Parameter | Verdier |
 |---|---|
-| `scene` | `now-empty`, `now-draft`, `now-inner-only`, `now-complete`, `now-active`, `workspace`, `focus-detail`, `focus-many`, `direction-partial`, `chooser-empty`, `chooser-two`, `chooser-three` |
+| `scene` | `now-empty`, `now-draft`, `now-inner-only`, `now-complete`, `now-active`, `rich`, `workspace`, `focus-detail`, `focus-many`, `direction-partial`, `chooser-empty`, `chooser-two`, `chooser-three` |
 | `pane` | `now`, `direction`, `work`, `sessions`, `reflections`, `resources` |
 | `role` | `client` (standard) eller `coach` |
 | `view` | Utviklingsfokus: `assignments`, `competencies` eller `experiments` |
@@ -33,4 +32,4 @@ node tools/visual-check/shoot.js /tmp/vc/etter
 node tools/visual-check/compare.js /tmp/vc/for /tmp/vc/etter
 ```
 
-Et tredje argument til `shoot.js` filtrerer på navn, for eksempel `"forlopet|akkurat-naa"`. Skissene tas bare når filteret nevner dem, for eksempel `"skisse-.*-(1440|390)$"`. Sett `PUPPETEER_MODULE` og `CHROME_PATH` hvis de ligger et annet sted enn standard. Skjermbildene skal ikke legges i repoet.
+Et tredje argument til `shoot.js` filtrerer på navn, for eksempel `"forlopet|akkurat-naa"`. Sett `PUPPETEER_MODULE` og `CHROME_PATH` hvis de ligger et annet sted enn standard. Skjermbildene skal ikke legges i repoet.
