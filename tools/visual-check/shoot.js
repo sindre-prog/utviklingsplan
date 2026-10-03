@@ -30,12 +30,30 @@ const scenes = [
   ["samtaler", "scene=now-complete&pane=sessions"],
   ["refleksjon", "scene=now-complete&pane=reflections"],
   ["ressurser", "scene=now-complete&pane=resources"],
+  ["samtaler-aktiv", "scene=now-active&pane=sessions"],
+  ["refleksjon-aktiv", "scene=now-active&pane=reflections"],
+  ["ressurser-aktiv", "scene=now-active&pane=resources"],
   ["bibliotek", "scene=chooser-two"],
   ["coach-akkurat-naa", "scene=now-complete&role=coach"],
   ["coach-forlopet", "scene=now-complete&pane=direction&role=coach"],
   ["coach-utviklingsfokus", "scene=workspace&pane=work&role=coach"],
   ["byggeklosser", "", "components.html"]
 ];
+
+// Skissene for steg 8 tas bare når filteret nevner dem, for eksempel "skisse-".
+const sketchScenes = [
+  ["skisse-samtaler", "scene=now-active&pane=sessions&sketch=samtaler"],
+  ["skisse-samtaler-en", "scene=now-active&pane=sessions&sketch=samtaler-en"],
+  ["skisse-samtaler-tom", "scene=now-active&pane=sessions&sketch=samtaler-tom"],
+  ["skisse-refleksjon", "scene=now-active&pane=reflections&sketch=refleksjon"],
+  ["skisse-refleksjon-rediger", "scene=now-active&pane=reflections&sketch=refleksjon-rediger"],
+  ["skisse-refleksjon-tom", "scene=now-active&pane=reflections&sketch=refleksjon-tom"],
+  ["skisse-refleksjon-coach", "scene=now-active&pane=reflections&sketch=refleksjon-coach&role=coach"],
+  ["skisse-ressurser", "scene=now-active&pane=resources&sketch=ressurser"],
+  ["skisse-ressurser-tom", "scene=now-active&pane=resources&sketch=ressurser-tom"],
+  ["skisse-ressurser-coach", "scene=now-active&pane=resources&sketch=ressurser-coach&role=coach"]
+].map(([name, query]) => [name, query, "sketches.html"]);
+if (filter && filter.source.includes("skisse")) scenes.push(...sketchScenes);
 
 const viewports = [
   ["1440", 1440, 900],
