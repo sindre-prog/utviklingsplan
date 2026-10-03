@@ -1972,7 +1972,7 @@ function createResourceFileManager(resource, library, options = {}) {
                 : "Lagret som ressursfil." })
       ]),
       el("button", { class: "button ghost", type: "button", onclick: async () => {
-        if (!await confirmDelete(`Fjerne "${file.display_name}" fra ressursen?`)) return;
+        if (!await confirmDelete(`Fjerne "${file.display_name}" fra ressursen?`, { danger: true })) return;
         await library.archiveResourceFile(state.sb, file.id);
         resource.files = files.filter((item) => item.id !== file.id);
         onFilesChange?.(resource.files);
@@ -2347,7 +2347,7 @@ async function openResourceAdminEditor(resource = null) {
     else await library.updateResource(state.sb, resource.id, payload);
     await renderAfterResourceEdit();
   }, {
-    panelClass: "resource-editor-drawer",
+    size: "workspace",
     saveLabel: isNew || resource?.status === "draft" ? "Lagre utkast" : "Lagre endringer",
     ...(resource?.id ? {
     dangerLabel: resource.status === "archived" ? "Reaktiver" : "Arkiver",
@@ -2388,7 +2388,7 @@ async function toggleResourceArchive(resource) {
   if (!library?.archiveResource || !library?.reactivateResource) return;
   if (resource.status === "archived") {
     await library.reactivateResource(state.sb, resource.id, "draft");
-  } else if (await confirmDelete(`Arkivere "${resource.title}"?`)) {
+  } else if (await confirmDelete(`Arkivere "${resource.title}"?`, { confirmLabel: "Arkiver" })) {
     await library.archiveResource(state.sb, resource.id);
   } else {
     return;
@@ -2641,7 +2641,6 @@ function openSendResourceDrawer(resource) {
   ], async (values) => {
     await sendResourceToClient(resource, values);
   }, {
-    panelClass: "send-resource-drawer",
     saveLabel: "Send ressurs"
   });
 }
@@ -5921,65 +5920,53 @@ function createAction(data, presetAreaId = "", presetCompetencyId = "", presetAc
     if (error) throw error;
     if (presetCompetencyId) state.selectedCompetencyId = presetCompetencyId;
     await reloadProgramAndRender(options.returnPane || "work");
-  }, { panelClass: "experiment-editor-drawer", saveLabel: "Opprett eksperiment" });
+  }, { saveLabel: "Opprett eksperiment" });
 }
 
 function experimentContextSpec(data, presetAreaId = "", presetCompetencyId = "") {
-  const area = el("select", { name: "areaId" }, [
-    el("option", { value: "", text: "Ikke knyttet til fokusoppdrag", selected: !presetAreaId }),
-    ...data.areas.map((item) => el("option", { value: item.id, text: item.title || "Fokusoppdrag", selected: item.id === presetAreaId }))
-  ]);
   const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active" || item.id === presetCompetencyId);
-  const competency = el("select", { name: "competencyId" }, [
-    el("option", { value: "", text: "Ikke knyttet til lederkompetanse", selected: !presetCompetencyId }),
-    ...activeCompetencies.map((item) => el("option", {
-      value: item.id,
-      text: `${Number(item.priority) === 1 ? "Prioritert nå" : "Aktiv"}: ${item.title || "Lederkompetanse"}`,
-      selected: item.id === presetCompetencyId
-    }))
-  ]);
+  const area = dsFormSelect("areaId", [
+    ["", "Ikke knyttet til fokusoppdrag"],
+    ...data.areas.map((item) => [item.id, item.title || "Fokusoppdrag"])
+  ], presetAreaId);
+  const competency = dsFormSelect("competencyId", [
+    ["", "Ikke knyttet til lederkompetanse"],
+    ...activeCompetencies.map((item) => [item.id, `${Number(item.priority) === 1 ? "Prioritert nå" : "Aktiv"}: ${item.title || "Lederkompetanse"}`])
+  ], presetCompetencyId);
   const selectedArea = data.areas.find((item) => item.id === presetAreaId);
   const selectedCompetency = activeCompetencies.find((item) => item.id === presetCompetencyId);
   const connection = [selectedArea?.title, selectedCompetency?.title].filter(Boolean).join(" · ");
-  return customSpec(["areaId", "competencyId"], el("details", { class: "experiment-context-details" }, [
-    el("summary", {}, [
-      el("span", {}, [
-        el("strong", { text: connection ? "Knyttet til utviklingsarbeidet" : "Knytt til utviklingsarbeidet" }),
-        el("small", { text: connection || "Valgfritt" })
-      ]),
-      icon("chevron-down")
-    ]),
-    el("div", { class: "experiment-context-fields" }, [
-      el("label", { text: "Fokusoppdrag" }, [area]),
-      el("label", { text: "Lederkompetanse" }, [competency])
-    ])
-  ]));
+  return customSpec(["areaId", "competencyId"], dsFormDisclosure(
+    connection ? "Knyttet til utviklingsarbeidet" : "Knytt til utviklingsarbeidet",
+    connection || "Valgfritt",
+    [el("div", { class: "ds-link-fields" }, [dsFormField("Fokusoppdrag", area), dsFormField("Lederkompetanse", competency)])]
+  ));
 }
 
 function experimentEditorSpecs(data, values = {}, action = null) {
   const parsed = values.parsed || {};
   const statusValue = normalizeExperimentStatus(values.status || action?.status || "planned");
-  const coreFields = el("div", { class: "experiment-core-fields" }, [
+  const coreFields = el("div", { class: "ds-form" }, [
     renderSpec(inputSpec("title", "Navn på eksperimentet", "text", values.title || "", {
       placeholder: "Et kort navn du kjenner igjen",
       required: true,
       maxlength: 80,
       autocomplete: "off"
     })),
-    el("div", { class: "experiment-practice-field" }, [
-      renderSpec(textareaSpec("action", "Hva vil du prøve?", values.action || parsed.action || "", {
+    renderSpec({
+      ...textareaSpec("action", "Hva vil du prøve?", values.action || parsed.action || "", {
         placeholder: "Én konkret atferd eller handling...",
         required: true
-      })),
-      el("p", { class: "experiment-field-help", text: "Gjør forsøket lite nok til å prøve i en faktisk situasjon." })
-    ]),
-    el("div", { class: `field-pair experiment-field-pair ${action ? "experiment-field-triple" : ""}`.trim() }, [
+      }),
+      help: "Gjør forsøket lite nok til å prøve i en faktisk situasjon."
+    }),
+    el("div", { class: "ds-form-row" }, [
       renderSpec(inputSpec("arena", "Hvor skal du prøve det?", "text", values.arena || parsed.arena || "", {
         placeholder: "Et møte eller en samtale"
       })),
-      renderSpec(inputSpec("dueDate", "Når vil du se tilbake?", "date", values.dueDate || "")),
-      action ? renderSpec(selectSpec("status", "Status", EXPERIMENT_STATUS_OPTIONS, statusValue, false)) : null
-    ].filter(Boolean)),
+      renderSpec(inputSpec("dueDate", "Når vil du se tilbake?", "date", values.dueDate || ""))
+    ]),
+    action ? el("div", { class: "ds-form-row" }, [renderSpec(selectSpec("status", "Status", EXPERIMENT_STATUS_OPTIONS, statusValue))]) : null,
     renderSpec(textareaSpec("signals", "Hva skal du se etter?", values.signals || parsed.signals || "", {
       placeholder: "Et observerbart tegn på effekt eller respons..."
     }))
@@ -6013,28 +6000,19 @@ function experimentReviewSpec(action, parsed) {
   const isHistory = isExperimentReviewed(normalized);
   const fields = [
     textareaSpec("observation", "Hva observerte du?", parsed.observation, { placeholder: "Hva skjedde, og hvordan responderte andre?" }),
-    selectSpec("effect", "Hvilken effekt la du merke til?", [["", "Ikke vurdert"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || "", false),
+    selectSpec("effect", "Hvilken effekt la du merke til?", [["", "Ikke vurdert"], ["low", "Lite"], ["some", "Noe"], ["clear", "Tydelig"]], parsed.effect || ""),
     textareaSpec("learning", "Hva lærte du?", parsed.learning, { placeholder: "Hva forstår du bedre nå?" }),
     textareaSpec("nextStep", "Hva vil du justere neste gang?", parsed.nextStep, { placeholder: "Behold, endre eller prøv noe nytt..." })
   ];
-  return customSpec(["observation", "effect", "learning", "nextStep"], el("details", { class: "experiment-review-details", open: hasReview }, [
-    el("summary", {}, [
-      el("span", {}, [
-        el("strong", { text: "Se tilbake og juster" }),
-        el("small", { text: hasReview ? "Observasjon, læring og neste justering" : "Åpne når du har prøvd" })
-      ]),
-      icon("chevron-down")
-    ]),
-    el("div", { class: "experiment-review-fields" }, [
+  return customSpec(["observation", "effect", "learning", "nextStep"], dsFormDisclosure(
+    "Se tilbake og juster",
+    hasReview ? "Observasjon, læring og neste justering" : "Åpne når du har prøvd",
+    [
       ...fields.map(renderSpec),
-      !isHistory ? el("div", { class: "experiment-review-actions" }, [
-        el("button", { class: "button ghost experiment-finish-button", type: "button", onclick: handleDrawerDanger }, [
-          icon("circle-stop"),
-          el("span", { text: "Avslutt eksperiment" })
-        ])
-      ]) : null
-    ].filter(Boolean))
-  ]));
+      !isHistory ? el("div", {}, [dsButton("Avslutt eksperiment", { variant: "text", onClick: () => handleDrawerDanger() })]) : null
+    ],
+    { open: hasReview }
+  ));
 }
 
 function editAction(action, data) {
@@ -6065,7 +6043,6 @@ function editAction(action, data) {
   openEntityDrawer("Rediger eksperiment", "Eksperiment", specs, async (values) => {
     await persist(values);
   }, {
-    panelClass: "experiment-editor-drawer",
     saveLabel: isHistory ? "Lagre endringer" : "Lagre og fortsett",
     ...(!isHistory ? {
       dangerLabel: "Avslutt eksperiment",
@@ -6695,9 +6672,8 @@ function openClientInvite() {
   openEntityModal("Inviter klient", "Tilgang", [
     inputSpec("name", "Navn"),
     inputSpec("email", "E-post", "email"),
-    inputSpec("role", "Stilling"),
-    inputSpec("employer", "Arbeidsgiver"),
-    selectSpec("coachIds", "Coach(er)", coachOptions, defaultCoachIds, true)
+    rowSpec([inputSpec("role", "Stilling"), inputSpec("employer", "Arbeidsgiver")]),
+    checkboxGroupSpec("coachIds", "Coach(er)", coachOptions, defaultCoachIds)
   ], inviteClient);
 }
 
@@ -6728,9 +6704,8 @@ function openClientEdit(client) {
   const specs = [
     inputSpec("name", "Navn", "text", client.name || ""),
     inputSpec("email", "E-post", "email", client.email || ""),
-    inputSpec("role", "Stilling", "text", client.role || ""),
-    inputSpec("employer", "Arbeidsgiver", "text", client.employer || ""),
-    selectSpec("coachIds", "Coach(er)", state.coaches.map((coach) => [coach.id, coach.name]), client.coach_ids || [], true)
+    rowSpec([inputSpec("role", "Stilling", "text", client.role || ""), inputSpec("employer", "Arbeidsgiver", "text", client.employer || "")]),
+    checkboxGroupSpec("coachIds", "Coach(er)", state.coaches.map((coach) => [coach.id, coach.name]), client.coach_ids || [])
   ];
   if (canResendClientInvite(client)) {
     specs.push(clientAccessSpec(client));
@@ -6746,68 +6721,42 @@ function openClientEdit(client) {
 }
 
 function clientAccessSpec(client) {
-  return customSpec(null, el("div", { class: "modal-section access-section" }, [
-    el("strong", { text: "Tilgang" }),
-    el("p", { text: "Tilgangen er ikke aktivert ennå." }),
-    el("button", {
-      class: "button ghost",
-      type: "button",
-      onclick: () => resendClientInviteFromModal(client)
-    }, [
-      icon("mail-plus"),
-      el("span", { text: "Send tilgangslenke på nytt" })
-    ])
+  return customSpec(null, el("div", { class: "ds-form-section" }, [
+    el("h3", { class: "ds-form-section-title", text: "Tilgang" }),
+    el("p", { class: "ds-form-help", text: "Tilgangen er ikke aktivert ennå." }),
+    dsButton("Send tilgangslenke på nytt", { onClick: () => resendClientInviteFromModal(client) })
   ]));
 }
 
-function openEntityModal(title, kicker, specs, onSave, options = {}) {
-  state.modal = { specs, onSave, ...options };
-  const modalPanel = $("#entity-form");
-  modalPanel.className = `modal-panel ${options.panelClass || ""}`.trim();
-  $("#modal-title").textContent = title;
-  $("#modal-kicker").textContent = kicker;
-  $("#modal-message").textContent = "";
-  $("#modal-fields").replaceChildren(...specs.map(renderSpec));
-  const dangerSlot = $("#modal-danger-slot");
-  if (dangerSlot) {
-    if (options.onDanger) {
-      dangerSlot.replaceChildren(el("button", { class: "button modal-danger-button", type: "button", onclick: handleModalDanger }, [
-        icon(options.dangerIcon || "trash-2"),
-        el("span", { text: options.dangerLabel || "Slett" })
-      ]));
-    } else {
-      dangerSlot.replaceChildren();
-    }
-  }
-  $("#entity-modal").showModal();
+const FORM_DIALOGS = {
+  modal: { dialog: "#entity-modal", prefix: "modal", onDanger: () => handleModalDanger() },
+  drawer: { dialog: "#entity-drawer", prefix: "drawer", onDanger: () => handleDrawerDanger() }
+};
+
+function openFormDialog(kind, title, kicker, specs, onSave, options = {}) {
+  const { dialog, prefix, onDanger } = FORM_DIALOGS[kind];
+  state[kind] = { specs, onSave, ...options };
+  const node = $(dialog);
+  node.classList.toggle("ds-dialog--workspace", options.size === "workspace");
+  $(`#${prefix}-kicker`).textContent = kicker || "";
+  $(`#${prefix}-title`).textContent = title;
+  $(`#${prefix}-message`).textContent = "";
+  $(`#${prefix}-fields`).replaceChildren(...specs.map(renderSpec));
+  $(`#${prefix}-save span`).textContent = options.saveLabel || "Lagre";
+  const showDanger = options.onDanger && options.dangerPlacement !== "inline";
+  $(`#${prefix}-danger-slot`).replaceChildren(...(showDanger ? [dsButton(options.dangerLabel || "Slett", { onClick: onDanger })] : []));
+  node.showModal();
+  node.querySelector(".ds-dialog-body").scrollTop = 0;
   refreshIcons();
   if (typeof options.afterOpen === "function") requestAnimationFrame(options.afterOpen);
 }
 
+function openEntityModal(title, kicker, specs, onSave, options = {}) {
+  openFormDialog("modal", title, kicker, specs, onSave, options);
+}
+
 function openEntityDrawer(title, kicker, specs, onSave, options = {}) {
-  state.drawer = { specs, onSave, ...options };
-  const drawerPanel = $("#drawer-form");
-  drawerPanel.className = `drawer-panel ${options.panelClass || ""}`.trim();
-  $("#drawer-title").textContent = title;
-  $("#drawer-kicker").textContent = kicker;
-  $("#drawer-message").textContent = "";
-  $("#drawer-fields").replaceChildren(...specs.map(renderSpec));
-  const saveLabel = $("#drawer-save span");
-  if (saveLabel) saveLabel.textContent = options.saveLabel || "Lagre";
-  const dangerSlot = $("#drawer-danger-slot");
-  if (dangerSlot) {
-    if (options.onDanger && options.dangerPlacement !== "inline") {
-      dangerSlot.replaceChildren(el("button", { class: "button modal-danger-button", type: "button", onclick: handleDrawerDanger }, [
-        icon(options.dangerIcon || "trash-2"),
-        el("span", { text: options.dangerLabel || "Slett" })
-      ]));
-    } else {
-      dangerSlot.replaceChildren();
-    }
-  }
-  $("#entity-drawer").showModal();
-  refreshIcons();
-  if (typeof options.afterOpen === "function") requestAnimationFrame(options.afterOpen);
+  openFormDialog("drawer", title, kicker, specs, onSave, options);
 }
 
 function inputSpec(name, label, type = "text", value = "", attrs = {}) {
@@ -6818,8 +6767,8 @@ function textareaSpec(name, label, value = "", attrs = {}) {
   return { kind: "textarea", name, label, value, attrs };
 }
 
-function selectSpec(name, label, options, value = [], multiple = false) {
-  return { kind: "select", name, label, options, value, multiple };
+function selectSpec(name, label, options, value = "") {
+  return { kind: "select", name, label, options, value };
 }
 
 function checkboxGroupSpec(name, label, options, value = []) {
@@ -6832,58 +6781,84 @@ function customSpec(name, node) {
     : { kind: "custom", name, node };
 }
 
-function choiceSpec(name, label, options, value = "") {
-  return { kind: "choice", name, label, options, value };
+function rowSpec(specs) {
+  return { kind: "row", specs };
 }
 
 function sectionSpec(title, text = "") {
   return { kind: "section", title, text };
 }
 
+let formFieldCount = 0;
+
+function dsFormField(label, control, { help = "", className = "" } = {}) {
+  const helpId = help ? `form-help-${++formFieldCount}` : "";
+  if (helpId) control.setAttribute("aria-describedby", helpId);
+  return el("label", { class: dsClass("ds-form-field", className) }, [
+    el("span", { class: "ds-form-label", text: label }),
+    help ? el("span", { class: "ds-form-help", id: helpId, text: help }) : null,
+    control
+  ]);
+}
+
+function dsFormSelect(name, options, value = "") {
+  return el("select", { class: "ds-select", name }, options.map(([key, label]) => el("option", { value: key, text: label, selected: key === value })));
+}
+
+function dsFormDisclosure(title, hint, children, { open = false } = {}) {
+  return el("details", { class: "ds-disclosure ds-disclosure--block ds-form-disclosure", open }, [
+    el("summary", {}, [
+      el("span", {}, [
+        el("span", { class: "ds-disclosure-title", text: title }),
+        el("span", { class: "ds-disclosure-hint", text: hint })
+      ])
+    ]),
+    el("div", { class: "ds-disclosure-body" }, children)
+  ]);
+}
+
 function renderSpec(spec) {
   if (spec.kind === "custom") return spec.node;
+  if (spec.kind === "row") return el("div", { class: "ds-form-row" }, spec.specs.map(renderSpec));
   if (spec.kind === "section") {
-    return el("div", { class: "modal-section" }, [
-      el("strong", { text: spec.title }),
-      spec.text ? el("p", { text: spec.text }) : null
-    ].filter(Boolean));
+    return el("div", { class: "ds-form-section" }, [
+      el("h3", { class: "ds-form-section-title", text: spec.title }),
+      spec.text ? el("p", { class: "ds-form-help", text: spec.text }) : null
+    ]);
   }
   if (spec.kind === "select") {
-    const select = el("select", { name: spec.name, multiple: spec.multiple });
-    spec.options.forEach(([value, label]) => {
-      const selected = Array.isArray(spec.value) ? spec.value.includes(value) : spec.value === value;
-      select.append(el("option", { value, text: label, selected }));
-    });
-    return el("label", { text: spec.label }, [select]);
+    return dsFormField(spec.label, dsFormSelect(spec.name, spec.options, spec.value), { help: spec.help });
   }
   if (spec.kind === "checkbox-group") {
-    return el("fieldset", { class: "choice-field checkbox-group-field" }, [
-      el("legend", { text: spec.label }),
-      el("div", { class: "checkbox-pill-row" }, spec.options.map(([value, label]) => el("label", { class: "checkbox-pill" }, [
+    return el("fieldset", { class: "ds-form-field ds-form-fieldset" }, [
+      el("legend", { class: "ds-form-label", text: spec.label }),
+      el("div", { class: "ds-check-list" }, spec.options.map(([value, label]) => el("label", { class: "ds-check" }, [
         el("input", { type: "checkbox", name: spec.name, value, checked: spec.value.includes(value) }),
         el("span", { text: label })
       ])))
     ]);
   }
-  if (spec.kind === "choice") {
-    return el("fieldset", { class: "choice-field" }, [
-      el("legend", { text: spec.label }),
-      el("div", { class: "choice-row" }, spec.options.map(([value, label]) => el("label", { class: "choice-pill" }, [
-        el("input", { type: "radio", name: spec.name, value, checked: spec.value === value }),
-        el("span", { text: label })
-      ])))
-    ]);
-  }
   if (spec.kind === "textarea") {
-    return el("label", { text: spec.label }, [el("textarea", { name: spec.name, text: spec.value, ...(spec.attrs || {}) })]);
+    return dsFormField(spec.label, el("textarea", { class: "ds-qa-field", name: spec.name, text: spec.value, ...(spec.attrs || {}) }), { help: spec.help });
   }
-  return el("label", { text: spec.label }, [el("input", { name: spec.name, type: spec.type, value: spec.value, required: spec.name === "name" || spec.name === "email", ...(spec.attrs || {}) })]);
+  return dsFormField(spec.label, el("input", {
+    class: "ds-input",
+    name: spec.name,
+    type: spec.type,
+    value: spec.value,
+    required: spec.name === "name" || spec.name === "email",
+    ...(spec.attrs || {})
+  }), { help: spec.help });
 }
 
 function collectSpecValues(specs, form) {
   const values = {};
   specs.forEach((spec) => {
     if (spec.kind === "section") return;
+    if (spec.kind === "row") {
+      Object.assign(values, collectSpecValues(spec.specs, form));
+      return;
+    }
     if (spec.kind === "custom") {
       if (Array.isArray(spec.names)) {
         spec.names.forEach((name) => {
@@ -6904,10 +6879,8 @@ function collectSpecValues(specs, form) {
     const control = $(`[name='${spec.name}']`, form);
     if (spec.kind === "checkbox-group") {
       values[spec.name] = $$(`[name='${spec.name}']:checked`, form).map((item) => item.value);
-    } else if (spec.kind === "choice") {
-      values[spec.name] = $(`[name='${spec.name}']:checked`, form)?.value || "";
     } else {
-      values[spec.name] = spec.multiple ? Array.from(control.selectedOptions).map((option) => option.value) : control.value.trim();
+      values[spec.name] = control.value.trim();
     }
   });
   return values;
@@ -7364,14 +7337,14 @@ function statusLabel(status) {
 function confirmDelete(message, options = {}) {
   const dialog = $("#confirm-dialog");
   if (!dialog) return Promise.resolve(false);
-  $("#confirm-kicker").textContent = options.kicker || "Bekreft sletting";
+  $("#confirm-kicker").textContent = options.kicker || "";
   $("#confirm-title").textContent = options.title || "Er du sikker?";
   $("#confirm-message").textContent = message;
   const action = $("#confirm-action");
   action.querySelector("span").textContent = options.confirmLabel || "Slett";
+  action.classList.toggle("ds-button--danger", Boolean(options.danger));
   if (dialog.open) dialog.close();
   dialog.showModal();
-  refreshIcons();
   return new Promise((resolve) => {
     state.confirmResolve = resolve;
   });
@@ -7380,7 +7353,7 @@ function confirmDelete(message, options = {}) {
 function showAppMessage(title, message, options = {}) {
   const dialog = $("#message-dialog");
   if (!dialog) return Promise.resolve(false);
-  $("#message-kicker").textContent = options.kicker || "Status";
+  $("#message-kicker").textContent = options.kicker || "";
   $("#message-title").textContent = title;
   $("#message-text").textContent = message;
   if (dialog.open) dialog.close();

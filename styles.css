@@ -223,7 +223,6 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent-line); bo
 .primary:hover { opacity: .84; transform: translateY(-1px); }
 .ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
 .ghost:hover { border-color: var(--line-strong); transform: translateY(-1px); }
-.danger { background: var(--danger); color: #fff; }
 .text-button { background: transparent; color: #000; padding: 4px; font-weight: 700; }
 .privacy-note {
   margin: 2px 0 0;
@@ -1659,239 +1658,6 @@ tr:last-child td { border-bottom: 0; }
 }
 .section-toggle strong { display: block; font-size: 14px; font-weight: 700; }
 .section-toggle span { color: var(--muted); font-size: 12px; }
-.field-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-
-.modal,
-.drawer,
-.confirm-dialog { border: 0; padding: 0; background: transparent; max-width: none; max-height: none; }
-.modal::backdrop,
-.drawer::backdrop,
-.confirm-dialog::backdrop { background: rgba(0,0,0,.42); }
-#modal-fields {
-  min-width: 0;
-  display: grid;
-  gap: 14px;
-  overflow-x: hidden;
-}
-.drawer[open] {
-  margin: 0 0 0 auto;
-  min-height: 100dvh;
-}
-#drawer-fields {
-  min-width: 0;
-  display: grid;
-  gap: 14px;
-  overflow-x: hidden;
-}
-.modal-panel {
-  width: 560px;
-  max-width: calc(100vw - 32px);
-  max-height: min(760px, calc(100dvh - 32px));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  scroll-padding-bottom: 96px;
-  display: grid;
-  gap: 16px;
-  padding: 22px;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: var(--shadow);
-  overflow-x: hidden;
-}
-.drawer-panel {
-  width: min(680px, 100vw);
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  scroll-padding-bottom: 96px;
-  display: grid;
-  align-content: start;
-  gap: 16px;
-  padding: 22px;
-  background: #fff;
-  box-shadow: var(--shadow);
-  overflow-x: hidden;
-}
-.modal-panel:has(.choice-field) {
-  min-height: min(520px, calc(100dvh - 32px));
-}
-.modal-panel textarea,
-.drawer-panel textarea { min-height: 86px; }
-.modal-panel label,
-.drawer-panel label {
-  color: rgba(0,0,0,.58);
-  font-size: 12px;
-  font-weight: 700;
-}
-.modal-panel input,
-.modal-panel textarea,
-.modal-panel select,
-.drawer-panel input,
-.drawer-panel textarea,
-.drawer-panel select {
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.drawer-panel input,
-.drawer-panel select {
-  min-height: 48px;
-}
-.modal-head, .modal-actions { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.modal-actions {
-  position: sticky;
-  bottom: -22px;
-  z-index: 2;
-  justify-content: flex-end;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  background: #fff;
-}
-.modal-primary-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-left: auto;
-}
-#modal-danger-slot {
-  min-width: 0;
-}
-.modal-danger-button {
-  border: 1px solid rgba(186,63,54,.22);
-  background: #fff;
-  color: var(--danger);
-}
-.modal-danger-button:hover {
-  background: rgba(186,63,54,.08);
-}
-.confirm-panel {
-  width: 420px;
-  max-width: calc(100vw - 32px);
-  display: grid;
-  gap: 20px;
-  padding: 22px;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: var(--shadow);
-}
-.confirm-panel h3 {
-  margin: 2px 0 8px;
-  font-size: 24px;
-  line-height: 1.1;
-}
-.confirm-panel p:not(.eyebrow) {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.45;
-}
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-.choice-field {
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.choice-field legend {
-  margin: 0 0 8px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-.choice-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  min-height: 40px;
-}
-.choice-pill {
-  position: relative;
-  display: block;
-  min-width: 0;
-}
-.choice-pill input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.choice-pill span {
-  min-height: 40px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-  color: #000;
-  padding: 8px 10px;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
-}
-.choice-pill input:checked + span {
-  border-color: var(--accent-line);
-  background: var(--accent);
-}
-.checkbox-group-field {
-  display: grid;
-  gap: 8px;
-}
-.checkbox-pill-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.checkbox-pill {
-  position: relative;
-}
-.checkbox-pill input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-.checkbox-pill span {
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #fff;
-  color: #000;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 800;
-}
-.checkbox-pill input:checked + span {
-  border-color: var(--accent-line);
-  background: var(--accent);
-}
-.modal-section {
-  display: grid;
-  gap: 3px;
-  padding: 16px 0 2px;
-  border-top: 1px solid var(--line);
-}
-.modal-section:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-.modal-section strong {
-  font-size: 13px;
-  font-weight: 800;
-}
-.modal-section p {
-  margin: 0;
-  color: rgba(0,0,0,.58);
-  font-size: 12px;
-  line-height: 1.45;
-}
 
 @media (max-width: 980px) {
   .plan-layout,
@@ -1946,93 +1712,6 @@ tr:last-child td { border-bottom: 0; }
   label {
     gap: 8px;
     font-size: 12px;
-  }
-  .field-pair { grid-template-columns: 1fr; }
-  .choice-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .choice-pill span {
-    min-height: 44px;
-    font-size: 13px;
-  }
-  .modal[open],
-  .drawer[open] {
-    width: 100%;
-    height: 100dvh;
-    margin: 0;
-    overflow-x: hidden;
-  }
-  .modal-panel,
-  .drawer-panel {
-    width: 100%;
-    max-width: none;
-    height: 100dvh;
-    min-height: 0;
-    max-height: none;
-    overflow-y: auto;
-    padding: max(18px, env(safe-area-inset-top)) 18px 0;
-    border-radius: 0;
-    gap: 14px;
-    scroll-padding-bottom: 124px;
-    overflow-x: hidden;
-  }
-  .modal-head h3 {
-    font-size: 28px;
-    line-height: 1.05;
-  }
-  .modal-panel input,
-  .modal-panel textarea,
-  .modal-panel select,
-  .drawer-panel input,
-  .drawer-panel textarea,
-  .drawer-panel select {
-    font-size: 16px;
-    font-weight: 500;
-  }
-  #modal-fields,
-  #drawer-fields {
-    padding-bottom: 116px;
-  }
-  .confirm-panel {
-    width: calc(100vw - 32px);
-  }
-  .confirm-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-  .modal-actions {
-    bottom: 0;
-    min-height: calc(70px + env(safe-area-inset-bottom));
-    align-items: center;
-    gap: 10px;
-    margin-inline: -18px;
-    padding: 14px 18px max(14px, env(safe-area-inset-bottom));
-    border-top: 1px solid var(--line);
-    background: #fff;
-    flex: 0 0 auto;
-  }
-  .modal-primary-actions {
-    flex: 1 1 auto;
-    align-items: center;
-    gap: 8px;
-  }
-  #modal-danger-slot {
-    flex: 0 0 auto;
-  }
-  .modal-danger-button {
-    min-width: 0;
-    padding-inline: 12px;
-  }
-  .modal-actions .button {
-    flex: 1 1 0;
-    min-width: 0;
-    height: 42px;
-    min-height: 42px;
-    max-height: 42px;
-    padding: 9px 14px;
-    font-size: 13px;
-    line-height: 1;
-  }
-  .modal-actions .modal-danger-button {
-    flex: 0 0 auto;
   }
 }
 
@@ -2608,8 +2287,7 @@ textarea.ui-edit-control {
   color: var(--danger);
 }
 
-.button.destructive:hover,
-.modal-danger-button:hover {
+.button.destructive:hover {
   border-color: rgba(186,26,26,.34);
   background: rgba(186,26,26,.06);
 }
@@ -2650,10 +2328,7 @@ select:focus,
 .resource-card,
 .client-resource-view,
 .ui-section-card,
-.table-wrap,
-.modal-panel,
-.drawer-panel,
-.confirm-panel {
+.table-wrap {
   border-radius: var(--container-radius);
 }
 
@@ -2749,45 +2424,6 @@ select:focus,
   background: #fff;
 }
 
-.modal-section {
-  margin-top: 8px;
-  padding: 18px 0 4px;
-  border-top-color: var(--line-quiet);
-}
-
-.modal-section:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
-}
-
-.drawer-panel {
-  width: min(720px, 100vw);
-}
-
-.drawer-panel label,
-.modal-panel label {
-  color: rgba(0,0,0,.62);
-  font-size: 12px;
-  letter-spacing: .01em;
-}
-
-.drawer-panel input,
-.drawer-panel textarea,
-.drawer-panel select,
-.modal-panel input,
-.modal-panel textarea,
-.modal-panel select {
-  min-height: 48px;
-}
-
-.choice-pill input:checked + span,
-.checkbox-pill input:checked + span {
-  border-color: rgba(0,0,0,.72);
-  background: #000;
-  color: #fff;
-}
-
 .badge.ok,
 .ui-status-pill,
 .resource-readiness-item.is-done {
@@ -2857,9 +2493,7 @@ select:focus,
     font-size: 36px;
   }
 
-  .toolbar,
-  .modal-actions,
-  .modal-primary-actions {
+  .toolbar {
     align-items: stretch;
     flex-direction: column;
   }
@@ -2867,15 +2501,8 @@ select:focus,
   .toolbar-actions,
   .toolbar-actions .button,
   .topline-actions,
-  .topline-actions .button,
-  .modal-primary-actions,
-  .modal-primary-actions .button {
+  .topline-actions .button {
     width: 100%;
-  }
-
-  .drawer-panel {
-    width: 100vw;
-    padding: 18px 16px;
   }
 
   .resource-preview-title h3,
@@ -2921,8 +2548,7 @@ h2 {
 }
 
 h3,
-.card h3,
-.modal-head h3 {
+.card h3 {
   font-family: var(--font-body);
   letter-spacing: 0;
 }
@@ -3893,21 +3519,6 @@ h3,
 
 .resource-admin-empty { border: 0; }
 
-.drawer-panel.resource-editor-drawer {
-  width: min(1180px, 100vw);
-  padding: 0;
-}
-
-.resource-editor-drawer > .modal-head,
-.resource-editor-drawer > .modal-actions,
-.resource-editor-drawer > .form-message {
-  margin-inline: 24px;
-}
-
-.resource-editor-drawer > .modal-head { padding-top: 22px; }
-.resource-editor-drawer > .modal-actions { bottom: 0; padding: 16px 0 22px; background: #fff; }
-.resource-editor-drawer > #drawer-fields { gap: 0; }
-
 .resource-editor-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.72fr);
@@ -4078,8 +3689,6 @@ h3,
 .resource-next-step p { margin: 4px 0 0; color: var(--muted); }
 
 .resource-mobile-picker { display: none; }
-
-.send-resource-drawer { width: min(640px, 100vw); }
 .send-resource-summary {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
@@ -4109,11 +3718,6 @@ h3,
   .resource-admin-row-main > svg { grid-column: 3; grid-row: 1 / span 2; }
   .resource-admin-row-actions { justify-content: flex-end; padding: 0 14px 14px; }
   .resource-admin-row-meta { flex-wrap: wrap; }
-
-  .drawer-panel.resource-editor-drawer { width: 100vw; }
-  .resource-editor-drawer > .modal-head,
-  .resource-editor-drawer > .modal-actions,
-  .resource-editor-drawer > .form-message { margin-inline: 16px; }
   .resource-editor-main,
   .resource-editor-preview { padding: 16px; }
   .resource-editor-section-body { padding: 16px; }
@@ -4136,8 +3740,6 @@ h3,
   .client-resource-view-head,
   .client-resource-view .resource-preview-section { padding-inline: 18px; }
   .resource-next-step { margin-inline: 18px; }
-
-  .send-resource-drawer { width: 100vw; }
 }
 
 /* Main platform areas v6: clients, resources and administration */
@@ -5135,8 +4737,7 @@ h2 {
 
 h3,
 h4,
-.card h3,
-.modal-head h3 {
+.card h3 {
   color: var(--platform-ink);
   font-family: var(--font-body);
   letter-spacing: 0;
@@ -5163,9 +4764,7 @@ h3 {
 .card,
 .ui-section-card,
 .ui-field-card,
-.table-wrap,
-.modal-panel,
-.drawer-panel {
+.table-wrap {
   background: var(--platform-paper);
 }
 
@@ -5224,9 +4823,7 @@ h3 {
   color: var(--platform-muted);
 }
 
-label,
-.drawer-panel label,
-.modal-panel label {
+label {
   gap: 8px;
   color: var(--platform-muted);
   font-size: var(--type-label);
@@ -5286,15 +4883,13 @@ select:focus-visible {
   color: var(--platform-ink);
 }
 
-.button.destructive,
-.modal-danger-button {
+.button.destructive {
   border-color: var(--brand-coral);
   background: #ffffff;
   color: var(--platform-danger);
 }
 
-.button.destructive:hover,
-.modal-danger-button:hover {
+.button.destructive:hover {
   border-color: var(--brand-coral);
   background: var(--platform-danger-soft);
 }
@@ -5715,33 +5310,6 @@ select:focus-visible {
     white-space: normal;
   }
 
-  .modal[open],
-  .confirm-dialog[open] {
-    width: 100vw;
-    max-width: 100vw;
-    padding: 12px;
-  }
-
-  .modal-panel,
-  .confirm-panel {
-    width: 100%;
-    max-width: 100%;
-    max-height: calc(100dvh - 24px);
-    padding: 18px 16px;
-  }
-
-  .drawer-panel {
-    width: 100vw;
-    max-width: 100vw;
-    padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
-  }
-
-  .modal-head,
-  .modal-actions,
-  .modal-primary-actions {
-    min-width: 0;
-  }
-
   .competency-browser-tools {
     padding: 14px 16px;
   }
@@ -5926,233 +5494,7 @@ select:focus-visible {
   gap: 24px;
 }
 
-.experiment-review-details > summary:focus-visible {
-  outline: 3px solid rgba(78, 96, 211, .35);
-  outline-offset: 2px;
-}
-
-.experiment-review-details > summary {
-  list-style: none;
-  cursor: pointer;
-}
-
-.experiment-review-details > summary::-webkit-details-marker {
-  display: none;
-}
-
-.experiment-review-details > summary > svg {
-  transition: transform 160ms ease;
-}
-
-.experiment-review-details[open] > summary > svg {
-  transform: rotate(180deg);
-}
-
-.experiment-review-details {
-  overflow: visible;
-  border: 1px solid var(--platform-line);
-  border-radius: 8px;
-  background: var(--neutral-50);
-}
-
-.experiment-review-details:not([open]) {
-  min-height: 70px;
-}
-
-.experiment-review-details > summary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 20px;
-  gap: 14px;
-  align-items: center;
-  padding: 16px;
-}
-
-.experiment-review-details > summary span,
-.experiment-review-details > summary strong,
-.experiment-review-details > summary small {
-  display: block;
-}
-
-.experiment-review-details > summary small {
-  margin-top: 3px;
-  color: var(--platform-muted);
-  font-size: var(--type-meta);
-  font-weight: 500;
-}
-
-.experiment-review-fields {
-  display: grid;
-  gap: 16px;
-  padding: 18px 16px;
-  border-top: 1px solid var(--platform-line);
-  background: var(--platform-paper);
-}
-
 /* Keep the repair rules above later legacy overrides. */
-
-.drawer-panel.experiment-editor-drawer {
-  width: min(600px, 100vw);
-}
-
-.experiment-editor-drawer #drawer-fields {
-  gap: 22px;
-}
-
-.experiment-core-fields {
-  display: grid;
-  gap: 20px;
-}
-
-.experiment-core-fields > label:first-child {
-  color: var(--platform-ink);
-}
-
-.experiment-core-fields > label:first-child input {
-  min-height: 54px;
-  padding-inline: 15px;
-  font-size: 18px;
-  font-weight: 650;
-}
-
-.experiment-practice-field {
-  display: grid;
-  gap: 6px;
-  padding-top: 2px;
-}
-
-.experiment-editor-drawer textarea[name="action"] {
-  min-height: 124px;
-  font-size: 16px;
-  line-height: 1.55;
-}
-
-.experiment-editor-drawer textarea[name="signals"] {
-  min-height: 96px;
-}
-
-.experiment-field-help {
-  margin: 0;
-  color: var(--platform-muted);
-  font-size: var(--type-meta);
-  line-height: 1.45;
-}
-
-.experiment-field-pair {
-  grid-template-columns: minmax(0, 1.35fr) minmax(180px, .65fr);
-  gap: 16px;
-}
-
-.experiment-field-triple {
-  grid-template-columns: minmax(0, 1.2fr) minmax(150px, .7fr) minmax(160px, .8fr);
-}
-
-.experiment-context-details {
-  overflow: visible;
-  border: 1px solid var(--platform-line);
-  border-radius: 8px;
-  background: var(--platform-paper);
-}
-
-.experiment-context-details:not([open]) {
-  min-height: 58px;
-}
-
-.experiment-context-details > summary {
-  min-height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 16px;
-  cursor: pointer;
-  list-style: none;
-}
-
-.experiment-context-details > summary::-webkit-details-marker {
-  display: none;
-}
-
-.experiment-context-details > summary span {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.experiment-context-details > summary strong,
-.experiment-context-details > summary small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.experiment-context-details > summary small {
-  color: var(--platform-muted);
-  font-size: var(--type-meta);
-  font-weight: 500;
-}
-
-.experiment-context-details > summary svg {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  transition: transform .16s ease;
-}
-
-.experiment-context-details[open] > summary svg {
-  transform: rotate(180deg);
-}
-
-.experiment-context-fields {
-  display: grid;
-  gap: 14px;
-  padding: 16px;
-  border-top: 1px solid var(--platform-line);
-  background: var(--platform-paper);
-}
-
-.experiment-editor-drawer .experiment-review-details {
-  background: var(--platform-paper);
-}
-
-.experiment-editor-drawer .experiment-review-fields {
-  gap: 18px;
-  padding: 20px 16px 16px;
-}
-
-.experiment-review-actions {
-  display: flex;
-  justify-content: flex-start;
-  padding-top: 4px;
-  border-top: 1px solid var(--platform-line);
-}
-
-.experiment-finish-button {
-  min-height: 40px;
-  padding-inline: 0;
-  border-color: transparent;
-  color: var(--platform-muted);
-}
-
-.experiment-finish-button:hover {
-  border-color: transparent;
-  background: transparent;
-  color: var(--danger);
-}
-
-.experiment-editor-drawer .modal-actions {
-  justify-content: flex-end;
-}
-
-@media (max-width: 760px) {
-  .experiment-field-pair {
-    grid-template-columns: 1fr;
-  }
-
-  .experiment-core-fields > label:first-child input {
-    font-size: 17px;
-  }
-
-}
 
 /* Focus model: retning, inner project, outer project and practice. */
 
@@ -6193,13 +5535,7 @@ select:focus-visible {
 }
 
 .ui-edit-control,
-.inline-textarea,
-.modal-panel input,
-.modal-panel textarea,
-.modal-panel select,
-.drawer-panel input,
-.drawer-panel textarea,
-.drawer-panel select {
+.inline-textarea {
   border-color: var(--platform-line);
   border-radius: 8px;
   background: #fff;
@@ -6207,13 +5543,7 @@ select:focus-visible {
 }
 
 .ui-edit-control:focus,
-.inline-textarea:focus,
-.modal-panel input:focus,
-.modal-panel textarea:focus,
-.modal-panel select:focus,
-.drawer-panel input:focus,
-.drawer-panel textarea:focus,
-.drawer-panel select:focus {
+.inline-textarea:focus {
   border-color: var(--platform-line-strong);
   outline: 2px solid rgba(83, 102, 121, .14);
   outline-offset: 0;
@@ -7080,13 +6410,7 @@ select:focus-visible {
 .auth-panel select,
 .ui-edit-control,
 .inline-textarea,
-.resource-admin-compact-select,
-.modal-panel input,
-.modal-panel textarea,
-.modal-panel select,
-.drawer-panel input,
-.drawer-panel textarea,
-.drawer-panel select {
+.resource-admin-compact-select {
   border: 1px solid var(--platform-line);
   border-radius: 8px;
   background: var(--platform-paper);
@@ -7098,9 +6422,7 @@ select:focus-visible {
 .app-shell textarea,
 .auth-panel textarea,
 .ui-edit-control,
-.inline-textarea,
-.modal-panel textarea,
-.drawer-panel textarea {
+.inline-textarea {
   font-size: 15px;
   font-weight: 400;
   line-height: 1.6;
@@ -7114,11 +6436,7 @@ select:focus-visible {
 .auth-panel textarea::placeholder,
 .ui-edit-control::placeholder,
 .inline-textarea::placeholder,
-.search::placeholder,
-.modal-panel input::placeholder,
-.modal-panel textarea::placeholder,
-.drawer-panel input::placeholder,
-.drawer-panel textarea::placeholder {
+.search::placeholder {
   color: rgba(73, 69, 79, .58);
   opacity: 1;
 }
@@ -7131,13 +6449,7 @@ select:focus-visible {
 .auth-panel select:hover,
 .ui-edit-control:hover,
 .inline-textarea:hover,
-.resource-admin-compact-select:hover,
-.modal-panel input:hover,
-.modal-panel textarea:hover,
-.modal-panel select:hover,
-.drawer-panel input:hover,
-.drawer-panel textarea:hover,
-.drawer-panel select:hover {
+.resource-admin-compact-select:hover {
   border-color: var(--platform-line-strong);
 }
 
@@ -7158,19 +6470,7 @@ select:focus-visible {
 .inline-textarea:focus,
 .inline-textarea:focus-visible,
 .resource-admin-compact-select:focus,
-.resource-admin-compact-select:focus-visible,
-.modal-panel input:focus,
-.modal-panel input:focus-visible,
-.modal-panel textarea:focus,
-.modal-panel textarea:focus-visible,
-.modal-panel select:focus,
-.modal-panel select:focus-visible,
-.drawer-panel input:focus,
-.drawer-panel input:focus-visible,
-.drawer-panel textarea:focus,
-.drawer-panel textarea:focus-visible,
-.drawer-panel select:focus,
-.drawer-panel select:focus-visible {
+.resource-admin-compact-select:focus-visible {
   border-color: var(--platform-line-strong);
   outline: 0;
   box-shadow: 0 0 0 3px rgba(83, 102, 121, .12);
@@ -7184,9 +6484,7 @@ select:focus-visible {
 }
 
 /* UI consistency polish v1: keep repeated controls quiet, aligned and predictable. */
-.app-shell :where(.button, .ui-button, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open, .visibility-choice, .client-resource-back),
-.modal-panel :where(.button, .ui-button),
-.drawer-panel :where(.button, .ui-button) {
+.app-shell :where(.button, .ui-button, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open, .visibility-choice, .client-resource-back) {
   min-height: 42px;
   display: inline-flex;
   align-items: center;
@@ -7202,51 +6500,37 @@ select:focus-visible {
   transition: border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease;
 }
 
-.app-shell :where(.button.ghost, .button.secondary, .ui-button-tonal, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open),
-.modal-panel :where(.button.ghost, .button.secondary, .ui-button-tonal),
-.drawer-panel :where(.button.ghost, .button.secondary, .ui-button-tonal) {
+.app-shell :where(.button.ghost, .button.secondary, .ui-button-tonal, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open) {
   border: 1px solid var(--platform-line);
   background: var(--platform-paper);
   color: var(--platform-ink);
 }
 
-.app-shell :where(.button.ghost, .button.secondary, .ui-button-tonal, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open):hover,
-.modal-panel :where(.button.ghost, .button.secondary, .ui-button-tonal):hover,
-.drawer-panel :where(.button.ghost, .button.secondary, .ui-button-tonal):hover {
+.app-shell :where(.button.ghost, .button.secondary, .ui-button-tonal, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open):hover {
   border-color: var(--platform-line-strong);
   background: var(--neutral-50);
 }
 
-.app-shell :where(.button.primary, .ui-button-filled),
-.modal-panel :where(.button.primary, .ui-button-filled),
-.drawer-panel :where(.button.primary, .ui-button-filled) {
+.app-shell :where(.button.primary, .ui-button-filled) {
   border-color: var(--platform-ink);
   background: var(--platform-ink);
   color: #fff;
 }
 
-.app-shell :where(.button, .ui-button, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open, .visibility-choice):focus-visible,
-.modal-panel :where(.button, .ui-button):focus-visible,
-.drawer-panel :where(.button, .ui-button):focus-visible {
+.app-shell :where(.button, .ui-button, .ui-field-action, .ui-title-action, .ui-add-action, .resource-file-open, .visibility-choice):focus-visible {
   outline: 2px solid var(--platform-ink);
   outline-offset: 2px;
   box-shadow: none;
 }
 
-.app-shell :where(input, textarea, select, .ui-edit-control, .inline-textarea, .ui-title-input),
-.modal-panel :where(input, textarea, select),
-.drawer-panel :where(input, textarea, select) {
+.app-shell :where(input, textarea, select, .ui-edit-control, .inline-textarea, .ui-title-input) {
   max-width: 100%;
   border-radius: 8px;
   background-clip: padding-box;
 }
 
 .app-shell :where(input, textarea, select, .ui-edit-control, .inline-textarea, .ui-title-input):focus,
-.app-shell :where(input, textarea, select, .ui-edit-control, .inline-textarea, .ui-title-input):focus-visible,
-.modal-panel :where(input, textarea, select):focus,
-.modal-panel :where(input, textarea, select):focus-visible,
-.drawer-panel :where(input, textarea, select):focus,
-.drawer-panel :where(input, textarea, select):focus-visible {
+.app-shell :where(input, textarea, select, .ui-edit-control, .inline-textarea, .ui-title-input):focus-visible {
   border-color: var(--platform-line-strong);
   outline: 0;
   box-shadow: 0 0 0 3px rgba(83, 102, 121, .12);

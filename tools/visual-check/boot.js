@@ -337,8 +337,26 @@ function openDialog(name, data) {
       confirmLabel: "Avslutt"
     });
   }
+  if (name === "experiment-review") {
+    const action = {
+      ...data.actions[0],
+      description: JSON.stringify({ version: 3, action: "Starte ledermøtet med de tre viktigste sakene.", observation: "To av lederne tok ordet tidligere enn vanlig.", effect: "some" })
+    };
+    editAction(action, data);
+    requestAnimationFrame(() => document.querySelector("#entity-drawer details[open]")?.scrollIntoView({ block: "start" }));
+  }
+  if (name === "confirm-remove") confirmDelete("Fjerne \"Kontrollsirkelen.pdf\" fra ressursen?", { danger: true });
   if (name === "message") showAppMessage("Kunne ikke lagre refleksjonen", "Prøv igjen.");
   if (name === "client-invite") openClientInvite();
+  if (name === "client-edit") {
+    state.coaches = [{ id: "coach1", name: "Ola Coach" }, { id: "coach2", name: "Siri Coach" }];
+    openClientEdit({ ...state.clients[0], email: "kari@example.com", role: "Direktør", employer: "Eksempel AS" });
+  }
+  if (name === "resource-edit") {
+    state.profile.role = "admin";
+    openResourceAdminEditor({ id: "r1", status: "published", ...data.sharedResources[0].resource });
+  }
+  if (name === "resource-send") openSendResourceDrawer({ id: "r1", ...data.sharedResources[0].resource });
 }
 
 async function finishBoot() {

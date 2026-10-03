@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://p.typekit.net">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://use.typekit.net/ynv7fqd.css">
-  <link rel="stylesheet" href="./styles.css?v=design-system-184">
-  <link rel="stylesheet" href="./design-system.css?v=design-system-184">
+  <link rel="stylesheet" href="./styles.css?v=design-system-185">
+  <link rel="stylesheet" href="./design-system.css?v=design-system-185">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module">
@@ -100,66 +100,62 @@
     </section>
   </main>
 
-  <dialog class="modal" id="entity-modal">
-    <form method="dialog" class="modal-panel" id="entity-form">
-      <div class="modal-head">
-        <div><p class="eyebrow" id="modal-kicker">Rediger</p><h3 id="modal-title">Detaljer</h3></div>
-        <button class="icon-button" value="cancel" title="Lukk" formnovalidate><i data-lucide="x"></i></button>
-      </div>
-      <div id="modal-fields"></div>
-      <p class="form-message" id="modal-message"></p>
-      <div class="modal-actions">
-        <div id="modal-danger-slot"></div>
-        <div class="modal-primary-actions">
-          <button class="button ghost" value="cancel" formnovalidate>Avbryt</button>
-          <button class="button primary" id="modal-save" value="default"><i data-lucide="save"></i><span>Lagre</span></button>
-        </div>
-      </div>
+  <dialog class="ds-dialog ds-dialog--center" id="entity-modal" aria-labelledby="modal-title">
+    <form method="dialog" class="ds-dialog-panel" id="entity-form">
+      <header class="ds-dialog-head">
+        <div><p class="ds-object-kicker" id="modal-kicker">Rediger</p><h2 class="ds-dialog-title" id="modal-title">Detaljer</h2></div>
+        <button class="ds-icon-button" value="cancel" aria-label="Lukk" title="Lukk" formnovalidate><i data-lucide="x"></i></button>
+      </header>
+      <div class="ds-dialog-body"><div class="ds-form" id="modal-fields"></div></div>
+      <footer class="ds-dialog-foot">
+        <div class="ds-dialog-foot-start" id="modal-danger-slot"></div>
+        <p class="ds-dialog-message" id="modal-message" role="status"></p>
+        <button class="ds-button" value="cancel" formnovalidate>Avbryt</button>
+        <button class="ds-button ds-button--primary" id="modal-save" value="default"><span>Lagre</span></button>
+      </footer>
     </form>
   </dialog>
 
-  <dialog class="drawer" id="entity-drawer">
-    <form method="dialog" class="drawer-panel" id="drawer-form">
-      <div class="modal-head">
-        <div><p class="eyebrow" id="drawer-kicker">Rediger</p><h3 id="drawer-title">Detaljer</h3></div>
-        <button class="icon-button" value="cancel" title="Lukk" formnovalidate><i data-lucide="x"></i></button>
-      </div>
-      <div id="drawer-fields"></div>
-      <p class="form-message" id="drawer-message"></p>
-      <div class="modal-actions">
-        <div id="drawer-danger-slot"></div>
-        <div class="modal-primary-actions">
-          <button class="button ghost" value="cancel" formnovalidate>Avbryt</button>
-          <button class="button primary" id="drawer-save" value="default"><i data-lucide="save"></i><span>Lagre</span></button>
-        </div>
-      </div>
+  <dialog class="ds-dialog ds-dialog--side" id="entity-drawer" aria-labelledby="drawer-title">
+    <form method="dialog" class="ds-dialog-panel" id="drawer-form">
+      <header class="ds-dialog-head">
+        <div><p class="ds-object-kicker" id="drawer-kicker">Rediger</p><h2 class="ds-dialog-title" id="drawer-title">Detaljer</h2></div>
+        <button class="ds-icon-button" value="cancel" aria-label="Lukk" title="Lukk" formnovalidate><i data-lucide="x"></i></button>
+      </header>
+      <div class="ds-dialog-body"><div class="ds-form" id="drawer-fields"></div></div>
+      <footer class="ds-dialog-foot">
+        <div class="ds-dialog-foot-start" id="drawer-danger-slot"></div>
+        <p class="ds-dialog-message" id="drawer-message" role="status"></p>
+        <button class="ds-button" value="cancel" formnovalidate>Avbryt</button>
+        <button class="ds-button ds-button--primary" id="drawer-save" value="default"><span>Lagre</span></button>
+      </footer>
     </form>
   </dialog>
 
-  <dialog class="confirm-dialog" id="confirm-dialog">
-    <form method="dialog" class="confirm-panel" id="confirm-form">
-      <div>
-        <p class="eyebrow" id="confirm-kicker">Bekreft</p>
-        <h3 id="confirm-title">Er du sikker?</h3>
-        <p id="confirm-message"></p>
+  <dialog class="ds-dialog ds-dialog--small" id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <form method="dialog" class="ds-dialog-panel" id="confirm-form">
+      <div class="ds-dialog-body">
+        <p class="ds-object-kicker" id="confirm-kicker"></p>
+        <h2 class="ds-dialog-title" id="confirm-title">Er du sikker?</h2>
+        <p class="ds-dialog-text" id="confirm-message"></p>
       </div>
-      <div class="confirm-actions">
-        <button class="button ghost" value="cancel" formnovalidate>Avbryt</button>
-        <button class="button danger" id="confirm-action" value="confirm"><i data-lucide="trash-2"></i><span>Slett</span></button>
-      </div>
+      <footer class="ds-dialog-foot">
+        <button class="ds-button" value="cancel" formnovalidate>Avbryt</button>
+        <button class="ds-button ds-button--primary" id="confirm-action" value="confirm"><span>Slett</span></button>
+      </footer>
     </form>
   </dialog>
 
-  <dialog class="confirm-dialog" id="message-dialog">
-    <form method="dialog" class="confirm-panel" id="message-form">
-      <div>
-        <p class="eyebrow" id="message-kicker">Status</p>
-        <h3 id="message-title">Noe gikk galt</h3>
-        <p id="message-text"></p>
+  <dialog class="ds-dialog ds-dialog--small" id="message-dialog" aria-labelledby="message-title" aria-describedby="message-text">
+    <form method="dialog" class="ds-dialog-panel" id="message-form">
+      <div class="ds-dialog-body">
+        <p class="ds-object-kicker" id="message-kicker"></p>
+        <h2 class="ds-dialog-title" id="message-title">Noe gikk galt</h2>
+        <p class="ds-dialog-text" id="message-text"></p>
       </div>
-      <div class="confirm-actions">
-        <button class="button primary" value="ok">OK</button>
-      </div>
+      <footer class="ds-dialog-foot">
+        <button class="ds-button ds-button--primary" value="ok">OK</button>
+      </footer>
     </form>
   </dialog>
 
@@ -177,6 +173,6 @@
     </section>
   </dialog>
 
-  <script src="./app.js?v=design-system-184" defer></script>
+  <script src="./app.js?v=design-system-185" defer></script>
 </body>
 </html>
