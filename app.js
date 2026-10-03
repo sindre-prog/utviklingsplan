@@ -793,7 +793,7 @@ function renderShell() {
   const navList = $("#nav-list");
   navList.hidden = nav.length === 0;
   navList.replaceChildren(...nav.map(([view, iconName, label]) => {
-    return el("button", { class: "nav-item", "data-view": view, onclick: () => navigate(view), text: label });
+    return el("button", { class: "ds-appbar-link", type: "button", "data-view": view, onclick: () => navigate(view), text: label });
   }));
   refreshIcons();
 }
@@ -808,8 +808,16 @@ function navigateHome() {
 
 function navigate(view, clientId = null, activePane = null) {
   state.view = view;
+  if (view !== "plan") {
+    $("#appbar-tabs")?.replaceChildren();
+    $("#appbar-status")?.replaceChildren();
+  }
   if (clientId) state.selectedClientId = clientId;
-  $$(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view || (view === "plan" && item.dataset.view === "clients")));
+  $$("#nav-list [data-view]").forEach((item) => {
+    const active = item.dataset.view === view || (view === "plan" && item.dataset.view === "clients");
+    if (active) item.setAttribute("aria-current", "page");
+    else item.removeAttribute("aria-current");
+  });
   const routes = {
     clients: renderClients,
     plan: renderPlan,
@@ -822,6 +830,8 @@ function navigate(view, clientId = null, activePane = null) {
 }
 
 function setHeader(kicker, title, actions = [], description = "") {
+  $("#appbar-tabs")?.replaceChildren();
+  $("#appbar-status")?.replaceChildren();
   $("#view-kicker").textContent = kicker;
   $("#view-title").textContent = title;
   const descriptionNode = $("#view-description");
@@ -3100,42 +3110,41 @@ function clientWorkspaceTabs(data = {}, activePane = null) {
     ["reflections", "Refleksjon", "notebook-pen"],
     ["resources", "Ressurser", "book-open"]
   ].filter(Boolean);
-  const tabs = el("div", { class: `workspace-tabs ${hasNowTab ? "has-now" : ""}`.trim() }, [
-    el("div", { class: "workspace-tab-group workspace-tab-group-main", role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label, iconName, visibleLabel = label]) => {
-      const showResourceCount = pane === "resources" && resourceCount > 0;
-      const resourceLabel = showResourceCount
-        ? `Ressurser, ${resourceCount} ${resourceCount === 1 ? "ressurs" : "ressurser"}${newResourceCount ? state.profile?.role === "client" ? `, ${newResourceCount} ${newResourceCount === 1 ? "ny" : "nye"}` : `, ${newResourceCount} ikke åpnet av klienten` : ""}`
-        : label;
-      return el("button", {
-        class: `workspace-tab ${pane === resolvedPane ? "active" : ""} ${pane === "resources" && newResourceCount ? "has-new-resource" : ""}`.trim(),
-        type: "button",
-        role: "tab",
-        id: `workspace-tab-${pane}`,
-        "aria-controls": `workspace-pane-${pane}`,
-        "data-tab": pane,
-        "aria-label": resourceLabel,
-        "aria-selected": pane === resolvedPane ? "true" : "false"
-      }, [
-        el("span", { class: "workspace-tab-icon", "aria-hidden": "true" }, [icon(iconName)]),
-        el("span", { class: "workspace-tab-label", text: visibleLabel }),
-        showResourceCount ? el("span", { class: `workspace-tab-count ${newResourceCount ? "has-new" : ""}`.trim(), "aria-hidden": "true" }, [
-          el("span", { text: String(resourceCount) }),
-          newResourceCount ? el("span", { class: "workspace-tab-new-dot" }) : null
-        ].filter(Boolean)) : null
-      ].filter(Boolean));
-    }))
+  const inAppbar = state.profile?.role === "client";
+  const tabs = el("div", { class: dsClass("ds-tabs", !inAppbar && "ds-tabs--page"), role: "tablist", "aria-label": "Utviklingsplan" }, items.map(([pane, label, iconName, visibleLabel = label]) => {
+    const showResourceCount = pane === "resources" && resourceCount > 0;
+    const resourceLabel = showResourceCount
+      ? `Ressurser, ${resourceCount} ${resourceCount === 1 ? "ressurs" : "ressurser"}${newResourceCount ? state.profile?.role === "client" ? `, ${newResourceCount} ${newResourceCount === 1 ? "ny" : "nye"}` : `, ${newResourceCount} ikke åpnet av klienten` : ""}`
+      : label;
+    return el("button", {
+      class: "ds-tab",
+      type: "button",
+      role: "tab",
+      id: `workspace-tab-${pane}`,
+      "aria-controls": `workspace-pane-${pane}`,
+      "data-tab": pane,
+      "aria-label": resourceLabel,
+      "aria-selected": pane === resolvedPane ? "true" : "false"
+    }, [
+      el("span", { class: "ds-tab-icon", "aria-hidden": "true" }, [icon(iconName)]),
+      el("span", { class: "ds-tab-label", text: visibleLabel }),
+      showResourceCount ? el("span", { class: "ds-tab-count", "data-new": newResourceCount ? "true" : undefined, "aria-hidden": "true", text: String(resourceCount) }) : null
+    ].filter(Boolean));
+  }));
+  const saveState = el("span", { class: "ds-saved", id: "workspace-save-state", "data-state": "clean", role: "status", "aria-live": "polite", "aria-hidden": "true" }, [
+    el("span", { id: "save-status", text: "Lagret" })
   ]);
-  return el("div", { class: "workspace-navigation" }, [
-    tabs,
-    el("div", { class: "workspace-save-row", id: "workspace-save-state", role: "status", "aria-live": "polite", "aria-hidden": "true" }, [
-      icon("cloud-check"),
-      el("span", { class: "save-status", id: "save-status", text: "Lagret" })
-    ])
-  ]);
+  $("#appbar-status")?.replaceChildren(saveState);
+  if (inAppbar) {
+    $("#appbar-tabs")?.replaceChildren(tabs);
+    return null;
+  }
+  $("#appbar-tabs")?.replaceChildren();
+  return tabs;
 }
 
 function setupWorkspaceTabs() {
-  const tabs = $$(".workspace-tab");
+  const tabs = $$("[role='tab'][data-tab]");
   const activate = async (tab) => {
       if (state.inlineEditKey) {
         await showAppMessage("Lagre eller avbryt først", "Du har et åpent felt. Lagre eller avbryt før du går videre.");
@@ -3143,7 +3152,6 @@ function setupWorkspaceTabs() {
       }
       tabs.forEach((item) => {
         const active = item === tab;
-        item.classList.toggle("active", active);
         item.setAttribute("aria-selected", active ? "true" : "false");
         item.tabIndex = active ? 0 : -1;
       });
@@ -3155,7 +3163,7 @@ function setupWorkspaceTabs() {
       return true;
   };
   tabs.forEach((tab, index) => {
-    tab.tabIndex = tab.classList.contains("active") ? 0 : -1;
+    tab.tabIndex = tab.getAttribute("aria-selected") === "true" ? 0 : -1;
     tab.addEventListener("click", () => activate(tab));
     tab.addEventListener("keydown", async (event) => {
       if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -3303,7 +3311,7 @@ function directionExample(examples) {
 }
 
 function activateWorkspacePane(paneName) {
-  const tab = $(`.workspace-tab[data-tab='${paneName}']`);
+  const tab = $(`[role='tab'][data-tab='${paneName}']`);
   if (tab) tab.click();
 }
 
@@ -6439,12 +6447,11 @@ function setSaveState(mode, text = "") {
   if (status) status.textContent = mode === "saved" && text ? text : statusText;
   if (!row) return;
   clearTimeout(state.saveStatusTimer);
-  row.classList.toggle("is-visible", mode !== "clean");
-  row.classList.toggle("is-error", mode === "error");
+  row.dataset.state = mode;
   row.setAttribute("aria-hidden", mode === "clean" ? "true" : "false");
   if (mode === "saved") {
     state.saveStatusTimer = setTimeout(() => {
-      row.classList.remove("is-visible", "is-error");
+      row.dataset.state = "clean";
       row.setAttribute("aria-hidden", "true");
     }, 2500);
   }
