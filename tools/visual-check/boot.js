@@ -342,6 +342,7 @@ function openDialog(name, data) {
 }
 
 async function finishBoot() {
+  await window.visualCheckAfterBoot?.(params);
   refreshIcons();
   if (document.fonts?.ready) await document.fonts.ready;
   document.body.dataset.ready = "1";
