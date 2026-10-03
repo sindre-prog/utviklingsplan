@@ -2863,7 +2863,7 @@ async function renderPlan(activePane = null) {
 
   const editable = canEditProgram(client);
   if (editable) form.addEventListener("input", (event) => {
-    if (event.target.closest(".ui-inline-editor")) return;
+    if (event.target.closest(".ui-inline-editor, .ds-qa, .ds-title-editor")) return;
     markDirty();
   });
   $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]));
@@ -2905,7 +2905,7 @@ function renderCachedProgram(activePane = null) {
   ].filter(Boolean));
   const editable = canEditProgram(client);
   if (editable) form.addEventListener("input", (event) => {
-    if (event.target.closest(".ui-inline-editor")) return;
+    if (event.target.closest(".ui-inline-editor, .ds-qa, .ds-title-editor")) return;
     markDirty();
   });
   $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]));
