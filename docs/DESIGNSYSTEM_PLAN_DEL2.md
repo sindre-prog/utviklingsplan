@@ -70,8 +70,3 @@ Besluttet 3. oktober 2026:
 2. Skissene tas i to runder, i steg 10 og steg 14.
 3. Hvor langt ressursredigeringen bygges om, avgjøres med skissene i steg 14.
 
-## 6. Spørsmålene som ble stilt
-
-1. Er rekkefølgen riktig: klientflatene først, deretter coach og admin?
-2. Skal skissene tas i to runder, slik forslaget er (steg 10 og 14), eller i én runde for alt?
-3. Ressursredigeringen brukes bare av admin og er den største delen. Skal den bygges om fullt ut i steg 16, eller bare få nye knapper, felt og ramme, slik at oppsettet er som i dag?
