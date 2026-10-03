@@ -4606,18 +4606,18 @@ function nowActionItems({ data, plan }) {
 function nowWorkspace(client, data, plan) {
   const editable = canEditProgram(client);
   const actions = nowActionItems({ data, plan });
-  const primary = actions[0] || null;
-  const supporting = actions.slice(1);
-  const primaryCompetency = primaryLeadershipCompetency(data);
   const focusItems = nowFocusAssignments(plan);
   const setup = nowSetupSection({ data, plan, editable });
-  return el("div", { class: "platform-page now-workspace now-workspace-v2" }, [
-    setup,
-    setup ? null : nowFocusOverview({ focusItems, activeCompetencies: activeLeadershipCompetencies(data), actions: data.actions || [] }),
+  const primary = setup ? null : actions[0] || null;
+  const supporting = setup ? actions : actions.slice(1);
+  return dsPage({ className: "ds-now" }, [
     primary ? nowPrimaryAction(primary, editable) : null,
-    nowActionGrid(supporting, editable),
-    setup ? null : nowProgressStrip({ primaryCompetency, activeCompetencies: activeLeadershipCompetencies(data), focusItems, actions: data.actions || [], sessions: plan.sessions || [], resources: data.sharedResources || [], compact: true })
-  ].filter(Boolean));
+    dsSheet([
+      setup || nowFocusOverview({ focusItems, activeCompetencies: activeLeadershipCompetencies(data), actions: data.actions || [] }),
+      nowActionList(supporting, editable)
+    ]),
+    setup ? null : nowProgressStrip({ sessions: plan.sessions || [], resources: data.sharedResources || [] })
+  ]);
 }
 
 function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
@@ -4626,60 +4626,58 @@ function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
     state.focusView = "experiments";
     renderCachedProgram("work");
   };
-  const column = ({ key, label, objectLabel, iconName, items, emptyText }) => el("section", { class: `now-focus-column is-${key}` }, [
-    el("header", { class: "now-focus-column-head" }, [
-      el("span", { class: "now-focus-column-icon", "aria-hidden": "true" }, [icon(iconName)]),
-      el("span", { class: "now-focus-column-label" }, [
-        el("strong", { text: label }),
-        el("small", { text: objectLabel })
-      ])
+  const group = ({ label, objectLabel, items, emptyText }) => el("section", { class: "ds-group" }, [
+    el("h3", { class: "ds-group-label" }, [
+      el("span", { class: "ds-group-name", text: label }),
+      el("span", { class: "ds-group-object", text: objectLabel })
     ]),
     items.length
-      ? el("ul", { class: "now-focus-items" }, items.map((item) => el("li", {}, [
-        el("button", { class: "now-focus-item", type: "button", onclick: item.onAction }, [
-          el("span", { class: "now-focus-item-title", text: item.title }),
-          item.meta ? el("span", { class: "now-focus-item-meta", text: item.meta }) : null,
+      ? el("ul", { class: "ds-link-rows" }, items.map((item) => el("li", {}, [
+        el("button", { class: "ds-link-row", type: "button", onclick: item.onAction }, [
+          el("span", { class: "ds-link-row-title", text: item.title }),
+          item.status ? dsStatus(item.status, item.tone) : null,
           icon("chevron-right")
         ].filter(Boolean))
       ])))
-      : el("p", { class: "now-focus-empty", text: emptyText })
+      : el("p", { class: "ds-group-empty", text: emptyText })
   ]);
 
-  return el("section", { class: "now-focus-overview", "aria-labelledby": "now-focus-overview-title" }, [
-    el("h2", { class: "now-focus-overview-title", id: "now-focus-overview-title", text: state.profile?.role === "client" ? "Det du jobber med" : "Det klienten jobber med" }),
-    el("div", { class: "now-focus-columns" }, [
-      column({
-        key: "outer",
+  return el("section", { class: "ds-section", "aria-labelledby": "now-focus-overview-title" }, [
+    el("div", { class: "ds-section-head" }, [
+      el("h2", { class: "ds-section-title", id: "now-focus-overview-title", text: state.profile?.role === "client" ? "Det du jobber med" : "Det klienten jobber med" })
+    ]),
+    el("div", { class: "ds-groups" }, [
+      group({
         label: "Ytre prosjekt",
         objectLabel: "Fokusoppdrag",
-        iconName: "briefcase-business",
         emptyText: "Ikke valgt ennå",
-        items: focusItems.map((item) => ({
-          title: item.area.title || "Fokusoppdrag",
-          onAction: () => openNowFocusAssignment(item)
-        }))
+        items: focusItems.map((item) => {
+          const status = focusPlanStatus(item.area);
+          return {
+            title: item.area.title || "Fokusoppdrag",
+            status: status.label,
+            tone: status.ready ? "done" : "neutral",
+            onAction: () => openNowFocusAssignment(item)
+          };
+        })
       }),
-      column({
-        key: "inner",
+      group({
         label: "Indre prosjekt",
         objectLabel: "Lederkompetanser",
-        iconName: "compass",
         emptyText: "Ikke valgt ennå",
         items: activeCompetencies.map((item) => ({
           title: item.title || "Lederkompetanse",
-          meta: competencyStatusLabel(item),
+          status: competencyStatusLabel(item),
           onAction: () => openNowCompetency(item)
         }))
       }),
-      column({
-        key: "experiment",
+      group({
         label: "Prøv i praksis",
         objectLabel: "Eksperiment",
-        iconName: "flask-conical",
         emptyText: "Ingen åpne eksperimenter",
         items: openExperiments.map((action) => ({
           title: action.title || "Eksperiment",
-          meta: [experimentStatusLabel(action.status), action.due_date ? formatDate(action.due_date) : ""].filter(Boolean).join(" · "),
+          status: [experimentStatusLabel(action.status), action.due_date ? formatDate(action.due_date) : ""].filter(Boolean).join(" · "),
           onAction: openExperimentsView
         }))
       })
@@ -4719,7 +4717,6 @@ function nowSetupSection({ data, plan, editable }) {
       label: "Mål og rammer",
       objectLabel: "",
       question: "Hva skal utviklingsløpet bidra til?",
-      valueLabel: "Status",
       value: directionStatus,
       complete: directionComplete,
       action: editable ? { label: "Åpne forløpet", onAction: () => activateWorkspacePane("direction") } : null
@@ -4729,7 +4726,6 @@ function nowSetupSection({ data, plan, editable }) {
       label: "Ytre prosjekt",
       objectLabel: "Fokusoppdrag",
       question: "Hva er viktigst å lykkes med i jobben nå?",
-      valueLabel: outerFocus ? "Valgt fokusoppdrag" : "Status",
       value: outerFocus?.area?.title || (draftOuterFocus ? "Ikke ferdigstilt" : "Ikke valgt ennå"),
       complete: Boolean(outerFocus),
       action: editable ? {
@@ -4742,7 +4738,6 @@ function nowSetupSection({ data, plan, editable }) {
       label: "Indre prosjekt",
       objectLabel: "Lederkompetanser",
       question: "Hva må du utvikle for å lykkes bedre med det?",
-      valueLabel: primaryCompetency ? "Valgte lederkompetanser" : "Status",
       value: innerStatus,
       complete: Boolean(primaryCompetency),
       action: innerAction
@@ -4752,7 +4747,6 @@ function nowSetupSection({ data, plan, editable }) {
       label: "Prøv i praksis",
       objectLabel: "Eksperiment",
       question: "Hva vil du prøve i praksis?",
-      valueLabel: openExperiments.length ? `Åpne · ${openExperiments.length}` : "Status",
       value: openExperiments.length
         ? openExperiments.map((action) => action.title || "Eksperiment").join(" · ")
         : "Ingen åpne eksperimenter",
@@ -4767,119 +4761,75 @@ function nowSetupSection({ data, plan, editable }) {
     }
   ];
 
-  return el("section", { class: "now-setup-section", "aria-labelledby": "now-setup-title" }, [
-    el("header", { class: "now-setup-head" }, [
-      el("span", { class: "workspace-kicker", text: "Grunnlag" }),
-      el("h3", { id: "now-setup-title", text: "Sett grunnlaget for forløpet" }),
-      el("p", { text: "Avklar hva forløpet skal bidra til, hvor utviklingen skal merkes og hva du vil utvikle." })
-    ]),
-    el("div", { class: "now-setup-list" }, [
-      nowSetupGroup("Forløpet", "direction", rows.slice(0, 1), 0, firstMissingKey),
-      nowSetupGroup("Utviklingsfokus", "focus", rows.slice(1), 1, firstMissingKey)
-    ])
+  return dsSection({
+    title: "Sett grunnlaget for forløpet",
+    intro: "Avklar hva forløpet skal bidra til, hvor utviklingen skal merkes og hva du vil utvikle.",
+    headingLevel: 2
+  }, [
+    nowSetupGroup("Forløpet", rows.slice(0, 1), 0, firstMissingKey),
+    nowSetupGroup("Utviklingsfokus", rows.slice(1), 1, firstMissingKey)
   ]);
 }
 
-function nowSetupGroup(title, key, rows, startIndex, firstMissingKey) {
-  const titleId = `now-setup-group-${key}`;
-  return el("section", { class: "now-setup-group", "aria-labelledby": titleId }, [
-    el("header", { class: "now-setup-group-head" }, [
-      el("h4", { class: "now-setup-group-title", id: titleId, text: title })
-    ]),
-    el("div", { class: "now-setup-group-rows" }, rows.map((row, index) => nowSetupRow(row, startIndex + index, firstMissingKey)))
+function nowSetupGroup(title, rows, startIndex, firstMissingKey) {
+  return el("section", { class: "ds-setup-group" }, [
+    el("h3", { class: "ds-group-title", text: title }),
+    el("div", { class: "ds-qa-list" }, rows.map((row, index) => nowSetupRow(row, startIndex + index, firstMissingKey)))
   ]);
 }
 
 function nowSetupRow(row, index, firstMissingKey) {
-  const isPrimary = row.key === firstMissingKey;
-  const rowClass = [
-    "now-setup-row",
-    row.complete ? "is-complete" : "",
-    row.blocked ? "is-blocked" : "",
-    isPrimary ? "is-primary" : ""
-  ].filter(Boolean).join(" ");
-  return el("article", { class: rowClass }, [
-    el("span", { class: "now-setup-marker", "aria-hidden": "true" }, [
-      row.complete ? icon("check") : el("span", { text: String(index + 1) })
-    ]),
-    el("div", { class: "now-setup-copy" }, [
-      el("span", { class: "now-setup-labels" }, [
-        el("strong", { text: row.label }),
-        row.objectLabel ? el("small", { text: row.objectLabel }) : null
-      ].filter(Boolean)),
-      el("p", { text: row.question }),
-      row.value ? el("span", { class: "now-setup-selection" }, [
-        el("small", { text: row.valueLabel || "Status" }),
-        el("strong", { text: row.value })
-      ]) : null
-    ]),
-    row.action ? el("button", {
-      class: `ui-button ${isPrimary ? "ui-button-filled" : "ui-button-outlined"} now-setup-action`,
-      type: "button",
-      text: row.action.label,
-      onclick: row.action.onAction
-    }) : null
-  ].filter(Boolean));
+  return dsQuestion({
+    eyebrow: [row.label, row.objectLabel].filter(Boolean).join(" · "),
+    question: row.question,
+    number: index + 1,
+    done: row.complete,
+    answer: row.complete ? row.value : "",
+    help: row.complete ? "" : row.value,
+    side: row.action ? dsButton(row.action.label, { variant: row.key === firstMissingKey ? "primary" : "secondary", onClick: row.action.onAction }) : null,
+    headingLevel: 4
+  });
 }
 
 function nowPrimaryAction(item, editable) {
-  return el("section", { class: "now-primary-action", "aria-labelledby": "now-primary-title" }, [
-    el("span", { class: "now-primary-icon", "aria-hidden": "true" }, [icon(item.iconName || "arrow-right")]),
-    el("div", { class: "now-primary-copy" }, [
-      el("span", { class: "workspace-kicker", text: item.kicker }),
-      el("h3", { id: "now-primary-title", text: item.title }),
-      el("p", { text: item.description })
-    ].filter(Boolean)),
-    editable && item.onAction ? el("button", { class: "ui-button ui-button-filled now-primary-cta", type: "button", text: item.ctaLabel || "Åpne", onclick: item.onAction }) : null
-  ].filter(Boolean));
+  return dsNext({
+    label: `Anbefalt neste steg · ${item.kicker}`,
+    title: item.title,
+    text: item.description,
+    action: editable && item.onAction ? dsButton(item.ctaLabel || "Åpne", { variant: "primary", onClick: item.onAction }) : null
+  });
 }
 
-function nowActionGrid(items = [], editable) {
+function nowActionList(items = [], editable) {
   if (!items.length) return null;
-  return el("section", { class: "now-action-section", "aria-labelledby": "now-action-title" }, [
-    el("div", { class: "now-section-heading" }, [
-      el("span", { class: "workspace-kicker", text: "Aktuelt" }),
-      el("h3", { id: "now-action-title", text: "Mest relevant nå" })
-    ]),
-    el("div", { class: "now-action-grid" }, items.map((item) => el("button", { class: "now-action-card", type: "button", disabled: !editable || !item.onAction, onclick: item.onAction }, [
-      el("span", { class: "now-action-icon", "aria-hidden": "true" }, [icon(item.iconName || "arrow-right")]),
-      el("span", { class: "now-action-copy" }, [
-        el("span", { class: "workspace-kicker", text: item.kicker }),
-        el("strong", { text: item.title }),
-        item.description ? el("small", { text: item.description }) : null
+  return dsSection({ title: "Mest relevant nå", headingLevel: 2 }, [
+    el("div", { class: "ds-entries" }, items.map((item) => el("button", {
+      class: "ds-entry",
+      type: "button",
+      disabled: !editable || !item.onAction,
+      onclick: item.onAction
+    }, [
+      el("span", { class: "ds-entry-main" }, [
+        el("span", { class: "ds-entry-meta", text: item.kicker }),
+        el("span", { class: "ds-entry-title", text: item.title }),
+        item.description ? el("span", { class: "ds-entry-text", text: item.description }) : null
       ].filter(Boolean)),
       icon("chevron-right")
     ])))
   ]);
 }
 
-function nowProgressStrip({ primaryCompetency, activeCompetencies = [], focusItems, actions, sessions, resources, compact = false }) {
-  const competencyNames = activeCompetencies.map((item) => item.title || "Lederkompetanse").join(" · ");
-  if (compact) {
-    return el("section", { class: "now-progress-strip is-compact", "aria-label": "Status i utviklingsforløpet" }, [
-      nowProgressMetric("Samtaler", String(sessions.length || 0), "messages-square", () => activateWorkspacePane("sessions")),
-      nowProgressMetric("Ressurser", String(resources.length || 0), "book-open", () => activateWorkspacePane("resources"))
-    ]);
-  }
-  return el("section", { class: "now-progress-strip", "aria-label": "Status i utviklingsforløpet" }, [
-    nowProgressMetric("Ytre prosjekt", focusItems[0]?.area?.title || "Ikke valgt", "briefcase-business", () => openNowFocusAssignment(focusItems[0] || null)),
-    nowProgressMetric("Indre prosjekt", competencyNames || "Ikke valgt", "compass", () => openNowCompetency(primaryCompetency)),
-    nowProgressMetric("Samtaler", String(sessions.length || 0), "messages-square", () => activateWorkspacePane("sessions")),
-    nowProgressMetric("Ressurser", String(resources.length || 0), "book-open", () => activateWorkspacePane("resources")),
-    nowProgressMetric("Eksperimenter", String(actions.filter((action) => isExperimentActive(action.status)).length), "flask-conical", () => {
-      state.focusView = "experiments";
-      renderCachedProgram("work");
-    })
+function nowProgressStrip({ sessions, resources }) {
+  return el("section", { class: "ds-metrics", "aria-label": "Status i utviklingsforløpet" }, [
+    nowProgressMetric("Samtaler", String(sessions.length || 0), () => activateWorkspacePane("sessions")),
+    nowProgressMetric("Ressurser", String(resources.length || 0), () => activateWorkspacePane("resources"))
   ]);
 }
 
-function nowProgressMetric(label, value, iconName, onAction) {
-  return el("button", { class: "now-progress-metric", type: "button", onclick: onAction }, [
-    el("span", { class: "now-progress-icon", "aria-hidden": "true" }, [icon(iconName)]),
-    el("span", {}, [
-      el("small", { text: label }),
-      el("strong", { text: value })
-    ])
+function nowProgressMetric(label, value, onAction) {
+  return el("button", { class: "ds-metric", type: "button", onclick: onAction }, [
+    el("span", { class: "ds-metric-label", text: label }),
+    el("strong", { class: "ds-metric-value", text: value })
   ]);
 }
 
