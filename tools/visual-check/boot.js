@@ -120,6 +120,105 @@ function programCompetency(competency, status, priority, fields = {}) {
   };
 }
 
+function daysFromNow(days) {
+  const date = new Date();
+  date.setHours(9, 0, 0, 0);
+  date.setDate(date.getDate() + days);
+  return date.toISOString();
+}
+
+// Klientene til coachen «Ola Coach» (coach1), pluss én klient som bare admin ser.
+function coachClients(client) {
+  return {
+    coaches: [
+      { id: "coach1", name: "Ola Coach", email: "ola@example.com", user_id: "u-coach" },
+      { id: "coach2", name: "Siri Coach", email: "siri@example.com", user_id: null }
+    ],
+    clients: [
+      { ...client, email: "kari@example.com", role: "Direktør", employer: "Eksempel AS", created_at: "2026-08-01" },
+      { id: "c2", name: "Per Hansen", email: "per@example.com", role: "Avdelingsleder", employer: "Nordlys AS", user_id: "u2", consent_given: true, consent_date: "2026-08-12", account_activated_at: "2026-08-12", coach_ids: ["coach1"], created_at: "2026-08-10" },
+      { id: "c3", name: "Ingrid Berg", email: "ingrid@example.com", role: "Teamleder", employer: "Eksempel AS", user_id: null, consent_given: false, consent_date: null, account_activated_at: null, coach_ids: ["coach1"], created_at: "2026-09-28" },
+      { id: "c4", name: "Ahmed Ali", email: "ahmed@example.com", role: "Produktsjef", employer: "Havn AS", user_id: "u4", consent_given: false, consent_date: null, account_activated_at: "2026-09-20", coach_ids: ["coach1"], created_at: "2026-09-18" },
+      { id: "c5", name: "Lise Moe", email: "lise@example.com", role: "Daglig leder", employer: "Fjell AS", user_id: "u5", consent_given: true, consent_date: "2026-07-01", account_activated_at: "2026-07-01", coach_ids: ["coach2"], created_at: "2026-06-30" }
+    ],
+    summaries: {
+      c1: { id: "p1", purpose: "Bli en tydeligere leder.", sessionCount: 3, areaCount: 1, nextSessionDate: daysFromNow(9).slice(0, 10), lastActivityAt: daysFromNow(-1), lastActivityLabel: "Refleksjon delt" },
+      c2: { id: "p2", purpose: "Lede gjennom omstilling.", sessionCount: 1, areaCount: 1, nextSessionDate: null, lastActivityAt: daysFromNow(-6), lastActivityLabel: "Eksperiment endret" },
+      c4: { id: "p4", purpose: "", sessionCount: 0, areaCount: 0, nextSessionDate: null },
+      c5: { id: "p5", purpose: "Bygge en ny ledergruppe.", sessionCount: 4, areaCount: 2, nextSessionDate: daysFromNow(3).slice(0, 10), lastActivityAt: daysFromNow(-3), lastActivityLabel: "Samtalenotat endret" }
+    }
+  };
+}
+
+// Innhold fra docs/RESOURCE_LIBRARY_PILOT_CONTENT.md, forkortet.
+function libraryResources(sharedResource) {
+  const control = sharedResource.resource;
+  return [
+    {
+      id: "res1", slug: "kontrollsirkelen", status: "published", type: "framework", phase: "focus", visibility: "client_assignable",
+      tags: ["area:self_capacity", "stress", "prioritering"], ...control,
+      summary: "Et refleksjonsverktøy for å skille mellom det du kan kontrollere, påvirke og ikke kontrollere.",
+      intended_outcome: "Hjelpe klienten å redusere unødvendig mentalt stress ved å tydeliggjøre hvor innsats faktisk har effekt.",
+      best_used_when: ["klient føler lav kontroll", "stress og overbelastning", "organisatorisk usikkerhet"],
+      not_for: ["situasjoner som krever akutt problemløsning"],
+      coach_guidance: "Vær oppmerksom på om klienten bruker modellen til å trekke seg unna ansvar eller vanskelige samtaler. Målet er ikke passivitet, men å flytte energi mot områder med faktisk påvirkningsmulighet.",
+      updated_at: daysFromNow(-2)
+    },
+    {
+      id: "res2", slug: "abcde-modellen", status: "published", type: "framework", phase: "reflection", visibility: "client_assignable", estimated_duration: 20,
+      tags: ["area:self_capacity", "stress", "refleksjon"], title: "ABCDE-modellen",
+      client_intro: "Vi reagerer sjelden bare på det som skjer rundt oss. Vi reagerer også på hvordan vi fortolker det som skjer. Denne modellen hjelper deg å utforske hvordan tanker påvirker følelser, handlinger og stressnivå.",
+      intended_outcome: "Hjelpe klienten å identifisere automatiske tankemønstre og utvikle mer fleksible og konstruktive perspektiver.",
+      best_used_when: ["klient grubler mye etter situasjoner", "sterk selvkritikk"],
+      not_for: ["akutt emosjonell krise"],
+      coach_guidance: "Bruk modellen på én konkret situasjon fra den siste tiden.",
+      content_json: [{ type: "intro", content: "ABCDE-modellen hjelper deg å utforske hvordan tanker påvirker følelser og handlinger i krevende situasjoner." }],
+      files: [], updated_at: daysFromNow(-5)
+    },
+    {
+      id: "res3", slug: "a-akseptere-frykt", status: "published", type: "reflection", phase: "reflection", visibility: "client_assignable", estimated_duration: 10,
+      tags: ["area:relationships_influence"], title: "Å akseptere frykt",
+      client_intro: "Frykt er en naturlig del av å stå i krevende situasjoner. Ressursen hjelper deg å se hvordan frykt påvirker valgene dine.",
+      intended_outcome: "Hjelpe klienten å identifisere hvordan frykt påvirker atferd og valg.",
+      coach_guidance: "Normaliser frykt uten å bagatellisere den.",
+      content_json: [{ type: "intro", content: "Frykt sier noe om hva som står på spill." }],
+      files: [], updated_at: daysFromNow(-9)
+    },
+    {
+      id: "res4", slug: "forberede-vanskelig-samtale", status: "draft", type: "worksheet", phase: "session", visibility: "coach",
+      tags: [], title: "Forberede en vanskelig samtale", client_intro: "",
+      content_json: [], files: [], updated_at: daysFromNow(-1)
+    },
+    {
+      id: "res5", slug: "ukesrefleksjon", status: "archived", type: "reflection", phase: "reflection", visibility: "client_assignable",
+      tags: ["area:development_process"], title: "Ukesrefleksjon",
+      client_intro: "Fem spørsmål for å se tilbake på uken.",
+      content_json: [], files: [], updated_at: daysFromNow(-40)
+    }
+  ];
+}
+
+async function bootCoachPage(page, client, sharedResource) {
+  const people = coachClients(client);
+  state.coaches = people.coaches;
+  state.coach = people.coaches[0];
+  state.clients = people.clients;
+  state.programSummaries = page === "clients-empty" ? {} : people.summaries;
+  if (page === "clients-empty") state.clients = [{ ...people.clients[2] }];
+  const library = await ensureResourceLibrary();
+  const resources = libraryResources(sharedResource).map((resource) => library.normalizeResourceProductFields(resource));
+  window.RaederResourceLibrary = {
+    ...library,
+    getPublishedResources: async () => resources.filter((resource) => resource.status === "published"),
+    getAdminResources: async () => resources
+  };
+  setScreen("app");
+  renderShell();
+  navigate(page === "clients-empty" ? "clients" : page);
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  if (params.get("dialog") === "resource-new") openResourceAdminEditor();
+}
+
 async function boot() {
   await loadPortal();
   state.sb = offlineSupabase();
@@ -296,6 +395,13 @@ async function boot() {
   };
   state.focusView = params.get("view") || (scene.startsWith("focus") ? "assignments" : "competencies");
   if (params.get("preview")) state.previewCompetencyId = params.get("preview");
+
+  const page = params.get("page");
+  if (page) {
+    await bootCoachPage(page, client, sharedResource);
+    await finishBoot();
+    return;
+  }
 
   const screen = params.get("screen");
   if (["login", "password", "reconnect"].includes(screen)) {

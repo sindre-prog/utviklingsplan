@@ -61,6 +61,12 @@ const scenes = [
   ["coach-akkurat-naa", "scene=now-complete&role=coach"],
   ["coach-forlopet", "scene=now-complete&pane=direction&role=coach"],
   ["coach-utviklingsfokus", "scene=workspace&pane=work&role=coach"],
+  ["coach-klienter", "page=clients&role=coach"],
+  ["coach-klienter-tom", "page=clients-empty&role=coach"],
+  ["coach-ressursbibliotek", "page=resources&role=coach"],
+  ["admin", "page=admin&role=admin"],
+  ["admin-ressursbibliotek", "page=resources&role=admin"],
+  ["dialog-ressurs-ny", "page=admin&role=admin&dialog=resource-new"],
   ["byggeklosser", "", "components.html"]
 ];
 

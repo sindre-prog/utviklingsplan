@@ -27,6 +27,7 @@ python3 -m http.server 8770
 | `mobilepreview` | Velgeren på mobil: viser én kompetanse i stedet for listen |
 | `dialog` | Åpner en dialog: `experiment-new`, `experiment-edit`, `experiment-review`, `confirm`, `confirm-remove`, `message`, eller med `role=coach`: `client-invite`, `client-edit`, `resource-edit` og `resource-send` |
 | `screen` | Viser en skjerm før portalen: `login`, `password`, `reconnect` eller `consent` |
+| `page` | Viser en coach-side med fiktive klienter, coacher og ressurser: `clients`, `clients-empty`, `resources` eller `admin` (med `role=admin`). Med `page=admin` åpner `dialog=resource-new` en ny ressurs |
 | `sketch` | Bare i `sketches.html`: navnet på skissen, se `sketches.js` |
 
 Ta hele settet og sammenlign (krever `puppeteer-core` og Chrome):
