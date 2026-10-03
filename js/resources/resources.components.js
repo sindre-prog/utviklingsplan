@@ -369,16 +369,30 @@ function dsSectionNode(createElement, title, children = [], className = "") {
 
 function createVisibilityChoice(createElement, value, onChange) {
   const options = [["private", "Privat"], ["shared_with_coach", "Del med coach"]];
-  const buttons = options.map(([key, text]) => createElement("button", {
+  const checkedKey = options.some(([key]) => key === value) ? value : options[0][0];
+  const select = (key, focus = false) => {
+    buttons.forEach((button) => {
+      const checked = button.dataset.value === key;
+      button.setAttribute("aria-checked", checked ? "true" : "false");
+      button.tabIndex = checked ? 0 : -1;
+      if (checked && focus) button.focus();
+    });
+    onChange(key);
+  };
+  const buttons = options.map(([key, text], index) => createElement("button", {
     class: "ds-segmented-option",
     type: "button",
     role: "radio",
     "data-value": key,
     "aria-checked": key === value ? "true" : "false",
+    tabindex: key === checkedKey ? "0" : "-1",
     text,
-    onclick: () => {
-      buttons.forEach((button) => button.setAttribute("aria-checked", button.dataset.value === key ? "true" : "false"));
-      onChange(key);
+    onclick: () => select(key),
+    onkeydown: (event) => {
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      select(options[(index + step + options.length) % options.length][0], true);
     }
   }));
   return createElement("div", { class: "ds-choice" }, [

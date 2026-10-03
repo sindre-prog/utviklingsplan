@@ -451,16 +451,30 @@ function dsDisclosure(summary, children = [], { open = false } = {}) {
 }
 
 function dsChoice({ label, options = [], value, help = "", onChange } = {}) {
-  const buttons = options.map(([key, text]) => el("button", {
+  const checkedKey = options.some(([key]) => key === value) ? value : options[0]?.[0];
+  const select = (key, focus = false) => {
+    buttons.forEach((button) => {
+      const checked = button.dataset.value === key;
+      button.setAttribute("aria-checked", checked ? "true" : "false");
+      button.tabIndex = checked ? 0 : -1;
+      if (checked && focus) button.focus();
+    });
+    onChange?.(key);
+  };
+  const buttons = options.map(([key, text], index) => el("button", {
     class: "ds-segmented-option",
     type: "button",
     role: "radio",
     "data-value": key,
     "aria-checked": key === value ? "true" : "false",
+    tabindex: key === checkedKey ? "0" : "-1",
     text,
-    onclick: () => {
-      buttons.forEach((button) => button.setAttribute("aria-checked", button.dataset.value === key ? "true" : "false"));
-      onChange?.(key);
+    onclick: () => select(key),
+    onkeydown: (event) => {
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      select(options[(index + step + options.length) % options.length][0], true);
     }
   }));
   return el("div", { class: "ds-choice" }, [
@@ -476,6 +490,12 @@ function dsEmpty(text, action = null) {
 
 function dsSaved() {
   return el("span", { class: "ds-saved", role: "status", "aria-live": "polite" });
+}
+
+function focusIfLost(target) {
+  const node = typeof target === "string" ? $(target) : target;
+  const active = document.activeElement;
+  if (node?.isConnected && (!active || active === document.body)) node.focus();
 }
 
 function setDsSaved(node, state, text) {
@@ -5630,7 +5650,7 @@ function resourcesFromCoachSection(data, canWriteReflection) {
     state.sharedResourceQuery = "";
   }
   const section = el("div", { class: "ds-resources" });
-  const renderSection = () => {
+  const renderSection = (focus = null) => {
     const query = String(state.sharedResourceQuery || "").trim().toLocaleLowerCase("nb-NO");
     const visibleResources = sharedResources.filter((item) => !query || [
       item.resource?.title,
@@ -5651,12 +5671,16 @@ function resourcesFromCoachSection(data, canWriteReflection) {
     const list = visibleResources.length ? dsList({
       title: `${canWriteReflection ? "Delt med deg" : "Delt med klient"} · ${visibleResources.length}${query ? ` av ${sharedResources.length}` : ""}`,
       label: "Ressurser",
-      rows: visibleResources.map((item) => dsRow({
-        title: item.resource?.title || "Ressurs",
-        meta: library.sharedResourceMeta(item, { assignedLabel }),
-        selected: item.id === selected?.id,
-        onClick: () => openSharedResource(item, canWriteReflection, renderSection)
-      }))
+      rows: visibleResources.map((item) => {
+        const row = dsRow({
+          title: item.resource?.title || "Ressurs",
+          meta: library.sharedResourceMeta(item, { assignedLabel }),
+          selected: item.id === selected?.id,
+          onClick: () => openSharedResource(item, canWriteReflection, renderSection)
+        });
+        row.dataset.sharedResourceId = item.id;
+        return row;
+      })
     }) : null;
     const detail = selected ? library.createClientResourceView(selected, {
       createElement: el,
@@ -5675,8 +5699,9 @@ function resourcesFromCoachSection(data, canWriteReflection) {
       })
     ]);
     const back = dsButton("Tilbake til ressurser", { variant: "text", iconName: "arrow-left", className: "ds-back", onClick: () => {
+      const id = state.selectedSharedResourceId;
       state.selectedSharedResourceId = null;
-      renderSection();
+      renderSection({ id });
     } });
     const sheet = !visibleResources.length
       ? dsSheet([empty])
@@ -5703,6 +5728,7 @@ function resourcesFromCoachSection(data, canWriteReflection) {
     section.replaceChildren(...[search ? el("div", { class: "ds-toolbar" }, [search]) : null, sheet].filter(Boolean));
     hydrateResourceMedia(section);
     refreshIcons();
+    if (focus) focusSharedResource(section, focus);
     if (autoSelected && canWriteReflection && selected?.status === "assigned") {
       setTimeout(() => openSharedResource(selected, canWriteReflection, renderSection), 0);
     }
@@ -5712,9 +5738,16 @@ function resourcesFromCoachSection(data, canWriteReflection) {
   return section;
 }
 
+function focusSharedResource(root, { id, save = false } = {}) {
+  const target = save
+    ? $(".ds-resource-response .ds-button--primary", root)
+    : $(".ds-back", root) || $$(".ds-row", root).find((row) => row.dataset.sharedResourceId === id);
+  requestAnimationFrame(() => focusIfLost(target));
+}
+
 async function openSharedResource(sharedResource, canWriteReflection, renderSection = null) {
   state.selectedSharedResourceId = sharedResource.id;
-  renderSection?.();
+  renderSection?.({ id: sharedResource.id });
 
   if (canWriteReflection && sharedResource.status === "assigned") {
     const library = await ensureResourceLibrary();
@@ -5726,6 +5759,7 @@ async function openSharedResource(sharedResource, canWriteReflection, renderSect
       sharedResource.status = "viewed";
       sharedResource.viewed_at = new Date().toISOString();
       renderCachedProgram("resources");
+      focusSharedResource($("#workspace-pane-resources"), { id: sharedResource.id });
     } catch (error) {
       await showAppMessage("Kunne ikke oppdatere status", userFacingError(error, "Ressursen kan fortsatt åpnes."));
     }
@@ -5749,7 +5783,7 @@ async function saveSharedResourceReflection(sharedResource, values, renderSectio
     sharedResource.client_visibility = saved?.client_visibility ?? values.clientVisibility ?? "private";
     sharedResource.status = saved?.status || "responded";
     sharedResource.responded_at = saved?.responded_at || new Date().toISOString();
-    renderSection?.();
+    renderSection?.({ id: sharedResource.id, save: true });
   } catch (error) {
     await showAppMessage("Kunne ikke lagre refleksjonen", userFacingError(error, "Prøv igjen."));
     throw error;
@@ -5801,7 +5835,7 @@ function reflectionMeta(reflection, data) {
 }
 
 function reflectionNote(reflection, data, editable) {
-  return el("article", { class: "ds-note" }, [
+  return el("article", { class: "ds-note", "data-reflection-id": reflection.id }, [
     el("div", {}, [
       reflectionMeta(reflection, data),
       el("p", { class: "ds-note-text", text: (reflection.body || "").trim() || "Tom refleksjon." })
@@ -5810,6 +5844,10 @@ function reflectionNote(reflection, data, editable) {
       { label: "Rediger refleksjon", iconName: "pencil", onClick: () => startReflectionEdit(reflection.id) }
     ], { label: "Flere valg" }) : null
   ].filter(Boolean));
+}
+
+function focusReflectionNote(id) {
+  focusIfLost($$(".ds-note", $("#workspace-pane-reflections")).find((note) => note.dataset.reflectionId === id)?.querySelector(".ds-menu-trigger"));
 }
 
 function startReflectionEdit(id) {
@@ -5835,6 +5873,7 @@ function reflectionEditor(reflection, data) {
         dsButton("Avbryt", { onClick: () => {
           state.inlineEditKey = null;
           renderCachedProgram("reflections");
+          focusReflectionNote(reflection.id);
         } }),
         dsButton("Lagre", { variant: "primary", onClick: async () => {
           setSaveState("saving");
@@ -5851,6 +5890,7 @@ function reflectionEditor(reflection, data) {
           }
           state.inlineEditKey = null;
           await reloadProgramAndRender("reflections");
+          focusReflectionNote(reflection.id);
           setSaveState("saved");
         } })
       ])
@@ -6185,6 +6225,8 @@ async function createReflection(programId) {
     return;
   }
   await reloadProgramAndRender("reflections");
+  focusIfLost("#reflection-body");
+  setSaveState("saved");
 }
 
 async function reloadProgramAndRender(activePane = null) {
