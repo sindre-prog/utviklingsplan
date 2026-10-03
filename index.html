@@ -70,21 +70,21 @@
       </section>
     </section>
 
-    <section class="app-shell hidden" data-screen="app">
-      <aside class="sidebar">
-        <div class="sidebar-brand">
-          <button class="brand-home" id="brand-home" type="button" aria-label="Gå til forsiden">
-            <img class="raeder-logo" src="./raeder-logo.svg" alt="Ræder&">
+    <section class="app-shell ds-shell hidden" data-screen="app">
+      <header class="ds-appbar">
+        <div class="ds-appbar-inner">
+          <button class="ds-appbar-brand" id="brand-home" type="button" aria-label="Gå til forsiden">
+            <img src="./raeder-logo.svg" alt="Ræder&">
           </button>
-        </div>
-        <nav class="nav-list" id="nav-list" aria-label="Hovednavigasjon"></nav>
-        <div class="sidebar-user">
-          <div>
-            <strong id="user-name">-</strong>
+          <nav class="ds-appbar-nav" id="nav-list" aria-label="Hovednavigasjon"></nav>
+          <div class="ds-appbar-tabs" id="appbar-tabs"></div>
+          <div class="ds-appbar-user">
+            <span class="ds-appbar-status" id="appbar-status"></span>
+            <span class="ds-appbar-email" id="user-name">-</span>
+            <button class="ds-button" id="logout-button" type="button">Logg ut</button>
           </div>
-          <button class="logout-button" id="logout-button">Logg ut</button>
         </div>
-      </aside>
+      </header>
 
       <div class="workspace">
         <header class="topline">
