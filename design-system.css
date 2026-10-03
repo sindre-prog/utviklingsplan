@@ -1114,6 +1114,46 @@
   .ds-search:focus { border-color: var(--ds-ink); outline: none; box-shadow: var(--ds-focus-ring); }
   .ds-back { margin-bottom: var(--ds-space-16); }
 
+  /* 20 · Innlogging: et smalt ark midt på siden, med logoen øverst til venstre som i toppfeltet */
+  body:has(.ds-auth:not(.hidden)) { background: var(--ds-canvas); }
+  .ds-auth {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: 100vh;
+    padding: var(--ds-space-24) max(var(--ds-space-24), calc((100vw - 1320px) / 2 + 24px));
+    background: var(--ds-canvas);
+    font-family: var(--ds-font-body);
+  }
+  .ds-auth-logo { width: auto; height: 23px; margin-top: 14px; }
+  .ds-auth-sheet {
+    display: grid;
+    align-self: center;
+    justify-self: center;
+    gap: var(--ds-space-20);
+    width: min(440px, 100%);
+    margin: var(--ds-space-40) 0 80px;
+    padding: var(--ds-space-40);
+    border-radius: var(--ds-radius);
+    background: var(--ds-paper);
+    box-shadow: var(--ds-shadow-sheet);
+  }
+  .ds-auth-title { margin: 0; color: var(--ds-ink); font: var(--ds-title-page); }
+  .ds-auth-sheet > .ds-object-kicker { margin-bottom: -14px; }
+  .ds-auth-lead { margin: -8px 0 4px; color: var(--ds-muted); font: var(--ds-support); }
+  .ds-auth-sheet > .ds-button--text { justify-self: center; }
+  .ds-auth-actions { display: flex; flex-wrap: wrap; gap: var(--ds-space-12); }
+  .ds-form-message { margin: 0; color: var(--ds-danger); font: var(--ds-label); font-weight: 400; }
+  .ds-form-message:empty { display: none; }
+  .ds-form-message[data-tone="success"] { color: var(--ds-done); }
+
+  /* 21 · Samtykke */
+  .workspace:has(.ds-consent) > .topline { display: none; }
+  .ds-facts { display: grid; gap: var(--ds-space-4); margin: 28px 0 0; padding-top: var(--ds-space-20); border-top: 1px solid var(--ds-line); }
+  .ds-facts dt { margin-top: var(--ds-space-12); color: var(--ds-ink); font: var(--ds-question); }
+  .ds-facts dt:first-child { margin-top: 0; }
+  .ds-facts dd { margin: 0; color: var(--ds-text); font: var(--ds-support); }
+  .ds-facts + .ds-check { margin-top: var(--ds-space-24); padding-top: var(--ds-space-20); border-top: 1px solid var(--ds-line); color: var(--ds-ink); font: var(--ds-body); }
+
   @media (max-width: 1239px) {
     .ds-sheet-body { padding: var(--ds-space-32) var(--ds-space-32) var(--ds-space-40); }
     .ds-appbar-inner {
@@ -1216,6 +1256,7 @@
     .ds-note { gap: var(--ds-space-8); }
     .ds-sheet--list-only > .ds-list { border-bottom: 0; }
     .ds-sheet--list-only > .ds-sheet-body { display: none; }
+    .ds-auth-sheet { margin: var(--ds-space-24) 0 var(--ds-space-40); padding: 28px var(--ds-space-20); }
     .ds-dialog--side, .ds-dialog--center, .ds-dialog--wide { inset: 0; width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; }
     .ds-dialog--side .ds-dialog-panel, .ds-dialog--center .ds-dialog-panel, .ds-dialog--wide .ds-dialog-panel { height: 100%; max-height: none; border-radius: 0; }
     .ds-dialog-head { padding: var(--ds-space-16) var(--ds-space-20) var(--ds-space-12); }

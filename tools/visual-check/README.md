@@ -4,7 +4,7 @@ Viser portalen med fiktive data, uten innlogging og uten kobling til databasen. 
 
 - `preview.html` leser `index.html` og `app.js` direkte, så settet følger alltid portalen slik den er. Supabase byttes ut med en frakoblet stub, slik at ingenting kan leses fra eller skrives til databasen.
 - `components.html` viser byggeklossene i `design-system.css`, laget med `ds`-funksjonene i `app.js`.
-- `sketches.html` viser skissene for steg 10 (dialogene, velgeren for lederkompetanser, innlogging og samtykke). Portalen startes som i `preview.html`, og deretter vises skissen fra `sketches.js`. Byggeklossene som ennå ikke er i portalen (innlogging og samtykke), ligger i `sketches.css`. Se `docs/DESIGNSKISSER_STEG10.md`.
+- `sketches.html` viser skissene for steg 10 (dialogene, velgeren for lederkompetanser, innlogging og samtykke). Portalen startes som i `preview.html`, og deretter vises skissen fra `sketches.js`. Alle byggeklossene i skissene er nå i `design-system.css`. Se `docs/DESIGNSKISSER_STEG10.md`.
 
 ## Bruk
 

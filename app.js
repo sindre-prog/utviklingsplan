@@ -511,7 +511,7 @@ function setScreen(name) {
 function setMessage(id, text, type = "") {
   const msg = $(id);
   msg.textContent = text || "";
-  msg.className = "form-message" + (type ? ` ${type}` : "");
+  msg.dataset.tone = type;
 }
 
 async function init() {
@@ -3059,12 +3059,9 @@ function renderConsentGate(client) {
   state.selectedClientId = client.id;
   setHeader("Velkommen", "Før vi starter", []);
   const accepted = el("input", { type: "checkbox", id: "consent-accepted" });
-  const message = el("p", { class: "form-message", role: "status" });
-  const startButton = button("Samtykk og åpne portalen", "check", async () => {
-    if (!accepted.checked) {
-      message.textContent = "Du må bekrefte punktene før du kan starte.";
-      return;
-    }
+  const message = el("p", { class: "ds-form-message", role: "status" });
+  const startButton = dsButton("Samtykk og åpne portalen", { variant: "primary", disabled: true, onClick: async () => {
+    if (!accepted.checked) return;
     startButton.disabled = true;
     message.textContent = "Lagrer samtykke...";
     const consentDate = new Date().toISOString();
@@ -3084,37 +3081,33 @@ function renderConsentGate(client) {
     state.client = updatedClient;
     state.clients = state.clients.map((item) => item.id === client.id ? updatedClient : item);
     await renderPlan(state.profile.role === "client" ? "now" : "direction");
-  }, "primary");
+  } });
+  accepted.addEventListener("change", () => {
+    startButton.disabled = !accepted.checked;
+  });
+  const points = [
+    ["Konfidensielt", "Innholdet brukes i coachingforløpet og behandles konfidensielt."],
+    ["Tilgang for coach", "Coachen kan lese og arbeide med planen. Private refleksjoner deles bare når du velger det."],
+    ["Lagret trygt", "Data lagres i EU med tilgangsstyring. Du kan be coachen om innsyn, retting eller sletting."]
+  ];
 
-  $("#content").replaceChildren(el("section", { class: "consent-panel" }, [
-    el("div", { class: "consent-copy" }, [
-      el("p", { class: "eyebrow", text: "Samtykke" }),
-      el("h3", { text: "Slik brukes innholdet i portalen" }),
-      el("p", { class: "muted", text: "Før du starter, bekrefter du hvem som kan lese det du skriver, og hvordan innholdet lagres." })
-    ]),
-    el("div", { class: "consent-grid" }, [
-      consentPoint("lock-keyhole", "Konfidensielt", "Innholdet brukes i coachingforløpet og behandles konfidensielt."),
-      consentPoint("users", "Tilgang for coach", "Coachen kan lese og arbeide med planen. Private refleksjoner deles bare når du velger det."),
-      consentPoint("database", "Lagret trygt", "Data lagres i EU med tilgangsstyring. Du kan be coachen om innsyn, retting eller sletting.")
-    ]),
-    el("label", { class: "consent-check" }, [
-      accepted,
-      el("span", { text: "Jeg forstår rammene og samtykker til at portalen brukes som arbeidsflate i coachingforløpet." })
-    ]),
-    el("div", { class: "consent-actions" }, [startButton, message])
-  ]));
-  refreshIcons();
-}
-
-function consentPoint(iconName, title, text) {
-  return el("article", { class: "consent-point" }, [
-    icon(iconName),
-    el("div", {}, [
-      el("strong", { text: title }),
-      el("p", { text })
+  $("#content").replaceChildren(dsPage({ title: "Før vi starter", read: true, className: "ds-consent" }, [
+    dsSheet([
+      dsObjectHead({
+        kicker: "Samtykke",
+        title: "Slik brukes innholdet i portalen",
+        lead: "Før du starter, bekrefter du hvem som kan lese det du skriver, og hvordan innholdet lagres."
+      }),
+      el("dl", { class: "ds-facts" }, points.flatMap(([title, text]) => [el("dt", { text: title }), el("dd", { text })])),
+      el("label", { class: "ds-check" }, [
+        accepted,
+        el("span", { text: "Jeg forstår rammene og samtykker til at portalen brukes som arbeidsflate i coachingforløpet." })
+      ]),
+      el("div", { class: "ds-section-foot" }, [startButton, message])
     ])
-  ]);
+  ]));
 }
+
 
 async function loadClientProgram(client) {
   if (state.programCache[client.id]) return state.programCache[client.id];
