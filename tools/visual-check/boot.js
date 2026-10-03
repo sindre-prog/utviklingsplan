@@ -123,6 +123,7 @@ function programCompetency(competency, status, priority, fields = {}) {
 async function boot() {
   await loadPortal();
   state.sb = offlineSupabase();
+  await ensureResourceLibrary();
 
   const competencies = (await fetch("content/leadership_competencies_v3.json").then((response) => response.json())).map(mapCompetency);
   const bySlug = (part) => competencies.find((item) => item.id.includes(part)) || competencies[0];
@@ -175,6 +176,32 @@ async function boot() {
     due_date: null
   };
 
+  // Innhold fra docs/RESOURCE_LIBRARY_PILOT_CONTENT.md. Status «viewed», fordi «assigned»
+  // får portalen til å prøve å skrive «åpnet» til databasen.
+  const sharedResource = {
+    id: "sr1",
+    status: "viewed",
+    shared_at: "2026-09-29T08:00:00Z",
+    context_type: "focus_area",
+    coach_note: "Jeg vil at du bruker denne ressursen på noe som tar mye energi akkurat nå. Målet er ikke å \"slutte å bry seg\", men å bli tydeligere på hvor du faktisk har påvirkningskraft.",
+    client_note: "",
+    client_visibility: "private",
+    resource: {
+      title: "Kontrollsirkelen",
+      type: "framework",
+      estimated_duration: 15,
+      client_intro: "Mange bruker store mengder mental energi på forhold de verken kan kontrollere eller påvirke. Denne modellen hjelper deg å tydeliggjøre hvor innsatsen din faktisk kan gjøre en forskjell.",
+      content_json: [
+        { type: "intro", content: "Kontrollsirkelen hjelper deg å skille mellom det du kan kontrollere, påvirke og ikke kontrollere." },
+        { type: "text", heading: "Steg 1: Identifiser energityver", content: "Skriv ned tre ting som tar mye mental energi akkurat nå." },
+        { type: "worksheet", fields: ["Situasjon 1", "Situasjon 2", "Situasjon 3"] },
+        { type: "reflection_questions", questions: ["Hvor bruker du mest energi i dag?", "Hva overrasker deg når du sorterer dette?", "Hva kan du gjøre konkret denne uken innenfor din påvirkningssirkel?"] }
+      ],
+      next_step_prompt: "Velg én konkret situasjon denne uken hvor du aktivt skal flytte oppmerksomhet fra bekymring til handling innenfor din påvirkningssirkel.",
+      files: []
+    }
+  };
+
   const chooserScenes = {
     "chooser-empty": [],
     "chooser-two": [programCompetency(communication, "active", 1), programCompetency(delegation, "active", 2)],
@@ -215,7 +242,7 @@ async function boot() {
       actions: [{ ...experiment, due_date: "2026-09-28", description: JSON.stringify({ action: "Starte ledermøtet med de tre viktigste sakene." }) }],
       sessions: [{ id: "s1", program_id: "p1", session_date: "2099-01-15", focus: "Prioriteringer i ledergruppen" }],
       reflections: [{ id: "r1", body: "Møtet ble kortere da jeg startet med hovedbudskapet.", visibility: "private", created_at: "2026-09-30T08:00:00Z" }],
-      sharedResources: [{ id: "sr1", status: "assigned", shared_at: "2026-09-29T08:00:00Z", coach_note: "Les denne før neste samtale.", resource: { title: "Tydelig kommunikasjon", summary: "" } }]
+      sharedResources: [sharedResource]
     },
     "direction-partial": {
       purpose: program.purpose,
