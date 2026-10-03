@@ -1,6 +1,6 @@
 # Skisser av dialogene, velgeren for lederkompetanser, innlogging og samtykke – steg 10
 
-Status: til godkjenning hos produkteier. Ingen synlig endring i portalen.
+Status: godkjent av produkteier 3. oktober 2026, med alle fire beslutninger som foreslått. Ingen synlig endring i portalen.
 Grunnlag: `DESIGNSYSTEM_PLAN_DEL2.md` (steg 10–13) og prinsippene og byggeklossene i `DESIGNSYSTEM_PLAN_V1.md`.
 
 Skissene viser hvordan dialogene, velgeren for lederkompetanser, innloggingen og samtykket ser ut når de bygges med de samme byggeklossene som de seks fanene. Når skissene er godkjent, bygges dialogene i steg 11, velgeren i steg 12, og innlogging og samtykke i steg 13.
@@ -91,6 +91,8 @@ Skissene bruker bare ord som finnes i portalen i dag. Disse ordene forsvinner:
 «52 av 52 lederkompetanser · 2 aktive · én prioritert nå» er de to tekstene fra i dag satt sammen på én linje.
 
 ## Beslutninger for produkteier
+
+Alle fire er godkjent som foreslått.
 
 1. **Rød knapp bare for sletting som ikke kan angres.** I dag er hovedknappen rød med søppelbøtte i alle bekreftelser, også når noe bare arkiveres eller avsluttes og blir liggende i historikken. Prinsippet om tre farger med mening sier at sort er hovedhandling. Vi foreslår sort for «Arkiver» og «Avslutt», og rød bare for «Slett», for eksempel når en fil fjernes fra en ressurs.
 2. **Én «Velg denne kompetansen» i velgeren.** I dag står knappen både øverst og nederst. Prinsippet er én primærknapp per side. Vi foreslår at den står nederst i vinduet, der den alltid er synlig, også på mobil.
