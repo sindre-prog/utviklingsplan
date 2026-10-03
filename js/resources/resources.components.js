@@ -326,61 +326,80 @@ export function createSendResourceDrawer() {
   throw new Error("createSendResourceDrawer is not used in the static app; app.js orchestrates the existing drawer.");
 }
 
-export function createClientResourceList(sharedResources = [], options = {}) {
-  const {
-    createElement,
-    onOpen,
-    renderSelected,
-    createIcon = null,
-    selectedId = null,
-    assignedLabel = "Ny",
-    emptyTitle = "Ingen ressurser fra coach ennå",
-    emptyText = "Når coachen sender en ressurs, vises den her."
-  } = options;
-  requireCreateElement(createElement);
+export function sharedResourceStatusLabel(status, assignedLabel = "Ny") {
+  const labels = {
+    assigned: assignedLabel,
+    viewed: "Åpnet",
+    responded: "Refleksjon lagret",
+    archived: "Arkivert"
+  };
+  return labels[status] || status || "Sendt";
+}
 
-  if (!sharedResources.length) {
-    return createElement("section", { class: "client-resource-list client-resource-list--empty" }, [
-      createElement("p", { class: "eyebrow", text: "Ressurser" }),
-      createElement("h3", { text: emptyTitle }),
-      createElement("p", { class: "muted", text: emptyText })
-    ]);
-  }
+export function sharedResourceMeta(sharedResource, options = {}) {
+  const { assignedLabel = "Ny" } = options;
+  const resource = sharedResource?.resource || {};
+  return [
+    resource.type ? labelFor(TYPE_LABELS, resource.type) : "",
+    resource.estimated_duration ? `${resource.estimated_duration} min` : "",
+    sharedResourceStatusLabel(sharedResource?.status, assignedLabel)
+  ].filter(Boolean).join(" · ");
+}
 
-  return createElement("div", { class: "client-resource-list" }, sharedResources.map((sharedResource) => {
-    const resource = sharedResource.resource || {};
-    const selected = selectedId === sharedResource.id;
-    const contextText = resourceContextText(sharedResource);
-    return createElement("article", { class: `client-resource-row ${selected ? "is-open" : ""}` }, [
-      createElement("button", {
-        class: `client-resource-open ${selected ? "active" : ""}`,
-        type: "button",
-        "aria-expanded": selected ? "true" : "false",
-        "aria-label": `Åpne ressurs: ${displayText(resource.title, "Ressurs")}`,
-        onclick: (event) => {
-          event.preventDefault();
-          onOpen?.(sharedResource);
-        }
-      }, [
-        createElement("span", { class: "client-resource-marker", "aria-hidden": "true" }, [
-          createIcon ? createIcon("book-open") : createElement("span", { text: "" })
-        ]),
-        createElement("span", { class: "client-resource-main" }, [
-          createElement("span", { class: "client-resource-meta" }, metaPills(createElement, resource)),
-          createElement("strong", { text: displayText(resource.title, "Ressurs") }),
-          createElement("span", { class: "client-resource-summary", text: resourceIntroduction(resource) }),
-          createElement("span", { class: "client-resource-footer" }, [
-            contextText ? createElement("span", { class: "client-resource-context", text: contextText }) : null,
-            createSharedResourceStatus(sharedResource.status, { createElement, assignedLabel })
-          ].filter(Boolean))
-        ].filter(Boolean)),
-        createElement("span", { class: "client-resource-action", title: selected ? "Valgt ressurs" : "Åpne ressurs" }, [
-          createIcon ? createIcon("chevron-right") : createElement("span", { text: "›" })
-        ])
-      ].filter(Boolean)),
-      selected && typeof renderSelected === "function" ? renderSelected(sharedResource) : null
-    ].filter(Boolean));
+function dsButtonNode(createElement, createIcon, label, { variant = "", iconName = "", onClick, disabled = false } = {}) {
+  return createElement("button", {
+    class: variant ? `ds-button ds-button--${variant}` : "ds-button",
+    type: "button",
+    disabled,
+    onclick: onClick
+  }, [
+    iconName && createIcon ? createIcon(iconName) : null,
+    createElement("span", { text: label })
+  ].filter(Boolean));
+}
+
+function dsSectionNode(createElement, title, children = [], className = "") {
+  return createElement("section", { class: `ds-section ${className}`.trim() }, [
+    createElement("div", { class: "ds-section-head" }, [
+      createElement("div", {}, [createElement("h3", { class: "ds-section-title", text: title })])
+    ]),
+    ...children
+  ]);
+}
+
+function createVisibilityChoice(createElement, value, onChange) {
+  const options = [["private", "Privat"], ["shared_with_coach", "Del med coach"]];
+  const checkedKey = options.some(([key]) => key === value) ? value : options[0][0];
+  const select = (key, focus = false) => {
+    buttons.forEach((button) => {
+      const checked = button.dataset.value === key;
+      button.setAttribute("aria-checked", checked ? "true" : "false");
+      button.tabIndex = checked ? 0 : -1;
+      if (checked && focus) button.focus();
+    });
+    onChange(key);
+  };
+  const buttons = options.map(([key, text], index) => createElement("button", {
+    class: "ds-segmented-option",
+    type: "button",
+    role: "radio",
+    "data-value": key,
+    "aria-checked": key === value ? "true" : "false",
+    tabindex: key === checkedKey ? "0" : "-1",
+    text,
+    onclick: () => select(key),
+    onkeydown: (event) => {
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+      if (!step) return;
+      event.preventDefault();
+      select(options[(index + step + options.length) % options.length][0], true);
+    }
   }));
+  return createElement("div", { class: "ds-choice" }, [
+    createElement("p", { class: "ds-choice-label", text: "Hvem kan lese?" }),
+    createElement("div", { class: "ds-segmented", role: "radiogroup", "aria-label": "Hvem kan lese?" }, buttons),
+    createElement("p", { class: "ds-choice-help", text: "Privat: Bare du kan lese. Del med coach: Coachen kan lese teksten i forløpet." })
+  ]);
 }
 
 export function createClientResourceView(sharedResource, options = {}) {
@@ -390,102 +409,116 @@ export function createClientResourceView(sharedResource, options = {}) {
   const resource = sharedResource?.resource || {};
   const introduction = resourceIntroduction(resource);
   const primaryPrintable = firstResourceFile(resource, "printable");
+  const files = visibleResourceFiles(resource, [primaryPrintable].filter(Boolean));
   const coachNote = displayText(sharedResource?.coach_note);
-  const showCoachNote = Boolean(coachNote) &&
-    !sameVisibleText(coachNote, introduction);
+  const showCoachNote = Boolean(coachNote) && !sameVisibleText(coachNote, introduction);
   const privateResponse = readOnly && sharedResource?.client_note_is_private;
   const clientNoteText = displayText(sharedResource?.client_note);
   const hasClientNote = Boolean(clientNoteText);
-  let clientVisibility = sharedResource?.client_visibility === "shared_with_coach" ? "shared_with_coach" : "private";
-  let saveStatus = null;
-  let saveButton = null;
-  const note = createElement("textarea", {
-    class: "ui-edit-control client-resource-note",
-    text: clientNoteText,
-    placeholder: "Hva vil du ta med deg?",
-    rows: "6",
-    disabled: readOnly
-  });
-  const visibilityButtons = [];
-  const setVisibility = (value) => {
-    clientVisibility = value;
-    visibilityButtons.forEach((button) => {
-      button.classList.toggle("active", button.dataset.value === clientVisibility);
-    });
-  };
-  const createVisibilityButton = (value, label) => {
-    const button = createElement("button", {
-      class: `visibility-choice ${clientVisibility === value ? "active" : ""}`,
-      type: "button",
-      "data-value": value,
-      onclick: () => setVisibility(value)
-    }, [
-      createElement("span", { text: label })
-    ]);
-    visibilityButtons.push(button);
-    return button;
-  };
+  const showLegacyReflectionPrompts = !contentHasBlock(resource, "reflection_questions") && (resource?.reflection_prompts || []).length;
+  const kicker = [
+    "Ressurs fra coach",
+    resource.type ? labelFor(TYPE_LABELS, resource.type) : "",
+    resource.estimated_duration ? `${resource.estimated_duration} min` : "",
+    resourceContextText(sharedResource)
+  ].filter(Boolean).join(" · ");
 
-  return createElement("article", { class: "client-resource-view" }, [
-    createElement("header", { class: "client-resource-view-head" }, [
-      createElement("div", { class: "client-resource-view-title" }, [
-        createElement("p", { class: "eyebrow", text: "Ressurs fra coach" }),
-        createElement("h3", { text: displayText(resource.title, "Ressurs") }),
-        ...paragraphs(createElement, "client-resource-view-lead", introduction),
-        createElement("div", { class: "meta-row" }, metaPills(createElement, resource))
-      ].filter(Boolean))
-    ]),
-    createPrimaryPrintableSection(createElement, resource, { createIcon, onOpenFile, primaryPrintable }),
-    showCoachNote ? createElement("section", { class: "resource-preview-section client-coach-note" }, [
-      createElement("h4", { text: "Fra coach" }),
-      ...paragraphs(createElement, "", coachNote)
-    ]) : null,
-    ...createResourceContentSections(createElement, resource, {
+  const content = createElement("div", { class: "ds-content ds-resource-content" }, [
+    ...renderResourceContentBlocks(contentWithoutPrimaryDownload(resource, primaryPrintable), {
+      createElement,
       createIcon,
-      onOpenFile,
-      primaryPrintable,
-      legacyPromptTitle: "Spørsmål å tenke videre på"
+      resourceFiles: resource.files || [],
+      onOpenFile
     }),
-    createElement("section", { class: "resource-preview-section client-resource-response" }, [
-      createElement("h4", { text: readOnly ? "Klientens refleksjon" : "Din refleksjon" }),
-      privateResponse
-        ? createElement("p", { class: "muted client-resource-empty-note", text: "Klienten har lagret en privat refleksjon som ikke er delt med coach." })
-        : readOnly && !hasClientNote
-          ? createElement("p", { class: "muted client-resource-empty-note", text: "Ingen refleksjon delt ennå." })
-          : note,
-      readOnly || privateResponse ? null : createElement("div", { class: "visibility-control" }, [
-        createElement("p", { text: "Privat: Bare du kan lese. Del med coach: Coachen kan lese teksten i forløpet." }),
-        createElement("div", { class: "visibility-choice-row" }, [
-          createVisibilityButton("private", "Privat"),
-          createVisibilityButton("shared_with_coach", "Del med coach")
-        ])
-      ]),
-      readOnly || privateResponse ? null : createElement("div", { class: "toolbar" }, [
-        saveStatus = createElement("span", { class: "muted client-resource-save-status", text: sharedResource?.client_note ? "Lagret" : "Ikke lagret" }),
-        saveButton = createElement("button", {
-          class: "ui-button ui-button-filled",
-          type: "button",
-          text: "Lagre refleksjon",
-          onclick: async () => {
-            if (!onSave) return;
-            saveButton.disabled = true;
-            saveStatus.textContent = "Lagrer...";
-            try {
-              await onSave(sharedResource, {
-                clientNote: note.value || "",
-                clientVisibility
-              });
-              saveStatus.textContent = clientVisibility === "shared_with_coach" ? "Lagret og delt med coach" : "Lagret privat";
-            } catch (error) {
-              saveStatus.textContent = "Kunne ikke lagre";
-            } finally {
-              saveButton.disabled = false;
-            }
-          }
-        })
-      ])
-    ].filter(Boolean))
+    resource.next_step_prompt ? createElement("h4", { class: "ds-content-heading", text: "Neste steg" }) : null,
+    ...(resource.next_step_prompt ? paragraphs(createElement, "", resource.next_step_prompt) : []),
+    showLegacyReflectionPrompts ? createElement("h4", { class: "ds-content-heading", text: "Spørsmål å tenke videre på" }) : null,
+    showLegacyReflectionPrompts ? createElement("ul", { class: "ds-content-list" }, resource.reflection_prompts
+      .map((item) => displayText(item))
+      .filter(Boolean)
+      .map((item) => createElement("li", { text: item }))) : null
   ].filter(Boolean));
+
+  return createElement("article", { class: "ds-detail" }, [
+    createElement("header", { class: "ds-object-head" }, [
+      createElement("div", {}, [
+        createElement("p", { class: "ds-object-kicker", text: kicker }),
+        createElement("h2", { class: "ds-object-title", text: displayText(resource.title, "Ressurs") }),
+        ...paragraphs(createElement, "ds-object-lead", introduction)
+      ]),
+      primaryPrintable && onOpenFile ? createElement("div", { class: "ds-object-actions" }, [
+        dsButtonNode(createElement, createIcon, "Last ned PDF", { iconName: "download", onClick: () => onOpenFile(primaryPrintable) })
+      ]) : null
+    ].filter(Boolean)),
+    showCoachNote ? createElement("div", { class: "ds-context ds-context--note" }, [
+      createElement("div", {}, [
+        createElement("p", { class: "ds-context-label", text: "Fra coach" }),
+        createElement("p", { class: "ds-context-text", text: coachNote })
+      ])
+    ]) : null,
+    dsSectionNode(createElement, "Innhold", [content]),
+    files.length ? dsSectionNode(createElement, "Filer", [
+      createElement("ul", { class: "ds-files" }, files.map((file) => createElement("li", {}, [
+        createElement("span", { text: file.display_name }),
+        onOpenFile ? dsButtonNode(createElement, createIcon, fileActionLabel(file), { variant: "text", iconName: "download", onClick: () => onOpenFile(file) }) : null
+      ].filter(Boolean))))
+    ]) : null,
+    createResponseSection(createElement, sharedResource, { onSave, readOnly, privateResponse, clientNoteText, hasClientNote })
+  ].filter(Boolean));
+}
+
+function createResponseSection(createElement, sharedResource, { onSave, readOnly, privateResponse, clientNoteText, hasClientNote }) {
+  if (readOnly) {
+    const text = privateResponse
+      ? "Klienten har lagret en privat refleksjon som ikke er delt med coach."
+      : hasClientNote ? "" : "Ingen refleksjon delt ennå.";
+    return dsSectionNode(createElement, "Klientens refleksjon", [
+      text
+        ? createElement("p", { class: "ds-empty-text", text })
+        : createElement("p", { class: "ds-note-text", text: clientNoteText })
+    ]);
+  }
+
+  let clientVisibility = sharedResource?.client_visibility === "shared_with_coach" ? "shared_with_coach" : "private";
+  const note = createElement("textarea", {
+    class: "ds-qa-field",
+    placeholder: "Hva vil du ta med deg?",
+    rows: "4",
+    "aria-label": "Din refleksjon"
+  });
+  note.value = clientNoteText;
+  const savedText = (visibility) => (visibility === "shared_with_coach" ? "Lagret og delt med coach" : "Lagret privat");
+  const status = createElement("span", { class: "ds-saved", role: "status", "aria-live": "polite", "data-state": hasClientNote ? "saved" : "clean", text: hasClientNote ? savedText(clientVisibility) : "" });
+  const save = dsButtonNode(createElement, null, "Lagre refleksjon", {
+    variant: "primary",
+    disabled: !hasClientNote,
+    onClick: async () => {
+      if (!onSave) return;
+      save.disabled = true;
+      status.dataset.state = "saving";
+      status.textContent = "Lagrer …";
+      try {
+        await onSave(sharedResource, { clientNote: note.value || "", clientVisibility });
+        status.dataset.state = "saved";
+        status.textContent = savedText(clientVisibility);
+      } catch (error) {
+        status.dataset.state = "error";
+        status.textContent = "Kunne ikke lagre";
+      } finally {
+        save.disabled = false;
+      }
+    }
+  });
+  note.addEventListener("input", () => {
+    save.disabled = !note.value.trim() && !hasClientNote;
+  });
+  return dsSectionNode(createElement, "Din refleksjon", [
+    note,
+    createVisibilityChoice(createElement, clientVisibility, (value) => {
+      clientVisibility = value;
+    }),
+    createElement("div", { class: "ds-section-foot" }, [save, status])
+  ], "ds-resource-response");
 }
 
 function createResourceNextStep(createElement, resource, createIcon = null) {
@@ -500,18 +533,4 @@ function createResourceNextStep(createElement, resource, createIcon = null) {
       ...paragraphs(createElement, "", resource.next_step_prompt)
     ])
   ]);
-}
-
-export function createSharedResourceStatus(status, options = {}) {
-  const { createElement, assignedLabel = "Ny" } = options;
-  requireCreateElement(createElement);
-
-  const labels = {
-    assigned: assignedLabel,
-    viewed: "Åpnet",
-    responded: "Refleksjon lagret",
-    archived: "Arkivert"
-  };
-
-  return createElement("span", { class: `badge shared-resource-status status-${status || "sent"}`, text: labels[status] || status || "Sendt" });
 }

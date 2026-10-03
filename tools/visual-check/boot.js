@@ -244,6 +244,32 @@ async function boot() {
       reflections: [{ id: "r1", body: "Møtet ble kortere da jeg startet med hovedbudskapet.", visibility: "private", created_at: "2026-09-30T08:00:00Z" }],
       sharedResources: [sharedResource]
     },
+    rich: {
+      purpose: program.purpose,
+      areas: [area],
+      comps: [programCompetency(communication, "active", 1), programCompetency(delegation, "active", 2)],
+      actions: [{ ...experiment, session_id: "s3", description: JSON.stringify({ action: "Starte ledermøtet med de tre viktigste sakene." }) }],
+      sessions: [
+        {
+          id: "s3", program_id: "p1", session_date: "2099-01-15", focus: "Prioriteringer i ledergruppen",
+          conversation_goal: "Bli enig om hvilke tre saker ledergruppen skal prioritere dette halvåret.",
+          insights: "Jeg bruker mye tid på å forklare bakgrunnen før jeg sier hva jeg vil. Ledergruppen trenger konklusjonen først.",
+          decisions: "Starte neste ledermøte med de tre viktigste sakene."
+        },
+        { id: "s2", program_id: "p1", session_date: "2099-01-02", focus: "Første samtale: Forventninger og rammer", conversation_goal: "Avklare rammene." },
+        { id: "s1", program_id: "p1", session_date: "2098-12-12", focus: "Tilbakemelding fra ledergruppen" }
+      ],
+      reflections: [
+        { id: "r3", created_by: "u-client", body: "Møtet ble kortere da jeg startet med hovedbudskapet. To av lederne sa etterpå at de visste hva de skulle gjøre.", visibility: "shared_with_coach", program_competency_id: `pc-${communication.id}`, created_at: "2026-09-30T08:00:00Z" },
+        { id: "r2", created_by: "u-client", body: "Jeg merker at jeg tar over når noen nøler. Vil se om jeg kan vente litt lenger neste gang.", visibility: "private", program_competency_id: `pc-${delegation.id}`, created_at: "2026-09-24T08:00:00Z" },
+        { id: "r1", created_by: "u-client", body: "Fikk spørsmål om prioriteringene i gangen. Klarte å svare kort.", visibility: "private", development_area_id: "a1", created_at: "2026-09-18T08:00:00Z" }
+      ],
+      sharedResources: [
+        sharedResource,
+        { id: "sr2", status: "assigned", shared_at: "2026-09-27T08:00:00Z", context_type: "program", resource: { title: "ABCDE-modellen", type: "exercise", estimated_duration: 20, summary: "En øvelse for å undersøke tanker som styrer reaksjonene dine.", content_json: [], files: [] } },
+        { id: "sr3", status: "responded", shared_at: "2026-09-20T08:00:00Z", context_type: "program", client_note: "Jeg kjenner igjen frykten for å miste kontroll.", client_visibility: "shared_with_coach", resource: { title: "Å akseptere frykt", type: "reflection", estimated_duration: 10, summary: "Refleksjon om å stå i usikkerhet.", content_json: [], files: [] } }
+      ]
+    },
     "direction-partial": {
       purpose: program.purpose,
       program: { success_criteria: "", expectations_client: "", expectations_coach: "", context: "", confidentiality: "" },
@@ -285,7 +311,6 @@ async function boot() {
     openCompetencyChooser(state.programCache[client.id]);
     if (params.get("mobilepreview")) document.querySelector(".competency-chooser-layout")?.classList.add("show-preview");
   }
-  await window.visualCheckAfterBoot?.(params);
   refreshIcons();
   if (document.fonts?.ready) await document.fonts.ready;
   document.body.dataset.ready = "1";
