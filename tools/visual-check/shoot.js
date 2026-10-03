@@ -40,6 +40,16 @@ const scenes = [
   ["coach-refleksjon", "scene=rich&pane=reflections&role=coach"],
   ["coach-ressurser", "scene=rich&pane=resources&role=coach"],
   ["bibliotek", "scene=chooser-two"],
+  ["bibliotek-tom", "scene=chooser-empty"],
+  ["dialog-eksperiment-ny", "scene=rich&pane=work&dialog=experiment-new"],
+  ["dialog-eksperiment-rediger", "scene=rich&pane=work&dialog=experiment-edit"],
+  ["dialog-bekreft", "scene=rich&pane=work&dialog=confirm"],
+  ["dialog-melding", "scene=rich&pane=reflections&dialog=message"],
+  ["dialog-inviter-klient", "scene=rich&role=coach&dialog=client-invite"],
+  ["innlogging", "screen=login"],
+  ["nytt-passord", "screen=password"],
+  ["ny-tilkobling", "screen=reconnect"],
+  ["samtykke", "screen=consent"],
   ["coach-akkurat-naa", "scene=now-complete&role=coach"],
   ["coach-forlopet", "scene=now-complete&pane=direction&role=coach"],
   ["coach-utviklingsfokus", "scene=workspace&pane=work&role=coach"],
@@ -79,7 +89,7 @@ const viewports = [
       }
       await page.evaluate(() => document.activeElement?.blur?.());
       await new Promise((resolve) => setTimeout(resolve, 300));
-      await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: true });
+      await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: !scene.startsWith("dialog-") });
       console.log(name);
       await page.close();
     }

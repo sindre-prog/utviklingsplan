@@ -297,9 +297,21 @@ async function boot() {
   state.focusView = params.get("view") || (scene.startsWith("focus") ? "assignments" : "competencies");
   if (params.get("preview")) state.previewCompetencyId = params.get("preview");
 
+  const screen = params.get("screen");
+  if (["login", "password", "reconnect"].includes(screen)) {
+    setScreen(screen);
+    await finishBoot();
+    return;
+  }
+
   setScreen("app");
   renderShell();
   setHeader("Din utviklingsportal", "Velkommen tilbake, Kari", [], "");
+  if (screen === "consent") {
+    renderConsentGate({ ...client, consent_given: false, consent_date: null });
+    await finishBoot();
+    return;
+  }
   const pane = params.get("pane") || (scene.startsWith("chooser") || scene === "workspace" || scene.startsWith("focus") ? "work" : scene.startsWith("direction") ? "direction" : "now");
   renderCachedProgram(pane);
   activateWorkspacePane?.(pane);
@@ -311,6 +323,25 @@ async function boot() {
     openCompetencyChooser(state.programCache[client.id]);
     if (params.get("mobilepreview")) document.querySelector(".competency-chooser-layout")?.classList.add("show-preview");
   }
+  openDialog(params.get("dialog"), state.programCache[client.id]);
+  await finishBoot();
+}
+
+function openDialog(name, data) {
+  if (name === "experiment-new") createAction(data);
+  if (name === "experiment-edit") editAction(data.actions[0], data);
+  if (name === "confirm") {
+    confirmDelete("Eksperimentet blir liggende i historikken sammen med observasjonene og læringen din.", {
+      kicker: "Eksperiment",
+      title: "Avslutt eksperiment?",
+      confirmLabel: "Avslutt"
+    });
+  }
+  if (name === "message") showAppMessage("Kunne ikke lagre refleksjonen", "Prøv igjen.");
+  if (name === "client-invite") openClientInvite();
+}
+
+async function finishBoot() {
   refreshIcons();
   if (document.fonts?.ready) await document.fonts.ready;
   document.body.dataset.ready = "1";
