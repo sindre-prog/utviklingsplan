@@ -285,6 +285,7 @@ async function boot() {
     openCompetencyChooser(state.programCache[client.id]);
     if (params.get("mobilepreview")) document.querySelector(".competency-chooser-layout")?.classList.add("show-preview");
   }
+  await window.visualCheckAfterBoot?.(params);
   refreshIcons();
   if (document.fonts?.ready) await document.fonts.ready;
   document.body.dataset.ready = "1";
