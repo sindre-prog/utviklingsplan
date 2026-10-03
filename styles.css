@@ -27,8 +27,8 @@
   --md-filled-button-label-text-opacity: 1;
   --md-filled-button-container-shape: 999px;
   --md-outlined-button-container-shape: 999px;
-  --md-ref-typeface-brand: "Roboto";
-  --md-ref-typeface-plain: "Roboto";
+  --md-ref-typeface-brand: "Inter";
+  --md-ref-typeface-plain: "Inter";
   --ink: #000000;
   --muted: var(--md-sys-color-on-surface-variant);
   --faint: rgba(73,69,79,.72);
@@ -65,7 +65,7 @@
   --shadow: 0 3px 8px rgba(0,0,0,.12);
   --shadow-sm: 0 1px 3px rgba(0,0,0,.12);
   --font-display: "p22-mackinac-pro", Georgia, serif;
-  --font-body: "Roboto", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
