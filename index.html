@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://p.typekit.net">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://use.typekit.net/ynv7fqd.css">
-  <link rel="stylesheet" href="./styles.css?v=design-system-185">
-  <link rel="stylesheet" href="./design-system.css?v=design-system-185">
+  <link rel="stylesheet" href="./styles.css?v=design-system-186">
+  <link rel="stylesheet" href="./design-system.css?v=design-system-186">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module">
@@ -159,20 +159,21 @@
     </form>
   </dialog>
 
-  <dialog class="competency-chooser" id="competency-chooser">
-    <section class="competency-chooser-shell" aria-labelledby="competency-chooser-title">
-      <header class="competency-chooser-head">
+  <dialog class="ds-dialog ds-dialog--wide" id="competency-chooser" aria-labelledby="competency-chooser-title">
+    <div class="ds-dialog-panel">
+      <header class="ds-dialog-head">
         <div>
-          <p class="eyebrow">Bibliotek for lederkompetanser</p>
-          <h2 id="competency-chooser-title">Utforsk før du velger</h2>
-          <p class="muted">Søk i hele biblioteket, sammenlign nærliggende lederkompetanser og velg det som passer situasjonen din.</p>
+          <p class="ds-object-kicker">Bibliotek for lederkompetanser</p>
+          <h2 class="ds-dialog-title" id="competency-chooser-title">Utforsk før du velger</h2>
+          <p class="ds-dialog-lead">Søk i hele biblioteket, sammenlign nærliggende lederkompetanser og velg det som passer situasjonen din.</p>
         </div>
-        <button class="icon-button" id="competency-chooser-close" type="button" title="Lukk biblioteket for lederkompetanser"><i data-lucide="x"></i></button>
+        <button class="ds-icon-button" id="competency-chooser-close" type="button" aria-label="Lukk biblioteket for lederkompetanser" title="Lukk biblioteket for lederkompetanser"><i data-lucide="x"></i></button>
       </header>
-      <div class="competency-chooser-content" id="competency-chooser-content"></div>
-    </section>
+      <div class="ds-dialog-body" id="competency-chooser-content"></div>
+      <footer class="ds-dialog-foot" id="competency-chooser-foot"></footer>
+    </div>
   </dialog>
 
-  <script src="./app.js?v=design-system-185" defer></script>
+  <script src="./app.js?v=design-system-186" defer></script>
 </body>
 </html>
