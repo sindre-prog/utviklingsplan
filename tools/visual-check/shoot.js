@@ -40,11 +40,39 @@ const scenes = [
   ["coach-refleksjon", "scene=rich&pane=reflections&role=coach"],
   ["coach-ressurser", "scene=rich&pane=resources&role=coach"],
   ["bibliotek", "scene=chooser-two"],
+  ["bibliotek-tom", "scene=chooser-empty"],
+  ["dialog-eksperiment-ny", "scene=rich&pane=work&dialog=experiment-new"],
+  ["dialog-eksperiment-rediger", "scene=rich&pane=work&dialog=experiment-edit"],
+  ["dialog-bekreft", "scene=rich&pane=work&dialog=confirm"],
+  ["dialog-melding", "scene=rich&pane=reflections&dialog=message"],
+  ["dialog-inviter-klient", "scene=rich&role=coach&dialog=client-invite"],
+  ["innlogging", "screen=login"],
+  ["nytt-passord", "screen=password"],
+  ["ny-tilkobling", "screen=reconnect"],
+  ["samtykke", "screen=consent"],
   ["coach-akkurat-naa", "scene=now-complete&role=coach"],
   ["coach-forlopet", "scene=now-complete&pane=direction&role=coach"],
   ["coach-utviklingsfokus", "scene=workspace&pane=work&role=coach"],
   ["byggeklosser", "", "components.html"]
 ];
+
+// Skissene for steg 10 tas bare når filteret nevner dem, for eksempel "skisse-".
+const sketchScenes = [
+  ["skisse-dialog-eksperiment-ny", "scene=rich&pane=work&sketch=eksperiment-ny"],
+  ["skisse-dialog-eksperiment-rediger", "scene=rich&pane=work&sketch=eksperiment-rediger"],
+  ["skisse-dialog-eksperiment-se-tilbake", "scene=rich&pane=work&sketch=eksperiment-se-tilbake"],
+  ["skisse-dialog-inviter-klient", "scene=rich&role=coach&sketch=inviter-klient"],
+  ["skisse-dialog-bekreft", "scene=rich&pane=work&sketch=bekreft"],
+  ["skisse-dialog-bekreft-slett", "scene=rich&role=coach&sketch=bekreft-slett"],
+  ["skisse-dialog-melding", "scene=rich&pane=reflections&sketch=melding"],
+  ["skisse-dialog-bibliotek", "scene=rich&pane=work&sketch=bibliotek"],
+  ["skisse-dialog-bibliotek-kompetanse", "scene=rich&pane=work&sketch=bibliotek-kompetanse"],
+  ["skisse-innlogging", "screen=login&sketch=innlogging"],
+  ["skisse-nytt-passord", "screen=login&sketch=nytt-passord"],
+  ["skisse-ny-tilkobling", "screen=login&sketch=ny-tilkobling"],
+  ["skisse-samtykke", "screen=consent&sketch=samtykke"]
+].map(([name, query]) => [name, query, "sketches.html"]);
+if (filter && filter.source.includes("skisse")) scenes.push(...sketchScenes);
 
 const viewports = [
   ["1440", 1440, 900],
@@ -79,7 +107,7 @@ const viewports = [
       }
       await page.evaluate(() => document.activeElement?.blur?.());
       await new Promise((resolve) => setTimeout(resolve, 300));
-      await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: true });
+      await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: !/^(skisse-)?dialog-/.test(scene) });
       console.log(name);
       await page.close();
     }

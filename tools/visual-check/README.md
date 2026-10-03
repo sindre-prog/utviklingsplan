@@ -4,6 +4,7 @@ Viser portalen med fiktive data, uten innlogging og uten kobling til databasen. 
 
 - `preview.html` leser `index.html` og `app.js` direkte, så settet følger alltid portalen slik den er. Supabase byttes ut med en frakoblet stub, slik at ingenting kan leses fra eller skrives til databasen.
 - `components.html` viser byggeklossene i `design-system.css`, laget med `ds`-funksjonene i `app.js`.
+- `sketches.html` viser skissene for steg 10 (dialogene, velgeren for lederkompetanser, innlogging og samtykke). Portalen startes som i `preview.html`, og deretter vises skissen fra `sketches.js`. Nye byggeklosser ligger i `sketches.css`, ikke i portalen. Se `docs/DESIGNSKISSER_STEG10.md`.
 
 ## Bruk
 
@@ -22,6 +23,9 @@ python3 -m http.server 8770
 | `role` | `client` (standard) eller `coach` |
 | `view` | Utviklingsfokus: `assignments`, `competencies` eller `experiments` |
 | `edit` | Åpner en tittel for redigering, for eksempel `focus:0:title` |
+| `dialog` | Åpner en dialog: `experiment-new`, `experiment-edit`, `confirm`, `message` eller `client-invite` (med `role=coach`) |
+| `screen` | Viser en skjerm før portalen: `login`, `password`, `reconnect` eller `consent` |
+| `sketch` | Bare i `sketches.html`: navnet på skissen, se `sketches.js` |
 
 Ta hele settet og sammenlign (krever `puppeteer-core` og Chrome):
 
@@ -32,4 +36,4 @@ node tools/visual-check/shoot.js /tmp/vc/etter
 node tools/visual-check/compare.js /tmp/vc/for /tmp/vc/etter
 ```
 
-Et tredje argument til `shoot.js` filtrerer på navn, for eksempel `"forlopet|akkurat-naa"`. Sett `PUPPETEER_MODULE` og `CHROME_PATH` hvis de ligger et annet sted enn standard. Skjermbildene skal ikke legges i repoet.
+Et tredje argument til `shoot.js` filtrerer på navn, for eksempel `"forlopet|akkurat-naa"`. Skissene tas bare når filteret nevner dem, for eksempel `"skisse-.*-(1440|390)$"`. Sett `PUPPETEER_MODULE` og `CHROME_PATH` hvis de ligger et annet sted enn standard. Skjermbildene skal ikke legges i repoet.
