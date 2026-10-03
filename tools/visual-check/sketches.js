@@ -1,7 +1,7 @@
 // Skisser for steg 10 i docs/DESIGNSYSTEM_PLAN_DEL2.md: dialogene, velgeren for lederkompetanser,
 // innlogging og samtykke bygget med byggeklossene i design-system.css. Portalen startes med fiktive
-// data av boot.js, og deretter vises skissen. Knappene gjør ingenting. Nye byggeklosser ligger i
-// sketches.css. Se docs/DESIGNSKISSER_STEG10.md.
+// data av boot.js, og deretter vises skissen. Knappene gjør ingenting. Alle byggeklossene er nå i
+// portalen (steg 11–13). Se docs/DESIGNSKISSER_STEG10.md.
 //
 // Bruk: sketches.html?sketch=<navn>&scene=rich[&role=coach]
 //

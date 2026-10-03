@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://p.typekit.net">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://use.typekit.net/ynv7fqd.css">
-  <link rel="stylesheet" href="./styles.css?v=design-system-185">
-  <link rel="stylesheet" href="./design-system.css?v=design-system-185">
+  <link rel="stylesheet" href="./styles.css?v=design-system-187">
+  <link rel="stylesheet" href="./design-system.css?v=design-system-187">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module">
@@ -22,51 +22,53 @@
 </head>
 <body>
   <main id="root">
-    <section class="auth-screen" data-screen="login">
-      <img class="auth-logo" src="./raeder-logo.svg" alt="Ræder&">
-      <form class="auth-panel" id="login-form">
-        <div>
-          <h1>Ræder&amp; utviklingsportal</h1>
-          <p class="muted">Logg inn for å fortsette arbeidet mellom samtalene.</p>
+    <section class="ds-auth" data-screen="login">
+      <img class="ds-auth-logo" src="./raeder-logo.svg" alt="Ræder&">
+      <form class="ds-auth-sheet" id="login-form">
+        <h1 class="ds-auth-title">Ræder&amp; utviklingsportal</h1>
+        <p class="ds-auth-lead">Logg inn for å fortsette arbeidet mellom samtalene.</p>
+        <div class="ds-form">
+          <label class="ds-form-field"><span class="ds-form-label">E-post</span><input class="ds-input" id="login-email" type="email" autocomplete="email" placeholder="din@epost.no" required></label>
+          <label class="ds-form-field"><span class="ds-form-label">Passord</span><input class="ds-input" id="login-password" type="password" autocomplete="current-password" placeholder="Passord" required></label>
         </div>
-        <label>E-post <input id="login-email" type="email" autocomplete="email" placeholder="din@epost.no" required></label>
-        <label>Passord <input id="login-password" type="password" autocomplete="current-password" placeholder="Passord" required></label>
-        <button class="button primary" type="submit"><i data-lucide="log-in"></i><span>Logg inn</span></button>
-        <button class="text-button" id="forgot-password" type="button">Glemt passord?</button>
-        <div class="privacy-note">
-          <i data-lucide="lock-keyhole"></i>
-          <p><strong>Personvern:</strong> Innholdet behandles konfidensielt og lagres i EU. Du kan be coachen din om innsyn, retting eller sletting.</p>
+        <button class="ds-button ds-button--primary ds-button--block" type="submit"><span>Logg inn</span></button>
+        <button class="ds-button ds-button--text" id="forgot-password" type="button">Glemt passord?</button>
+        <p class="ds-form-message" id="login-message" role="status"></p>
+        <div class="ds-context ds-context--note">
+          <div>
+            <p class="ds-context-label">Personvern</p>
+            <p class="ds-context-text">Innholdet behandles konfidensielt og lagres i EU. Du kan be coachen din om innsyn, retting eller sletting.</p>
+          </div>
         </div>
-        <p class="form-message" id="login-message" role="status"></p>
       </form>
     </section>
 
-    <section class="auth-screen hidden" data-screen="password">
-      <img class="auth-logo" src="./raeder-logo.svg" alt="Ræder&">
-      <form class="auth-panel" id="password-form">
-        <div>
-          <p class="eyebrow">Invitasjon</p>
-          <h1>Sett passord</h1>
-          <p class="muted">Velg et passord for å aktivere kontoen.</p>
+    <section class="ds-auth hidden" data-screen="password">
+      <img class="ds-auth-logo" src="./raeder-logo.svg" alt="Ræder&">
+      <form class="ds-auth-sheet" id="password-form">
+        <p class="ds-object-kicker">Invitasjon</p>
+        <h1 class="ds-auth-title">Sett passord</h1>
+        <p class="ds-auth-lead">Velg et passord for å aktivere kontoen.</p>
+        <div class="ds-form">
+          <label class="ds-form-field"><span class="ds-form-label">Nytt passord</span><input class="ds-input" id="new-password" type="password" minlength="8" autocomplete="new-password" placeholder="Minst 8 tegn" required></label>
+          <label class="ds-form-field"><span class="ds-form-label">Bekreft passord</span><input class="ds-input" id="confirm-password" type="password" minlength="8" autocomplete="new-password" placeholder="Gjenta passordet" required></label>
         </div>
-        <label>Nytt passord <input id="new-password" type="password" minlength="8" placeholder="Minst 8 tegn" required></label>
-        <label>Bekreft passord <input id="confirm-password" type="password" minlength="8" placeholder="Gjenta passordet" required></label>
-        <button class="button primary" type="submit"><i data-lucide="key-round"></i><span>Aktiver konto</span></button>
-        <p class="form-message" id="password-message" role="status"></p>
+        <button class="ds-button ds-button--primary ds-button--block" type="submit"><span>Aktiver konto</span></button>
+        <p class="ds-form-message" id="password-message" role="status"></p>
       </form>
     </section>
 
-    <section class="auth-screen hidden" data-screen="reconnect">
-      <img class="auth-logo" src="./raeder-logo.svg" alt="Ræder&">
-      <section class="auth-panel" aria-labelledby="reconnect-title">
-        <div>
-          <p class="eyebrow">Forbindelse</p>
-          <h1 id="reconnect-title">Portalen kunne ikke åpnes</h1>
-          <p class="muted" id="reconnect-message">Innloggingen din er bevart. Prøv å koble til på nytt.</p>
+    <section class="ds-auth hidden" data-screen="reconnect">
+      <img class="ds-auth-logo" src="./raeder-logo.svg" alt="Ræder&">
+      <section class="ds-auth-sheet" aria-labelledby="reconnect-title">
+        <p class="ds-object-kicker">Forbindelse</p>
+        <h1 class="ds-auth-title" id="reconnect-title">Portalen kunne ikke åpnes</h1>
+        <p class="ds-auth-lead" id="reconnect-message">Innloggingen din er bevart. Prøv å koble til på nytt.</p>
+        <div class="ds-auth-actions">
+          <button class="ds-button ds-button--primary" id="reconnect-button" type="button"><span>Prøv igjen</span></button>
+          <button class="ds-button" id="reconnect-logout" type="button"><span>Logg ut</span></button>
         </div>
-        <button class="button primary" id="reconnect-button" type="button"><i data-lucide="refresh-cw"></i><span>Prøv igjen</span></button>
-        <button class="button ghost" id="reconnect-logout" type="button"><i data-lucide="log-out"></i><span>Logg ut</span></button>
-        <p class="form-message" id="reconnect-status" role="status"></p>
+        <p class="ds-form-message" id="reconnect-status" role="status"></p>
       </section>
     </section>
 
@@ -159,20 +161,21 @@
     </form>
   </dialog>
 
-  <dialog class="competency-chooser" id="competency-chooser">
-    <section class="competency-chooser-shell" aria-labelledby="competency-chooser-title">
-      <header class="competency-chooser-head">
+  <dialog class="ds-dialog ds-dialog--wide" id="competency-chooser" aria-labelledby="competency-chooser-title">
+    <div class="ds-dialog-panel">
+      <header class="ds-dialog-head">
         <div>
-          <p class="eyebrow">Bibliotek for lederkompetanser</p>
-          <h2 id="competency-chooser-title">Utforsk før du velger</h2>
-          <p class="muted">Søk i hele biblioteket, sammenlign nærliggende lederkompetanser og velg det som passer situasjonen din.</p>
+          <p class="ds-object-kicker">Bibliotek for lederkompetanser</p>
+          <h2 class="ds-dialog-title" id="competency-chooser-title">Utforsk før du velger</h2>
+          <p class="ds-dialog-lead">Søk i hele biblioteket, sammenlign nærliggende lederkompetanser og velg det som passer situasjonen din.</p>
         </div>
-        <button class="icon-button" id="competency-chooser-close" type="button" title="Lukk biblioteket for lederkompetanser"><i data-lucide="x"></i></button>
+        <button class="ds-icon-button" id="competency-chooser-close" type="button" aria-label="Lukk biblioteket for lederkompetanser" title="Lukk biblioteket for lederkompetanser"><i data-lucide="x"></i></button>
       </header>
-      <div class="competency-chooser-content" id="competency-chooser-content"></div>
-    </section>
+      <div class="ds-dialog-body" id="competency-chooser-content"></div>
+      <footer class="ds-dialog-foot" id="competency-chooser-foot"></footer>
+    </div>
   </dialog>
 
-  <script src="./app.js?v=design-system-185" defer></script>
+  <script src="./app.js?v=design-system-187" defer></script>
 </body>
 </html>
