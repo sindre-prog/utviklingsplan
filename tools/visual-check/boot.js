@@ -201,7 +201,13 @@ async function boot() {
       ],
       actions: []
     },
-    "focus-detail": { purpose: program.purpose, areas: [area], comps: [], actions: [] }
+    "focus-detail": { purpose: program.purpose, areas: [area], comps: [], actions: [] },
+    "focus-many": {
+      purpose: program.purpose,
+      areas: [area, { id: "a2", title: "Nytt fokusoppdrag", project_type: "outer" }],
+      comps: [programCompetency(communication, "active", 1)],
+      actions: [{ ...experiment, program_competency_id: null, development_area_id: "a1", status: "planned", description: JSON.stringify({ action: "Starte ledermøtet med de tre viktigste sakene." }) }]
+    }
   };
   const data = scenes[scene] || scenes["now-complete"];
 
@@ -218,13 +224,13 @@ async function boot() {
     leadershipCompetencies: competencies,
     programCompetencies: data.comps
   };
-  state.focusView = scene === "focus-detail" ? "assignments" : "competencies";
+  state.focusView = params.get("view") || (scene.startsWith("focus") ? "assignments" : "competencies");
   if (params.get("preview")) state.previewCompetencyId = params.get("preview");
 
   setScreen("app");
   renderShell();
   setHeader("Din utviklingsportal", "Velkommen tilbake, Kari", [], "");
-  const pane = params.get("pane") || (scene.startsWith("chooser") || scene === "workspace" || scene === "focus-detail" ? "work" : "now");
+  const pane = params.get("pane") || (scene.startsWith("chooser") || scene === "workspace" || scene.startsWith("focus") ? "work" : "now");
   renderCachedProgram(pane);
   activateWorkspacePane?.(pane);
   if (scene.startsWith("chooser")) {
