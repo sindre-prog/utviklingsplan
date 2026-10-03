@@ -1,6 +1,6 @@
 # Skisser av Samtaler, Refleksjon og Ressurser – steg 8
 
-Status: til godkjenning hos produkteier. Ingen synlig endring i portalen.
+Status: godkjent av produkteier 3. oktober 2026, med alle seks beslutninger som foreslått. Ingen synlig endring i portalen.
 Grunnlag: `DESIGNSYSTEM_PLAN_V1.md` (prinsipper, byggeklosser og steg 8), skjermkontraktene for Samtaler og Refleksjon, og `RESOURCE_DELIVERY_LOOP_V1.md`.
 
 Skissene viser hvordan de tre siste fanene ser ut når de bygges med de samme byggeklossene som Utviklingsfokus, Forløpet og Akkurat nå. Når skissene er godkjent, bygges fanene om i steg 9, og `legacy` i `styles.css` tømmes og fjernes.
