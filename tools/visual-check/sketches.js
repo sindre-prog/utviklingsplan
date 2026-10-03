@@ -1,7 +1,8 @@
 // Skisser for steg 10 i docs/DESIGNSYSTEM_PLAN_DEL2.md: dialogene, velgeren for lederkompetanser,
 // innlogging og samtykke bygget med byggeklossene i design-system.css. Portalen startes med fiktive
 // data av boot.js, og deretter vises skissen. Knappene gjør ingenting. Alle byggeklossene er nå i
-// portalen (steg 11–13). Se docs/DESIGNSKISSER_STEG10.md.
+// portalen (steg 11–13). Se docs/DESIGNSKISSER_STEG10.md. Skissene for steg 14 ligger i
+// sketches-coach.js.
 //
 // Bruk: sketches.html?sketch=<navn>&scene=rich[&role=coach]
 //
@@ -380,8 +381,11 @@
     samtykke: consentSketch
   };
 
-  window.visualCheckAfterBoot = (params) => {
-    sketches[params.get("sketch")]?.();
+  window.sketchKit = { noop, dialog, formField, input, textarea, select, check, disclosureBlock };
+
+  window.visualCheckAfterBoot = async (params) => {
+    const name = params.get("sketch");
+    await (sketches[name] || window.coachSketches?.[name])?.(params);
     refreshIcons();
   };
 })();
