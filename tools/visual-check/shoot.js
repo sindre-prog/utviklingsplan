@@ -18,6 +18,7 @@ const scenes = [
   ["akkurat-naa-tom", "scene=now-empty"],
   ["akkurat-naa-utkast", "scene=now-draft"],
   ["akkurat-naa", "scene=now-complete"],
+  ["akkurat-naa-aktiv", "scene=now-active"],
   ["forlopet", "scene=now-complete&pane=direction"],
   ["forlopet-delvis", "scene=direction-partial"],
   ["forlopet-skriver", "scene=direction-partial&edit=direction:c_expect_client"],

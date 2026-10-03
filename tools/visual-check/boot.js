@@ -208,6 +208,15 @@ async function boot() {
       comps: [programCompetency(communication, "active", 1)],
       actions: [{ ...experiment, program_competency_id: null, development_area_id: "a1", status: "planned", description: JSON.stringify({ action: "Starte ledermøtet med de tre viktigste sakene." }) }]
     },
+    "now-active": {
+      purpose: program.purpose,
+      areas: [{ ...area, progress_signs: "" }],
+      comps: [programCompetency(communication, "active", 1), programCompetency(delegation, "active", 2)],
+      actions: [{ ...experiment, due_date: "2026-09-28", description: JSON.stringify({ action: "Starte ledermøtet med de tre viktigste sakene." }) }],
+      sessions: [{ id: "s1", program_id: "p1", session_date: "2099-01-15", focus: "Prioriteringer i ledergruppen" }],
+      reflections: [{ id: "r1", body: "Møtet ble kortere da jeg startet med hovedbudskapet.", visibility: "private", created_at: "2026-09-30T08:00:00Z" }],
+      sharedResources: [{ id: "sr1", status: "assigned", shared_at: "2026-09-29T08:00:00Z", coach_note: "Les denne før neste samtale.", resource: { title: "Tydelig kommunikasjon", summary: "" } }]
+    },
     "direction-partial": {
       purpose: program.purpose,
       program: { success_criteria: "", expectations_client: "", expectations_coach: "", context: "", confidentiality: "" },
@@ -223,11 +232,11 @@ async function boot() {
   state.programCache[client.id] = {
     program,
     areas: data.areas,
-    sessions: [],
+    sessions: data.sessions || [],
     actions: data.actions,
-    reflections: [],
+    reflections: data.reflections || [],
     evaluation: null,
-    sharedResources: [],
+    sharedResources: data.sharedResources || [],
     competenciesAvailable: true,
     leadershipCompetencies: competencies,
     programCompetencies: data.comps
