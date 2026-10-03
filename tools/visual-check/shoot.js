@@ -21,8 +21,6 @@ const scenes = [
   ["akkurat-naa-aktiv", "scene=now-active"],
   ["forlopet", "scene=now-complete&pane=direction"],
   ["forlopet-delvis", "scene=direction-partial"],
-  ["forlopet-skriver", "scene=direction-partial&edit=direction:c_expect_client"],
-  ["forlopet-rammer", "scene=direction-partial&edit=direction:frame"],
   ["forlopet-tom", "scene=now-empty&pane=direction"],
   ["utviklingsfokus-lederkompetanser", "scene=workspace&pane=work"],
   ["utviklingsfokus-fokusoppdrag", "scene=focus-detail&pane=work"],
