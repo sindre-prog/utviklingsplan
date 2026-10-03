@@ -1,120 +1,9 @@
-/* Byggeklosser som bare finnes i skissene for steg 10. De flyttes til design-system.css når
-   skissene er godkjent. Se docs/DESIGNSKISSER_STEG10.md. */
+/* Byggeklosser som bare finnes i skissene for steg 10: velgeren, innlogging og samtykke. De flyttes
+   til design-system.css i steg 12 og 13. Dialog og skjema ligger allerede der. Se docs/DESIGNSKISSER_STEG10.md. */
 
 @layer legacy, ds;
 
 @layer ds {
-  /* Dialogramme */
-  .ds-dialog {
-    max-width: none;
-    max-height: none;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--ds-text);
-    font-family: var(--ds-font-body);
-  }
-  .ds-dialog::backdrop { background: rgba(23, 21, 23, .32); }
-  .ds-dialog-panel {
-    display: flex;
-    flex-direction: column;
-    max-height: inherit;
-    background: var(--ds-paper);
-    box-shadow: 0 20px 60px rgba(30, 25, 28, .18);
-  }
-  .ds-dialog-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--ds-space-16);
-    padding: var(--ds-space-24) 28px var(--ds-space-16);
-    border-bottom: 1px solid var(--ds-line);
-  }
-  .ds-dialog-title { margin: 2px 0 0; color: var(--ds-ink); font: var(--ds-title-section); }
-  .ds-dialog-lead { max-width: 640px; margin: 6px 0 0; color: var(--ds-muted); font: var(--ds-support); }
-  .ds-dialog-text { margin: var(--ds-space-8) 0 0; color: var(--ds-text); font: var(--ds-support); }
-  .ds-dialog-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--ds-space-24) 28px; }
-  .ds-dialog-foot {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: var(--ds-space-12);
-    padding: var(--ds-space-16) 28px;
-    border-top: 1px solid var(--ds-line);
-    background: var(--ds-paper);
-  }
-  .ds-icon-button {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: var(--ds-target);
-    height: var(--ds-target);
-    margin: -6px -10px 0 0;
-    padding: 0;
-    border: 0;
-    border-radius: var(--ds-radius);
-    background: transparent;
-    color: var(--ds-muted);
-    cursor: pointer;
-  }
-  .ds-icon-button:hover { background: var(--ds-wash); color: var(--ds-ink); }
-  .ds-icon-button svg { width: 20px; height: 20px; }
-
-  .ds-dialog--side { position: fixed; inset: 0 0 0 auto; width: min(560px, 100vw); height: 100vh; max-height: 100vh; margin: 0; }
-  .ds-dialog--side .ds-dialog-panel { height: 100%; }
-  .ds-dialog--center { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 64px); margin: auto; }
-  .ds-dialog--center .ds-dialog-panel { max-height: calc(100vh - 64px); border-radius: var(--ds-radius); }
-  .ds-dialog--small { width: min(440px, calc(100vw - 32px)); margin: auto; }
-  .ds-dialog--small .ds-dialog-panel { border-radius: var(--ds-radius); }
-  .ds-dialog--small .ds-dialog-body { padding: var(--ds-space-24) var(--ds-space-24) var(--ds-space-8); }
-  .ds-dialog--small .ds-dialog-foot { padding: var(--ds-space-16) var(--ds-space-24) var(--ds-space-24); border-top: 0; }
-  .ds-dialog--wide { width: min(1180px, calc(100vw - 48px)); height: calc(100vh - 48px); max-height: calc(100vh - 48px); margin: auto; }
-  .ds-dialog--wide .ds-dialog-panel { height: 100%; border-radius: var(--ds-radius); }
-  .ds-dialog--wide .ds-dialog-body { display: flex; padding: 0; overflow: hidden; }
-
-  /* Skjema */
-  .ds-form { display: grid; gap: var(--ds-space-20); }
-  .ds-form-field { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
-  .ds-form-label { padding: 0; color: var(--ds-ink); font: var(--ds-question); font-size: 15px; }
-  .ds-form-help { margin-top: -2px; color: var(--ds-muted); font: var(--ds-support); font-size: 14px; }
-  .ds-form-field .ds-qa-field { margin: 0; }
-  .ds-input {
-    width: 100%;
-    min-height: 44px;
-    margin: 0;
-    padding: 0 14px;
-    border: 1px solid var(--ds-line-strong);
-    border-radius: var(--ds-radius-field);
-    background: var(--ds-paper);
-    box-shadow: none;
-    color: var(--ds-text);
-    font: var(--ds-body);
-  }
-  .ds-input::placeholder { color: var(--ds-placeholder); opacity: 1; }
-  .ds-form-field .ds-select { width: 100%; min-height: 44px; border-radius: var(--ds-radius-field); font: var(--ds-body); }
-  .ds-input:focus, .ds-form-field .ds-select:focus { border-color: var(--ds-ink); outline: none; box-shadow: var(--ds-focus-ring); }
-  .ds-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-space-16); }
-  .ds-form-disclosure { margin: 0; padding-top: var(--ds-space-16); border-top: 1px solid var(--ds-line); }
-  .ds-form-disclosure > .ds-disclosure-body { gap: var(--ds-space-20); }
-  .ds-form-fieldset > legend { margin-bottom: 6px; }
-  .ds-check-list { display: grid; }
-  .ds-check {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--ds-space-12);
-    min-height: var(--ds-target);
-    margin: 0;
-    padding: var(--ds-space-8) 0;
-    color: var(--ds-text);
-    font: var(--ds-support);
-    cursor: pointer;
-  }
-  .ds-check input { flex: none; width: 20px; height: 20px; min-height: 0; margin: 1px 0 0; padding: 0; accent-color: var(--ds-ink); }
-
-  .ds-button--block { width: 100%; }
-  .ds-button.ds-button--danger { border-color: var(--ds-danger); background: var(--ds-danger); color: var(--ds-on-ink); }
-  .ds-button.ds-button--danger:hover { border-color: var(--ds-ink); background: var(--ds-ink); }
-
   /* Velgeren for lederkompetanser */
   .ds-chooser { display: grid; grid-template-columns: 360px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); width: 100%; height: 100%; }
   .ds-chooser-list { min-height: 0; overflow: auto; padding-bottom: var(--ds-space-20); border-right: 1px solid var(--ds-line); }
@@ -145,7 +34,6 @@
   }
   .ds-chooser-facts p { margin: 0; color: var(--ds-text); font: var(--ds-support); }
   .ds-chooser-detail > .ds-disclosure { margin-top: var(--ds-space-24); padding-top: var(--ds-space-16); border-top: 1px solid var(--ds-line); }
-  .ds-dialog-note { margin: 0 auto 0 0; color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
 
   /* Innlogging */
   body.ds-auth-body { background: var(--ds-canvas); }
@@ -184,15 +72,6 @@
   .ds-facts + .ds-check { margin-top: var(--ds-space-24); padding-top: var(--ds-space-20); border-top: 1px solid var(--ds-line); color: var(--ds-ink); font: var(--ds-body); }
 
   @media (max-width: 700px) {
-    .ds-dialog--side, .ds-dialog--center, .ds-dialog--wide { inset: 0; width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; }
-    .ds-dialog--side .ds-dialog-panel, .ds-dialog--center .ds-dialog-panel, .ds-dialog--wide .ds-dialog-panel { height: 100%; max-height: none; border-radius: 0; }
-    .ds-dialog-head { padding: var(--ds-space-16) var(--ds-space-20) var(--ds-space-12); }
-    .ds-dialog-body { padding: var(--ds-space-20); }
-    .ds-dialog-foot { padding: var(--ds-space-12) var(--ds-space-20) calc(var(--ds-space-12) + env(safe-area-inset-bottom)); }
-    .ds-dialog-foot .ds-button { flex: 1 1 0; }
-    .ds-dialog-foot:has(.ds-dialog-note) { flex-wrap: wrap; }
-    .ds-dialog-note { flex: 1 0 100%; }
-    .ds-form-row { grid-template-columns: 1fr; }
     .ds-dialog--wide .ds-dialog-body { display: block; overflow: auto; }
     .ds-chooser-list { overflow: visible; border-right: 0; }
     .ds-chooser-detail { padding: var(--ds-space-20); }
