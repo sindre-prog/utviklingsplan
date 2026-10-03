@@ -354,6 +354,62 @@ function dsField({ value = "", placeholder = "", label, rows = 3, onInput, onBlu
   return field;
 }
 
+function dsAutoField({ value = "", placeholder = "", label, id, onChange, onCommit } = {}) {
+  const field = el("textarea", { class: "ds-qa-field ds-qa-auto", rows: 2, placeholder, "aria-label": label, id });
+  field.value = value || "";
+  const fit = () => {
+    if (CSS.supports?.("field-sizing", "content") || !field.offsetParent) return;
+    field.style.height = "auto";
+    field.style.height = `${field.scrollHeight + 2}px`;
+  };
+  const settle = () => field.classList.toggle("is-filled", Boolean(field.value.trim()));
+  settle();
+  field.addEventListener("input", () => {
+    fit();
+    onChange?.(field.value);
+  });
+  field.addEventListener("focus", fit);
+  field.addEventListener("blur", () => {
+    settle();
+    onCommit?.(field.value);
+  });
+  requestAnimationFrame(() => field.isConnected && fit());
+  return field;
+}
+
+function setDsQaDone(qa, done, number = null) {
+  const mark = qa?.querySelector(".ds-qa-mark");
+  if (!mark || mark.classList.contains("is-done") === done) return;
+  mark.classList.toggle("is-done", done);
+  mark.replaceChildren(...(done ? [icon("check")] : number === null ? [] : [document.createTextNode(String(number))]));
+  if (done) refreshIcons();
+}
+
+function setDsSectionStatus(node, status) {
+  const current = node?.closest(".ds-section")?.querySelector(".ds-section-head .ds-status");
+  if (!current || !status) return;
+  current.textContent = status.label;
+  current.dataset.tone = status.ready ? "done" : "neutral";
+}
+
+function dsAutoQuestion({ number = null, eyebrow = "", label, help = "", value = "", emptyText = "", editable = false, onChange, onCommit, foot = [] } = {}) {
+  const text = (value || "").trim();
+  if (!editable) return dsQuestion({ eyebrow, question: label, number, done: Boolean(text), answer: text, help: emptyText });
+  let qa = null;
+  const field = dsAutoField({
+    value: text,
+    placeholder: emptyText,
+    label,
+    onChange: (next) => {
+      setDsQaDone(qa, Boolean(next.trim()), number);
+      onChange?.(next, qa);
+    },
+    onCommit
+  });
+  qa = dsQuestion({ eyebrow, question: label, number, done: Boolean(text), help: text ? "" : help, field, foot: foot.filter(Boolean) });
+  return qa;
+}
+
 function dsNext({ label, title, text = "", action = null } = {}) {
   return el("section", { class: "ds-next" }, [
     el("div", {}, [
@@ -543,9 +599,13 @@ function bindAuth() {
   $("#reconnect-logout").addEventListener("click", logout);
   $("#brand-home")?.addEventListener("click", navigateHome);
   window.addEventListener("beforeunload", (event) => {
-    if (!state.dirty) return;
+    if (!hasPendingChanges()) return;
+    flushPendingChanges();
     event.preventDefault();
     event.returnValue = "";
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && hasPendingChanges()) flushPendingChanges();
   });
 }
 
@@ -821,6 +881,7 @@ function navigateHome() {
 }
 
 function navigate(view, clientId = null, activePane = null) {
+  if (hasPendingChanges()) flushPendingChanges();
   state.view = view;
   if (view !== "plan") {
     $("#appbar-tabs")?.replaceChildren();
@@ -3204,9 +3265,7 @@ function hiddenPlanState(plan) {
 function directionWorkspace(client, plan) {
   const editable = canEditProgram(client);
   const directionSpecs = getDirectionSpecs(plan);
-  const status = directionStatus(plan);
-  const completed = directionSpecs.filter(directionSpecHasValue).length;
-  const ready = completed === directionSpecs.length;
+  const ready = directionSpecs.every(directionSpecHasValue);
   const groups = [
     ["Mål for forløpet", "Hva skal utviklingsløpet bidra til?", directionSpecs.slice(0, 2)],
     ["Samarbeid", "Hva skal dere kunne forvente av hverandre?", directionSpecs.slice(2, 4)],
@@ -3217,14 +3276,7 @@ function directionWorkspace(client, plan) {
     intro: ready ? "" : "Avklar hvorfor forløpet er viktig, hva som skal bli annerledes, hvordan du vil merke fremgang og hvordan du og ledercoachen din skal samarbeide.",
     read: true
   }, [
-    dsProgress({
-      title: ready ? "Mål og rammer er klare til bruk" : `${completed} av ${directionSpecs.length} avklaringer på plass`,
-      text: status.text,
-      done: completed,
-      total: directionSpecs.length,
-      label: "Status for mål og rammer",
-      action: ready && editable ? dsButton("Velg ytre prosjekt", { variant: "primary", onClick: () => openNowFocusAssignment(null) }) : null
-    }),
+    directionProgressCard(plan, editable),
     dsSheet([
       ...groups.map(([title, intro, specs]) => dsSection({ title, intro }, [
         el("div", { class: "ds-qa-list" }, specs.map((spec) => directionQuestion(spec, editable)))
@@ -3234,75 +3286,87 @@ function directionWorkspace(client, plan) {
   ]);
 }
 
+function directionProgressCard(plan, editable) {
+  const directionSpecs = getDirectionSpecs(plan);
+  const completed = directionSpecs.filter(directionSpecHasValue).length;
+  const ready = completed === directionSpecs.length;
+  return dsProgress({
+    title: ready ? "Mål og rammer er klare til bruk" : `${completed} av ${directionSpecs.length} avklaringer på plass`,
+    text: directionStatus(plan).text,
+    done: completed,
+    total: directionSpecs.length,
+    label: "Status for mål og rammer",
+    action: ready && editable ? dsButton("Velg ytre prosjekt", { variant: "primary", onClick: () => openNowFocusAssignment(null) }) : null
+  });
+}
+
+function refreshDirectionProgress() {
+  const current = $("#workspace-pane-direction .ds-progress");
+  const data = currentProgramData();
+  if (!current || !data) return;
+  current.replaceWith(directionProgressCard(programToFormState(data), true));
+}
+
+function changeDirectionAnswer(key, value) {
+  changeDirectionField(key, value);
+  refreshDirectionProgress();
+}
+
 function directionQuestion(spec, editable) {
-  if (editable && state.inlineEditKey === `direction:${spec.key}`) return directionInlineEditor(spec);
-  const hasValue = Boolean(directionSpecPreview(spec).trim());
   const emptyText = spec.placeholder || spec.helper;
-  return dsQuestion({
+  if (!editable) {
+    const hasValue = Boolean(directionSpecPreview(spec).trim());
+    return dsQuestion({
+      eyebrow: spec.subhead,
+      question: spec.label,
+      done: directionSpecHasValue(spec),
+      answer: spec.fields ? "" : spec.value,
+      help: hasValue ? "" : emptyText,
+      field: hasValue && spec.fields ? directionValueContent(spec) : null
+    });
+  }
+  if (!spec.fields) {
+    return dsAutoQuestion({
+      eyebrow: spec.subhead,
+      label: spec.label,
+      help: spec.helper,
+      value: spec.value,
+      emptyText,
+      editable,
+      onChange: (value) => changeDirectionAnswer(spec.key, value),
+      onCommit: commitPlanChanges,
+      foot: [(spec.value || "").trim() ? null : directionExample(spec.examples)]
+    });
+  }
+  let qa = null;
+  const values = Object.fromEntries(spec.fields.map((field) => [field.key, field.value || ""]));
+  const editor = el("div", { class: "ds-qa-fields" }, spec.fields.map((field) => {
+    const id = `direction-field-${field.key}`;
+    return el("div", { class: "ds-qa-subfield" }, [
+      el("label", { class: "ds-qa-sublabel", for: id, text: field.label }),
+      dsAutoField({
+        id,
+        value: field.value || "",
+        placeholder: field.placeholder || emptyText,
+        label: field.label,
+        onChange: (value) => {
+          values[field.key] = value;
+          setDsQaDone(qa, Object.values(values).every((item) => item.trim()));
+          changeDirectionAnswer(field.key, value);
+        },
+        onCommit: commitPlanChanges
+      }),
+      (field.value || "").trim() ? null : directionExample(field.examples)
+    ].filter(Boolean));
+  }));
+  qa = dsQuestion({
     eyebrow: spec.subhead,
     question: spec.label,
     done: directionSpecHasValue(spec),
-    answer: spec.fields ? "" : spec.value,
-    help: editable ? "" : emptyText,
-    field: hasValue && spec.fields
-      ? directionValueContent(spec)
-      : editable && !hasValue
-        ? el("button", { class: "ds-qa-field ds-qa-prompt", type: "button", "aria-label": spec.label, onclick: () => activateDirectionEdit(spec) }, [el("span", { text: emptyText })])
-        : null,
-    side: editable && hasValue ? dsButton("Rediger", { variant: "text", onClick: () => activateDirectionEdit(spec) }) : null
+    help: directionSpecPreview(spec).trim() ? "" : spec.helper,
+    field: editor
   });
-}
-
-function directionInlineEditor(spec) {
-  const fields = spec.fields || [spec];
-  const controls = fields.map((field) => {
-    const control = dsField({
-      value: field.value || "",
-      placeholder: field.placeholder || spec.placeholder || spec.helper,
-      label: field.label || spec.label,
-      rows: spec.fields ? 3 : 4
-    });
-    control.dataset.directionControl = field.key;
-    return control;
-  });
-  const editor = el("div", { class: "ds-qa-fields" }, fields.map((field, index) => el("div", { class: "ds-qa-subfield" }, [
-    spec.fields ? el("label", { class: "ds-qa-sublabel", text: field.label }) : null,
-    controls[index],
-    !(field.value || "").trim() ? directionExample(field.examples || spec.examples) : null
-  ].filter(Boolean))));
-  if (spec.fields) {
-    editor.querySelectorAll(".ds-qa-subfield").forEach((node, index) => {
-      const id = `direction-field-${fields[index].key}`;
-      controls[index].id = id;
-      node.querySelector("label")?.setAttribute("for", id);
-    });
-  }
-  return dsQuestion({
-    eyebrow: spec.subhead,
-    question: spec.label,
-    help: spec.helper || spec.valueLabel || "",
-    field: editor,
-    foot: [
-      dsButton("Avbryt", { onClick: () => {
-        state.inlineEditKey = null;
-        renderCachedProgram("direction");
-      } }),
-      dsButton("Lagre", { variant: "primary", onClick: async () => {
-        fields.forEach((field, index) => setPlanValue(field.key, controls[index].value || ""));
-        markDirty();
-        const saved = await savePlan();
-        if (saved) {
-          state.inlineEditKey = null;
-          renderProgramPane("direction");
-        }
-      } })
-    ]
-  });
-}
-
-function activateFirstMissingDirectionField(specs) {
-  const target = specs.find((spec) => !directionSpecHasValue(spec)) || specs[0];
-  if (target) activateDirectionEdit(target);
+  return qa;
 }
 
 function directionExample(examples) {
@@ -3502,16 +3566,6 @@ function coachingFrame() {
   ]);
 }
 
-function activateDirectionEdit(spec) {
-  state.inlineEditKey = `direction:${spec.key}`;
-  renderCachedProgram("direction");
-  requestAnimationFrame(() => {
-    const firstField = $("[data-direction-control]");
-    firstField?.focus();
-    firstField?.setSelectionRange(firstField.value.length, firstField.value.length);
-  });
-}
-
 function setPlanValue(name, value) {
   const control = $(`[name='${name}']`, $("#plan-form"));
   if (control) control.value = value || "";
@@ -3546,41 +3600,6 @@ function workWorkspace(client, data, plan) {
 
 function focusHubIntroText() {
   return "Ta utgangspunkt i det du må lykkes med i din lederjobb, velg hva du trenger å utvikle, og planlegg hva du konkret vil prøve i praksis.";
-}
-
-
-function dsPlanQuestion({ number, eyebrow = "", label, value = "", emptyText, editable = false, isEditing = false, onEdit = null, onCancel = null, onSave = null }) {
-  const text = (value || "").trim();
-  if (editable && isEditing) {
-    const field = dsField({ value: text, placeholder: emptyText, label, rows: 4 });
-    requestAnimationFrame(() => {
-      if (!field.isConnected) return;
-      field.focus();
-      field.setSelectionRange(field.value.length, field.value.length);
-    });
-    return dsQuestion({
-      eyebrow,
-      question: label,
-      number,
-      field,
-      foot: [
-        dsButton("Avbryt", { onClick: () => onCancel?.() }),
-        dsButton("Lagre", { variant: "primary", onClick: () => onSave?.(field.value) })
-      ]
-    });
-  }
-  return dsQuestion({
-    eyebrow,
-    question: label,
-    number,
-    done: Boolean(text),
-    answer: text,
-    help: editable ? "" : emptyText,
-    field: editable && !text
-      ? el("button", { class: "ds-qa-field ds-qa-prompt", type: "button", "aria-label": label, onclick: () => onEdit?.() }, [el("span", { text: emptyText })])
-      : null,
-    side: editable && text ? dsButton("Rediger", { variant: "text", onClick: () => onEdit?.() }) : null
-  });
 }
 
 
@@ -3895,12 +3914,6 @@ function workspaceExperimentStep({ number, actions = [], data, editable = false,
   ].filter(Boolean));
 }
 
-function openLeadershipFieldEditor(item, fieldKey) {
-  state.inlineEditKey = `competency:${item.id}:${fieldKey}`;
-  state.selectedCompetencyId = item.id;
-  renderCachedProgram("work");
-}
-
 function leadershipGuidance(content = {}, title = "kompetansen") {
   const signals = content.best_practice?.success || content.signals || [];
   const underuse = content.best_practice?.underuse || content.underuse || [];
@@ -3936,16 +3949,13 @@ function leadershipGuidance(content = {}, title = "kompetansen") {
 
 
 function leadershipPlanStep(item, number, eyebrow, label, value, emptyText, fieldKey, editable = false) {
-  const editKey = `competency:${item.id}:${fieldKey}`;
-  return dsPlanQuestion({
+  return dsAutoQuestion({
     number, eyebrow, label, value, emptyText, editable,
-    isEditing: state.inlineEditKey === editKey,
-    onEdit: () => openLeadershipFieldEditor(item, fieldKey),
-    onCancel: () => {
-      state.inlineEditKey = null;
-      renderCachedProgram("work");
+    onChange: (nextValue, qa) => {
+      changeLeadershipCompetencyField(item, fieldKey, nextValue);
+      setDsSectionStatus(qa, leadershipPlanStatus(item));
     },
-    onSave: (nextValue) => updateLeadershipCompetencyField(item.id, fieldKey, nextValue)
+    onCommit: () => flushLeadershipCompetencyField(item.id, fieldKey)
   });
 }
 
@@ -4319,22 +4329,6 @@ async function makeLeadershipCompetencyPrimary(item) {
   } catch (error) {
     await showAppMessage("Kunne ikke endre prioritering", userFacingError(error, "Prøv igjen."));
   }
-}
-
-async function updateLeadershipCompetencyField(programCompetencyId, fieldKey, value) {
-  const library = await ensureLeadershipLibrary();
-  if (!library?.updateProgramCompetency) return;
-  setSaveState("saving");
-  const { error } = await state.sb.from("program_competencies").update({ [fieldKey]: value || "" }).eq("id", programCompetencyId);
-  if (error) {
-    setSaveState("error");
-    await showAppMessage("Kunne ikke lagre kompetansen", userFacingError(error, "Prøv igjen."));
-    return;
-  }
-  state.inlineEditKey = null;
-  state.selectedCompetencyId = programCompetencyId;
-  await reloadProgramAndRender("work");
-  setSaveState("saved");
 }
 
 async function removeLeadershipCompetency(item) {
@@ -5052,23 +5046,14 @@ function focusPlanStatus(area) {
   return { key: "not-started", label: "Ikke påbegynt", ready: false };
 }
 
-function openFocusField(index, fieldKey) {
-  state.inlineEditKey = `focus:${index}:${fieldKey}`;
-  state.selectedFocusIndex = index;
-  renderCachedProgram("work");
-}
-
 function focusPlanStep(area, index, number, eyebrow, label, value, emptyText, fieldKey, editable) {
-  const editKey = `focus:${index}:${fieldKey}`;
-  return dsPlanQuestion({
+  return dsAutoQuestion({
     number, eyebrow, label, value, emptyText, editable,
-    isEditing: state.inlineEditKey === editKey,
-    onEdit: () => openFocusField(index, fieldKey),
-    onCancel: () => {
-      state.inlineEditKey = null;
-      renderCachedProgram("work");
+    onChange: (nextValue, qa) => {
+      const next = changeFocusField(index, fieldKey, nextValue);
+      setDsSectionStatus(qa, focusPlanStatus(next));
     },
-    onSave: (nextValue) => saveFocusField(index, fieldKey, nextValue)
+    onCommit: commitPlanChanges
   });
 }
 
@@ -5406,6 +5391,102 @@ function inlineTextAreaBlock({ className, label, value, placeholder, onCancel, o
       el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => onSave(textarea.value) })
     ])
   ]);
+}
+
+function currentProgramData() {
+  const client = getCurrentClient();
+  return client ? state.programCache[client.id] || null : null;
+}
+
+const focusFieldColumns = { movement: "movement", typicalSituations: "typical_situations", progressSigns: "progress_signs" };
+const directionFieldColumns = {
+  c_purpose: "purpose",
+  c_success: "success_criteria",
+  c_expect_client: "expectations_client",
+  c_expect_coach: "expectations_coach",
+  c_practical: "practical_frame",
+  c_confidentiality: "confidentiality",
+  c_context: "context"
+};
+
+// Endringer skrives til cachen med en gang, slik at en ny tegning av siden før lagringen er ferdig viser det som er skrevet.
+function changeFocusField(index, fieldKey, value) {
+  const areas = getAreas();
+  const area = normalizeArea(areas[index]);
+  const next = { ...area, [fieldKey]: value || "", description: fieldKey === "movement" ? value || "" : area.description };
+  areas[index] = next;
+  setAreas(areas);
+  const cached = currentProgramData()?.areas?.[index];
+  if (cached) {
+    cached[focusFieldColumns[fieldKey]] = value || "";
+    if (fieldKey === "movement") cached.description = value || "";
+  }
+  markDirty();
+  return next;
+}
+
+function changeDirectionField(key, value) {
+  setPlanValue(key, value);
+  const program = currentProgramData()?.program;
+  if (program && directionFieldColumns[key]) program[directionFieldColumns[key]] = value || "";
+  markDirty();
+}
+
+function commitPlanChanges() {
+  if (state.dirty) savePlan();
+}
+
+function changeLeadershipCompetencyField(item, fieldKey, value) {
+  item[fieldKey] = value || "";
+  const cached = (currentProgramData()?.programCompetencies || []).find((entry) => entry.id === item.id);
+  if (cached && cached !== item) cached[fieldKey] = value || "";
+  const key = `${item.id}:${fieldKey}`;
+  state.competencyPending ||= {};
+  clearTimeout(state.competencyPending[key]?.timer);
+  state.competencyPending[key] = {
+    id: item.id,
+    fieldKey,
+    value: value || "",
+    timer: setTimeout(() => flushLeadershipCompetencyField(item.id, fieldKey), 1200)
+  };
+  setSaveState("dirty");
+}
+
+function flushLeadershipCompetencyField(id, fieldKey) {
+  const key = `${id}:${fieldKey}`;
+  const pending = state.competencyPending?.[key];
+  if (!pending) return state.competencySaveChain || Promise.resolve();
+  clearTimeout(pending.timer);
+  delete state.competencyPending[key];
+  state.competencySaveChain = (state.competencySaveChain || Promise.resolve()).then(async () => {
+    const library = await ensureLeadershipLibrary();
+    if (!library?.updateProgramCompetency) return;
+    setSaveState("saving");
+    const { error } = await state.sb.from("program_competencies").update({ [fieldKey]: pending.value }).eq("id", id);
+    if (error) {
+      setSaveState("error");
+      await showAppMessage("Kunne ikke lagre kompetansen", userFacingError(error, "Prøv igjen."));
+      return;
+    }
+    if (!Object.keys(state.competencyPending || {}).length) {
+      setSaveState("saved", `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`);
+    }
+  });
+  return state.competencySaveChain;
+}
+
+function flushPendingChanges() {
+  Object.values(state.competencyPending || {}).forEach((pending) => flushLeadershipCompetencyField(pending.id, pending.fieldKey));
+  commitPlanChanges();
+}
+
+async function settlePendingChanges() {
+  flushPendingChanges();
+  await Promise.all([state.planSaveChain, state.competencySaveChain].filter(Boolean));
+}
+
+function hasPendingChanges() {
+  return state.dirty || Object.keys(state.competencyPending || {}).length > 0;
 }
 
 async function saveFocusField(index, fieldKey, value) {
@@ -6324,6 +6405,7 @@ async function createReflection(programId) {
 async function reloadProgramAndRender(activePane = null) {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (!client) return;
+  await settlePendingChanges();
   const scrollY = window.scrollY;
   delete state.programCache[client.id];
   const data = await loadClientProgram(client);
@@ -6427,9 +6509,20 @@ function setSaveState(mode, text = "") {
   }
 }
 
-async function savePlan() {
+// Lagringer går én om gangen. Planen sendes i sin helhet, og fokusoppdrag uten id opprettes på nytt ved hver lagring.
+// Planen leses også ved kallet, slik at en lagring som starter rett før man bytter visning, ikke mister teksten.
+function savePlan() {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
-  if (!client || !$("#plan-form")) return false;
+  const snapshot = client && $("#plan-form") ? { client, plan: collectPlan() } : null;
+  const run = (state.planSaveChain || Promise.resolve()).then(() => savePlanNow(snapshot));
+  state.planSaveChain = run.catch(() => false);
+  return run;
+}
+
+async function savePlanNow(snapshot) {
+  if (!snapshot) return false;
+  const { client } = snapshot;
+  const formIsCurrent = () => Boolean($("#plan-form")) && (state.clients.find((item) => item.id === state.selectedClientId) || state.client)?.id === client.id;
   if (!canOpenClient(client)) return;
   clearTimeout(state.saveTimer);
   const status = $("#save-status");
@@ -6437,20 +6530,43 @@ async function savePlan() {
   try {
     const current = state.programCache[client.id] || await loadClientProgram(client);
     if (!current) throw new Error("Klientforløpet kunne ikke åpnes. Last siden på nytt og prøv igjen.");
-    const plan = collectPlan();
-    await savePlanTransactionally(current.program.id, plan);
-    applyPlanToProgramCache(current, plan);
+    const plan = formIsCurrent() ? collectPlan() : snapshot.plan;
     state.dirty = false;
-    setSaveState("saved", `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`);
+    await savePlanTransactionally(current.program.id, plan);
+    const createdAreas = plan.areas.some((area) => !area.id && hasAreaContent(area));
+    if (createdAreas && formIsCurrent()) await adoptCreatedAreaIds(client, plan);
+    applyPlanToProgramCache(state.programCache[client.id] || current, formIsCurrent() ? collectPlan() : plan);
+    if (state.dirty) setSaveState("dirty");
+    else setSaveState("saved", `Lagret ${new Date().toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" })}`);
     loadProgramSummaries().catch((summaryError) => console.warn("Kunne ikke oppdatere klientoversikten etter lagring", summaryError));
     return true;
   } catch (error) {
+    state.dirty = true;
     console.error("Kunne ikke lagre utviklingsplan", error);
     setSaveState("error");
     if (status) status.textContent = "Lagring feilet";
     await showAppMessage("Kunne ikke lagre", userFacingError(error, "Prøv igjen."));
     return false;
   }
+}
+
+async function adoptCreatedAreaIds(client, plan) {
+  const programId = state.programCache[client.id]?.program?.id;
+  if (!programId) return;
+  const { data: rows, error } = await state.sb.from("development_areas").select("id, sort_order, archived_at").eq("program_id", programId);
+  if (error || !rows) return;
+  const known = new Set(plan.areas.map((area) => area.id).filter(Boolean));
+  const cards = $$("#areas-editor [data-area]");
+  const cached = state.programCache[client.id]?.areas || [];
+  plan.areas.forEach((area, index) => {
+    if (area.id || !hasAreaContent(area)) return;
+    const created = rows.find((row) => !row.archived_at && !known.has(row.id) && Number(row.sort_order) === index);
+    if (!created) return;
+    known.add(created.id);
+    const idInput = cards[index] && $("[name='area.id']", cards[index]);
+    if (idInput && !idInput.value) idInput.value = created.id;
+    if (cached[index] && !cached[index].id) cached[index].id = created.id;
+  });
 }
 
 function applyPlanToProgramCache(current, plan) {
@@ -7277,6 +7393,7 @@ async function reloadAndRender() {
 }
 
 async function logout() {
+  await settlePendingChanges();
   await state.sb.auth.signOut();
   state.user = null;
   state.profile = null;
