@@ -498,16 +498,37 @@
   .ds-qa-prompt:hover { border-color: var(--ds-muted); }
   .ds-qa-prompt:focus-visible { border-color: var(--ds-ink); outline: none; box-shadow: var(--ds-focus-ring); }
   .ds-qa-list { margin-top: var(--ds-space-8); }
+  .ds-qa-auto {
+    width: calc(100% + 28px);
+    min-height: 44px;
+    margin: 2px 0 0 -14px;
+    padding: 6px 13px;
+    resize: none;
+    field-sizing: content;
+    overflow: hidden;
+    transition: border-color .15s ease, background-color .15s ease;
+  }
+  .ds-qa-auto:hover { border-color: var(--ds-muted); }
+  .ds-qa-auto.is-filled { min-height: 0; }
+  .ds-qa-auto.is-filled:not(:focus) {
+    border-color: transparent;
+    background: transparent;
+  }
+  .ds-qa-auto.is-filled:not(:focus):hover { border-color: var(--ds-line-strong); }
+  .ds-qa-auto:focus { overflow: auto; }
   .ds-sheet-body > .ds-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-  .ds-qa-fields { display: grid; gap: var(--ds-space-16); }
+  .ds-qa-fields { display: grid; gap: var(--ds-space-8); }
   .ds-qa-sublabel { display: block; margin: 10px 0 0; color: var(--ds-ink); font: var(--ds-label); }
   .ds-qa-sublabel + .ds-qa-field { margin-top: var(--ds-space-4); }
+  .ds-qa-sublabel + .ds-qa-auto { margin-top: 0; }
   .ds-qa-subvalues { display: grid; gap: 2px; margin: 6px 0 0; }
   .ds-qa-subvalues dt { margin: 10px 0 0; color: var(--ds-muted); font: var(--ds-label); }
   .ds-qa-subvalues dt:first-child { margin-top: 0; }
   .ds-qa-subvalues dd { margin: 0; color: var(--ds-text); font: var(--ds-body); white-space: pre-wrap; overflow-wrap: break-word; }
   .ds-qa-subvalues dd.is-empty { color: var(--ds-muted); }
   .ds-qa .ds-disclosure-body { display: grid; gap: var(--ds-space-8); }
+  .ds-qa-foot > .ds-disclosure { margin-top: 0; }
+  .ds-qa-subfield > .ds-disclosure { margin-top: var(--ds-space-8); }
   .ds-example { display: grid; gap: 2px; margin: 0; }
   .ds-example strong { color: var(--ds-ink); font: var(--ds-label); }
 

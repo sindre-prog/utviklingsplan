@@ -21,7 +21,7 @@ python3 -m http.server 8770
 | `pane` | `now`, `direction`, `work`, `sessions`, `reflections`, `resources` |
 | `role` | `client` (standard) eller `coach` |
 | `view` | Utviklingsfokus: `assignments`, `competencies` eller `experiments` |
-| `edit` | Åpner et felt for redigering, for eksempel `direction:c_expect_client` eller `direction:frame` |
+| `edit` | Åpner en tittel for redigering, for eksempel `focus:0:title` |
 
 Ta hele settet og sammenlign (krever `puppeteer-core` og Chrome):
 
