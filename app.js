@@ -2546,7 +2546,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=polish-155")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=design-system-184")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;
@@ -5729,18 +5729,20 @@ function reflectionLinkFields(data, { areaId = "", competencyId = "", ids = fals
 
 function coachResourcesWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
-  const intro = canWriteReflection
-    ? workspaceIntro("Ressurser", "Dine ressurser", "Her finner du ressursene coachen har valgt ut for deg.")
-    : workspaceIntro("Ressurser", "Det som er delt i forløpet", "Se hva klienten har fått, hvorfor det ble sendt og hvordan ressursene blir brukt.");
-  return el("div", { class: "platform-page client-resource-space resource-workspace-v2" }, [
-    intro,
-    resourcesFromCoachSection(data, canWriteReflection)
-  ].filter(Boolean));
+  const hasResources = Boolean((data.sharedResources || []).length);
+  return dsPage({
+    title: canWriteReflection ? "Dine ressurser" : "Det som er delt i forløpet",
+    intro: canWriteReflection
+      ? (hasResources ? "" : "Her finner du ressursene coachen har valgt ut for deg.")
+      : "Se hva klienten har fått, hvorfor det ble sendt og hvordan ressursene blir brukt.",
+    className: "resources-page"
+  }, [resourcesFromCoachSection(data, canWriteReflection)].filter(Boolean));
 }
 
+// På mobil åpnes ingen ressurs automatisk, fordi åpning registreres som «Åpnet» hos coachen.
 function resourcesFromCoachSection(data, canWriteReflection) {
   const library = getResourceLibrary();
-  if (!library?.createClientResourceList) return null;
+  if (!library?.createClientResourceView) return null;
 
   const sharedResources = data.sharedResources || [];
   if (state.selectedSharedResourceProgramId !== data.program?.id) {
@@ -5748,7 +5750,7 @@ function resourcesFromCoachSection(data, canWriteReflection) {
     state.selectedSharedResourceId = null;
     state.sharedResourceQuery = "";
   }
-  const section = el("section", { class: "client-resources-section" });
+  const section = el("div", { class: "ds-resources" });
   const renderSection = () => {
     const query = String(state.sharedResourceQuery || "").trim().toLocaleLowerCase("nb-NO");
     const visibleResources = sharedResources.filter((item) => !query || [
@@ -5766,41 +5768,44 @@ function resourcesFromCoachSection(data, canWriteReflection) {
       state.selectedSharedResourceId = selected.id;
       autoSelected = true;
     }
-    section.className = `client-resources-section ${selected ? "has-selection" : ""}`.trim();
-    const list = library.createClientResourceList(visibleResources, {
+    const assignedLabel = canWriteReflection ? "Ny" : "Ikke åpnet";
+    const list = visibleResources.length ? dsList({
+      title: `${canWriteReflection ? "Delt med deg" : "Delt med klient"} · ${visibleResources.length}${query ? ` av ${sharedResources.length}` : ""}`,
+      label: "Ressurser",
+      rows: visibleResources.map((item) => dsRow({
+        title: item.resource?.title || "Ressurs",
+        meta: library.sharedResourceMeta(item, { assignedLabel }),
+        selected: item.id === selected?.id,
+        onClick: () => openSharedResource(item, canWriteReflection, renderSection)
+      }))
+    }) : null;
+    const detail = selected ? library.createClientResourceView(selected, {
       createElement: el,
       createIcon: icon,
-      selectedId: selected?.id || null,
-      assignedLabel: canWriteReflection ? "Ny" : "Ikke åpnet",
-      onOpen: (sharedResource) => openSharedResource(sharedResource, canWriteReflection, renderSection),
-      emptyTitle: query ? "Ingen ressurser funnet" : "Ingen ressurser ennå",
-      emptyText: canWriteReflection
-        ? (query ? "Prøv et annet søk." : "Når coachen sender en ressurs, vises den her.")
-        : (query ? "Prøv et annet søk." : "Ingen ressurser er sendt i dette forløpet ennå.")
-    });
-    const detail = selected ? el("div", { class: "client-resource-detail-stack" }, [
-      el("button", { class: "client-resource-back", type: "button", onclick: () => {
-        state.selectedSharedResourceId = null;
-        renderSection();
-      }}, [icon("arrow-left"), el("span", { text: "Tilbake til ressurser" })]),
-      library.createClientResourceView(selected, {
-        createElement: el,
-        createIcon: icon,
-        readOnly: !canWriteReflection,
-        onOpenFile: openResourceFile,
-        onSave: (resource, values) => saveSharedResourceReflection(resource, values, renderSection)
+      readOnly: !canWriteReflection,
+      onOpenFile: openResourceFile,
+      onSave: (resource, values) => saveSharedResourceReflection(resource, values, renderSection)
+    }) : null;
+    const empty = el("div", { class: "ds-detail" }, [
+      dsObjectHead({
+        kicker: "Ressurser",
+        title: query ? "Ingen ressurser funnet" : "Ingen ressurser ennå",
+        lead: query
+          ? "Prøv et annet søk."
+          : canWriteReflection ? "Når coachen sender en ressurs, vises den her." : "Ingen ressurser er sendt i dette forløpet ennå."
       })
-    ]) : el("section", { class: "client-resource-detail-empty" }, [
-      el("span", { class: "client-resource-detail-empty-icon" }, [icon("book-open")]),
-      el("div", {}, [
-        el("h3", { text: visibleResources.length ? "Velg en ressurs" : query ? "Ingen ressurser funnet" : "Ingen ressurser ennå" }),
-        el("p", { class: "muted", text: visibleResources.length
-          ? "Se innholdet, coachens kommentar og eventuelle spørsmål."
-          : canWriteReflection ? "Når coachen deler noe med deg, samles det her." : "Ingen ressurser er sendt i dette forløpet." })
-      ])
     ]);
+    const back = dsButton("Tilbake til ressurser", { variant: "text", iconName: "arrow-left", className: "ds-back", onClick: () => {
+      state.selectedSharedResourceId = null;
+      renderSection();
+    } });
+    const sheet = !visibleResources.length
+      ? dsSheet([empty])
+      : compactLayout
+        ? (selected ? dsSheet([back, detail]) : dsSheet([], { list, className: "ds-sheet--list-only" }))
+        : dsSheet([detail], { list });
     const search = sharedResources.length > 5 ? el("input", {
-      class: "client-resource-search",
+      class: "ds-search",
       type: "search",
       value: state.sharedResourceQuery,
       placeholder: "Søk i ressurser",
@@ -5810,25 +5815,13 @@ function resourcesFromCoachSection(data, canWriteReflection) {
         state.sharedResourceQuery = event.currentTarget.value;
         renderSection();
         requestAnimationFrame(() => {
-          const nextSearch = $(".client-resource-search", section);
+          const nextSearch = $(".ds-search", section);
           nextSearch?.focus();
           if (Number.isInteger(cursor)) nextSearch?.setSelectionRange(cursor, cursor);
         });
       }
     }) : null;
-    section.replaceChildren(
-      el("div", { class: "client-resources-head" }, [
-        el("div", { class: "client-resources-summary" }, [
-          el("strong", { text: canWriteReflection ? "Delt med deg" : "Delt med klient" }),
-          el("span", { class: "muted", text: `${visibleResources.length}${query ? ` av ${sharedResources.length}` : ""} ${visibleResources.length === 1 && !query ? "ressurs" : "ressurser"}` })
-        ]),
-        search
-      ].filter(Boolean)),
-      el("div", { class: `client-resource-workbench ${selected ? "has-selection" : ""}` }, [
-        el("aside", { class: "client-resource-rail" }, [list]),
-        el("div", { class: "client-resource-detail" }, [detail])
-      ])
-    );
+    section.replaceChildren(...[search ? el("div", { class: "ds-toolbar" }, [search]) : null, sheet].filter(Boolean));
     hydrateResourceMedia(section);
     refreshIcons();
     if (autoSelected && canWriteReflection && selected?.status === "assigned") {
