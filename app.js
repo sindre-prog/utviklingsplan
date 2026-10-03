@@ -134,7 +134,6 @@ const state = {
   focusView: "assignments",
   experimentView: "active",
   experimentFilter: "all",
-  reflectionComposerOpen: false,
   previewCompetencyId: null,
   competencyChooserQuery: "",
   competencyChooserCategory: "all",
@@ -3851,73 +3850,6 @@ function leadershipPlanStatus(item) {
   return { key: "not-started", label: "Ikke påbegynt", ready: false };
 }
 
-function workspaceNextStep({ complete = false, label, helper = "", actionLabel = "Åpne feltet", onAction = null, editable = false }) {
-  return el("section", { class: "competency-next-step workspace-next-step" }, [
-    el("span", { class: "competency-next-icon", "aria-hidden": "true" }, [icon(complete ? "circle-check" : "arrow-right")]),
-    el("div", {}, [
-      el("span", { class: "workspace-kicker", text: complete ? "Planen er klar" : "Anbefalt neste steg" }),
-      el("strong", { text: label }),
-      helper ? el("p", { class: "workspace-next-helper", text: helper }) : null
-    ].filter(Boolean)),
-    editable && onAction ? el("button", { class: "ui-button ui-button-filled", type: "button", text: actionLabel, onclick: onAction }) : null
-  ].filter(Boolean));
-}
-
-function workspacePlan({ title, description, status, steps, className = "" }) {
-  return el("section", { class: `competency-plan workspace-plan ${className}`.trim() }, [
-    el("header", { class: "competency-plan-head" }, [
-      el("div", {}, [
-        el("h4", { text: title }),
-        el("p", { text: description })
-      ]),
-      status ? el("span", { class: `plan-status-chip ${status.key || "working"}`, text: status.label || "Under arbeid" }) : null
-    ].filter(Boolean)),
-    el("div", { class: "competency-plan-list workspace-plan-list" }, steps)
-  ]);
-}
-
-function workspacePlanStep({ number, eyebrow, label, value = "", emptyText, editable = false, isEditing = false, onEdit = null, onCancel = null, onSave = null, secondaryAction = null }) {
-  const text = (value || "").trim();
-  if (editable && isEditing) {
-    const textarea = el("textarea", { class: "ui-edit-control competency-step-textarea", text, placeholder: emptyText });
-    requestAnimationFrame(() => {
-      if (!textarea.isConnected) return;
-      textarea.focus();
-      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-    });
-    return el("article", { class: "competency-plan-step workspace-plan-step is-editing" }, [
-      el("span", { class: "competency-step-marker", text: String(number) }),
-      el("div", { class: "competency-step-content" }, [
-        eyebrow ? el("span", { class: "workspace-kicker", text: eyebrow }) : null,
-        el("strong", { text: label }),
-        textarea,
-        el("div", { class: "ui-inline-editor-actions" }, [
-          el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: () => onCancel?.() }),
-          el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: () => onSave?.(textarea.value) })
-        ])
-      ].filter(Boolean))
-    ]);
-  }
-  return el("article", { class: `competency-plan-step workspace-plan-step ${text ? "is-complete" : "is-empty"}` }, [
-    el("span", { class: "competency-step-marker", "aria-hidden": "true" }, [text ? icon("check") : el("span", { text: String(number) })]),
-    el("div", { class: "competency-step-content" }, [
-      eyebrow ? el("span", { class: "workspace-kicker", text: eyebrow }) : null,
-      el("strong", { text: label }),
-      editable && !text
-        ? el("button", { class: "ui-write-prompt", type: "button", "aria-label": label, onclick: () => onEdit?.() }, [el("span", { text: emptyText })])
-        : el("p", { text: text || emptyText })
-    ].filter(Boolean)),
-    editable && text ? el("div", { class: "workspace-step-actions" }, [
-      secondaryAction ? el("button", { class: "competency-step-action", type: "button", onclick: secondaryAction.onClick }, [
-        el("span", { text: secondaryAction.label }), icon(secondaryAction.icon || "flask-conical")
-      ]) : null,
-      el("button", { class: "competency-step-action", type: "button", onclick: () => onEdit?.() }, [
-        el("span", { text: "Rediger" }), icon("pencil")
-      ])
-    ].filter(Boolean)) : null
-  ].filter(Boolean));
-}
-
 function workspaceExperimentStep({ number, actions = [], data, editable = false, onCreate, emptyLabel = "Planlegg første forsøk", completeLabel = "Prøv det i praksis", emptyText = "Gjør et lite atferdsforsøk i en konkret arbeidssituasjon." }) {
   return el("article", { class: `competency-plan-step workspace-plan-step competency-experiment-step ${actions.length ? "is-complete" : "is-empty"}` }, [
     el("span", { class: "competency-step-marker", "aria-hidden": "true" }, [actions.length ? icon("check") : el("span", { text: String(number) })]),
@@ -4378,23 +4310,6 @@ function createCompetencyAction(data, item) {
   createAction(data, "", item.id, "", { title: `Nytt eksperiment for ${item.title || "kompetansen"}` });
 }
 
-function pageIntro(kicker, title, text, actions = [], tone = "") {
-  return el("header", { class: "ui-page-intro workspace-intro" }, [
-    el("div", {}, [
-      tone
-        ? el("span", { class: `ui-status-pill ${tone}`, text: kicker })
-        : el("p", { class: "workspace-kicker", text: kicker }),
-      el("h2", { text: title }),
-      el("p", { class: "muted", text })
-    ]),
-    actions.length ? el("div", { class: "ui-page-actions workspace-intro-actions" }, actions) : null
-  ].filter(Boolean));
-}
-
-function workspaceIntro(kicker, title, text, actions = []) {
-  return pageIntro(kicker, title, text, actions);
-}
-
 function ownershipOrientationCard({ className = "", kicker, title, text, iconName = "compass", action = null }) {
   return el("section", { class: `ownership-orientation ${className}`.trim() }, [
     el("span", { class: "ownership-orientation-icon", "aria-hidden": "true" }, [icon(iconName)]),
@@ -4508,7 +4423,6 @@ function openNowFocusAssignment(item) {
 }
 
 function openNowReflection() {
-  state.reflectionComposerOpen = true;
   renderCachedProgram("reflections");
   requestAnimationFrame(() => $("#reflection-body")?.focus());
 }
@@ -5134,45 +5048,10 @@ function focusEmptyState(editable) {
   ].filter(Boolean));
 }
 
-function emptyState(title, text) {
-  return el("div", { class: "empty-inline" }, [
-    el("strong", { text: title }),
-    el("p", { class: "muted", text })
-  ]);
-}
-
 function addAction(label, handler) {
   return el("button", { class: "ui-add-action", type: "button", onclick: handler }, [
     el("span", { class: "ui-add-icon" }, [icon("plus")]),
     el("span", { text: label })
-  ]);
-}
-
-function editableTitle({ className = "", title, empty = false, editable = true, editKey, value = "", placeholder = "", onSave }) {
-  if (!editable) {
-    return el("div", { class: `ui-editable-title ${className}` }, [
-      el("h3", { class: empty ? "is-empty" : "", text: title })
-    ]);
-  }
-  if (state.inlineEditKey === editKey) {
-    const input = el("input", { class: "ui-title-input", value, placeholder });
-    return el("div", { class: `ui-title-editor ${className}` }, [
-      input,
-      el("div", { class: "ui-inline-editor-actions" }, [
-        el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: async () => {
-          state.inlineEditKey = null;
-          renderCachedProgram(editKey.startsWith("session:") ? "sessions" : "work");
-        }}),
-        el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => onSave(input.value) })
-      ])
-    ]);
-  }
-  return el("div", { class: `ui-editable-title ${className}` }, [
-    el("h3", { class: empty ? "is-empty" : "", text: title }),
-    el("button", { class: "ui-title-action", type: "button", text: empty ? "Legg til tittel" : "Rediger tittel", onclick: () => {
-      state.inlineEditKey = editKey;
-      renderCachedProgram(editKey.startsWith("session:") ? "sessions" : "work");
-    }})
   ]);
 }
 
@@ -6305,7 +6184,6 @@ async function createReflection(programId) {
     if (status) status.textContent = "Kunne ikke lagre";
     return;
   }
-  state.reflectionComposerOpen = false;
   await reloadProgramAndRender("reflections");
 }
 
@@ -7435,16 +7313,6 @@ function coachNames(client) {
 
 function button(label, iconName, handler, variant = "primary") {
   return el("button", { class: `button ${variant}`, type: "button", onclick: handler }, [icon(iconName), el("span", { text: label })]);
-}
-
-function iconAction(label, iconName, handler, tone = "") {
-  return el("button", {
-    class: `icon-button action-icon ${tone ? `is-${tone}` : ""}`,
-    type: "button",
-    title: label,
-    "aria-label": label,
-    onclick: handler
-  }, [icon(iconName)]);
 }
 
 function statusLabel(status) {
