@@ -1,6 +1,6 @@
 # Designsystem for utviklingsportalen – plan del 2
 
-Status: forslag til produkteier, ikke godkjent.
+Status: godkjent av produkteier 3. oktober 2026, som foreslått.
 Grunnlag: `DESIGNSYSTEM_PLAN_V1.md` (steg 1–9) og kartleggingen etter steg 9 (PR #43).
 
 Steg 1–9 bygget om de seks fanene. `legacy` i `styles.css` kunne likevel ikke fjernes, fordi andre deler av portalen fortsatt bruker de gamle klassene. Denne planen beskriver resten av jobben, slik at `legacy` og til slutt hele `styles.css` kan slettes.
@@ -62,7 +62,15 @@ Alt i plan v1, punkt 8, gjelder. I tillegg:
 - Teksten om personvern og samtykke. Den flyttes ordrett.
 - Feltene i skjemaene og rekkefølgen deres.
 
-## 5. Spørsmål til produkteier
+## 5. Beslutninger fra produkteier
+
+Besluttet 3. oktober 2026:
+
+1. Rekkefølgen i punkt 2 er godkjent: klientflatene først, deretter coach og admin.
+2. Skissene tas i to runder, i steg 10 og steg 14.
+3. Hvor langt ressursredigeringen bygges om, avgjøres med skissene i steg 14.
+
+## 6. Spørsmålene som ble stilt
 
 1. Er rekkefølgen riktig: klientflatene først, deretter coach og admin?
 2. Skal skissene tas i to runder, slik forslaget er (steg 10 og 14), eller i én runde for alt?
