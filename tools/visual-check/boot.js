@@ -207,11 +207,19 @@ async function boot() {
       areas: [area, { id: "a2", title: "Nytt fokusoppdrag", project_type: "outer" }],
       comps: [programCompetency(communication, "active", 1)],
       actions: [{ ...experiment, program_competency_id: null, development_area_id: "a1", status: "planned", description: JSON.stringify({ action: "Starte ledermøtet med de tre viktigste sakene." }) }]
+    },
+    "direction-partial": {
+      purpose: program.purpose,
+      program: { success_criteria: "", expectations_client: "", expectations_coach: "", context: "", confidentiality: "" },
+      areas: [area],
+      comps: [],
+      actions: []
     }
   };
   const data = scenes[scene] || scenes["now-complete"];
 
   program.purpose = data.purpose;
+  Object.assign(program, data.program || {});
   state.programCache[client.id] = {
     program,
     areas: data.areas,
@@ -230,9 +238,13 @@ async function boot() {
   setScreen("app");
   renderShell();
   setHeader("Din utviklingsportal", "Velkommen tilbake, Kari", [], "");
-  const pane = params.get("pane") || (scene.startsWith("chooser") || scene === "workspace" || scene.startsWith("focus") ? "work" : "now");
+  const pane = params.get("pane") || (scene.startsWith("chooser") || scene === "workspace" || scene.startsWith("focus") ? "work" : scene.startsWith("direction") ? "direction" : "now");
   renderCachedProgram(pane);
   activateWorkspacePane?.(pane);
+  if (params.get("edit")) {
+    state.inlineEditKey = params.get("edit");
+    renderCachedProgram(pane);
+  }
   if (scene.startsWith("chooser")) {
     openCompetencyChooser(state.programCache[client.id]);
     if (params.get("mobilepreview")) document.querySelector(".competency-chooser-layout")?.classList.add("show-preview");
