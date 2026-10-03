@@ -320,8 +320,9 @@ async function boot() {
     renderCachedProgram(pane);
   }
   if (scene.startsWith("chooser")) {
+    if (params.get("query")) state.competencyChooserQuery = params.get("query");
     openCompetencyChooser(state.programCache[client.id]);
-    if (params.get("mobilepreview")) document.querySelector(".competency-chooser-layout")?.classList.add("show-preview");
+    if (params.get("mobilepreview")) document.querySelector(".ds-chooser")?.classList.add("is-preview");
   }
   openDialog(params.get("dialog"), state.programCache[client.id]);
   await finishBoot();

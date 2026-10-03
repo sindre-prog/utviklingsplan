@@ -41,6 +41,9 @@ const scenes = [
   ["coach-ressurser", "scene=rich&pane=resources&role=coach"],
   ["bibliotek", "scene=chooser-two"],
   ["bibliotek-tom", "scene=chooser-empty"],
+  ["bibliotek-kompetanse", "scene=chooser-two&mobilepreview=1"],
+  ["bibliotek-coach", "scene=chooser-two&role=coach"],
+  ["bibliotek-ingen-treff", "scene=chooser-two&query=xyzzy"],
   ["dialog-eksperiment-ny", "scene=rich&pane=work&dialog=experiment-new"],
   ["dialog-eksperiment-rediger", "scene=rich&pane=work&dialog=experiment-edit"],
   ["dialog-eksperiment-se-tilbake", "scene=rich&pane=work&dialog=experiment-review"],
@@ -112,7 +115,7 @@ const viewports = [
       }
       await page.evaluate(() => document.activeElement?.blur?.());
       await new Promise((resolve) => setTimeout(resolve, 300));
-      await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: !/^(skisse-)?dialog-/.test(scene) });
+      await page.screenshot({ path: path.join(outDir, `${name}.png`), fullPage: !/^(skisse-)?(dialog-|bibliotek)/.test(scene) });
       console.log(name);
       await page.close();
     }
