@@ -451,6 +451,26 @@ function dsDisclosure(summary, children = [], { open = false } = {}) {
   ]);
 }
 
+function dsChoice({ label, options = [], value, help = "", onChange } = {}) {
+  const buttons = options.map(([key, text]) => el("button", {
+    class: "ds-segmented-option",
+    type: "button",
+    role: "radio",
+    "data-value": key,
+    "aria-checked": key === value ? "true" : "false",
+    text,
+    onclick: () => {
+      buttons.forEach((button) => button.setAttribute("aria-checked", button.dataset.value === key ? "true" : "false"));
+      onChange?.(key);
+    }
+  }));
+  return el("div", { class: "ds-choice" }, [
+    el("p", { class: "ds-choice-label", text: label }),
+    el("div", { class: "ds-segmented", role: "radiogroup", "aria-label": label }, buttons),
+    help ? el("p", { class: "ds-choice-help", text: help }) : null
+  ]);
+}
+
 function dsEmpty(text, action = null) {
   return el("div", { class: "ds-empty" }, [el("p", { class: "ds-empty-text", text }), action]);
 }
@@ -2937,7 +2957,7 @@ async function renderPlan(activePane = null) {
 
   const editable = canEditProgram(client);
   if (editable) form.addEventListener("input", (event) => {
-    if (event.target.closest(".ui-inline-editor, .ds-qa, .ds-title-editor")) return;
+    if (event.target.closest(".ui-inline-editor, .ds-qa, .ds-title-editor, .ds-composer, .ds-note, .ds-resource-response")) return;
     markDirty();
   });
   $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]));
@@ -2979,7 +2999,7 @@ function renderCachedProgram(activePane = null) {
   ].filter(Boolean));
   const editable = canEditProgram(client);
   if (editable) form.addEventListener("input", (event) => {
-    if (event.target.closest(".ui-inline-editor, .ds-qa, .ds-title-editor")) return;
+    if (event.target.closest(".ui-inline-editor, .ds-qa, .ds-title-editor, .ds-composer, .ds-note, .ds-resource-response")) return;
     markDirty();
   });
   $("#content").replaceChildren(el("div", { class: "plan-layout" }, [form]));
@@ -5640,49 +5660,71 @@ function setSessions(values) {
 
 function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
-  const intro = canWriteReflection
-    ? workspaceIntro("Refleksjon", "Refleksjoner underveis", "Ta vare på observasjoner og læring. Du bestemmer hva du deler.")
-    : workspaceIntro("Refleksjon", "Det klienten har valgt å dele", "Her vises bare refleksjoner klienten aktivt har delt i coachingforløpet.");
-  const log = el("section", { class: "reflection-log-section" }, [
-    el("div", { class: "reflection-log-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: canWriteReflection ? "Tidligere" : "Delt med coach" }),
-        el("h3", { text: canWriteReflection ? "Dine refleksjoner" : "Delte refleksjoner" }),
-        el("p", { class: "muted", text: canWriteReflection
-          ? "Se tilbake på det du har lagt merke til."
-          : "Refleksjoner klienten ønsker å utforske sammen." })
-      ]),
-      el("span", { class: "reflection-count", text: String(data.reflections.length) })
-    ]),
-    reflectionsList(data.reflections, data, canWriteReflection)
+  const reflections = canWriteReflection ? data.reflections : data.reflections.filter((item) => item.visibility !== "private");
+  if (!canWriteReflection) {
+    return dsPage({ title: "Det klienten har valgt å dele", intro: "Her vises bare refleksjoner klienten aktivt har delt i coachingforløpet.", className: "reflections-page" }, [
+      dsSheet([dsSection({ title: reflections.length ? `Delte refleksjoner · ${reflections.length}` : "Delte refleksjoner", headingLevel: 2 }, [
+        reflections.length
+          ? reflectionNotes(reflections, data)
+          : reflectionEmpty("Ingen delte refleksjoner ennå", "Del refleksjoner når det er noe du ønsker å utforske videre sammen.")
+      ])])
+    ]);
+  }
+  return dsPage({
+    title: "Refleksjoner underveis",
+    intro: reflections.length ? "" : "Ta vare på observasjoner og læring. Du bestemmer hva du deler.",
+    className: "reflections-page"
+  }, [
+    dsSheet([
+      reflectionComposer(data),
+      dsSection({ title: reflections.length ? `Dine refleksjoner · ${reflections.length}` : "Dine refleksjoner", headingLevel: 2 }, [
+        reflections.length
+          ? reflectionNotes(reflections, data)
+          : reflectionEmpty("Ingen refleksjoner ennå", "Skriv når noe blir tydelig eller du vil huske det senere.")
+      ])
+    ])
   ]);
-  return el("div", { class: "platform-page reflection-space" }, [
-    intro,
-    el("div", { class: `reflection-workspace-stack ${canWriteReflection ? "" : "is-readonly"}` }, [
-      canWriteReflection ? (state.reflectionComposerOpen ? reflectionComposer(data) : reflectionComposerLauncher()) : null,
-      log
-    ].filter(Boolean))
-  ].filter(Boolean));
 }
 
-function reflectionComposerLauncher() {
-  return el("section", { class: "reflection-launcher" }, [
-    el("span", { class: "reflection-launcher-icon", "aria-hidden": "true" }, [icon("notebook-pen")]),
-    el("div", {}, [
-      el("h3", { text: "Hva vil du ta vare på?" }),
-      el("p", { class: "muted", text: "Skriv noen få setninger mens observasjonen er fersk." })
-    ]),
-    el("button", {
-      class: "ui-button ui-button-filled",
-      type: "button",
-      text: "Skriv refleksjon",
-      onclick: () => {
-        state.reflectionComposerOpen = true;
-        renderCachedProgram("reflections");
-        requestAnimationFrame(() => $("#reflection-body")?.focus());
-      }
-    })
+function reflectionEmpty(title, text) {
+  return el("div", { class: "ds-empty" }, [
+    el("p", { class: "ds-empty-title", text: title }),
+    el("p", { class: "ds-empty-text", text })
   ]);
+}
+
+function reflectionVisibilityChoice(value, onChange, help) {
+  return dsChoice({
+    label: "Hvem kan lese?",
+    value,
+    options: [["private", "Privat"], ["shared_with_coach", "Del med coach"]],
+    help,
+    onChange
+  });
+}
+
+function reflectionLinkFields(data, { areaId = "", competencyId = "", ids = false, priorityLabels = false } = {}) {
+  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active" || item.id === competencyId);
+  const area = el("select", { class: "ds-select", id: ids ? "reflection-area" : undefined }, [
+    el("option", { value: "", text: "Ikke knyttet", selected: !areaId }),
+    ...data.areas.map((item) => el("option", { value: item.id, text: item.title || "Fokusoppdrag", selected: item.id === areaId }))
+  ]);
+  const competency = el("select", { class: "ds-select", id: ids ? "reflection-competency" : undefined }, [
+    el("option", { value: "", text: "Ikke knyttet", selected: !competencyId }),
+    ...activeCompetencies.map((item) => el("option", {
+      value: item.id,
+      text: priorityLabels ? `${Number(item.priority) === 1 ? "Prioritert nå" : "Aktiv"}: ${item.title || "Lederkompetanse"}` : item.title || "Lederkompetanse",
+      selected: item.id === competencyId
+    }))
+  ]);
+  return {
+    area,
+    competency,
+    node: el("div", { class: "ds-link-fields" }, [
+      el("label", { text: "Fokusoppdrag" }, [area]),
+      el("label", { text: "Lederkompetanse" }, [competency])
+    ])
+  };
 }
 
 function coachResourcesWorkspace(data) {
@@ -5843,127 +5885,59 @@ async function saveSharedResourceReflection(sharedResource, values, renderSectio
 }
 
 function reflectionComposer(data) {
-  const visibilityValue = el("input", { id: "reflection-visibility", type: "hidden", value: "private" });
-  const setReflectionVisibility = (value, buttons) => {
-    visibilityValue.value = value;
-    buttons.forEach((button) => button.classList.toggle("active", button.dataset.value === value));
-  };
-  const visibilityButtons = [];
-  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active");
-  const visibilityButton = (value, label) => {
-    const button = el("button", {
-      class: `visibility-choice ${value === "private" ? "active" : ""}`,
-      type: "button",
-      "data-value": value,
-      onclick: () => setReflectionVisibility(value, visibilityButtons)
-    }, [el("span", { text: label })]);
-    visibilityButtons.push(button);
-    return button;
-  };
-
-  return el("section", { class: "reflection-composer" }, [
-    el("div", { class: "reflection-composer-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Ny refleksjon" }),
-        el("h3", { text: "Hva vil du ta vare på?" }),
-        el("p", { class: "muted", text: "Noter det mens det er ferskt." })
-      ]),
-      el("button", {
-        class: "icon-button reflection-composer-close",
-        type: "button",
-        title: "Lukk",
-        onclick: () => {
-          state.reflectionComposerOpen = false;
-          renderCachedProgram("reflections");
-        }
-      }, [icon("x")])
-    ]),
-    el("div", { class: "reflection-prompts", "aria-label": "Forslag til refleksjon" }, [
-      el("span", { text: "Hva skjedde?" }),
-      el("span", { text: "Hva overrasket deg?" }),
-      el("span", { text: "Hva vil du prøve videre?" })
-    ]),
-    el("textarea", { class: "ui-edit-control", id: "reflection-body", placeholder: "Skriv det du vil huske …" }),
-    visibilityValue,
-    el("div", { class: "reflection-settings" }, [
-      el("div", { class: "visibility-control" }, [
-        el("p", { text: "Hvem kan lese?" }),
-        el("div", { class: "visibility-choice-row" }, [
-          visibilityButton("private", "Privat"),
-          visibilityButton("shared_with_coach", "Del med coach")
-        ])
-      ]),
-      el("details", { class: "reflection-link-settings" }, [
-        el("summary", {}, [
-          el("span", {}, [
-            el("strong", { text: "Knytt refleksjonen til arbeidet" }),
-            el("small", { text: "Valgfritt" })
-          ]),
-          icon("chevron-down")
-        ]),
-        el("div", { class: "reflection-link-grid" }, [
-          el("label", { text: "Fokusoppdrag" }, [
-            el("select", { id: "reflection-area" }, [
-              el("option", { value: "", text: "Ikke knyttet" }),
-              ...data.areas.map((area) => el("option", { value: area.id, text: area.title || "Fokusoppdrag" }))
-            ])
-          ]),
-          el("label", { text: "Lederkompetanse" }, [
-            el("select", { id: "reflection-competency" }, [
-              el("option", { value: "", text: "Ikke knyttet" }),
-              ...activeCompetencies.map((item) => el("option", { value: item.id, text: `${Number(item.priority) === 1 ? "Prioritert nå" : "Aktiv"}: ${item.title || "Lederkompetanse"}` }))
-            ])
-          ])
-        ])
-      ])
-    ]),
-    el("div", { class: "toolbar reflection-toolbar" }, [
-      el("span", { class: "muted", id: "reflection-status", text: "Bare du kan lese før du velger å dele." }),
-      el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre refleksjon", onclick: () => createReflection(data.program.id) })
+  const body = dsField({ placeholder: "Skriv det du vil huske …", label: "Hva vil du ta vare på?", rows: 4 });
+  body.id = "reflection-body";
+  const visibility = el("input", { id: "reflection-visibility", type: "hidden", value: "private" });
+  const save = dsButton("Lagre refleksjon", { variant: "primary", disabled: true, onClick: () => createReflection(data.program.id) });
+  body.addEventListener("input", () => {
+    save.disabled = !body.value.trim();
+  });
+  return dsSection({ title: "Hva vil du ta vare på?", headingLevel: 2, className: "ds-composer" }, [
+    el("p", { class: "ds-qa-help", text: "Hva skjedde? Hva overrasket deg? Hva vil du prøve videre?" }),
+    body,
+    visibility,
+    reflectionVisibilityChoice("private", (value) => {
+      visibility.value = value;
+    }, "Bare du kan lese før du velger å dele."),
+    dsDisclosure("Knytt refleksjonen til arbeidet · Valgfritt", [reflectionLinkFields(data, { ids: true, priorityLabels: true }).node]),
+    el("div", { class: "ds-section-foot" }, [
+      save,
+      el("span", { class: "ds-saved", id: "reflection-status", role: "status", "aria-live": "polite" })
     ])
   ]);
 }
 
-function reflectionCoachNote() {
-  return el("section", { class: "panel document-panel reflection-note" }, [
-    workspaceIntro("Delt med coach", "Refleksjoner som er delt", "Her vises kun refleksjoner som aktivt er delt i coachingforløpet.")
+function reflectionNotes(reflections, data) {
+  return el("div", { class: "ds-notes" }, reflections.map((reflection) => {
+    const editable = reflection.created_by === state.user?.id;
+    if (editable && state.inlineEditKey === `reflection:${reflection.id}`) return reflectionEditor(reflection, data);
+    return reflectionNote(reflection, data, editable);
+  }));
+}
+
+function reflectionMeta(reflection, data) {
+  const area = (data.areas || []).find((item) => item.id === reflection.development_area_id);
+  const competency = (data.programCompetencies || []).find((item) => item.id === reflection.program_competency_id);
+  return el("p", { class: "ds-note-meta" }, [
+    dsStatus(reflection.visibility === "private" ? "Privat" : "Delt med coach"),
+    el("span", { class: "ds-note-date", text: [
+      formatDate(reflection.created_at),
+      competency ? `Lederkompetanse: ${competency.title || "Lederkompetanse"}` : "",
+      area ? `Fokusoppdrag: ${area.title || "Fokusoppdrag"}` : ""
+    ].filter(Boolean).join(" · ") })
   ]);
 }
 
-function reflectionsList(reflections, data, canWriteReflection = false) {
-  if (!reflections.length) {
-    return canWriteReflection
-      ? emptyState("Ingen refleksjoner ennå", "Skriv når noe blir tydelig eller du vil huske det senere.")
-      : emptyState("Ingen delte refleksjoner ennå", "Del refleksjoner når det er noe du ønsker å utforske videre sammen.");
-  }
-  return el("div", { class: "reflection-list" }, reflections.map((reflection) => {
-    const editable = reflection.created_by === state.user?.id;
-    const area = (data.areas || []).find((item) => item.id === reflection.development_area_id);
-    const competency = (data.programCompetencies || []).find((item) => item.id === reflection.program_competency_id);
-    if (editable && state.inlineEditKey === `reflection:${reflection.id}`) return reflectionInlineCard(reflection, data);
-    return el("article", { class: "reflection-card editable-row" }, [
-      el("button", {
-        class: "row-open",
-        type: "button",
-        onclick: editable ? () => startReflectionEdit(reflection.id) : undefined,
-        disabled: editable ? undefined : true
-      }, [
-        el("span", { class: "reflection-date-mark", "aria-hidden": "true" }, [icon("notebook-pen")]),
-        el("span", { class: "row-main" }, [
-          el("span", { class: "reflection-card-meta" }, [
-            el("span", { class: `ui-meta ${reflection.visibility === "private" ? "private" : ""}`, text: reflection.visibility === "private" ? "Privat" : "Delt med coach" }),
-            competency ? el("span", { class: "ui-meta", text: competency.title || "Lederkompetanse" }) : null,
-            area ? el("span", { class: "ui-meta", text: area.title || "Fokus" }) : null,
-            el("small", { class: "content-card-meta", text: formatDate(reflection.created_at) })
-          ].filter(Boolean)),
-          contentPreview(reflection.body, "Tom refleksjon.", 4)
-        ])
-      ]),
-      editable ? el("span", { class: "row-tools" }, [
-        iconAction("Rediger refleksjon", "pencil", () => startReflectionEdit(reflection.id))
-      ]) : null
-    ].filter(Boolean));
-  }));
+function reflectionNote(reflection, data, editable) {
+  return el("article", { class: "ds-note" }, [
+    el("div", {}, [
+      reflectionMeta(reflection, data),
+      el("p", { class: "ds-note-text", text: (reflection.body || "").trim() || "Tom refleksjon." })
+    ]),
+    editable ? dsMenu([
+      { label: "Rediger refleksjon", iconName: "pencil", onClick: () => startReflectionEdit(reflection.id) }
+    ], { label: "Flere valg" }) : null
+  ].filter(Boolean));
 }
 
 function startReflectionEdit(id) {
@@ -5971,70 +5945,43 @@ function startReflectionEdit(id) {
   renderCachedProgram("reflections");
 }
 
-function reflectionInlineCard(reflection, data) {
-  const body = el("textarea", { class: "ui-edit-control inline-textarea", text: reflection.body || "", placeholder: "Skriv en kort refleksjon …" });
+function reflectionEditor(reflection, data) {
+  const body = dsField({ value: reflection.body || "", placeholder: "Skriv en kort refleksjon …", label: "Rediger refleksjon", rows: 4 });
+  requestAnimationFrame(() => body.isConnected && body.focus());
   let visibility = reflection.visibility === "shared_with_coach" ? "shared_with_coach" : "private";
-  const visibilityButtons = [];
-  const setVisibility = (value) => {
-    visibility = value;
-    visibilityButtons.forEach((button) => button.classList.toggle("active", button.dataset.value === visibility));
-  };
-  const visibilityButton = (value, label) => {
-    const button = el("button", {
-      class: `visibility-choice ${visibility === value ? "active" : ""}`,
-      type: "button",
-      "data-value": value,
-      onclick: () => setVisibility(value)
-    }, [el("span", { text: label })]);
-    visibilityButtons.push(button);
-    return button;
-  };
-  const area = el("select", {}, [
-    el("option", { value: "", text: "Ikke knyttet", selected: !reflection.development_area_id }),
-    ...data.areas.map((item) => el("option", { value: item.id, text: item.title || "Fokusoppdrag", selected: reflection.development_area_id === item.id }))
-  ]);
-  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active" || item.id === reflection.program_competency_id);
-  const competency = el("select", {}, [
-    el("option", { value: "", text: "Ikke knyttet", selected: !reflection.program_competency_id }),
-    ...activeCompetencies.map((item) => el("option", { value: item.id, text: item.title || "Lederkompetanse", selected: reflection.program_competency_id === item.id }))
-  ]);
-  return el("article", { class: "ui-inline-editor content-card reflection-card reflection-card-edit" }, [
-    el("div", { class: "field-pair" }, [
-      el("div", { class: "visibility-control" }, [
-        el("p", { text: "Privat: Bare du kan lese. Del med coach: Coachen kan lese teksten i forløpet." }),
-        el("div", { class: "visibility-choice-row" }, [
-          visibilityButton("private", "Privat"),
-          visibilityButton("shared_with_coach", "Del med coach")
-        ])
-      ]),
-      el("div", { class: "reflection-link-grid" }, [
-        el("label", { text: "Fokusoppdrag" }, [area]),
-        el("label", { text: "Lederkompetanse" }, [competency])
+  const links = reflectionLinkFields(data, { areaId: reflection.development_area_id || "", competencyId: reflection.program_competency_id || "" });
+  const hasLinks = Boolean(reflection.development_area_id || reflection.program_competency_id);
+  return el("article", { class: "ds-note" }, [
+    el("div", {}, [
+      reflectionMeta(reflection, data),
+      body,
+      reflectionVisibilityChoice(visibility, (value) => {
+        visibility = value;
+      }, "Privat: Bare du kan lese. Del med coach: Coachen kan lese teksten i forløpet."),
+      dsDisclosure("Knytt refleksjonen til arbeidet · Valgfritt", [links.node], { open: hasLinks }),
+      el("div", { class: "ds-section-foot" }, [
+        dsButton("Avbryt", { onClick: () => {
+          state.inlineEditKey = null;
+          renderCachedProgram("reflections");
+        } }),
+        dsButton("Lagre", { variant: "primary", onClick: async () => {
+          setSaveState("saving");
+          const { error } = await state.sb.from("client_reflections").update({
+            body: body.value || "",
+            visibility,
+            development_area_id: links.area.value || null,
+            program_competency_id: links.competency.value || null
+          }).eq("id", reflection.id);
+          if (error) {
+            setSaveState("error");
+            await showAppMessage("Kunne ikke lagre refleksjonen", userFacingError(error, "Prøv igjen."));
+            return;
+          }
+          state.inlineEditKey = null;
+          await reloadProgramAndRender("reflections");
+          setSaveState("saved");
+        } })
       ])
-    ]),
-    body,
-    el("div", { class: "ui-inline-editor-actions inline-edit-actions" }, [
-      el("button", { class: "ui-button ui-button-tonal", type: "button", text: "Avbryt", onclick: async () => {
-        state.inlineEditKey = null;
-        renderCachedProgram("reflections");
-      }}),
-      el("button", { class: "ui-button ui-button-filled", type: "button", text: "Lagre", onclick: async () => {
-        setSaveState("saving");
-        const { error } = await state.sb.from("client_reflections").update({
-          body: body.value || "",
-          visibility,
-          development_area_id: area.value || null,
-          program_competency_id: competency.value || null
-        }).eq("id", reflection.id);
-        if (error) {
-          setSaveState("error");
-          await showAppMessage("Kunne ikke lagre refleksjonen", userFacingError(error, "Prøv igjen."));
-          return;
-        }
-        state.inlineEditKey = null;
-        await reloadProgramAndRender("reflections");
-        setSaveState("saved");
-      }})
     ])
   ]);
 }
@@ -6436,11 +6383,11 @@ function experimentRow(action, data, editable) {
 
 function setFormReadonly(form) {
   $$("input, textarea, select", form).forEach((control) => {
-    if (control.closest(".reflection-composer")) return;
+    if (control.closest(".ds-composer")) return;
     control.disabled = true;
   });
   $$(".section-card button, .document-panel button", form).forEach((control) => {
-    if (control.closest(".reflection-composer")) return;
+    if (control.closest(".ds-composer")) return;
     if (!control.classList.contains("section-toggle")) control.disabled = true;
   });
 }

@@ -861,6 +861,36 @@
   }
   .ds-saved[data-state="error"] { color: var(--ds-danger); }
 
+  /* Valg med forklaring, for eksempel «Hvem kan lese?» */
+  .ds-segmented-option[aria-checked="true"] { background: var(--ds-paper); color: var(--ds-ink); box-shadow: 0 1px 2px rgba(30, 25, 28, .08); }
+  .ds-choice { display: grid; gap: var(--ds-space-8); margin-top: var(--ds-space-16); }
+  .ds-choice-label { margin: 0; color: var(--ds-ink); font: var(--ds-label); }
+  .ds-choice-help { margin: 0; color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
+  .ds-choice .ds-segmented { justify-self: start; }
+
+  .ds-link-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-space-16); }
+  .ds-link-fields label { display: grid; gap: var(--ds-space-4); color: var(--ds-ink); font: var(--ds-label); }
+  .ds-link-fields .ds-select { width: 100%; }
+
+  .ds-context--note .ds-context-text { white-space: pre-wrap; text-overflow: clip; font: var(--ds-body); }
+
+  /* Notater i dagbokform: brukerens tekst først, stille metadata over */
+  .ds-notes { display: grid; }
+  .ds-note {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--ds-space-16);
+    padding: var(--ds-space-20) 0;
+    border-bottom: 1px solid var(--ds-line);
+  }
+  .ds-note:first-child { padding-top: var(--ds-space-8); }
+  .ds-note-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-12); margin: 0 0 var(--ds-space-8); }
+  .ds-note-date { color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
+  .ds-note-text { margin: 0; color: var(--ds-text); font: var(--ds-body); white-space: pre-wrap; overflow-wrap: break-word; }
+  .ds-note .ds-qa-field { margin-top: var(--ds-space-4); }
+  .ds-composer > .ds-qa-help { margin: var(--ds-space-4) 0 var(--ds-space-12); }
+
   @media (max-width: 1239px) {
     .ds-sheet-body { padding: var(--ds-space-32) var(--ds-space-32) var(--ds-space-40); }
     .ds-appbar-inner {
@@ -959,6 +989,8 @@
     .ds-hide-mobile { display: none; }
     .ds-only-mobile { display: flex; }
     .ds-context-text { white-space: normal; }
+    .ds-link-fields { grid-template-columns: 1fr; }
+    .ds-note { gap: var(--ds-space-8); }
   }
 
   @media (prefers-reduced-motion: reduce) {
