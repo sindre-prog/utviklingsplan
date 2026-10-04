@@ -127,12 +127,18 @@
     background: transparent;
   }
   .ds-topline-copy { display: grid; gap: 4px; min-width: 0; max-width: 760px; }
+  .ds-topline .ds-object-kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
   .ds-topline-title {
     margin: 0;
     color: var(--ds-ink);
     font-family: var(--ds-font-display);
     font-size: clamp(30px, 3vw, 40px);
-    font-weight: 400;
+    font-weight: 500;
     line-height: 1.05;
   }
   .ds-topline-lead {
@@ -1389,8 +1395,6 @@
 
   @media (max-width: 1239px) {
     .ds-sheet-body { padding: var(--ds-space-32) var(--ds-space-32) var(--ds-space-40); }
-    .ds-topline { min-height: 0; padding: 22px var(--ds-space-20); }
-    .ds-main { padding: 22px var(--ds-space-20) 72px; }
     .ds-appbar-inner {
       grid-template-columns: minmax(0, 1fr) auto;
       grid-template-areas: "brand user" "center center";
@@ -1398,6 +1402,11 @@
     }
     .ds-appbar-nav, .ds-appbar-tabs { justify-self: center; max-width: 100%; }
     .ds-appbar-tabs .ds-tabs { overflow-x: auto; scrollbar-width: none; }
+  }
+
+  @media (max-width: 980px) {
+    .ds-topline { min-height: 0; padding: 22px var(--ds-space-20); }
+    .ds-main { padding: 22px var(--ds-space-20) 72px; }
   }
 
   @media (max-width: 700px) {
