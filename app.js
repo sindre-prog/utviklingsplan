@@ -1281,10 +1281,8 @@ function renderClients() {
     const grouped = !query.trim() && sortBy === "recent-activity" && own.length > OWN_CLIENT_LIST_LIMIT;
     const blocks = [];
     if (own.length) {
-      blocks.push(clientListSection({
-        title: showOthers ? "Mine klienter" : "",
-        children: ownClientGroups(own, grouped)
-      }));
+      const groups = ownClientGroups(own, grouped);
+      blocks.push(showOthers ? clientListSection({ title: "Mine klienter", children: groups }) : el("div", {}, groups));
     }
     if (showOthers) {
       blocks.push(clientListSection({
