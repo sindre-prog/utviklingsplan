@@ -125,6 +125,7 @@ const state = {
   selectedSessionIndex: 0,
   resourceCache: null,
   selectedResourceSlug: null,
+  resourceLibraryDetail: false,
   selectedSharedResourceId: null,
   selectedSharedResourceProgramId: null,
   sharedResourceQuery: "",
@@ -1035,83 +1036,105 @@ function setHeader(kicker, title, actions = [], description = "") {
   $("#topline-actions").replaceChildren(...actions);
 }
 
-function filterMenu(options, initialValue, ariaLabel, onChange) {
-  const current = el("span", { class: "filter-menu-current" });
-  const menu = el("div", { class: "filter-menu-list", role: "listbox", hidden: true });
-  const trigger = el("button", {
-    class: "filter-menu-button",
-    type: "button",
-    "aria-haspopup": "listbox",
-    "aria-expanded": "false",
-    "aria-label": ariaLabel
-  }, [current, icon("chevron-down")]);
-  const root = el("div", { class: "filter-menu" }, [trigger, menu]);
-  root.value = initialValue;
-
-  const close = () => {
-    root.classList.remove("open");
-    menu.hidden = true;
-    trigger.setAttribute("aria-expanded", "false");
-  };
-  const open = () => {
-    $$(".filter-menu.open").forEach((item) => {
-      if (item !== root) item.querySelector(".filter-menu-button")?.click();
-    });
-    root.classList.add("open");
-    menu.hidden = false;
-    trigger.setAttribute("aria-expanded", "true");
-  };
-  const sync = () => {
-    const selected = options.find((option) => option.value === root.value) || options[0];
-    root.value = selected.value;
-    current.textContent = selected.label;
-    menu.replaceChildren(...options.map((option) => {
-      const active = option.value === root.value;
-      return el("button", {
-        class: `filter-menu-option ${active ? "active" : ""}`,
-        type: "button",
-        role: "option",
-        "aria-selected": active ? "true" : "false",
-        onclick: (event) => {
-          event.stopPropagation();
-          root.value = option.value;
-          sync();
-          close();
-          onChange?.(root.value);
-        }
-      }, [
-        el("span", { class: "filter-menu-check", text: active ? "✓" : "" }),
-        el("span", { text: option.label })
-      ]);
-    }));
-    refreshIcons();
-  };
-
-  trigger.addEventListener("click", (event) => {
-    event.stopPropagation();
-    if (root.classList.contains("open")) close();
-    else open();
-  });
-  trigger.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") close();
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      open();
-      menu.querySelector(".filter-menu-option")?.focus();
-    }
-  });
-  document.addEventListener("click", (event) => {
-    if (!root.contains(event.target)) close();
-  });
-  sync();
-  return root;
-}
-
 function renderCoachPage({ title, intro = "", actions = [] }, children) {
   setHeader("", title, [], intro);
   $("#content").replaceChildren(dsPage({ title, intro, actions, className: "ds-coach-page" }, [
     dsSheet(children.filter(Boolean))
   ]));
+}
+
+function isCompact() {
+  return window.matchMedia("(max-width: 700px)").matches;
+}
+
+function dsIconButton(iconName, { onClick, disabled = false, label } = {}) {
+  return el("button", {
+    class: "ds-icon-button",
+    type: "button",
+    "aria-label": label,
+    title: label,
+    disabled,
+    onclick: onClick
+  }, [icon(iconName)]);
+}
+
+function resourceKicker(resource) {
+  return [
+    resourceLabel(RESOURCE_TYPE_OPTIONS, resource?.type),
+    resource?.estimated_duration ? `${resource.estimated_duration} min` : ""
+  ].filter(Boolean).join(" · ");
+}
+
+function resourceGuidanceGroup(title, items) {
+  if (Array.isArray(items)) {
+    if (!items.length) return null;
+    return el("section", { class: "ds-guidance-group" }, [
+      el("h3", { class: "ds-guidance-title", text: title }),
+      el("ul", { class: "ds-guidance-list" }, items.map((item) => el("li", { text: item })))
+    ]);
+  }
+  return el("section", { class: "ds-guidance-group" }, [
+    el("h3", { class: "ds-guidance-title", text: title }),
+    el("p", { text: items || "Ikke definert ennå." })
+  ]);
+}
+
+function resourceClientContent(resource) {
+  const library = getResourceLibrary();
+  if (!library?.renderResourceContentBlocks) return el("div", { class: "ds-content ds-resource-content" });
+  return el("div", { class: "ds-content ds-resource-content" }, [
+    ...library.renderResourceContentBlocks(resource?.content_json || [], {
+      createElement: el,
+      createIcon: icon,
+      resourceFiles: resource?.files || [],
+      onOpenFile: openResourceFile
+    }),
+    resource?.next_step_prompt ? el("h4", { class: "ds-content-heading", text: "Neste steg" }) : null,
+    resource?.next_step_prompt ? el("p", { text: resource.next_step_prompt }) : null
+  ]);
+}
+
+function resourceDetail(resource, { admin = false, back = false, guidanceOpen = false, onBack } = {}) {
+  if (!resource) {
+    return dsEmpty("Velg en ressurs i listen.");
+  }
+  const shareable = getVisibleClients().filter((client) => canShareResourceToClient(client));
+  const canSend = canShareResources();
+  const help = canSend
+    ? (shareable.length
+      ? "Velg Send ressurs når du har vurdert at den passer klienten."
+      : "Du har ingen klienter med åpne forløp som kan motta ressurser ennå.")
+    : "";
+  return el("article", { class: "ds-detail" }, [
+    back ? dsButton("Til biblioteket", { variant: "text", iconName: "arrow-left", className: "ds-back", onClick: onBack }) : null,
+    dsObjectHead({
+      kicker: resourceKicker(resource),
+      title: resource.title || "Ressurs",
+      lead: getResourceLibrary()?.resourceIntroduction?.(resource) || resource.introduction || "",
+      actions: [
+        admin ? dsButton("Rediger ressurs", { onClick: () => openResourceAdminEditor(resource) }) : null,
+        canSend ? dsButton("Send ressurs", {
+          variant: "primary",
+          disabled: !shareable.length,
+          onClick: () => openSendResourceDrawer(resource)
+        }) : null
+      ].filter(Boolean)
+    }),
+    help ? el("p", { class: "ds-library-help", text: help }) : null,
+    el("details", { class: "ds-disclosure ds-disclosure--block", open: guidanceOpen }, [
+      el("summary", {}, [el("span", {}, [
+        el("span", { class: "ds-disclosure-title", text: "Før du deler" }),
+        el("span", { class: "ds-disclosure-hint", text: "Vurdering og veiledning for coach" })
+      ])]),
+      el("div", { class: "ds-disclosure-body ds-guidance-grid" }, [
+        resourceGuidanceGroup("Hva ressursen skal hjelpe med", resource.intended_outcome || "Ikke definert ennå."),
+        resourceGuidanceGroup("Best brukt når", resource.best_used_when || []),
+        resourceGuidanceGroup("Veiledning til coach", resource.coach_guidance || "Ingen veiledning lagt inn ennå."),
+        resourceGuidanceGroup("Ikke egnet når", resource.not_for || [])
+      ].filter(Boolean))
+    ]),
+    dsSection({ title: "Dette ser klienten" }, [resourceClientContent(resource)])
+  ]);
 }
 
 function employerLine(client) {
@@ -1587,13 +1610,13 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
   let blocks = normalizeResourceBlocks(initialBlocks);
   const hidden = el("textarea", {
     name: "content_json",
-    class: "resource-admin-hidden-json",
+    hidden: true,
     text: jsonText(blocks),
     "aria-hidden": "true",
     tabindex: "-1"
   });
-  const list = el("div", { class: "resource-block-editor-list" });
-  const addSelect = el("select", { class: "resource-admin-compact-select" });
+  const list = el("div");
+  const addSelect = el("select", { class: "ds-select" });
   RESOURCE_BLOCK_ADD_TYPES.forEach((value) => {
     const label = RESOURCE_BLOCK_TYPE_LABELS[value] || value;
     addSelect.append(el("option", { value, text: label }));
@@ -1618,57 +1641,55 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
       render(index + 1);
     });
   };
-  const blockTypeGuide = el("details", { class: "resource-block-type-guide" }, [
-    el("summary", { text: "Hva blokkene brukes til" }),
-    el("div", {}, RESOURCE_BLOCK_ADD_TYPES.map((type) => el("p", {}, [
-      el("strong", { text: RESOURCE_BLOCK_TYPE_LABELS[type] || type }),
-      el("span", { text: RESOURCE_BLOCK_TYPE_DESCRIPTIONS[type] || "" })
-    ])))
-  ]);
+  const blockTypeGuide = dsDisclosure("Hva blokkene brukes til", RESOURCE_BLOCK_ADD_TYPES.map((type) => el("p", {}, [
+    el("strong", { text: RESOURCE_BLOCK_TYPE_LABELS[type] || type }),
+    el("span", { text: ` ${RESOURCE_BLOCK_TYPE_DESCRIPTIONS[type] || ""}` })
+  ])));
 
   const renderBlockControls = (block, index) => {
     if (block.type === "intro") {
-      return [el("textarea", { rows: "3", text: block.content || "", placeholder: "Kort intro til ressursen", oninput: (event) => patchBlock(index, { content: event.target.value }) })];
+      return [el("textarea", { class: "ds-qa-field", rows: "3", text: block.content || "", placeholder: "Kort intro til ressursen", oninput: (event) => patchBlock(index, { content: event.target.value }) })];
     }
     if (block.type === "worksheet") {
       return [
-        el("input", { type: "text", value: block.heading || "", placeholder: "Overskrift, f.eks. Arbeidsark", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
-        el("textarea", { rows: "4", text: (block.fields || []).join("\n"), placeholder: "Ett felt per linje", oninput: (event) => patchBlock(index, { fields: lineArray(event.target.value) }) })
+        el("input", { class: "ds-input", type: "text", value: block.heading || "", placeholder: "Overskrift, f.eks. Arbeidsark", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
+        el("textarea", { class: "ds-qa-field", rows: "4", text: (block.fields || []).join("\n"), placeholder: "Ett felt per linje", oninput: (event) => patchBlock(index, { fields: lineArray(event.target.value) }) })
       ];
     }
     if (block.type === "callout") {
-      const toneSelect = el("select", { value: block.tone || "note", onchange: (event) => patchBlock(index, { tone: event.target.value }) });
+      const toneSelect = el("select", { class: "ds-select", value: block.tone || "note", onchange: (event) => patchBlock(index, { tone: event.target.value }) });
       RESOURCE_CALLOUT_TONES.forEach(([value, label]) => {
         toneSelect.append(el("option", { value, text: label, selected: (block.tone || "note") === value }));
       });
       return [
-        el("input", { type: "text", value: block.heading || "", placeholder: "Overskrift, f.eks. Merk", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
-        el("textarea", { rows: "4", text: block.content || "", placeholder: "Kort tekst som skal løftes frem", oninput: (event) => patchBlock(index, { content: event.target.value }) }),
+        el("input", { class: "ds-input", type: "text", value: block.heading || "", placeholder: "Overskrift, f.eks. Merk", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
+        el("textarea", { class: "ds-qa-field", rows: "4", text: block.content || "", placeholder: "Kort tekst som skal løftes frem", oninput: (event) => patchBlock(index, { content: event.target.value }) }),
         toneSelect
       ];
     }
     if (block.type === "model_cards") {
       return [
-        el("input", { type: "text", value: block.heading || "", placeholder: "Valgfri overskrift", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
+        el("input", { class: "ds-input", type: "text", value: block.heading || "", placeholder: "Valgfri overskrift", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
         el("textarea", {
+          class: "ds-qa-field",
           rows: "5",
           text: modelCardsToText(block.cards || []),
           placeholder: "Ett kort per linje: Tittel | Forklaring",
           oninput: (event) => patchBlock(index, { cards: textToModelCards(event.target.value) })
         }),
-        el("p", { class: "resource-admin-inline-help", text: "Bruk 2-4 kort. Eksempel: Affektiv motivasjon | Lede fordi det gir mening og energi." })
+        el("p", { class: "ds-form-help", text: "Bruk 2-4 kort. Eksempel: Affektiv motivasjon | Lede fordi det gir mening og energi." })
       ];
     }
     if (block.type === "quote") {
       return [
-        el("textarea", { rows: "3", text: block.quote || "", placeholder: "Sitat eller setning som skal løftes frem", oninput: (event) => patchBlock(index, { quote: event.target.value }) }),
-        el("input", { type: "text", value: block.attribution || "", placeholder: "Valgfri kilde eller kontekst", oninput: (event) => patchBlock(index, { attribution: event.target.value }) })
+        el("textarea", { class: "ds-qa-field", rows: "3", text: block.quote || "", placeholder: "Sitat eller setning som skal løftes frem", oninput: (event) => patchBlock(index, { quote: event.target.value }) }),
+        el("input", { class: "ds-input", type: "text", value: block.attribution || "", placeholder: "Valgfri kilde eller kontekst", oninput: (event) => patchBlock(index, { attribution: event.target.value }) })
       ];
     }
     if (block.type === "reflection_questions") {
       return [
-        el("input", { type: "text", value: block.heading || "Refleksjonsspørsmål", placeholder: "Overskrift", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
-        el("textarea", { rows: "4", text: (block.questions || []).join("\n"), placeholder: "Ett spørsmål per linje", oninput: (event) => patchBlock(index, { questions: lineArray(event.target.value) }) })
+        el("input", { class: "ds-input", type: "text", value: block.heading || "Refleksjonsspørsmål", placeholder: "Overskrift", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
+        el("textarea", { class: "ds-qa-field", rows: "4", text: (block.questions || []).join("\n"), placeholder: "Ett spørsmål per linje", oninput: (event) => patchBlock(index, { questions: lineArray(event.target.value) }) })
       ];
     }
     if (block.type === "illustration") {
@@ -1676,6 +1697,7 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
       const explicitValue = block.file_id || block.storage_path || "";
       const selectedValue = explicitValue || (illustrations.length === 1 ? illustrations[0].id || illustrations[0].storage_path : "");
       const select = el("select", {
+        class: "ds-select",
         value: selectedValue,
         onchange: (event) => {
           const file = illustrations.find((item) => item.id === event.target.value || item.storage_path === event.target.value);
@@ -1703,13 +1725,13 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
       return [
         select,
         illustrations.length === 1 && !explicitValue
-          ? el("p", { class: "resource-admin-inline-help", text: "Én illustrasjon er lastet opp og brukes automatisk i preview. Blokken kan flyttes til ønsket plassering i innholdet." })
+          ? el("p", { class: "ds-form-help", text: "Én illustrasjon er lastet opp og brukes automatisk i preview. Blokken kan flyttes til ønsket plassering i innholdet." })
           : illustrations.length
-            ? el("p", { class: "resource-admin-inline-help", text: "Velg hvilket opplastet bilde blokken skal vise, og flytt blokken til ønsket plassering med pilene over." })
-            : el("p", { class: "resource-admin-inline-help", text: "Last opp en fil med type Bilde / illustrasjon under Filer og bilder, og velg den her etterpå." }),
-        el("details", { class: "resource-admin-advanced" }, [
-          el("summary", { text: "Avansert: bruk gammel illustrasjonsnøkkel" }),
+            ? el("p", { class: "ds-form-help", text: "Velg hvilket opplastet bilde blokken skal vise, og flytt blokken til ønsket plassering med pilene over." })
+            : el("p", { class: "ds-form-help", text: "Last opp en fil med type Bilde / illustrasjon under Filer og bilder, og velg den her etterpå." }),
+        dsDisclosure("Avansert: bruk gammel illustrasjonsnøkkel", [
           el("input", {
+            class: "ds-input",
             type: "text",
             value: block.key || "",
             placeholder: "f.eks. control_circle",
@@ -1727,6 +1749,7 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
       const downloadableFiles = (getFiles() || []).filter((file) => ["printable", "attachment"].includes(file.file_type));
       const selectedValue = block.file_id || block.storage_path || "";
       const select = el("select", {
+        class: "ds-select",
         value: selectedValue,
         onchange: (event) => {
           const file = downloadableFiles.find((item) => item.id === event.target.value || item.storage_path === event.target.value);
@@ -1751,58 +1774,46 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
         }));
       });
       return [
-        el("input", { type: "text", value: block.label || "", placeholder: "Lenketekst", oninput: (event) => patchBlock(index, { label: event.target.value }) }),
+        el("input", { class: "ds-input", type: "text", value: block.label || "", placeholder: "Lenketekst", oninput: (event) => patchBlock(index, { label: event.target.value }) }),
         select,
         downloadableFiles.length
-          ? el("p", { class: "resource-admin-inline-help", text: "Nedlastingsblokker vises i klientressursen der blokken ligger." })
-          : el("p", { class: "resource-admin-inline-help", text: "Last opp en fil med type Print/PDF eller Vedlegg under Filer og bilder først." })
+          ? el("p", { class: "ds-form-help", text: "Nedlastingsblokker vises i klientressursen der blokken ligger." })
+          : el("p", { class: "ds-form-help", text: "Last opp en fil med type Print/PDF eller Vedlegg under Filer og bilder først." })
       ];
     }
     return [
-      el("input", { type: "text", value: block.heading || "", placeholder: "Overskrift", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
-      el("textarea", { rows: "4", text: block.content || "", placeholder: "Tekst", oninput: (event) => patchBlock(index, { content: event.target.value }) })
+      el("input", { class: "ds-input", type: "text", value: block.heading || "", placeholder: "Overskrift", oninput: (event) => patchBlock(index, { heading: event.target.value }) }),
+      el("textarea", { class: "ds-qa-field", rows: "4", text: block.content || "", placeholder: "Tekst", oninput: (event) => patchBlock(index, { content: event.target.value }) })
     ];
   };
 
   const render = (highlightIndex = -1) => {
     serialize();
-    list.replaceChildren(...blocks.map((block, index) => el("article", { class: "resource-block-editor-card" }, [
-      el("div", { class: "resource-block-editor-head" }, [
-        el("strong", { text: RESOURCE_BLOCK_TYPE_LABELS[block.type] || "Blokk" }),
-        el("div", { class: "resource-block-editor-actions" }, [
-          el("button", { class: "button ghost", type: "button", disabled: index === 0, title: "Flytt opp", onclick: () => preserveScroll(() => { [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]]; render(index - 1); }) }, [icon("arrow-up")]),
-          el("button", { class: "button ghost", type: "button", disabled: index === blocks.length - 1, title: "Flytt ned", onclick: () => preserveScroll(() => { [blocks[index], blocks[index + 1]] = [blocks[index + 1], blocks[index]]; render(index + 1); }) }, [icon("arrow-down")]),
-          el("button", { class: "button ghost", type: "button", title: "Slett blokk", onclick: () => preserveScroll(() => { blocks.splice(index, 1); render(); }) }, [icon("trash-2")])
+    list.replaceChildren(...blocks.map((block, index) => el("section", { class: "ds-block" }, [
+      el("div", { class: "ds-block-head" }, [
+        el("h4", { class: "ds-block-title", text: RESOURCE_BLOCK_TYPE_LABELS[block.type] || "Blokk" }),
+        el("div", { class: "ds-block-tools" }, [
+          dsIconButton("arrow-up", { label: "Flytt opp", disabled: index === 0, onClick: () => preserveScroll(() => { [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]]; render(index - 1); }) }),
+          dsIconButton("arrow-down", { label: "Flytt ned", disabled: index === blocks.length - 1, onClick: () => preserveScroll(() => { [blocks[index], blocks[index + 1]] = [blocks[index + 1], blocks[index]]; render(index + 1); }) }),
+          dsIconButton("trash-2", { label: "Slett blokk", onClick: () => preserveScroll(() => { blocks.splice(index, 1); render(); }) })
         ])
       ]),
-      el("div", { class: "resource-block-editor-fields" }, renderBlockControls(block, index)),
-      el("div", { class: "resource-block-editor-insert" }, [
-        el("button", { class: "button ghost", type: "button", onclick: () => addBlockAfter(index) }, [
-          icon("plus"),
-          el("span", { text: "Legg til under" })
-        ])
-      ])
+      ...renderBlockControls(block, index),
+      el("div", {}, [dsButton("Legg til under", { variant: "text", iconName: "plus", onClick: () => addBlockAfter(index) })])
     ])));
     if (highlightIndex >= 0) {
-      list.children[highlightIndex]?.classList.add("resource-block-editor-card--new");
+      list.children[highlightIndex]?.scrollIntoView({ block: "nearest" });
     }
     refreshIcons();
   };
 
-  const editor = el("div", { class: "resource-block-editor" }, [
+  const editor = el("div", {}, [
     hidden,
-    el("div", { class: "resource-admin-helper-card" }, [
-      el("strong", { text: "Innholdsblokker" }),
-      el("p", { text: "Bygg ressursen med enkle blokker. Dette lagres strukturert, men du slipper å skrive JSON." }),
-      blockTypeGuide
-    ]),
+    blockTypeGuide,
     list,
-    el("div", { class: "resource-block-editor-add" }, [
+    el("div", { class: "ds-block-add" }, [
       addSelect,
-      el("button", { class: "button secondary", type: "button", onclick: () => addBlockAfter(blocks.length - 1) }, [
-        icon("plus"),
-        el("span", { text: "Legg til nederst" })
-      ])
+      dsButton("Legg til nederst", { iconName: "plus", onClick: () => addBlockAfter(blocks.length - 1) })
     ])
   ]);
   editor.refresh = render;
@@ -1811,31 +1822,33 @@ function createResourceBlockEditor(initialBlocks = [], options = {}) {
 }
 
 function createResourceAdminPreview(library, getResourceDraft) {
-  const previewSlot = el("div", { class: "resource-admin-preview-slot resource-workspace-v2" });
+  const previewSlot = el("div");
   const renderPreview = () => {
     try {
-      previewSlot.replaceChildren(library.createResourcePreview(getResourceDraft(), {
-        createElement: el,
-        createIcon: icon,
-        onOpenFile: openResourceFile,
-        audience: "client"
-      }));
+      const draft = getResourceDraft();
+      previewSlot.replaceChildren(dsSheet([
+        el("article", { class: "ds-detail" }, [
+          dsObjectHead({
+            kicker: resourceKicker(draft),
+            title: draft.title || "Ny ressurs",
+            lead: library.resourceIntroduction?.(draft) || draft.introduction || ""
+          }),
+          dsSection({ title: "Innhold" }, [resourceClientContent(draft)])
+        ])
+      ]));
       hydrateResourceMedia(previewSlot);
       refreshIcons();
     } catch (error) {
-      previewSlot.replaceChildren(el("p", { class: "muted", text: userFacingError(error, "Kunne ikke vise forhåndsvisningen.") }));
+      previewSlot.replaceChildren(el("p", { class: "ds-empty-text", text: userFacingError(error, "Kunne ikke vise forhåndsvisningen.") }));
     }
   };
-  const wrapper = el("section", { class: "resource-admin-preview" }, [
-    el("div", { class: "resource-admin-preview-head" }, [
+  const wrapper = el("aside", { class: "ds-editor-preview" }, [
+    el("div", { class: "ds-editor-preview-head" }, [
       el("div", {}, [
-        el("strong", { text: "Forhåndsvisning" }),
-        el("p", { text: "Viser ressursen med samme design som klient og coach møter." })
+        el("p", { class: "ds-form-section-title", text: "Forhåndsvisning" }),
+        el("p", { class: "ds-form-help", text: "Viser ressursen med samme design som klient og coach møter." })
       ]),
-      el("button", { class: "button secondary", type: "button", onclick: renderPreview }, [
-        icon("refresh-cw"),
-        el("span", { text: "Oppdater" })
-      ])
+      dsButton("Oppdater", { variant: "text", onClick: renderPreview })
     ]),
     previewSlot
   ]);
@@ -1932,21 +1945,16 @@ function resourceFileTypeError(file, fileType) {
 function createResourceFileManager(resource, library, options = {}) {
   const { onFilesChange = null } = options;
   if (!resource?.id) {
-    return el("section", { class: "resource-admin-files" }, [
-      el("div", { class: "resource-admin-helper-card" }, [
-        el("strong", { text: "Filer og bilder" }),
-        el("p", { text: "Lagre ressursen først. Deretter kan du laste opp illustrasjoner, PDF-er og andre vedlegg." })
-      ])
-    ]);
+    return el("p", { class: "ds-empty-text", text: "Lagre ressursen først. Deretter kan du laste opp illustrasjoner, PDF-er og andre vedlegg." });
   }
 
-  const fileList = el("div", { class: "resource-admin-file-list" });
-  const fileInput = el("input", { type: "file" });
-  const fileType = el("select", {});
+  const fileList = el("div");
+  const fileInput = el("input", { class: "ds-input", type: "file" });
+  const fileType = el("select", { class: "ds-select" });
   RESOURCE_FILE_TYPE_OPTIONS.forEach(([value, label]) => fileType.append(el("option", { value, text: label })));
   fileType.value = "attachment";
-  const displayName = el("input", { type: "text", placeholder: "Visningsnavn, valgfritt" });
-  const message = el("p", { class: "form-message", role: "status" });
+  const displayName = el("input", { class: "ds-input", type: "text", placeholder: "Visningsnavn, valgfritt" });
+  const message = el("p", { class: "ds-form-message", role: "status" });
   fileInput.addEventListener("change", () => {
     const file = fileInput.files?.[0];
     if (!file) return;
@@ -1956,7 +1964,7 @@ function createResourceFileManager(resource, library, options = {}) {
 
   const renderFiles = () => {
     const files = resource.files || [];
-    const fileRow = (file) => el("div", { class: "resource-admin-file-row" }, [
+    const fileRow = (file) => el("div", { class: "ds-file-row" }, [
       el("div", {}, [
         el("strong", { text: file.display_name }),
         el("span", { text: resourceLabel(RESOURCE_FILE_TYPE_OPTIONS, file.file_type) || file.file_type }),
@@ -1970,13 +1978,13 @@ function createResourceFileManager(resource, library, options = {}) {
                 ? "Kan plasseres fritt med en Bilde / illustrasjon-blokk."
                 : "Lagret som ressursfil." })
       ]),
-      el("button", { class: "button ghost", type: "button", onclick: async () => {
+      dsButton("Fjern", { variant: "text", onClick: async () => {
         if (!await confirmDelete(`Fjerne "${file.display_name}" fra ressursen?`, { danger: true })) return;
         await library.archiveResourceFile(state.sb, file.id);
         resource.files = files.filter((item) => item.id !== file.id);
         onFilesChange?.(resource.files);
         renderFiles();
-      } }, [icon("trash-2"), el("span", { text: "Fjern" })])
+      } })
     ]);
     const covers = files.filter((file) => file.file_type === "cover_image");
     const illustrations = files.filter((file) => file.file_type === "illustration");
@@ -1990,29 +1998,26 @@ function createResourceFileManager(resource, library, options = {}) {
       ["Vedlegg", "Kan plasseres i innholdet med en PDF/vedlegg-blokk.", attachments],
       ["Andre filer", "Lyd, video og andre vedlegg.", otherFiles]
     ].filter(([, , groupFiles]) => groupFiles.length);
-    fileList.replaceChildren(...groups.map(([title, help, groupFiles]) => el("section", { class: "resource-admin-file-group" }, [
-      el("div", {}, [
-        el("strong", { text: title }),
-        el("p", { text: help })
-      ]),
+    fileList.replaceChildren(...groups.map(([title, help, groupFiles]) => el("section", {}, [
+      el("p", { class: "ds-form-label", text: title }),
+      el("p", { class: "ds-form-help", text: help }),
       ...groupFiles.map(fileRow)
     ])));
-    if (!files.length) fileList.replaceChildren(el("p", { class: "muted", text: "Ingen filer lagt til ennå." }));
+    if (!files.length) fileList.replaceChildren(el("p", { class: "ds-empty-text", text: "Ingen filer lagt til ennå." }));
     refreshIcons();
   };
   renderFiles();
 
-  return el("section", { class: "resource-admin-files" }, [
-    el("div", { class: "resource-admin-helper-card" }, [
-      el("strong", { text: "Filer og bilder" }),
-      el("p", { text: "Filer lagres privat og blir bare tilgjengelige for brukere med riktig tilgang. Ressursen fungerer også uten filer." })
-    ]),
+  return el("div", {}, [
     fileList,
-    el("div", { class: "resource-admin-upload" }, [
-      fileInput,
-      fileType,
-      displayName,
-      el("button", { class: "button secondary", type: "button", onclick: async () => {
+    el("div", { class: "ds-form-row" }, [
+      dsFormField("Fil", fileInput),
+      dsFormField("Filtype", fileType)
+    ]),
+    el("div", { class: "ds-form-row" }, [
+      dsFormField("Visningsnavn", displayName),
+      el("div", { class: "ds-form-field", style: "align-self: end" }, [
+        dsButton("Last opp", { iconName: "upload", onClick: async () => {
         const file = fileInput.files?.[0];
         if (!file) {
           message.textContent = "Velg en fil først.";
@@ -2040,7 +2045,8 @@ function createResourceFileManager(resource, library, options = {}) {
         } catch (error) {
           message.textContent = userFacingError(error, "Kunne ikke laste opp filen.");
         }
-      } }, [icon("upload"), el("span", { text: "Last opp" })])
+        } })
+      ])
     ]),
     message
   ]);
@@ -2098,12 +2104,14 @@ function resourceReadinessItems(payload) {
 }
 
 function createResourceReadinessPanel(getDraftResource) {
-  const list = el("div", { class: "resource-readiness-list" });
-  const summary = el("p", { class: "resource-admin-inline-help" });
-  const panel = el("section", { class: "resource-admin-helper-card resource-readiness-panel" }, [
-    el("strong", { text: "Før publisering" }),
-    summary,
-    list
+  const list = el("ul", { class: "ds-ready-list" });
+  const summary = el("p", { class: "ds-context-text" });
+  const panel = el("section", { class: "ds-ready" }, [
+    el("div", { class: "ds-context ds-context--note" }, [el("div", {}, [
+      el("p", { class: "ds-context-label", text: "Før publisering" }),
+      summary,
+      list
+    ])])
   ]);
 
   const refresh = () => {
@@ -2113,8 +2121,6 @@ function createResourceReadinessPanel(getDraftResource) {
       const minimumMissing = items.filter((item) => item.group === "minimum" && !item.done);
       const recommendedMissing = items.filter((item) => item.group === "recommended" && !item.done);
       const qualityMissing = items.filter((item) => item.group === "quality" && !item.done);
-      panel.classList.toggle("has-blockers", minimumMissing.length > 0);
-      panel.classList.toggle("is-ready", minimumMissing.length === 0);
       summary.textContent = minimumMissing.length
         ? "Fyll ut disse feltene før ressursen kan publiseres."
         : recommendedMissing.length || qualityMissing.length
@@ -2123,11 +2129,10 @@ function createResourceReadinessPanel(getDraftResource) {
       const visibleItems = minimumMissing.length
         ? minimumMissing
         : [...recommendedMissing, ...qualityMissing].slice(0, 6);
-      list.replaceChildren(...(visibleItems.length ? visibleItems.map((item) => el("span", {
-        class: `resource-readiness-item resource-readiness-item--${item.group} is-missing`,
-        text: item.group === "minimum" ? item.label : `Anbefalt: ${item.label}`
-      })) : [
-        el("span", { class: "resource-readiness-item is-done", text: "Klar" })
+      list.replaceChildren(...(visibleItems.length ? visibleItems.map((item) => el("li", {}, [
+        dsStatus(item.group === "minimum" ? item.label : `Anbefalt: ${item.label}`, "next")
+      ])) : [
+        el("li", {}, [dsStatus("Klar", "done")])
       ]));
     } catch (error) {
       summary.textContent = userFacingError(error, "Fyll ut feltene for å se hva som mangler.");
@@ -2154,8 +2159,8 @@ function parseResourceAdminPayload(values, currentResource = null, options = {})
   const valueText = (key) => String(values?.[key] ?? "").trim();
   const title = valueText("title");
   const slug = valueText("slug") || resourceSlug(title);
-  if (!title) throw new Error("Tittel må fylles ut.");
-  if (!slug) throw new Error("Slug må fylles ut.");
+  if (!title && validatePublished) throw new Error("Tittel må fylles ut.");
+  if (!slug && validatePublished) throw new Error("Slug må fylles ut.");
 
   const estimatedDuration = values.estimated_duration ? Number(values.estimated_duration) : null;
   if (estimatedDuration !== null && (!Number.isInteger(estimatedDuration) || estimatedDuration <= 0)) {
@@ -2228,23 +2233,13 @@ async function openResourceAdminEditor(resource = null) {
     };
   };
 
-  const duplicateAction = resource?.id ? el("section", { class: "resource-admin-actions resource-admin-secondary-action" }, [
-    el("div", {}, [
-      el("strong", { text: "Lag variant" }),
-      el("p", { text: "Dupliser når du vil lage en variant med samme struktur uten å skrive alt på nytt." })
-    ]),
-    el("button", {
-      class: "button secondary",
-      type: "button",
-      onclick: async () => {
-        if (!library?.duplicateResource) return;
-        $("#drawer-message").textContent = "Dupliserer...";
-        await library.duplicateResource(state.sb, resource.id);
-        $("#entity-drawer").close();
-        await renderAdmin();
-      }
-    }, [icon("copy"), el("span", { text: "Dupliser" })])
-  ]) : null;
+  const duplicateResource = async () => {
+    if (!library?.duplicateResource || !resource?.id) return;
+    $("#drawer-message").textContent = "Dupliserer...";
+    await library.duplicateResource(state.sb, resource.id);
+    $("#entity-drawer").close();
+    await renderAdmin();
+  };
 
   let blockEditor = null;
   const refreshBlocks = () => blockEditor?.refresh?.();
@@ -2268,71 +2263,55 @@ async function openResourceAdminEditor(resource = null) {
     "suggested_coach_note", "development_area", "type", "format", "phase", "estimated_duration",
     "default_context_types", "status", "visibility", "review_status", "basis"
   ];
-  const editorSection = (title, text, fields, options = {}) => {
-    const body = el("div", { class: "resource-editor-section-body" }, fields.filter(Boolean).map((field) => field instanceof Node ? field : renderSpec(field)));
-    if (options.collapsible) {
-      return el("details", { class: "resource-editor-section resource-editor-section--details", open: options.open }, [
-        el("summary", {}, [
-          el("span", {}, [el("strong", { text: title }), el("small", { text })]),
-          icon("chevron-down")
-        ]),
-        body
-      ]);
-    }
-    return el("section", { class: "resource-editor-section" }, [
-      el("div", { class: "resource-editor-section-head" }, [el("strong", { text: title }), el("p", { text })]),
-      body
-    ]);
-  };
-  const editorMain = el("div", { class: "resource-editor-main" }, [
+  const field = (spec) => spec instanceof Node ? spec : renderSpec(spec);
+  const editorMain = el("div", { class: "ds-editor-form ds-form" }, [
     createResourceReadinessPanel(getDraftResource),
-    editorSection("Start her", "Gi ressursen en tydelig tittel, inngang og anbefalt neste steg.", [
-      inputSpec("title", "Tittel", "text", resource?.title || ""),
-      textareaSpec("short_intro", "Kort introduksjon", library.resourceIntroduction(resource), { rows: "3", placeholder: "Hva er ressursen, og hvorfor er den relevant? Vises i biblioteket og øverst i ressursen." }),
-      textareaSpec("next_step_prompt", "Anbefalt neste steg", resource?.next_step_prompt || "", { rows: "2", placeholder: "Hva kan klienten gjøre etter å ha brukt ressursen?" })
+    renderSpec(sectionSpec("Start her", "Gi ressursen en tydelig tittel, inngang og anbefalt neste steg.")),
+    field(inputSpec("title", "Tittel", "text", resource?.title || "")),
+    field(textareaSpec("short_intro", "Kort introduksjon", library.resourceIntroduction(resource), { rows: "3", placeholder: "Hva er ressursen, og hvorfor er den relevant? Vises i biblioteket og øverst i ressursen." })),
+    field(textareaSpec("next_step_prompt", "Anbefalt neste steg", resource?.next_step_prompt || "", { rows: "2", placeholder: "Hva kan klienten gjøre etter å ha brukt ressursen?" })),
+    renderSpec(sectionSpec("Faglig plassering", "Gjør ressursen enkel å finne og vurdere i biblioteket.")),
+    el("div", { class: "ds-form-row" }, [
+      field(selectSpec("development_area", "Utviklingsområde", [
+        ["", "Velg utviklingsområde"],
+        ...library.RESOURCE_DEVELOPMENT_AREA_OPTIONS
+      ], library.resourceDevelopmentArea(resource))),
+      field(selectSpec("type", "Ressurstype", RESOURCE_TYPE_OPTIONS, resource?.type || "framework"))
     ]),
-    editorSection("Faglig plassering", "Gjør ressursen enkel å finne og vurdere i biblioteket.", [
-      el("div", { class: "resource-editor-field-grid" }, [
-        renderSpec(selectSpec("development_area", "Utviklingsområde", [
-          ["", "Velg utviklingsområde"],
-          ...library.RESOURCE_DEVELOPMENT_AREA_OPTIONS
-        ], library.resourceDevelopmentArea(resource))),
-        renderSpec(selectSpec("type", "Ressurstype", RESOURCE_TYPE_OPTIONS, resource?.type || "framework")),
-        renderSpec(inputSpec("estimated_duration", "Tidsbruk i minutter", "number", resource?.estimated_duration || "", { min: "1" })),
-        renderSpec(selectSpec("phase", "Brukes typisk i", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection"))
-      ])
+    el("div", { class: "ds-form-row" }, [
+      field(inputSpec("estimated_duration", "Tidsbruk i minutter", "number", resource?.estimated_duration || "", { min: "1" })),
+      field(selectSpec("phase", "Brukes typisk i", RESOURCE_PHASE_OPTIONS, resource?.phase || "reflection"))
     ]),
-    editorSection("Innhold", "Bygg opp leseflyten med korte, tydelige innholdsblokker.", [
-      customSpec("content_json", blockEditor),
-      customSpec("resource_files", createResourceFileManager(resource, library, { onFilesChange: refreshBlocks }))
-    ]),
-    editorSection("For coach og deling", "Hjelper coachen å vurdere når ressursen passer og hva som bør sendes med.", [
-      textareaSpec("intended_outcome", "Hva ressursen skal hjelpe med", resource?.intended_outcome || "", { rows: "3" }),
-      textareaSpec("best_used_when", "Best brukt når", (resource?.best_used_when || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" }),
-      textareaSpec("not_for", "Ikke egnet når", (resource?.not_for || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" }),
-      textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" }),
-      textareaSpec("suggested_coach_note", "Forslag til sendemelding", resource?.suggested_coach_note || "", { rows: "3", placeholder: "Coachen kan redigere teksten før sending." }),
-      checkboxGroupSpec("default_context_types", "Kan knyttes til", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"])
-    ], { collapsible: true, open: true }),
-    editorSection("Publisering og kvalitet", "Styr synlighet og dokumenter faglig kvalitetssikring.", [
-      el("div", { class: "resource-editor-field-grid" }, [
-        renderSpec(selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "draft")),
-        renderSpec(selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable")),
-        renderSpec(selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft"))
+    renderSpec(sectionSpec("Innhold", "Bygg opp leseflyten med korte, tydelige innholdsblokker.")),
+    blockEditor,
+    renderSpec(sectionSpec("Filer og bilder", "Filer lagres privat og blir bare tilgjengelige for brukere med riktig tilgang. Ressursen fungerer også uten filer.")),
+    createResourceFileManager(resource, library, { onFilesChange: refreshBlocks }),
+    dsFormDisclosure("For coach og deling", "Hjelper coachen å vurdere når ressursen passer og hva som bør sendes med.", [
+      field(textareaSpec("intended_outcome", "Hva ressursen skal hjelpe med", resource?.intended_outcome || "", { rows: "3" })),
+      field(textareaSpec("best_used_when", "Best brukt når", (resource?.best_used_when || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" })),
+      field(textareaSpec("not_for", "Ikke egnet når", (resource?.not_for || []).join("\n"), { rows: "3", placeholder: "Ett punkt per linje" })),
+      field(textareaSpec("coach_guidance", "Veiledning til coach", resource?.coach_guidance || "", { rows: "4" })),
+      field(textareaSpec("suggested_coach_note", "Forslag til sendemelding", resource?.suggested_coach_note || "", { rows: "3", placeholder: "Coachen kan redigere teksten før sending." })),
+      field(checkboxGroupSpec("default_context_types", "Kan knyttes til", RESOURCE_CONTEXT_OPTIONS, resource?.default_context_types || ["program"]))
+    ], { open: true }),
+    dsFormDisclosure("Publisering og kvalitet", "Styr synlighet og dokumenter faglig kvalitetssikring.", [
+      el("div", { class: "ds-form-row" }, [
+        field(selectSpec("status", "Status", RESOURCE_STATUS_OPTIONS, resource?.status || "draft")),
+        field(selectSpec("visibility", "Synlighet", RESOURCE_VISIBILITY_OPTIONS, resource?.visibility || "client_assignable"))
       ]),
+      field(selectSpec("review_status", "Faglig vurdering", RESOURCE_REVIEW_STATUS_OPTIONS, resource?.review_status || "draft")),
       resource?.reviewed_by || resource?.last_reviewed_at ? el("p", {
-        class: "resource-admin-inline-help",
+        class: "ds-form-help",
         text: `Sist vurdert${resource?.reviewed_by ? ` av ${resource.reviewed_by}` : ""}${resource?.last_reviewed_at ? ` ${formatDate(resource.last_reviewed_at)}` : ""}. Oppdateres automatisk når faglig vurdering godkjennes.`
       }) : null,
-      textareaSpec("basis", "Faglig grunnlag", resource?.basis || "", { rows: "3" }),
+      field(textareaSpec("basis", "Faglig grunnlag", resource?.basis || "", { rows: "3" })),
       el("input", { type: "hidden", name: "slug", value: resource?.slug || "" }),
       el("input", { type: "hidden", name: "format", value: resource?.format || "native" })
-    ], { collapsible: true }),
-    duplicateAction
-  ].filter(Boolean));
-  const editorWorkspace = el("div", { class: "resource-editor-workspace" }, [
+    ].filter(Boolean))
+  ]);
+  const editorWorkspace = el("div", { class: "ds-editor" }, [
     editorMain,
-    el("aside", { class: "resource-editor-preview" }, [createResourceAdminPreview(library, getDraftResource)])
+    createResourceAdminPreview(library, getDraftResource)
   ]);
   specs = [customSpec(fieldNames, editorWorkspace)];
   const returnView = state.view;
@@ -2348,6 +2327,7 @@ async function openResourceAdminEditor(resource = null) {
   }, {
     size: "workspace",
     saveLabel: isNew || resource?.status === "draft" ? "Lagre utkast" : "Lagre endringer",
+    startActions: resource?.id ? [dsButton("Dupliser", { variant: "text", onClick: duplicateResource })] : [],
     ...(resource?.id ? {
     dangerLabel: resource.status === "archived" ? "Reaktiver" : "Arkiver",
     onDanger: async () => {
@@ -2401,27 +2381,16 @@ async function renderResources() {
     return;
   }
 
-  setHeader(
-    "Fagbibliotek",
-    "Ressurser",
-    [],
-    "Finn, vurder og del faglige ressurser som støtter arbeidet mellom samtalene."
-  );
-  const content = $("#content");
-  content.replaceChildren(el("section", { class: "panel portal-loading-state", role: "status", "aria-live": "polite" }, [
-    el("span", { class: "sr-only", text: "Finner ressursene dine …" }),
-    el("div", { class: "loading-skeleton-line is-short" }),
-    el("div", { class: "loading-skeleton-line is-title" }),
-    el("div", { class: "loading-skeleton-line" })
-  ]));
+  const intro = "Finn, vurder og del faglige ressurser som støtter arbeidet mellom samtalene.";
+  const showPage = (children) => {
+    setHeader("", "Ressurser", [], intro);
+    $("#content").replaceChildren(dsPage({ title: "Ressurser", intro, className: "ds-coach-page" }, children));
+  };
+  showPage([dsSheet([dsEmpty("Finner ressursene dine …")])]);
 
   const library = await ensureResourceLibrary();
   if (!library) {
-    content.replaceChildren(el("section", { class: "panel empty-state" }, [
-      el("p", { class: "eyebrow", text: "Ressurser" }),
-      el("h3", { text: "Ressursene kunne ikke åpnes" }),
-      el("p", { class: "muted", text: "Prøv å laste siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter." })
-    ]));
+    showPage([dsSheet([dsEmpty("Ressursene kunne ikke åpnes. Prøv å laste siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter.")])]);
     return;
   }
 
@@ -2430,51 +2399,49 @@ async function renderResources() {
     resources = await library.getPublishedResources(state.sb);
   } catch (error) {
     console.error("Could not load published resources", error);
-    content.replaceChildren(el("section", { class: "panel empty-state" }, [
-      el("p", { class: "eyebrow", text: "Ressurser" }),
-      el("h3", { text: "Kunne ikke hente ressursene" }),
-      el("p", { class: "muted", text: "Prøv å laste siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter." })
-    ]));
+    showPage([dsSheet([dsEmpty("Kunne ikke hente ressursene. Prøv å laste siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter.")])]);
     return;
   }
 
   state.resourceCache = resources;
   if (!state.selectedResourceSlug || !resources.some((resource) => resource.slug === state.selectedResourceSlug)) {
+    const hadSelection = Boolean(state.selectedResourceSlug);
     state.selectedResourceSlug = resources[0]?.slug || null;
+    if (hadSelection) state.resourceLibraryDetail = false;
   }
 
-  const search = el("input", { class: "search", placeholder: "Søk etter tema eller ressurs" });
-  const listSlot = el("div", { class: "resource-list" });
-  const previewSlot = el("div", { class: "resource-preview-slot resource-workspace-v2" });
-  const mobilePicker = el("select", {
-    class: "resource-mobile-picker",
-    "aria-label": "Velg ressurs",
-    onchange: (event) => {
-      const resource = resources.find((item) => item.slug === event.target.value);
-      if (resource) selectResource(resource);
-    }
-  });
-
-  const developmentAreaFilter = filterMenu([
-    { value: "all", label: "Alle utviklingsområder" },
-    ...library.RESOURCE_DEVELOPMENT_AREA_OPTIONS.map(([value, label]) => ({ value, label })),
-    { value: "uncategorized", label: "Ikke kategorisert" }
-  ], "all", "Filtrer på utviklingsområde", () => render());
-
-  const typeFilter = filterMenu([
-    { value: "all", label: "Alle typer" },
-    { value: "framework", label: "Rammeverk" },
-    { value: "guided_session", label: "Veiledet økt" },
-    { value: "exercise", label: "Øvelse" },
-    { value: "worksheet", label: "Arbeidsark" }
-  ], "all", "Filtrer på type", () => render());
+  const search = dsSearch("Søk etter tema eller ressurs", { onInput: () => render() });
+  const developmentAreaFilter = dsSelect(
+    [["all", "Alle utviklingsområder"], ...library.RESOURCE_DEVELOPMENT_AREA_OPTIONS, ["uncategorized", "Ikke kategorisert"]],
+    "all",
+    { ariaLabel: "Filtrer på utviklingsområde", onChange: () => render() }
+  );
+  const typeFilter = dsSelect(
+    [["all", "Alle typer"], ["framework", "Rammeverk"], ["guided_session", "Veiledet økt"], ["exercise", "Øvelse"], ["worksheet", "Arbeidsark"]],
+    "all",
+    { ariaLabel: "Filtrer på type", onChange: () => render() }
+  );
+  const tools = el("div", { class: "ds-chooser-tools" }, [
+    search,
+    developmentAreaFilter,
+    typeFilter,
+    el("p", { class: "ds-list-note", text: `${resources.length} ressurser tilgjengelig for vurdering og deling.` })
+  ]);
+  const groupsSlot = el("div");
+  const list = el("nav", { class: "ds-list ds-chooser-list", "aria-label": "Ressurser" }, [tools, groupsSlot]);
+  const detailSlot = el("div", { class: "ds-sheet-body" });
+  const sheet = el("div", { class: "ds-sheet ds-library" });
+  const admin = state.profile.role === "admin";
+  let lastMobileDetail = null;
 
   const selectResource = (resource) => {
     state.selectedResourceSlug = resource.slug;
+    if (isCompact()) state.resourceLibraryDetail = true;
     render();
   };
 
   const render = () => {
+    const compact = isCompact();
     const filtered = filterResourceList(resources, {
       query: search.value,
       developmentArea: developmentAreaFilter.value,
@@ -2482,76 +2449,42 @@ async function renderResources() {
     });
     if (!filtered.some((resource) => resource.slug === state.selectedResourceSlug)) {
       state.selectedResourceSlug = filtered[0]?.slug || resources[0]?.slug || null;
+      if (!filtered.length) state.resourceLibraryDetail = false;
     }
     const selected = filtered.find((resource) => resource.slug === state.selectedResourceSlug) || filtered[0] || null;
-    mobilePicker.replaceChildren(...filtered.map((resource) => el("option", {
-      value: resource.slug,
-      text: resource.title,
-      selected: selected?.slug === resource.slug
-    })));
-    const groupedResources = library.groupResourcesByDevelopmentArea(filtered);
-    listSlot.replaceChildren(
-      filtered.length
-        ? el("div", { class: "resource-card-list" }, groupedResources.flatMap((group) => [
-          el("div", { class: "resource-card-group-head" }, [
-            el("strong", { text: group.label }),
-            el("span", { text: `${group.resources.length} ${group.resources.length === 1 ? "ressurs" : "ressurser"}` })
-          ]),
-          ...group.resources.map((resource) => library.createResourceCard(resource, {
-            createElement: el,
-            selected: selected?.slug === resource.slug,
-            onSelect: selectResource
+    const groups = library.groupResourcesByDevelopmentArea(filtered);
+    groupsSlot.replaceChildren(
+      ...(filtered.length
+        ? groups.map((group) => el("section", { class: "ds-chooser-group" }, [
+          el("p", { class: "ds-list-title", text: group.label }),
+          ...group.resources.map((resource) => dsRow({
+            title: resource.title,
+            meta: resourceKicker(resource),
+            selected: !compact && resource.slug === selected?.slug,
+            onClick: () => selectResource(resource)
           }))
         ]))
-        : el("section", { class: "panel empty-state resource-empty" }, [
-          el("p", { class: "eyebrow", text: "Søk" }),
-          el("h3", { text: "Ingen ressurser funnet" }),
-          el("p", { class: "muted", text: "Prøv et annet søk eller fjern filtrene." })
-        ])
+        : [dsEmpty("Ingen ressurser funnet. Prøv et annet søk eller fjern filtrene.")])
     );
-    const shareableClients = getVisibleClients().filter((client) => canShareResourceToClient(client));
-    const resourceAction = canShareResources() ? {
-        label: "Send ressurs",
-        disabled: shareableClients.length === 0,
-        helpText: shareableClients.length
-          ? "Velg Send ressurs når du har vurdert at den passer klienten."
-          : "Du har ingen klienter med åpne forløp som kan motta ressurser ennå.",
-        onClick: openSendResourceDrawer
-      } : null;
-    const adminResourceAction = state.profile.role === "admin" ? {
-      label: "Rediger ressurs",
-      onClick: openResourceAdminEditor
-    } : null;
-    previewSlot.replaceChildren(library.createResourcePreview(selected, {
-      createElement: el,
-      createIcon: icon,
-      onOpenFile: openResourceFile,
-      primaryAction: resourceAction,
-      secondaryAction: adminResourceAction
+    const showDetail = !compact || state.resourceLibraryDetail;
+    detailSlot.replaceChildren(resourceDetail(selected, {
+      admin,
+      back: compact,
+      onBack: () => {
+        state.resourceLibraryDetail = false;
+        render();
+      }
     }));
-    hydrateResourceMedia(previewSlot);
+    sheet.className = dsClass("ds-sheet ds-library", !compact && "ds-sheet--split");
+    sheet.replaceChildren(...(compact ? [showDetail ? detailSlot : list] : [list, detailSlot]));
+    if (!$(".ds-coach-page")) showPage([sheet]);
+    hydrateResourceMedia(detailSlot);
     refreshIcons();
+    if (compact && showDetail && lastMobileDetail !== selected?.slug) $(".ds-back")?.focus();
+    lastMobileDetail = compact && showDetail ? selected?.slug : null;
   };
 
-  search.addEventListener("input", render);
-
-  content.replaceChildren(el("main", { class: "main-area resources-area" }, [
-    el("section", { class: "resource-library main-section" }, [
-    el("div", { class: "resource-library-head main-section-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Publisert innhold" }),
-        el("h2", { text: "Bibliotek" }),
-        el("p", { class: "muted", text: `${resources.length} ressurser tilgjengelig for vurdering og deling.` })
-      ])
-    ]),
-    el("div", { class: "main-control-bar" }, [
-      el("div", { class: "filter-row resource-filter-row" }, [search, developmentAreaFilter, typeFilter, mobilePicker])
-    ]),
-    el("div", { class: "resource-library-grid" }, [
-      el("aside", { class: "resource-library-list-panel" }, [listSlot]),
-      previewSlot
-    ])
-  ])]));
+  showPage([sheet]);
   render();
 }
 
@@ -2619,14 +2552,11 @@ function openSendResourceDrawer(resource) {
     return;
   }
 
-  const resourceSummary = el("section", { class: "send-resource-summary" }, [
-    el("span", { class: "send-resource-summary-icon" }, [icon("book-open")]),
-    el("div", {}, [
-      el("span", { class: "eyebrow", text: "Ressursen klienten mottar" }),
-      el("strong", { text: resource.title }),
-      el("p", { text: library?.resourceIntroduction?.(resource) || "" })
-    ])
-  ]);
+  const resourceSummary = el("div", { class: "ds-context ds-context--note" }, [el("div", {}, [
+    el("p", { class: "ds-context-label", text: "Ressursen klienten mottar" }),
+    el("p", { class: "ds-form-label", text: resource.title }),
+    el("p", { class: "ds-context-text", text: library?.resourceIntroduction?.(resource) || "" })
+  ])]);
   openEntityDrawer(`Del ressurs`, "Fagbibliotek", [
     customSpec("send_resource_summary", resourceSummary),
     customSpec("send_resource_basis", createSendResourceBasis(resource)),
@@ -2635,6 +2565,7 @@ function openSendResourceDrawer(resource) {
     customSpec(["contextType", "contextId", "existingSharedResourceId"], createResourceContextPicker(resource, clients)),
     sectionSpec("Personlig melding", "Forklar kort hvorfor du sender ressursen. Denne teksten vises tydelig for klienten."),
     textareaSpec("coachNote", "Melding fra deg", resource.suggested_coach_note || "", {
+      rows: "4",
       placeholder: "Skriv kort hvorfor du sender ressursen, og hva klienten bør bruke den til."
     })
   ], async (values) => {
@@ -2645,25 +2576,11 @@ function openSendResourceDrawer(resource) {
 }
 
 function createSendResourceBasis(resource) {
-  const list = (title, items = []) => items.length ? el("div", { class: "send-resource-basis-list" }, [
-    el("strong", { text: title }),
-    el("ul", {}, items.map((item) => el("li", { text: item })))
-  ]) : null;
-
-  return el("details", { class: "send-resource-basis" }, [
-    el("summary", {}, [
-      el("span", {}, [
-        el("strong", { text: "Vurdering for coach" }),
-        el("small", { text: "Når ressursen passer og ikke passer" })
-      ]),
-      icon("chevron-down")
-    ]),
-    el("div", { class: "send-resource-basis-body" }, [
-      resource.intended_outcome ? el("p", { text: resource.intended_outcome }) : null,
-      list("Best brukt når", resource.best_used_when || []),
-      list("Ikke egnet når", resource.not_for || [])
-    ].filter(Boolean))
-  ]);
+  return dsFormDisclosure("Vurdering for coach", "Når ressursen passer og ikke passer", [
+    resource.intended_outcome ? el("p", { text: resource.intended_outcome }) : null,
+    resourceGuidanceGroup("Best brukt når", resource.best_used_when || []),
+    resourceGuidanceGroup("Ikke egnet når", resource.not_for || [])
+  ].filter(Boolean));
 }
 
 function resourceDefaultContextTypes(resource) {
@@ -2693,16 +2610,17 @@ function createResourceContextPicker(resource, clients) {
   const contextType = el("input", { type: "hidden", name: "contextType", value: "program" });
   const contextId = el("input", { type: "hidden", name: "contextId", value: "" });
   const existingSharedResourceId = el("input", { type: "hidden", name: "existingSharedResourceId", value: "" });
-  const picker = el("select", { class: "resource-admin-compact-select" });
-  const message = el("p", { class: "resource-admin-inline-help", text: "Velg hvor ressursen skal lande hos klienten. Bruk Hele forløpet når ressursen ikke hører til én konkret samtale eller øvelse." });
-  const resendMessage = el("p", { class: "resource-admin-inline-help", text: "Det sendes også en e-post til klientens registrerte adresse." });
-  const wrapper = el("section", { class: "resource-admin-helper-card" }, [
-    el("strong", { text: "Hvor skal ressursen ligge?" }),
-    picker,
+  const picker = el("select", { class: "ds-select" });
+  const field = dsFormField("Hvor skal ressursen ligge?", picker, {
+    help: "Velg en konkret plassering hvis det gjør ressursen lettere å forstå for klienten."
+  });
+  const message = field.querySelector(".ds-form-help");
+  const resendMessage = el("p", { class: "ds-form-help", text: "Det sendes også en e-post til klientens registrerte adresse." });
+  const wrapper = el("div", { style: "display: contents" }, [
+    field,
     contextType,
     contextId,
     existingSharedResourceId,
-    message,
     resendMessage
   ]);
 
@@ -6692,7 +6610,10 @@ function openFormDialog(kind, title, kicker, specs, onSave, options = {}) {
   $(`#${prefix}-fields`).replaceChildren(...specs.map(renderSpec));
   $(`#${prefix}-save span`).textContent = options.saveLabel || "Lagre";
   const showDanger = options.onDanger && options.dangerPlacement !== "inline";
-  $(`#${prefix}-danger-slot`).replaceChildren(...(showDanger ? [dsButton(options.dangerLabel || "Slett", { onClick: onDanger })] : []));
+  $(`#${prefix}-danger-slot`).replaceChildren(...[
+    showDanger ? dsButton(options.dangerLabel || "Slett", { onClick: onDanger }) : null,
+    ...(options.startActions || [])
+  ].filter(Boolean));
   node.showModal();
   node.querySelector(".ds-dialog-body").scrollTop = 0;
   refreshIcons();

@@ -156,7 +156,8 @@ function libraryResources(sharedResource) {
   return [
     {
       id: "res1", slug: "kontrollsirkelen", status: "published", type: "framework", phase: "focus", visibility: "client_assignable",
-      tags: ["area:self_capacity", "stress", "prioritering"], ...control,
+      tags: ["area:self_capacity", "stress", "prioritering"],
+      default_context_types: ["focus_area", "reflection", "experiment"], ...control,
       summary: "Et refleksjonsverktøy for å skille mellom det du kan kontrollere, påvirke og ikke kontrollere.",
       intended_outcome: "Hjelpe klienten å redusere unødvendig mentalt stress ved å tydeliggjøre hvor innsats faktisk har effekt.",
       best_used_when: ["klient føler lav kontroll", "stress og overbelastning", "organisatorisk usikkerhet"],
@@ -214,9 +215,18 @@ async function bootCoachPage(page, client, sharedResource) {
   };
   setScreen("app");
   renderShell();
+  if (params.get("mobilepreview")) state.resourceLibraryDetail = true;
   navigate(page === "clients-empty" ? "clients" : page);
   await new Promise((resolve) => setTimeout(resolve, 50));
   if (params.get("dialog") === "resource-new") openResourceAdminEditor();
+  if (params.get("dialog") === "resource-edit") {
+    const adminResources = await window.RaederResourceLibrary.getAdminResources();
+    openResourceAdminEditor(adminResources[0]);
+  }
+  if (params.get("dialog") === "resource-send") {
+    const published = await window.RaederResourceLibrary.getPublishedResources();
+    openSendResourceDrawer(published[0]);
+  }
 }
 
 async function boot() {

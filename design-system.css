@@ -988,7 +988,7 @@
     border-top: 1px solid var(--ds-line);
     background: var(--ds-paper);
   }
-  .ds-dialog-foot-start { margin-right: auto; }
+  .ds-dialog-foot-start { display: flex; align-items: center; gap: var(--ds-space-20); margin-right: auto; }
   .ds-dialog-foot:empty, .ds-dialog-foot-start:empty, .ds-dialog-message:empty { display: none; }
   .ds-dialog-message, .ds-dialog-note { margin: 0 auto 0 0; color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
   .ds-icon-button {
@@ -1192,6 +1192,36 @@
   .ds-table-actions .ds-menu { margin: 0; }
   .ds-table-text { display: -webkit-box; overflow: hidden; color: var(--ds-muted); font: var(--ds-label); font-weight: 400; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
+  /* 23 · Ressursbibliotek, redigering og sending */
+  .ds-sheet--split.ds-library { grid-template-columns: 340px minmax(0, 1fr); }
+  .ds-library > .ds-list { padding-top: 0; }
+  .ds-library .ds-chooser-tools { position: static; margin-bottom: var(--ds-space-4); }
+  .ds-library .ds-chooser-group { padding-top: var(--ds-space-16); }
+  .ds-library-help { margin: var(--ds-space-8) 0 0; color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
+  .ds-library .ds-detail > .ds-disclosure--block { margin-top: var(--ds-space-24); padding: var(--ds-space-16) 0; border-top: 1px solid var(--ds-line); }
+  .ds-library .ds-detail > .ds-disclosure--block + .ds-section { margin-top: 0; }
+  .ds-guidance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-space-24) var(--ds-space-32); }
+  .ds-guidance-grid p { margin: 0; }
+
+  .ds-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 100%; }
+  .ds-dialog--workspace .ds-editor-form.ds-form { display: grid; align-content: start; gap: var(--ds-space-20); padding: var(--ds-space-24) 28px var(--ds-space-40); border-right: 1px solid var(--ds-line); }
+  .ds-editor-preview { padding: var(--ds-space-24) 28px var(--ds-space-40); background: var(--ds-wash); }
+  .ds-editor-preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ds-space-16); margin-bottom: var(--ds-space-16); }
+  .ds-editor-preview .ds-sheet-body { padding: var(--ds-space-32); }
+  .ds-ready .ds-context { margin: 0; }
+  .ds-ready-list { display: flex; flex-wrap: wrap; gap: var(--ds-space-4) var(--ds-space-16); margin: 0; padding: 0; list-style: none; }
+  .ds-block { display: grid; gap: var(--ds-space-8); padding: var(--ds-space-16) 0; border-top: 1px solid var(--ds-line); }
+  .ds-block-head { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-space-12); }
+  .ds-block-title { margin: 0; color: var(--ds-ink); font: var(--ds-question); font-size: 15px; }
+  .ds-block-tools { display: flex; gap: 0; }
+  .ds-block-tools .ds-icon-button { margin: 0; }
+  .ds-block-add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ds-space-12); padding-top: var(--ds-space-16); border-top: 1px solid var(--ds-line); }
+  .ds-block-add .ds-select { min-height: var(--ds-target); }
+  .ds-block .ds-input, .ds-block .ds-qa-field, .ds-block .ds-select { width: 100%; }
+  .ds-file-row { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--ds-space-12); padding: var(--ds-space-12) 0; border-bottom: 1px solid var(--ds-line); }
+  .ds-file-row > div { display: grid; gap: 2px; }
+  .ds-file-row small { color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
+
   @media (max-width: 1239px) {
     .ds-sheet-body { padding: var(--ds-space-32) var(--ds-space-32) var(--ds-space-40); }
     .ds-appbar-inner {
@@ -1324,6 +1354,12 @@
     .ds-table-label { display: block; }
     .ds-table-actions { position: absolute; top: var(--ds-space-8); right: 0; }
     .ds-table-row:has(.ds-table-actions) > .ds-table-cell:first-child { padding-right: 150px; }
+    .ds-library .ds-object-head { flex-direction: column; }
+    .ds-library .ds-object-head > .ds-object-actions { margin-right: 0; }
+    .ds-guidance-grid { grid-template-columns: minmax(0, 1fr); }
+    .ds-editor { grid-template-columns: minmax(0, 1fr); }
+    .ds-dialog--workspace .ds-editor-form.ds-form { border-right: 0; padding: var(--ds-space-20) var(--ds-space-16) var(--ds-space-32); }
+    .ds-editor-preview { display: none; }
   }
 
   @media (prefers-reduced-motion: reduce) {
