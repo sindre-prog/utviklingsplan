@@ -1174,25 +1174,20 @@ function employerLine(client) {
   return [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt";
 }
 
-function clientReadyStatus(client) {
-  const ready = isClientActivated(client) && hasClientConsent(client);
-  const text = isClientActivated(client) ? (hasClientConsent(client) ? "Klar" : "Mangler samtykke") : "Venter på aktivering";
-  return dsStatus(text, ready ? "done" : "neutral");
+const OWN_CLIENT_LIST_LIMIT = 8;
+
+function clientAccountText(client) {
+  if (!isClientActivated(client)) return "Venter på aktivering";
+  if (!hasClientConsent(client)) return "Mangler samtykke";
+  return "Aktivert";
 }
 
-function clientNextSessionLabel(client) {
-  const date = state.programSummaries[client.id]?.nextSessionDate;
-  return date ? formatDate(date) : "Ikke planlagt";
-}
-
-function clientLastActivityLabel(client) {
-  const date = state.programSummaries[client.id]?.lastActivityAt;
-  return date ? formatRelativeDate(date) : "Ingen aktivitet";
-}
-
-function clientSessionCountLabel(client) {
-  const count = state.programSummaries[client.id]?.sessionCount || 0;
-  return count === 1 ? "1 samtale" : `${count} samtaler`;
+function clientPortalActivityText(client) {
+  if (!isClientActivated(client) || !hasClientConsent(client)) return clientAccountText(client);
+  const program = state.programSummaries[client.id];
+  if (!program?.lastActivityAt) return "Ingen aktivitet";
+  const when = formatRelativeDate(program.lastActivityAt).toLocaleLowerCase("nb");
+  return `${program.lastActivityLabel || "Plan oppdatert"} · ${when}`;
 }
 
 function showCoachOwnershipOrientation(clients) {
@@ -1202,100 +1197,125 @@ function showCoachOwnershipOrientation(clients) {
 
 function clientSortOptions() {
   return [
-    ["name", "Navn A-Å"],
     ["recent-activity", "Sist aktivitet"],
-    ["next-session", "Neste samtale"],
+    ["name", "Navn A-Å"],
     ["created-desc", "Opprettet nyest"],
     ["created-asc", "Opprettet eldst"]
   ];
 }
 
-function clientOverviewTable(clients) {
-  if (!clients.length) return dsEmpty("Ingen klienter å vise ennå.");
+function ownClientTable(clients, label) {
   return dsTable({
-    columns: "minmax(0, 2fr) repeat(2, minmax(0, 1fr)) minmax(0, 1.2fr)",
-    label: "Klientoversikt",
-    head: ["Klient", "Sist aktivitet", "Neste samtale", "Status"],
-    rows: clients.map((client) => {
-      const canOpen = canOpenClient(client);
-      return dsTableRow([
-        dsPersonCell(client.name, employerLine(client)),
-        dsTextCell("Sist aktivitet", clientLastActivityLabel(client), true),
-        dsTextCell("Neste samtale", clientNextSessionLabel(client), true),
-        dsTableCell([clientReadyStatus(client), el("span", { class: "ds-row-meta", text: clientSessionCountLabel(client) })])
-      ], { link: canOpen, onClick: canOpen ? () => openClientPlan(client) : null });
-    })
+    columns: "minmax(0, 1.4fr) minmax(0, 1.6fr)",
+    label,
+    head: ["Klient", "Sist i portalen"],
+    rows: clients.map((client) => dsTableRow([
+      dsPersonCell(client.name, employerLine(client)),
+      dsTextCell("Sist i portalen", clientPortalActivityText(client))
+    ], { link: true, onClick: () => openClientPlan(client) }))
   });
 }
 
-function clientActivityTable(items) {
+function ownClientGroups(clients, grouped) {
+  const recent = clients.filter((client) => isRecentDate(state.programSummaries[client.id]?.lastActivityAt));
+  const older = clients.filter((client) => !recent.includes(client));
+  if (grouped && recent.length && older.length) {
+    return [
+      el("h3", { class: "ds-group-title", text: `Siste 14 dager · ${recent.length}` }),
+      ownClientTable(recent, "Siste 14 dager"),
+      el("h3", { class: "ds-group-title", text: "Øvrige" }),
+      ownClientTable(older, "Øvrige")
+    ];
+  }
+  if (grouped && recent.length > OWN_CLIENT_LIST_LIMIT) {
+    return [
+      el("h3", { class: "ds-group-title", text: `Siste 14 dager · ${recent.length}` }),
+      ownClientTable(recent, "Siste 14 dager")
+    ];
+  }
+  return [ownClientTable(clients, "Klienter")];
+}
+
+function otherClientTable(clients) {
+  if (!clients.length) return dsEmpty("Ingen klienter å vise ennå.");
   return dsTable({
-    columns: "minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr)",
-    label: "Nylige oppdateringer",
-    head: ["Klient", "Sist aktivitet", "Neste samtale"],
-    rows: items.slice(0, 4).map(({ client, activity }) => {
-      const canOpen = canOpenClient(client);
-      return dsTableRow([
-        dsPersonCell(client.name, employerLine(client)),
-        dsTableCell([
-          el("span", { class: "ds-row-title", text: activity.label }),
-          el("span", { class: "ds-row-meta", text: activity.detail })
-        ], { label: "Sist aktivitet" }),
-        dsTextCell("Neste samtale", clientNextSessionLabel(client), true)
-      ], { link: canOpen, onClick: canOpen ? () => openClientPlan(client) : null });
-    })
+    columns: "minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)",
+    label: "Andre klienter",
+    head: ["Klient", "Coach", "Konto"],
+    rows: clients.map((client) => dsTableRow([
+      dsPersonCell(client.name, employerLine(client)),
+      dsTextCell("Coach", coachNames(client) || "Ingen coach"),
+      dsTextCell("Konto", clientAccountText(client))
+    ], { muted: true }))
   });
+}
+
+function clientListSection({ title = "", intro = "", children }) {
+  return el("section", { class: "ds-section" }, [
+    title ? el("div", { class: "ds-section-head" }, [
+      el("div", {}, [
+        el("h2", { class: "ds-section-title", text: title }),
+        intro ? el("p", { class: "ds-section-intro", text: intro }) : null
+      ])
+    ]) : null,
+    ...children
+  ]);
 }
 
 function renderClients() {
   if (state.profile.role === "client") return navigate("plan", state.client?.id, initialWorkspacePane());
   const visibleClients = getVisibleClients();
-  const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
-  const activity = clientActivityItems(visibleClients);
-  const upcoming = visibleClients.filter((client) => state.programSummaries[client.id]?.nextSessionDate).length;
-  const gettingStarted = showCoachOwnershipOrientation(visibleClients);
+  const ownSource = visibleClients.filter((client) => canOpenClient(client));
+  const otherSource = visibleClients.filter((client) => !canOpenClient(client));
+  const isAdmin = state.profile.role === "admin";
+  const gettingStarted = showCoachOwnershipOrientation(ownSource);
   const results = el("div");
   const renderTable = () => {
-    const filtered = sortClients(filterClients(visibleClients, search.value, coachFilter.value), sortFilter.value);
-    results.replaceChildren(clientOverviewTable(filtered));
+    const query = search.value;
+    const sortBy = sortFilter.value;
+    const coachId = isAdmin ? coachFilter.value : "all";
+    const own = sortClients(filterClients(ownSource, query, "all"), sortBy);
+    const viewingOwnCoach = Boolean(state.coach?.id) && coachId === state.coach.id;
+    const showOthers = isAdmin && !viewingOwnCoach;
+    const others = showOthers ? sortClients(filterClients(otherSource, query, coachId), "name") : [];
+    const grouped = !query.trim() && sortBy === "recent-activity" && own.length > OWN_CLIENT_LIST_LIMIT;
+    const blocks = [];
+    if (own.length) {
+      blocks.push(clientListSection({
+        title: showOthers ? "Mine klienter" : "",
+        children: ownClientGroups(own, grouped)
+      }));
+    }
+    if (showOthers) {
+      blocks.push(clientListSection({
+        title: ownSource.length ? "Andre klienter" : "Klienter",
+        intro: "Du ser hvem som er klient og hvem som er coach. Planen åpnes bare når du selv er coach.",
+        children: [otherClientTable(others)]
+      }));
+    }
+    results.replaceChildren(...(blocks.length ? blocks : [dsEmpty("Ingen klienter å vise ennå.")]));
   };
   const search = dsSearch("Søk etter navn, e-post, coach eller arbeidsgiver", { onInput: renderTable });
-  const coachFilter = dsSelect(
-    [["all", "Alle coacher"], ...filterCoaches.map((coach) => [coach.id, coach.name || "Uten navn"])],
+  const coachFilter = isAdmin ? dsSelect(
+    [["all", "Alle coacher"], ...state.coaches.map((coach) => [coach.id, coach.name || "Uten navn"])],
     "all",
     { ariaLabel: "Filtrer på coach", onChange: renderTable }
-  );
-  const sortFilter = dsSelect(clientSortOptions(), "name", { ariaLabel: "Sorter klienter", onChange: renderTable });
+  ) : null;
+  const sortFilter = dsSelect(clientSortOptions(), "recent-activity", { ariaLabel: "Sorter klienter", onChange: renderTable });
   renderCoachPage({
     title: "Klienter",
-    intro: "Se status, siste aktivitet og åpne klientplaner når du trenger kontekst.",
+    intro: "Se hvem som har gjort noe i portalen.",
     actions: canInviteClient() ? [dsButton("Inviter klient", { variant: "primary", onClick: () => openClientInvite() })] : []
   }, [
-    gettingStarted
-      ? dsObjectHead({
-        kicker: "Kom i gang",
-        title: "Klienten eier utviklingsløpet",
-        lead: "Portalen skal hjelpe klienten å samle og følge egen utvikling. Som coach støtter du med samtaler, spørsmål og relevante ressurser uten å overta arbeidet."
-      })
-      : dsFigures([
-        [String(activity.length), "Nylig aktivitet", "siste 14 dager"],
-        [String(visibleClients.length), "Klienter", "aktive i oversikten"],
-        [String(upcoming), "Kommende samtaler", "dato satt i planen"]
-      ]),
-    !gettingStarted && activity.length ? dsSection({
-      title: "Nylige oppdateringer",
-      intro: "Klienter der noe er lagt til eller endret de siste 14 dagene."
-    }, [clientActivityTable(activity)]) : null,
-    dsSection({
-      title: "Klientoversikt",
-      intro: "Åpne en klient for å se mål og rammer for forløpet, utviklingsfokus, samtaler, refleksjoner og ressurser."
-    }, [
-      gettingStarted ? null : dsTools([search, coachFilter, sortFilter]),
-      results
-    ])
+    gettingStarted ? dsObjectHead({
+      kicker: "Kom i gang",
+      title: "Klienten eier utviklingsløpet",
+      lead: "Portalen skal hjelpe klienten å samle og følge egen utvikling. Som coach støtter du med samtaler, spørsmål og relevante ressurser uten å overta arbeidet."
+    }) : null,
+    gettingStarted ? null : dsTools([search, coachFilter, sortFilter].filter(Boolean)),
+    results
   ]);
-  if (gettingStarted) results.replaceChildren(clientOverviewTable(sortClients(visibleClients, "name")));
-  else renderTable();
+  renderTable();
 }
 
 function clientActivityItems(clients) {
