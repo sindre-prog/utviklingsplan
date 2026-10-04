@@ -39,7 +39,7 @@ Det som avgjør om en del vises som på plass på `Akkurat nå`:
 | Del | På plass når |
 | --- | --- |
 | Forløpet | `Hva vil du oppnå?` er fylt ut. De øvrige fem avklaringene er støtte. |
-| Ytre prosjekt · Fokusoppdrag | Minst ett Fokusoppdrag har et faktisk navn. `Nytt fokusoppdrag` teller ikke og vises som `Ikke ferdigstilt`. |
+| Ytre prosjekt · Fokusoppdrag | Minst ett Fokusoppdrag har et faktisk navn. Et fokusoppdrag uten navn, og eldre utkast med tittelen `Nytt fokusoppdrag`, teller ikke og vises som `Ikke ferdigstilt`. |
 | Indre prosjekt · Lederkompetanser | Minst én lederkompetanse er `Aktiv`. |
 | Prøv i praksis · Eksperiment | Minst ett eksperiment er `planned` eller `active`. |
 
