@@ -155,7 +155,7 @@ export function renderResourceBlock(block, options = {}) {
           file ? createElement("figcaption", { class: "resource-illustration-caption" }, [
             createElement("span", { text: label }),
             onOpenFile ? createElement("button", {
-              class: "button ghost resource-file-open",
+              class: "resource-file-open",
               type: "button",
               onclick: () => onOpenFile(file)
             }, [
@@ -195,7 +195,7 @@ export function renderResourceBlock(block, options = {}) {
               createElement("h3", { class: "resource-block__heading", text: label })
             ]),
             onOpenFile && file ? createElement("button", {
-              class: "button ghost resource-file-open",
+              class: "resource-file-open",
               type: "button",
               onclick: () => onOpenFile(file)
             }, [

@@ -977,7 +977,7 @@ function isActiveRecord(record) {
 
 function renderShell() {
   $("#user-name").textContent = state.user.email || state.profile.name || "Bruker";
-  $(".app-shell")?.classList.toggle("is-client-workspace", state.profile.role === "client");
+  $(".ds-shell")?.classList.toggle("is-client-workspace", state.profile.role === "client");
   const nav = [
     state.profile.role !== "client" && ["clients", "users", "Klienter"],
     state.profile.role !== "client" && ["resources", "library", "Ressurser"],
@@ -1934,7 +1934,7 @@ async function hydrateResourceMedia(root) {
       image.src = await library.getResourceFileUrl(state.sb, image.dataset.storagePath);
       image.dataset.loaded = "true";
     } catch {
-      image.replaceWith(el("p", { class: "muted", text: "Kunne ikke laste illustrasjonen." }));
+      image.replaceWith(el("p", { class: "ds-empty-text", text: "Kunne ikke laste illustrasjonen." }));
     }
   }));
 }
@@ -2850,16 +2850,22 @@ async function renderPlan(activePane = null) {
   const client = state.clients.find((item) => item.id === state.selectedClientId) || state.client;
   if (!client) {
     setHeader("Plan", "Ingen klient funnet");
-    $("#content").replaceChildren(el("p", { class: "muted", text: "Fant ikke klientdata for denne brukeren." }));
+    $("#content").replaceChildren(dsPage({ title: "Ingen klient funnet", className: "ds-coach-page" }, [
+      dsSheet([dsEmpty("Fant ikke klientdata for denne brukeren.")])
+    ]));
     return;
   }
   if (!canOpenClient(client)) {
     setHeader("Klienter", "Kun oversikt");
-    $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
-      el("p", { class: "eyebrow", text: "Tilgang" }),
-      el("h3", { text: "Du kan se klienten i oversikt, men ikke åpne planen." }),
-      el("p", { class: "muted", text: "Adminrollen viser alle klienter, men planinnsyn er begrenset til klienter der du selv er registrert som coach." }),
-      button("Tilbake til klienter", "arrow-left", () => navigate("clients"), "ghost")
+    $("#content").replaceChildren(dsPage({ title: "Kun oversikt", className: "ds-coach-page" }, [
+      dsSheet([
+        dsObjectHead({
+          kicker: "Tilgang",
+          title: "Du kan se klienten i oversikt, men ikke åpne planen.",
+          lead: "Adminrollen viser alle klienter, men planinnsyn er begrenset til klienter der du selv er registrert som coach."
+        }),
+        dsButton("Tilbake til klienter", { iconName: "arrow-left", onClick: () => navigate("clients") })
+      ])
     ]));
     return;
   }
@@ -2869,8 +2875,8 @@ async function renderPlan(activePane = null) {
   }
   state.selectedClientId = client.id;
   const headerActions = [
-    state.profile.role !== "client" ? button("Tilbake", "arrow-left", () => navigate("clients"), "ghost") : null,
-    button("Book coachingsamtale", "calendar-plus", () => window.open("https://raederog.no/book-time", "_blank"), "ghost")
+    state.profile.role !== "client" ? dsButton("Tilbake", { iconName: "arrow-left", onClick: () => navigate("clients") }) : null,
+    dsButton("Book coachingsamtale", { iconName: "calendar-plus", onClick: () => window.open("https://raederog.no/book-time", "_blank") })
   ].filter(Boolean);
   const isClientWorkspace = state.profile.role === "client";
   const clientFirstName = (client.name || "").trim().split(/\s+/)[0] || "";
@@ -2880,20 +2886,24 @@ async function renderPlan(activePane = null) {
     headerActions,
     isClientWorkspace ? "Hold oversikt over det du jobber med nå, følg utviklingen din og forbered deg til neste samtale." : ""
   );
-  $("#content").replaceChildren(el("section", { class: "panel portal-loading-state", role: "status", "aria-live": "polite" }, [
+  $("#content").replaceChildren(el("section", { class: "ds-loading", role: "status", "aria-live": "polite" }, [
     el("span", { class: "sr-only", text: "Henter utviklingsplanen …" }),
-    el("div", { class: "loading-skeleton-line is-short" }),
-    el("div", { class: "loading-skeleton-line is-title" }),
-    el("div", { class: "loading-skeleton-line" }),
-    el("div", { class: "loading-skeleton-card" })
+    el("div", { class: "ds-loading-line is-short" }),
+    el("div", { class: "ds-loading-line is-title" }),
+    el("div", { class: "ds-loading-line" }),
+    el("div", { class: "ds-loading-card" })
   ]));
 
   const data = await loadClientProgram(client);
   if (!data) {
-    $("#content").replaceChildren(el("section", { class: "panel empty-state" }, [
-      el("p", { class: "eyebrow", text: "Forløp" }),
-      el("h3", { text: "Utviklingsplanen er ikke tilgjengelig" }),
-      el("p", { class: "muted", text: "Gå tilbake og prøv igjen. Kontakt ansvarlig for portalen hvis det skjer på nytt." })
+    $("#content").replaceChildren(dsPage({ title: "Utviklingsplanen er ikke tilgjengelig", className: "ds-coach-page" }, [
+      dsSheet([
+        dsObjectHead({
+          kicker: "Forløp",
+          title: "Utviklingsplanen er ikke tilgjengelig",
+          lead: "Gå tilbake og prøv igjen. Kontakt ansvarlig for portalen hvis det skjer på nytt."
+        })
+      ])
     ]));
     return;
   }
@@ -7228,9 +7238,6 @@ function coachNames(client) {
     .join(", ");
 }
 
-function button(label, iconName, handler, variant = "primary") {
-  return el("button", { class: `button ${variant}`, type: "button", onclick: handler }, [icon(iconName), el("span", { text: label })]);
-}
 
 function statusLabel(status) {
   return { draft: "Utkast", active: "Aktivt forløp", completed: "Fullført", archived: "Arkivert" }[status] || "Utkast";
