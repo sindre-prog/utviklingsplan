@@ -29,7 +29,7 @@ Three active leadership competencies at a time is a recommendation, not a limit.
 The sequence is recommended, not locked. Each part can be created, edited and archived without another part existing, and no part may require fields in another part to be filled in. The next step points only to the first missing part of the model and never blocks or hides other parts. A part is in place when:
 
 - `Forløpet`: `Hva vil du oppnå?` is filled in.
-- `Ytre prosjekt · Fokusoppdrag`: at least one Fokusoppdrag has a real name. `Nytt fokusoppdrag` does not count.
+- `Ytre prosjekt · Fokusoppdrag`: at least one Fokusoppdrag has a real name. An untitled Fokusoppdrag does not count, and neither does an older draft titled `Nytt fokusoppdrag`.
 - `Indre prosjekt · Lederkompetanser`: at least one leadership competency is `Aktiv`.
 - `Prøv i praksis · Eksperiment`: at least one experiment is `planned` or `active`.
 

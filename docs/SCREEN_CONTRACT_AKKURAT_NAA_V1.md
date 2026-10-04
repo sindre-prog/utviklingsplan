@@ -17,7 +17,7 @@ Seksjonen `Sett grunnlaget for forløpet` vises når minst én av disse mangler:
 
 Hver rad viser beslutningsspørsmål, faktisk status eller et tydelig merket valg og en handling når rollen har tilgang. Valgte verdier vises i kopifeltet som `Valgt fokusoppdrag: ...` og `Valgte lederkompetanser: ...`; de skal ikke stå som løs tekst i en egen statuskolonne. Første uløste steg får tydeligst handling. Rekkefølgen er anbefalt, ikke låst: hver rad har egen handling, uavhengig av de andre radene. Se `UTVIKLINGSFLYT_BESLUTNING_V1.md`.
 
-Den tekniske opprettelsestittelen `Nytt fokusoppdrag` er ikke et reelt valg. Et slikt utkast vises som `Ikke ferdigstilt`, teller ikke som valgt og åpnes igjen når klienten fortsetter arbeidet. Fokusoppdraget må få et faktisk navn før det inngår som valgt i oversikten.
+Et fokusoppdrag uten navn er ikke et reelt valg. Det vises som `Ikke ferdigstilt`, teller ikke som valgt og åpnes igjen når klienten fortsetter arbeidet. Eldre utkast med tittelen `Nytt fokusoppdrag` behandles på samme måte. Fokusoppdraget må få et faktisk navn før det inngår som valgt i oversikten.
 
 `Forløpet` og `Utviklingsfokus` vises med samme typografiske behandling som to toppnivåer. `Mål og rammer` ligger under Forløpet; ytre og indre prosjekt ligger under Utviklingsfokus. Objekttypene `Fokusoppdrag` og `Lederkompetanser` er nøytral metadata, ikke fargekodede kategorier.
 
