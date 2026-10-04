@@ -2687,7 +2687,7 @@ function createResourceContextPicker(resource, clients) {
   });
   const message = field.querySelector(".ds-form-help");
   const resendMessage = el("p", { class: "ds-form-help", text: "Det sendes også en e-post til klientens registrerte adresse." });
-  const wrapper = el("div", {}, [
+  const wrapper = el("div", { style: "display: contents" }, [
     field,
     contextType,
     contextId,
