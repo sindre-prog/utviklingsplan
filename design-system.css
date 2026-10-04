@@ -1,10 +1,9 @@
 /* Ræder& utviklingsportal – designsystem (ds).
-   Alt her ligger i laget ds og vinner derfor over legacy (styles.css) uansett spesifisitet.
    Byggeklossene bruker bare verdiene i :root nedenfor. Se docs/DESIGNSYSTEM_PLAN_V1.md.
    Brytningspunkter (kan ikke være variabler i media queries):
    mobil ≤ 700px, nettbrett 701–1239px, PC ≥ 1240px. */
 
-@layer legacy, ds;
+.hidden, [hidden] { display: none !important; }
 
 @layer ds {
   :root {
@@ -77,6 +76,35 @@
     outline-offset: 2px;
   }
 
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ds-text);
+    background: var(--ds-canvas);
+    font-family: var(--ds-font-body);
+    font: var(--ds-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  a { color: inherit; }
+  button, input, textarea, select { font: inherit; }
+  button { cursor: pointer; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .hidden-editor { display: none !important; }
+
   /* Skall */
   body:has(.ds-shell:not(.hidden)) { background: var(--ds-canvas); }
   .ds-shell {
@@ -86,7 +114,74 @@
     background: var(--ds-canvas);
     font-family: var(--ds-font-body);
   }
-  .ds-shell::before { content: none; display: none; }
+  .ds-workspace { position: relative; z-index: 1; min-width: 0; max-width: 100%; }
+  .ds-topline {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--ds-space-24);
+    width: 100%;
+    min-height: 118px;
+    margin: 0;
+    padding: var(--ds-space-24) max(var(--ds-space-24), calc((100vw - 1320px) / 2 + 24px));
+    background: transparent;
+  }
+  .ds-topline-copy { display: grid; gap: 4px; min-width: 0; max-width: 760px; }
+  .ds-topline .ds-object-kicker {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .ds-topline-title {
+    margin: 0;
+    color: var(--ds-ink);
+    font-family: var(--ds-font-display);
+    font-size: clamp(30px, 3vw, 40px);
+    font-weight: 500;
+    line-height: 1.05;
+  }
+  .ds-topline-lead {
+    max-width: 680px;
+    margin: 6px 0 0;
+    color: var(--ds-muted);
+    font: var(--ds-body);
+  }
+  .ds-topline-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--ds-space-8); }
+  .ds-topline-actions:empty, #view-kicker:empty { display: none; }
+  .ds-main {
+    width: 100%;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 28px var(--ds-space-24) 88px;
+  }
+  .ds-workspace:has(.ds-consent) > .ds-topline,
+  .ds-workspace:has(.ds-coach-page) > .ds-topline { display: none; }
+  .ds-workspace:has(.workspace-pane.active:not([data-pane="now"])) .ds-topline-title { font-size: 30px; }
+  .ds-workspace:has(.workspace-pane.active:not([data-pane="now"])) #view-kicker { display: none; }
+  .ds-shell.is-client-workspace #view-kicker { display: none; }
+  .ds-shell.is-client-workspace .ds-workspace:has(.workspace-pane.active:not([data-pane="now"])) .ds-topline { display: none; }
+  .ds-shell.is-client-workspace .ds-workspace:has(.workspace-pane.active:not([data-pane="now"])) .ds-main { padding-top: var(--ds-space-32); }
+  .plan-layout, .client-workspace { min-width: 0; }
+  .client-workspace { display: grid; gap: 28px; }
+  .workspace-pane { display: none; min-width: 0; }
+  .workspace-pane.active { display: grid; gap: var(--ds-space-24); }
+  .ds-loading {
+    display: grid;
+    align-content: start;
+    gap: 14px;
+    min-height: 220px;
+    padding: 30px;
+  }
+  .ds-loading-line, .ds-loading-card {
+    overflow: hidden;
+    border-radius: var(--ds-radius-field);
+    background: var(--ds-line);
+  }
+  .ds-loading-line { width: min(560px, 85%); height: 16px; }
+  .ds-loading-line.is-short { width: 92px; height: 11px; }
+  .ds-loading-line.is-title { width: min(360px, 68%); height: 30px; }
+  .ds-loading-card { width: 100%; height: 104px; margin-top: var(--ds-space-12); }
 
   /* 1 · Toppfelt */
   .ds-appbar {
@@ -1221,7 +1316,6 @@
   .ds-form-message[data-tone="success"] { color: var(--ds-done); }
 
   /* 21 · Samtykke */
-  .workspace:has(.ds-consent) > .topline { display: none; }
   .ds-facts { display: grid; gap: var(--ds-space-4); margin: 28px 0 0; padding-top: var(--ds-space-20); border-top: 1px solid var(--ds-line); }
   .ds-facts dt { margin-top: var(--ds-space-12); color: var(--ds-ink); font: var(--ds-question); }
   .ds-facts dt:first-child { margin-top: 0; }
@@ -1229,7 +1323,6 @@
   .ds-facts + .ds-check { margin-top: var(--ds-space-24); padding-top: var(--ds-space-20); border-top: 1px solid var(--ds-line); color: var(--ds-ink); font: var(--ds-body); }
 
   /* 22 · Coach-sidene: tittel i siden, nøkkeltall, filterrad og tabell */
-  .workspace:has(.ds-coach-page) > .topline { display: none; }
   .ds-page-head--actions { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--ds-space-16) var(--ds-space-24); }
   .ds-page-head--actions .ds-object-actions { display: flex; flex-wrap: wrap; gap: var(--ds-space-12); }
 
@@ -1296,6 +1389,10 @@
   .ds-file-row > div { display: grid; gap: 2px; }
   .ds-file-row small { color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
 
+  @media (min-width: 1240px) {
+    .ds-shell.is-client-workspace .ds-workspace:has(.workspace-pane.active[data-pane="now"]) .ds-main { padding-top: 8px; }
+  }
+
   @media (max-width: 1239px) {
     .ds-sheet-body { padding: var(--ds-space-32) var(--ds-space-32) var(--ds-space-40); }
     .ds-appbar-inner {
@@ -1305,6 +1402,11 @@
     }
     .ds-appbar-nav, .ds-appbar-tabs { justify-self: center; max-width: 100%; }
     .ds-appbar-tabs .ds-tabs { overflow-x: auto; scrollbar-width: none; }
+  }
+
+  @media (max-width: 980px) {
+    .ds-topline { min-height: 0; padding: 22px var(--ds-space-20); }
+    .ds-main { padding: 22px var(--ds-space-20) 72px; }
   }
 
   @media (max-width: 700px) {
@@ -1318,6 +1420,16 @@
       padding: var(--ds-space-8) var(--ds-space-16);
       row-gap: var(--ds-space-4);
     }
+    .ds-topline {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--ds-space-16);
+      padding: var(--ds-space-24) 16px 28px;
+    }
+    .ds-topline-title { font-size: 30px; }
+    .ds-topline-lead { font: var(--ds-support); }
+    .ds-topline-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; width: 100%; }
+    .ds-topline-actions .ds-button { width: 100%; }
+    .ds-main { padding: 24px 16px 64px; }
     .ds-appbar-email { display: none; }
     .ds-appbar-nav { justify-self: stretch; justify-content: center; }
     .ds-shell:has(.ds-appbar-tabs:not(:empty)) { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
@@ -1434,6 +1546,11 @@
     .ds-editor { grid-template-columns: minmax(0, 1fr); }
     .ds-dialog--workspace .ds-editor-form.ds-form { border-right: 0; padding: var(--ds-space-20) var(--ds-space-16) var(--ds-space-32); }
     .ds-editor-preview { display: none; }
+  }
+
+  @media (max-width: 380px) {
+    .ds-main { padding: 24px 12px 64px; }
+    .ds-topline { padding-left: 12px; padding-right: 12px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -10,12 +10,11 @@
   <link rel="preconnect" href="https://p.typekit.net">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://use.typekit.net/ynv7fqd.css">
-  <link rel="stylesheet" href="./styles.css?v=design-system-196">
-  <link rel="stylesheet" href="./design-system.css?v=design-system-196">
+  <link rel="stylesheet" href="./design-system.css?v=design-system-197">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module">
-    import * as resourceLibrary from "./js/resources/resources.api.js?v=design-system-196";
+    import * as resourceLibrary from "./js/resources/resources.api.js?v=design-system-197";
 
     window.RaederResourceLibrary = resourceLibrary;
   </script>
@@ -72,7 +71,7 @@
       </section>
     </section>
 
-    <section class="app-shell ds-shell hidden" data-screen="app">
+    <section class="ds-shell hidden" data-screen="app">
       <header class="ds-appbar">
         <div class="ds-appbar-inner">
           <button class="ds-appbar-brand" id="brand-home" type="button" aria-label="Gå til forsiden">
@@ -88,16 +87,16 @@
         </div>
       </header>
 
-      <div class="workspace">
-        <header class="topline">
-          <div class="portal-heading">
-            <p class="eyebrow" id="view-kicker">Klientforløp</p>
-            <h1 id="view-title">Klienter</h1>
-            <p class="portal-subtitle" id="view-description" hidden></p>
+      <div class="ds-workspace">
+        <header class="ds-topline" id="ds-topline">
+          <div class="ds-topline-copy">
+            <p class="ds-object-kicker" id="view-kicker">Klientforløp</p>
+            <h1 class="ds-topline-title" id="view-title">Klienter</h1>
+            <p class="ds-topline-lead" id="view-description" hidden></p>
           </div>
-          <div class="topline-actions" id="topline-actions"></div>
+          <div class="ds-topline-actions" id="topline-actions"></div>
         </header>
-        <section class="content" id="content" aria-live="polite"></section>
+        <section class="ds-main" id="content" aria-live="polite"></section>
       </div>
     </section>
   </main>
@@ -176,6 +175,6 @@
     </div>
   </dialog>
 
-  <script src="./app.js?v=design-system-196" defer></script>
+  <script src="./app.js?v=design-system-197" defer></script>
 </body>
 </html>
