@@ -899,7 +899,9 @@
   .ds-content p { margin: 0; color: var(--ds-text); font: var(--ds-body); }
   .ds-content-heading { margin: var(--ds-space-8) 0 0; color: var(--ds-ink); font: var(--ds-question); }
   .ds-content-list { display: grid; gap: var(--ds-space-8); margin: 0; padding-left: 20px; color: var(--ds-text); font: var(--ds-body); }
-  .ds-resource-content :is(.resource-block, .resource-model-card, .resource-download-card, .resource-block__field) {
+  .ds-resource-content { gap: var(--ds-space-24); }
+  .ds-resource-content > .ds-button { justify-self: start; }
+  .ds-resource-content :is(.resource-block, .resource-model-card) {
     margin: 0;
     padding: 0;
     border: 0;
@@ -907,23 +909,78 @@
     background: transparent;
     box-shadow: none;
   }
-  .ds-resource-content .resource-block { display: grid; gap: var(--ds-space-8); }
-  .ds-resource-content :is(.resource-block__heading, .resource-model-card h4) { margin: var(--ds-space-8) 0 0; color: var(--ds-ink); font: var(--ds-question); letter-spacing: 0; text-transform: none; }
-  .ds-resource-content :is(.resource-block__questions, .resource-block__fields) { display: grid; gap: var(--ds-space-8); margin: 0; padding-left: 20px; color: var(--ds-text); font: var(--ds-body); }
-  .ds-resource-content .resource-block__questions { list-style: disc; }
+  .ds-resource-content .resource-block { display: grid; gap: var(--ds-space-12); }
+  .ds-resource-content .resource-block + .resource-block {
+    padding-top: var(--ds-space-24);
+    border-top: 1px solid var(--ds-line);
+  }
+  .ds-resource-content :is(.resource-block__heading, .resource-model-card h4, .ds-content-heading) {
+    margin: 0;
+    color: var(--ds-ink);
+    font: var(--ds-question);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .ds-resource-content .resource-block__content { margin: 0; color: var(--ds-text); font: var(--ds-body); }
+  .ds-resource-content .resource-block__questions {
+    display: grid;
+    gap: var(--ds-space-12);
+    margin: 0;
+    padding-left: 20px;
+    color: var(--ds-text);
+    font: var(--ds-body);
+    list-style: disc;
+  }
   .ds-resource-content .resource-block__questions li { display: list-item; min-height: 0; padding: 0; border: 0; background: none; }
   .ds-resource-content :is(.resource-block__questions li, .resource-block__field)::before { content: none; }
-  .ds-resource-content .resource-block__field { display: list-item; min-height: 0; list-style: disc; color: var(--ds-text); font: var(--ds-body); }
+  .ds-resource-content .resource-block__fields { display: grid; gap: var(--ds-space-8); margin: 0; padding: 0; }
+  .ds-resource-content .resource-block__field {
+    display: block;
+    min-height: var(--ds-target);
+    margin: 0;
+    padding: 10px 14px;
+    border: 1px solid var(--ds-line-strong);
+    border-radius: var(--ds-radius-field);
+    background: var(--ds-paper);
+    box-shadow: none;
+    color: var(--ds-muted);
+    font: var(--ds-body);
+    list-style: none;
+  }
   .ds-resource-content .resource-block--callout,
   .ds-resource-content .resource-block--quote { padding: 2px 0 2px var(--ds-space-16); border-left: 2px solid var(--ds-line-strong); }
-  .ds-resource-content .resource-block--quote blockquote { margin: 0; color: var(--ds-text); font: var(--ds-body); }
+  .ds-resource-content .resource-block--quote blockquote { margin: 0; color: var(--ds-ink); font: var(--ds-question); }
   .ds-resource-content .resource-block--quote figcaption { color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
   .ds-resource-content .resource-model-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-space-16) var(--ds-space-24); }
-  .ds-resource-content .resource-model-card { display: grid; gap: var(--ds-space-4); padding-top: var(--ds-space-12); border-top: 1px solid var(--ds-line); }
+  .ds-resource-content .resource-model-card { display: grid; gap: var(--ds-space-8); padding-top: var(--ds-space-16); border-top: 1px solid var(--ds-line); }
   .ds-resource-content .resource-model-card h4 { margin: 0; }
-  .ds-resource-content .resource-illustration-image { display: block; max-width: 100%; height: auto; border-radius: var(--ds-radius); }
+  .ds-resource-content .resource-block--illustration { justify-items: start; }
+  .ds-resource-content .resource-illustration-image {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--ds-line);
+    border-radius: var(--ds-radius);
+    background: var(--ds-wash);
+  }
   .ds-resource-content .resource-illustration-orb { display: none; }
-  .ds-resource-content :is(.resource-illustration-caption, .resource-download-card) { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--ds-space-12); color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
+  .ds-resource-content :is(.resource-illustration-caption, .resource-download-card) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-space-12);
+    width: 100%;
+    color: var(--ds-muted);
+    font: var(--ds-label);
+    font-weight: 400;
+  }
+  .ds-resource-content .resource-download-card {
+    padding: var(--ds-space-16) 0;
+    border-top: 1px solid var(--ds-line);
+    border-bottom: 1px solid var(--ds-line);
+  }
   .ds-resource-content .resource-download-kicker { color: var(--ds-muted); font: var(--ds-label); letter-spacing: 0; text-transform: none; }
   .ds-resource-content .resource-file-open {
     display: inline-flex;
@@ -943,6 +1000,11 @@
     cursor: pointer;
   }
   .ds-resource-content .resource-file-open svg { width: 16px; height: 16px; }
+  .ds-resource-content .ds-content-heading {
+    margin: 0;
+    padding-top: var(--ds-space-24);
+    border-top: 1px solid var(--ds-line);
+  }
   .ds-files { display: grid; margin: 0; padding: 0; list-style: none; }
   .ds-files li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--ds-space-12); padding: var(--ds-space-12) 0; border-bottom: 1px solid var(--ds-line); color: var(--ds-text); font: var(--ds-support); }
 

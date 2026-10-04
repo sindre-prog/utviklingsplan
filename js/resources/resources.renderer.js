@@ -244,9 +244,8 @@ function findIllustrationFile(block, files = []) {
   ));
   if (selectedFile) return selectedFile;
 
-  const hasExplicitLegacyKey = Boolean(String(block.key || "").trim());
   const hasExplicitFileReference = Boolean(block.file_id || block.storage_path);
-  if (!hasExplicitLegacyKey && !hasExplicitFileReference && illustrationFiles.length === 1) {
+  if (!hasExplicitFileReference && illustrationFiles.length === 1) {
     return illustrationFiles[0];
   }
 
