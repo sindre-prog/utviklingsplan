@@ -231,11 +231,14 @@ function dsStatus(label, tone = "neutral") {
   return el("span", { class: "ds-status", "data-tone": tone, text: label });
 }
 
-function dsPage({ title, intro = "", read = false, className = "" } = {}, children = []) {
+function dsPage({ title, intro = "", read = false, className = "", actions = [] } = {}, children = []) {
   return el("section", { class: dsClass("ds-page", read && "ds-page--read", className) }, [
-    title || intro ? el("header", { class: "ds-page-head" }, [
-      title ? el("h1", { class: "ds-page-title", text: title }) : null,
-      intro ? el("p", { class: "ds-page-intro", text: intro }) : null
+    title || intro || actions.length ? el("header", { class: dsClass("ds-page-head", actions.length && "ds-page-head--actions") }, [
+      el("div", {}, [
+        title ? el("h1", { class: "ds-page-title", text: title }) : null,
+        intro ? el("p", { class: "ds-page-intro", text: intro }) : null
+      ]),
+      actions.length ? el("div", { class: "ds-object-actions" }, actions) : null
     ]) : null,
     ...children
   ]);
@@ -486,6 +489,82 @@ function dsChoice({ label, options = [], value, help = "", onChange } = {}) {
 
 function dsEmpty(text, action = null) {
   return el("div", { class: "ds-empty" }, [el("p", { class: "ds-empty-text", text }), action]);
+}
+
+function dsFigures(items, { label = "Nøkkeltall" } = {}) {
+  return el("div", { class: "ds-figures", role: "list", "aria-label": label }, items.map(([value, name, hint]) => el("p", { class: "ds-figure", role: "listitem" }, [
+    el("span", { class: "ds-figure-value", text: value }),
+    el("span", { class: "ds-figure-label", text: name }),
+    hint ? el("span", { class: "ds-figure-hint", text: hint }) : null
+  ])));
+}
+
+function dsTools(children = []) {
+  return el("div", { class: "ds-tools" }, children);
+}
+
+function dsSearch(placeholder, { onInput, ariaLabel } = {}) {
+  return el("input", {
+    class: "ds-search",
+    type: "search",
+    placeholder,
+    "aria-label": ariaLabel || placeholder,
+    oninput: (event) => onInput?.(event.target.value)
+  });
+}
+
+function dsSelect(options, value = "", { ariaLabel, onChange } = {}) {
+  const node = el("select", {
+    class: "ds-select",
+    "aria-label": ariaLabel,
+    onchange: (event) => onChange?.(event.target.value)
+  }, options.map(([key, text]) => el("option", { value: key, text, selected: key === value })));
+  node.value = value;
+  return node;
+}
+
+function dsTable({ columns, head = [], rows = [], label = "" } = {}) {
+  return el("div", { class: "ds-table", role: "table", "aria-label": label || undefined, style: columns ? `--ds-table-columns: ${columns}` : undefined }, [
+    head.length ? el("div", { class: "ds-table-head", role: "row" }, head.map((text) => el("span", { role: "columnheader", text }))) : null,
+    ...rows
+  ]);
+}
+
+function dsTableRow(cells, { link = false, muted = false, onClick } = {}) {
+  const open = () => onClick?.();
+  return el("div", {
+    class: dsClass("ds-table-row", link && "is-link", muted && "is-muted"),
+    role: "row",
+    tabindex: link && onClick ? "0" : undefined,
+    onclick: onClick ? (event) => {
+      if (event.target.closest("button, .ds-menu, a, input, select, textarea")) return;
+      open();
+    } : undefined,
+    onkeydown: link && onClick ? (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      if (event.target.closest("button, .ds-menu, a, input, select, textarea")) return;
+      event.preventDefault();
+      open();
+    } : undefined
+  }, cells);
+}
+
+function dsTableCell(children, { label = "", extra = false } = {}) {
+  return el("div", { class: dsClass("ds-table-cell", extra && "is-extra"), role: "cell" }, [
+    label ? el("span", { class: "ds-table-label", text: label }) : null,
+    ...(Array.isArray(children) ? children : [children])
+  ]);
+}
+
+function dsPersonCell(title, meta = "") {
+  return dsTableCell([
+    el("span", { class: "ds-row-title", text: title || "Uten navn" }),
+    meta ? el("span", { class: "ds-row-meta", text: meta }) : null
+  ]);
+}
+
+function dsTextCell(label, value, extra = false) {
+  return dsTableCell([el("span", { text: value })], { label, extra });
 }
 
 function dsSaved() {
@@ -956,26 +1035,6 @@ function setHeader(kicker, title, actions = [], description = "") {
   $("#topline-actions").replaceChildren(...actions);
 }
 
-function metric(label, value, iconName, help) {
-  const tone = label.toLowerCase().replaceAll(" ", "-");
-  return el("div", { class: `panel metric-card metric-card--${tone}` }, [
-    el("div", { class: "meta-row" }, [el("span", { class: "badge", text: label }), icon(iconName)]),
-    el("h2", { text: value }),
-    el("p", { class: "muted", text: help })
-  ]);
-}
-
-function mainStat(label, value, detail, iconName) {
-  return el("div", { class: "main-stat" }, [
-    el("span", { class: "main-stat-icon", "aria-hidden": "true" }, [icon(iconName)]),
-    el("div", { class: "main-stat-copy" }, [
-      el("strong", { text: value }),
-      el("span", { text: label }),
-      el("small", { text: detail })
-    ])
-  ]);
-}
-
 function filterMenu(options, initialValue, ariaLabel, onChange) {
   const current = el("span", { class: "filter-menu-current" });
   const menu = el("div", { class: "filter-menu-list", role: "listbox", hidden: true });
@@ -1048,96 +1107,139 @@ function filterMenu(options, initialValue, ariaLabel, onChange) {
   return root;
 }
 
-function renderClients() {
-  if (state.profile.role === "client") return navigate("plan", state.client?.id, initialWorkspacePane());
-  const createInviteAction = (variant = "primary") => button("Inviter klient", variant === "ghost" ? "mail-plus" : "user-plus", () => openClientInvite(), variant);
-  setHeader(
-    "Klientarbeid",
-    "Klienter",
-    canInviteClient() ? [createInviteAction()] : [],
-    "Se status, siste aktivitet og åpne klientplaner når du trenger kontekst."
-  );
-  const content = $("#content");
-  const visibleClients = getVisibleClients();
-  const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
-  const recentActivityCount = clientActivityItems(visibleClients).length;
-  const upcomingSessionCount = visibleClients.filter((client) => state.programSummaries[client.id]?.nextSessionDate).length;
-  const search = el("input", { class: "search", placeholder: "Søk etter navn, e-post, coach eller arbeidsgiver" });
-  const results = el("div");
-  const render = () => {
-    const filtered = sortClients(filterClients(visibleClients, search.value, coachFilter.value), sortFilter.value);
-    results.replaceChildren(clientGrid(filtered));
-  };
-  const coachFilter = filterMenu([
-    { value: "all", label: "Alle coacher" },
-    ...filterCoaches.map((coach) => ({ value: coach.id, label: coach.name || "Uten navn" }))
-  ], "all", "Filtrer på coach", render);
-  const sortFilter = filterMenu([
-    { value: "name", label: "Navn A-Å" },
-    { value: "recent-activity", label: "Sist aktivitet" },
-    { value: "next-session", label: "Neste samtale" },
-    { value: "created-desc", label: "Opprettet nyest" },
-    { value: "created-asc", label: "Opprettet eldst" }
-  ], "name", "Sorter klienter", render);
-  search.addEventListener("input", render);
-  content.replaceChildren(
-    el("main", { class: "main-area main-clients-area" }, [
-      el("section", { class: "main-summary-strip", "aria-label": "Nøkkeltall" }, [
-        mainStat("Nylig aktivitet", String(recentActivityCount), "siste 14 dager", "activity"),
-        mainStat("Klienter", String(visibleClients.length), "aktive i oversikten", "users"),
-        mainStat("Kommende samtaler", String(upcomingSessionCount), "dato satt i planen", "calendar-days")
-      ]),
-      coachOwnershipOrientation(visibleClients, createInviteAction),
-      clientActivitySection(visibleClients),
-      el("section", { class: "panel list-panel main-section main-client-section" }, [
-        el("div", { class: "toolbar main-section-head" }, [
-          el("div", {}, [
-            el("p", { class: "eyebrow", text: "Utviklingsforløp" }),
-            el("h2", { text: "Klientoversikt" }),
-            el("p", { class: "muted", text: "Åpne en klient for å se mål og rammer for forløpet, utviklingsfokus, samtaler, refleksjoner og ressurser." })
-          ]),
-          el("span", { class: "ui-meta", text: `${visibleClients.length} totalt` })
-        ]),
-        el("div", { class: "main-control-bar" }, [
-          el("div", { class: "filter-row client-filter-row" }, [search, coachFilter, sortFilter])
-        ]),
-        results
-      ]),
-    ].filter(Boolean))
-  );
-  render();
+function renderCoachPage({ title, intro = "", actions = [] }, children) {
+  setHeader("", title, [], intro);
+  $("#content").replaceChildren(dsPage({ title, intro, actions, className: "ds-coach-page" }, [
+    dsSheet(children.filter(Boolean))
+  ]));
 }
 
-function coachOwnershipOrientation(clients, createInviteAction) {
-  if (!canInviteClient()) return null;
-  const hasRecentActivity = clientActivityItems(clients).length > 0;
-  const hasEstablishedClient = clients.some((client) => hasProgramContent(state.programSummaries[client.id]));
-  if (hasRecentActivity || hasEstablishedClient) return null;
+function employerLine(client) {
+  return [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt";
+}
 
-  return ownershipOrientationCard({
-    className: "coach-ownership-orientation main-section",
-    kicker: "Kom i gang",
-    title: "Klienten eier utviklingsløpet",
-    text: "Portalen skal hjelpe klienten å samle og følge egen utvikling. Som coach støtter du med samtaler, spørsmål og relevante ressurser uten å overta arbeidet.",
-    iconName: "user-check",
-    action: createInviteAction("ghost")
+function clientReadyStatus(client) {
+  const ready = isClientActivated(client) && hasClientConsent(client);
+  const text = isClientActivated(client) ? (hasClientConsent(client) ? "Klar" : "Mangler samtykke") : "Venter på aktivering";
+  return dsStatus(text, ready ? "done" : "neutral");
+}
+
+function clientNextSessionLabel(client) {
+  const date = state.programSummaries[client.id]?.nextSessionDate;
+  return date ? formatDate(date) : "Ikke planlagt";
+}
+
+function clientLastActivityLabel(client) {
+  const date = state.programSummaries[client.id]?.lastActivityAt;
+  return date ? formatRelativeDate(date) : "Ingen aktivitet";
+}
+
+function clientSessionCountLabel(client) {
+  const count = state.programSummaries[client.id]?.sessionCount || 0;
+  return count === 1 ? "1 samtale" : `${count} samtaler`;
+}
+
+function showCoachOwnershipOrientation(clients) {
+  if (!canInviteClient()) return false;
+  return !clientActivityItems(clients).length && !clients.some((client) => hasProgramContent(state.programSummaries[client.id]));
+}
+
+function clientSortOptions() {
+  return [
+    ["name", "Navn A-Å"],
+    ["recent-activity", "Sist aktivitet"],
+    ["next-session", "Neste samtale"],
+    ["created-desc", "Opprettet nyest"],
+    ["created-asc", "Opprettet eldst"]
+  ];
+}
+
+function clientOverviewTable(clients) {
+  if (!clients.length) return dsEmpty("Ingen klienter å vise ennå.");
+  return dsTable({
+    columns: "minmax(0, 2fr) repeat(2, minmax(0, 1fr)) minmax(0, 1.2fr)",
+    label: "Klientoversikt",
+    head: ["Klient", "Sist aktivitet", "Neste samtale", "Status"],
+    rows: clients.map((client) => {
+      const canOpen = canOpenClient(client);
+      return dsTableRow([
+        dsPersonCell(client.name, employerLine(client)),
+        dsTextCell("Sist aktivitet", clientLastActivityLabel(client), true),
+        dsTextCell("Neste samtale", clientNextSessionLabel(client), true),
+        dsTableCell([clientReadyStatus(client), el("span", { class: "ds-row-meta", text: clientSessionCountLabel(client) })])
+      ], { link: canOpen, onClick: canOpen ? () => openClientPlan(client) : null });
+    })
   });
 }
 
-function clientActivitySection(clients) {
-  const items = clientActivityItems(clients);
-  if (!items.length) return null;
-  return el("section", { class: "client-activity main-section", "aria-label": "Siste klientaktivitet" }, [
-    el("div", { class: "client-activity-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Siste aktivitet" }),
-        el("h2", { text: "Nylige oppdateringer" }),
-        el("p", { class: "muted", text: "Klienter der noe er lagt til eller endret de siste 14 dagene." })
+function clientActivityTable(items) {
+  return dsTable({
+    columns: "minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr)",
+    label: "Nylige oppdateringer",
+    head: ["Klient", "Sist aktivitet", "Neste samtale"],
+    rows: items.slice(0, 4).map(({ client, activity }) => {
+      const canOpen = canOpenClient(client);
+      return dsTableRow([
+        dsPersonCell(client.name, employerLine(client)),
+        dsTableCell([
+          el("span", { class: "ds-row-title", text: activity.label }),
+          el("span", { class: "ds-row-meta", text: activity.detail })
+        ], { label: "Sist aktivitet" }),
+        dsTextCell("Neste samtale", clientNextSessionLabel(client), true)
+      ], { link: canOpen, onClick: canOpen ? () => openClientPlan(client) : null });
+    })
+  });
+}
+
+function renderClients() {
+  if (state.profile.role === "client") return navigate("plan", state.client?.id, initialWorkspacePane());
+  const visibleClients = getVisibleClients();
+  const filterCoaches = state.profile.role === "admin" ? state.coaches : (state.coach ? [state.coach] : []);
+  const activity = clientActivityItems(visibleClients);
+  const upcoming = visibleClients.filter((client) => state.programSummaries[client.id]?.nextSessionDate).length;
+  const gettingStarted = showCoachOwnershipOrientation(visibleClients);
+  const results = el("div");
+  const renderTable = () => {
+    const filtered = sortClients(filterClients(visibleClients, search.value, coachFilter.value), sortFilter.value);
+    results.replaceChildren(clientOverviewTable(filtered));
+  };
+  const search = dsSearch("Søk etter navn, e-post, coach eller arbeidsgiver", { onInput: renderTable });
+  const coachFilter = dsSelect(
+    [["all", "Alle coacher"], ...filterCoaches.map((coach) => [coach.id, coach.name || "Uten navn"])],
+    "all",
+    { ariaLabel: "Filtrer på coach", onChange: renderTable }
+  );
+  const sortFilter = dsSelect(clientSortOptions(), "name", { ariaLabel: "Sorter klienter", onChange: renderTable });
+  renderCoachPage({
+    title: "Klienter",
+    intro: "Se status, siste aktivitet og åpne klientplaner når du trenger kontekst.",
+    actions: canInviteClient() ? [dsButton("Inviter klient", { variant: "primary", onClick: () => openClientInvite() })] : []
+  }, [
+    gettingStarted
+      ? dsObjectHead({
+        kicker: "Kom i gang",
+        title: "Klienten eier utviklingsløpet",
+        lead: "Portalen skal hjelpe klienten å samle og følge egen utvikling. Som coach støtter du med samtaler, spørsmål og relevante ressurser uten å overta arbeidet."
+      })
+      : dsFigures([
+        [String(activity.length), "Nylig aktivitet", "siste 14 dager"],
+        [String(visibleClients.length), "Klienter", "aktive i oversikten"],
+        [String(upcoming), "Kommende samtaler", "dato satt i planen"]
       ]),
-      el("span", { class: "ui-status-pill", text: `${items.length} nylig oppdatert${items.length === 1 ? "" : "e"}` })
-    ]),
-    el("div", { class: "client-activity-grid" }, items.slice(0, 4).map((item) => clientActivityCard(item)))
+    !gettingStarted && activity.length ? dsSection({
+      title: "Nylige oppdateringer",
+      intro: "Klienter der noe er lagt til eller endret de siste 14 dagene."
+    }, [clientActivityTable(activity)]) : null,
+    dsSection({
+      title: "Klientoversikt",
+      intro: "Åpne en klient for å se mål og rammer for forløpet, utviklingsfokus, samtaler, refleksjoner og ressurser."
+    }, [
+      gettingStarted ? null : dsTools([search, coachFilter, sortFilter]),
+      results
+    ])
   ]);
+  if (gettingStarted) results.replaceChildren(clientOverviewTable(sortClients(visibleClients, "name")));
+  else renderTable();
 }
 
 function clientActivityItems(clients) {
@@ -1194,186 +1296,107 @@ function clientActivitySignal(client) {
   };
 }
 
-function clientActivityCard({ client, activity }) {
-  const name = client.name || "Uten navn";
-  const canOpen = canOpenClient(client);
-  return el("button", {
-    class: `client-activity-card is-${activity.tone} ${canOpen ? "" : "is-locked"}`,
-    type: "button",
-    disabled: !canOpen,
-    onclick: () => openClientPlan(client)
-  }, [
-    el("span", { class: "client-activity-icon", "aria-hidden": "true" }, [icon(activity.iconName)]),
-    el("span", { class: "client-activity-copy" }, [
-      el("strong", { text: name }),
-      el("small", { text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" }),
-      el("span", { class: "client-activity-signal", text: activity.label }),
-      el("span", { class: "client-activity-detail", text: activity.detail })
-    ]),
-    el("span", { class: "client-activity-meta" }, [
-      el("small", { text: activity.meta }),
-      el("span", { text: canOpen ? "Åpne" : "Kun oversikt" })
-    ]),
-    icon("chevron-right")
-  ]);
-}
-
-function clientGrid(clients) {
-  if (!clients.length) return el("p", { class: "muted", text: "Ingen klienter å vise ennå." });
-  return el("div", { class: "client-list" }, clients.map((client) => {
-    const program = state.programSummaries[client.id];
-    const canOpen = canOpenClient(client);
-    const activated = isClientActivated(client);
-    const hasConsent = hasClientConsent(client);
-    const name = client.name || "Uten navn";
-    const nextSession = program?.nextSessionDate ? formatDate(program.nextSessionDate) : "Ikke planlagt";
-    const activityLabel = program?.lastActivityAt ? formatRelativeDate(program.lastActivityAt) : "Ingen aktivitet";
-    return el("button", {
-      class: `client-list-row ${canOpen ? "" : "is-locked"}`,
-      disabled: !canOpen,
-      title: canOpen ? "Åpne utviklingsplan" : "Kun oversikt. Du er ikke coach for denne klienten.",
-      onclick: () => openClientPlan(client)
-    }, [
-      el("span", { class: "client-list-avatar", text: name.slice(0, 1).toUpperCase() }),
-      el("span", { class: "client-list-primary" }, [
-        el("strong", { text: name }),
-        el("small", { text: [client.employer, client.role].filter(Boolean).join(" · ") || "Arbeidsgiver ikke satt" })
-      ]),
-      el("span", { class: "client-list-detail" }, [
-        el("small", { text: "Sist aktivitet" }),
-        el("strong", { text: activityLabel })
-      ]),
-      el("span", { class: "client-list-detail" }, [
-        el("small", { text: "Neste samtale" }),
-        el("strong", { text: nextSession })
-      ]),
-      el("span", { class: "client-list-status" }, [
-        el("span", { class: `status-dot ${activated && hasConsent ? "is-ready" : "is-pending"}` }),
-        el("span", { text: activated ? (hasConsent ? "Klar" : "Mangler samtykke") : "Venter på aktivering" }),
-        el("small", { text: program?.sessionCount === 1 ? "1 samtale" : `${program?.sessionCount || 0} samtaler` })
-      ]),
-      icon("chevron-right")
-    ]);
-  }));
-}
-
 function renderAdmin() {
-  setHeader("Plattform", "Administrasjon", [
-    button("Inviter coach", "user-round-plus", () => openCoachInvite()),
-    button("Inviter klient", "user-plus", () => openClientInvite(), "ghost")
-  ], "Administrer mennesker, tilganger og innhold uten å åpne fortrolig klientarbeid.");
-  const coachSearch = el("input", { class: "search", placeholder: "Søk coach" });
-  const clientSearch = el("input", { class: "search", placeholder: "Søk klient, coach eller arbeidsgiver" });
   const coachTableSlot = el("div");
   const clientTableSlot = el("div");
   const resourceAdminSlot = el("div");
+  const coachSearch = dsSearch("Søk coach", { onInput: () => renderCoaches() });
+  const clientSearch = dsSearch("Søk klient, coach eller arbeidsgiver", { onInput: () => renderClientsTable() });
+  const adminCoachFilter = dsSelect(
+    [["all", "Alle coacher"], ...state.coaches.map((coach) => [coach.id, coach.name || "Uten navn"])],
+    "all",
+    { ariaLabel: "Filtrer klienter på coach", onChange: () => renderClientsTable() }
+  );
+  const adminSortFilter = dsSelect(
+    [["name", "Navn A-Å"], ["next-session", "Neste samtale"], ["created-desc", "Opprettet nyest"], ["created-asc", "Opprettet eldst"]],
+    "name",
+    { ariaLabel: "Sorter klienter", onChange: () => renderClientsTable() }
+  );
   const renderCoaches = () => {
-    const q = coachSearch.value.trim().toLowerCase();
-    const coaches = state.coaches.filter((coach) => [coach.name, coach.email].filter(Boolean).join(" ").toLowerCase().includes(q));
-    coachTableSlot.replaceChildren(adminTable("Coacher", ["Navn", "E-post", "Status", "Klienter", ""], coaches.map((coach) => [
-      coach.name || "-", coach.email || "Ikke registrert", coach.user_id ? "Innlogget" : "Ikke innlogget", String(state.clients.filter((client) => (client.coach_ids || []).includes(coach.id)).length),
-      actionGroup([["Rediger", () => openCoachEdit(coach)], ["Arkiver", () => deleteCoach(coach)]])
-    ])));
+    const query = coachSearch.value.trim().toLowerCase();
+    const coaches = state.coaches.filter((coach) => [coach.name, coach.email].filter(Boolean).join(" ").toLowerCase().includes(query));
+    coachTableSlot.replaceChildren(coaches.length ? dsTable({
+      columns: "minmax(0, 1.4fr) minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, .6fr) 112px",
+      label: "Coacher",
+      head: ["Navn", "E-post", "Status", "Klienter", ""],
+      rows: coaches.map((coach) => dsTableRow([
+        dsPersonCell(coach.name),
+        dsTextCell("E-post", coach.email || "Ikke registrert"),
+        dsTableCell([dsStatus(coach.user_id ? "Innlogget" : "Ikke innlogget", coach.user_id ? "done" : "neutral")]),
+        dsTextCell("Klienter", String(state.clients.filter((client) => (client.coach_ids || []).includes(coach.id)).length), true),
+        el("div", { class: "ds-table-actions" }, [
+          dsMenu([
+            { label: "Rediger", onClick: () => openCoachEdit(coach) },
+            { label: "Arkiver", onClick: () => deleteCoach(coach) }
+          ], { label: `Valg for ${coach.name || "coach"}` })
+        ])
+      ]))
+    }) : dsEmpty("Ingen rader ennå."));
+    refreshIcons();
   };
   const renderClientsTable = () => {
     const clients = sortClients(filterClients(state.clients, clientSearch.value, adminCoachFilter.value), adminSortFilter.value);
-    clientTableSlot.replaceChildren(adminTable("Alle klienter", ["Navn", "Coach", "Status", "Tilgang", ""], clients.map((client) => [
-      client.name || "-", coachNames(client) || "-", clientStatusLabel(client),
-      canOpenClient(client) ? "Kan åpnes" : "Kun oversikt",
-      actionGroup([
-        ["Åpne", () => openClientPlan(client), !canOpenClient(client)],
-        ["Rediger", () => openClientEdit(client)],
-        ["Arkiver", () => deleteClient(client)]
-      ])
-    ])));
-  };
-  const adminCoachFilter = filterMenu([
-    { value: "all", label: "Alle coacher" },
-    ...state.coaches.map((coach) => ({ value: coach.id, label: coach.name || "Uten navn" }))
-  ], "all", "Filtrer klienter på coach", renderClientsTable);
-  const adminSortFilter = filterMenu([
-    { value: "name", label: "Navn A-Å" },
-    { value: "next-session", label: "Neste samtale" },
-    { value: "created-desc", label: "Opprettet nyest" },
-    { value: "created-asc", label: "Opprettet eldst" }
-  ], "name", "Sorter klienter", renderClientsTable);
-  coachSearch.addEventListener("input", renderCoaches);
-  clientSearch.addEventListener("input", renderClientsTable);
-  $("#content").replaceChildren(el("main", { class: "main-area admin-area" }, [
-    el("section", { class: "main-summary-strip", "aria-label": "Administrasjonsoversikt" }, [
-      mainStat("Coacher", String(state.coaches.length), "med plattformtilgang", "user-round-check"),
-      mainStat("Klienter", String(state.clients.length), "registrert", "users"),
-      mainStat("Tilgang", "Rollebasert", "fortrolig innhold er skjermet", "shield-check")
-    ]),
-    el("section", { class: "panel list-panel main-section admin-section" }, [
-      el("div", { class: "toolbar main-section-head" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Team" }), el("h3", { text: "Coacher" })]),
-        el("div", { class: "toolbar-actions" }, [
-          button("Inviter coach", "mail-plus", () => openCoachInvite(), "ghost")
+    clientTableSlot.replaceChildren(clients.length ? dsTable({
+      columns: "minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr) 112px",
+      label: "Klienter",
+      head: ["Navn", "Coach", "Status", "Tilgang", ""],
+      rows: clients.map((client) => dsTableRow([
+        dsPersonCell(client.name),
+        dsTextCell("Coach", coachNames(client) || "-"),
+        dsTextCell("Status", clientStatusLabel(client), true),
+        dsTextCell("Tilgang", canOpenClient(client) ? "Kan åpnes" : "Kun oversikt", true),
+        el("div", { class: "ds-table-actions" }, [
+          canOpenClient(client) ? dsButton("Åpne", { variant: "text", onClick: () => openClientPlan(client) }) : null,
+          dsMenu([
+            { label: "Rediger", onClick: () => openClientEdit(client) },
+            { label: "Arkiver", onClick: () => deleteClient(client) }
+          ], { label: `Valg for ${client.name || "klient"}` })
         ])
-      ]),
-      el("div", { class: "filter-row admin-filter-row" }, [coachSearch]),
+      ], { muted: !canOpenClient(client) }))
+    }) : dsEmpty("Ingen rader ennå."));
+    refreshIcons();
+  };
+  renderCoachPage({
+    title: "Administrasjon",
+    intro: "Administrer mennesker, tilganger og innhold uten å åpne fortrolig klientarbeid."
+  }, [
+    dsFigures([
+      [String(state.coaches.length), "Coacher", "med plattformtilgang"],
+      [String(state.clients.length), "Klienter", "registrert"]
+    ]),
+    dsSection({ title: "Coacher", actions: [dsButton("Inviter coach", { onClick: () => openCoachInvite() })] }, [
+      dsTools([coachSearch]),
       coachTableSlot
     ]),
-    el("section", { class: "panel list-panel main-section admin-section" }, [
-      el("div", { class: "toolbar main-section-head" }, [
-        el("div", {}, [el("p", { class: "eyebrow", text: "Tilgang" }), el("h3", { text: "Klienter" })]),
-        el("div", { class: "toolbar-actions" }, [
-          button("Inviter klient", "mail-plus", () => openClientInvite(), "ghost")
-        ])
-      ]),
-      el("p", { class: "muted", text: "Admin viser tilgang og status. Forløpsinnhold, notater og refleksjoner kan bare åpnes når du selv er coach for klienten." }),
-      el("div", { class: "filter-row admin-filter-row" }, [clientSearch, adminCoachFilter, adminSortFilter]),
+    dsSection({
+      title: "Klienter",
+      intro: "Admin viser tilgang og status. Forløpsinnhold, notater og refleksjoner kan bare åpnes når du selv er coach for klienten.",
+      actions: [dsButton("Inviter klient", { onClick: () => openClientInvite() })]
+    }, [
+      dsTools([clientSearch, adminCoachFilter, adminSortFilter]),
       clientTableSlot
     ]),
     resourceAdminSlot
-  ]));
+  ]);
   renderCoaches();
   renderClientsTable();
   renderResourceAdminSection(resourceAdminSlot);
 }
 
-function adminTable(title, headers, rows) {
-  return el("div", { class: "table-wrap", "aria-label": title }, [
-    el("table", {}, [
-      el("thead", {}, [el("tr", {}, headers.map((head) => el("th", { text: head })))]),
-      el("tbody", {}, rows.length ? rows.map((row) => el("tr", {}, row.map((cell, index) => {
-        const td = el("td", { "data-label": headers[index] || "Handlinger" });
-        if (cell instanceof Node) td.append(cell);
-        else td.textContent = cell;
-        return td;
-      }))) : [el("tr", {}, [el("td", { text: "Ingen rader ennå.", colspan: String(headers.length) })])])
-    ])
-  ]);
-}
-
-function actionGroup(actions) {
-  return el("div", { class: "row-actions" }, actions.map(([label, handler, disabled = false]) => {
-    const tone = ["Slett", "Arkiver"].includes(label) ? "destructive" : "ghost";
-    return el("button", { class: `button ${tone}`, disabled, onclick: disabled ? null : handler, text: label });
-  }));
-}
-
 async function renderResourceAdminSection(slot) {
-  slot.replaceChildren(el("section", { class: "panel list-panel main-section admin-section" }, [
-    el("div", { class: "toolbar main-section-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Fagbibliotek" }),
-        el("h3", { text: "Ressurser" }),
-        el("p", { class: "muted", text: "Opprett, kvalitetssikre og publiser innhold som kan deles med klienter." })
-      ]),
-      button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
-    ]),
-    el("p", { class: "muted", text: "Henter ressursene …" })
-  ]));
+  const section = ({ intro = "", children = [] } = {}) => dsSection({
+    title: "Ressurser",
+    intro,
+    actions: [dsButton("Ny ressurs", { onClick: () => openResourceAdminEditor() })]
+  }, children);
+  slot.replaceChildren(section({
+    intro: "Opprett, kvalitetssikre og publiser innhold som coacher kan dele med klienter.",
+    children: [dsEmpty("Henter ressursene …")]
+  }));
 
   const library = await ensureResourceLibrary();
   if (!library?.getAdminResources) {
-    slot.replaceChildren(el("section", { class: "panel empty-state" }, [
-      el("p", { class: "eyebrow", text: "Ressurser" }),
-      el("h3", { text: "Ressursene kunne ikke åpnes" }),
-      el("p", { class: "muted", text: "Last siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter." })
-    ]));
+    slot.replaceChildren(section({ children: [dsEmpty("Ressursene kunne ikke åpnes. Last siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter.")] }));
     return;
   }
 
@@ -1382,23 +1405,11 @@ async function renderResourceAdminSection(slot) {
     resources = await library.getAdminResources(state.sb);
   } catch (error) {
     console.error("Could not load admin resources", error);
-    slot.replaceChildren(el("section", { class: "panel empty-state" }, [
-      el("p", { class: "eyebrow", text: "Ressurser" }),
-      el("h3", { text: "Kunne ikke hente ressurser" }),
-      el("p", { class: "muted", text: "Prøv å laste siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter." })
-    ]));
+    slot.replaceChildren(section({ children: [dsEmpty("Kunne ikke hente ressurser. Prøv å laste siden på nytt. Kontakt ansvarlig for portalen hvis problemet fortsetter.")] }));
     return;
   }
 
-  const search = el("input", { class: "search", placeholder: "Søk ressurs, område eller type" });
-  const tableSlot = el("div", { class: "resource-admin-list" });
-  const statusFilter = filterMenu([
-    { value: "all", label: "Alle statuser" },
-    { value: "draft", label: "Utkast" },
-    { value: "published", label: "Publisert" },
-    { value: "archived", label: "Arkivert" }
-  ], "all", "Filtrer ressurser på status", () => renderTable());
-
+  const tableSlot = el("div");
   const renderTable = () => {
     const query = search.value.trim().toLowerCase();
     const filtered = resources.filter((resource) => {
@@ -1415,58 +1426,46 @@ async function renderResourceAdminSection(slot) {
       ].filter(Boolean).join(" ").toLowerCase();
       return matchesStatus && (!query || haystack.includes(query));
     });
-    tableSlot.replaceChildren(...(filtered.length ? filtered.map((resource) => {
-      const readiness = resourceReadinessItems(resource);
-      const missing = readiness.filter((item) => item.group === "minimum" && !item.done).length;
-      const statusLabel = resourceLabel(RESOURCE_STATUS_OPTIONS, resource.status);
-      return el("article", { class: `resource-admin-row status-${resource.status || "draft"}` }, [
-        el("button", { class: "resource-admin-row-main", type: "button", onclick: () => openResourceAdminEditor(resource) }, [
-          el("span", { class: "resource-admin-row-icon" }, [icon(resource.type === "worksheet" ? "clipboard-list" : "book-open")]),
-          el("span", { class: "resource-admin-row-copy" }, [
-            el("span", { class: "resource-admin-row-title", text: resource.title || "Uten tittel" }),
-            el("span", { class: "resource-admin-row-summary", text: resource.introduction || "Kort introduksjon mangler." }),
-            el("span", { class: "resource-admin-row-meta" }, [
-              el("span", { class: `resource-status-pill status-${resource.status || "draft"}`, text: statusLabel }),
-              el("span", { text: resourceLabel(RESOURCE_TYPE_OPTIONS, resource.type) }),
-              el("span", { text: resource.development_area_label || "Ikke kategorisert" })
-            ])
+    tableSlot.replaceChildren(filtered.length ? dsTable({
+      columns: "minmax(0, 2.4fr) minmax(0, 1.2fr) 160px",
+      label: "Ressurser",
+      head: ["Ressurs", "Før publisering", ""],
+      rows: filtered.map((resource) => {
+        const missing = resourceReadinessItems(resource).filter((item) => item.group === "minimum" && !item.done).length;
+        return dsTableRow([
+          dsTableCell([
+            el("span", { class: "ds-row-title", text: resource.title || "Uten tittel" }),
+            el("span", { class: "ds-row-meta", text: [
+              resourceLabel(RESOURCE_STATUS_OPTIONS, resource.status),
+              resourceLabel(RESOURCE_TYPE_OPTIONS, resource.type),
+              resource.development_area_label || "Ikke kategorisert"
+            ].join(" · ") }),
+            el("span", { class: "ds-table-text", text: resource.introduction || "Kort introduksjon mangler." })
           ]),
-          el("span", { class: `resource-readiness-compact ${missing ? "is-missing" : "is-ready"}` }, [
-            icon(missing ? "circle-alert" : "circle-check"),
-            el("span", { text: missing ? `${missing} obligatoriske felt mangler` : "Klar til publisering" })
-          ]),
-          icon("chevron-right")
-        ]),
-        el("div", { class: "resource-admin-row-actions" }, [
-          ...(resource.status === "draft" ? [button("Publiser", "send", () => publishResource(resource), "secondary")] : []),
-          el("button", {
-            class: "icon-button",
-            type: "button",
-            title: resource.status === "archived" ? "Reaktiver" : "Arkiver",
-            onclick: () => toggleResourceArchive(resource)
-          }, [icon(resource.status === "archived" ? "rotate-ccw" : "archive")])
-        ])
-      ]);
-    }) : [el("section", { class: "empty-state resource-admin-empty" }, [
-      el("h3", { text: "Ingen ressurser funnet" }),
-      el("p", { class: "muted", text: "Prøv et annet søk eller en annen status." })
-    ])]));
+          dsTableCell([dsStatus(
+            missing ? `${missing} obligatoriske felt mangler` : "Klar til publisering",
+            missing ? "next" : "done"
+          )]),
+          el("div", { class: "ds-table-actions" }, [
+            resource.status === "draft" ? dsButton("Publiser", { onClick: () => publishResource(resource) }) : null,
+            dsButton(resource.status === "archived" ? "Reaktiver" : "Arkiver", { variant: "text", onClick: () => toggleResourceArchive(resource) })
+          ])
+        ], { link: true, muted: resource.status === "archived", onClick: () => openResourceAdminEditor(resource) });
+      })
+    }) : dsEmpty("Ingen ressurser funnet. Prøv et annet søk eller en annen status."));
     refreshIcons();
   };
+  const search = dsSearch("Søk ressurs, område eller type", { onInput: renderTable });
+  const statusFilter = dsSelect(
+    [["all", "Alle statuser"], ...RESOURCE_STATUS_OPTIONS],
+    "all",
+    { ariaLabel: "Filtrer ressurser på status", onChange: renderTable }
+  );
 
-  search.addEventListener("input", renderTable);
-  slot.replaceChildren(el("section", { class: "panel list-panel main-section admin-section" }, [
-    el("div", { class: "toolbar main-section-head" }, [
-      el("div", {}, [
-        el("p", { class: "eyebrow", text: "Fagbibliotek" }),
-        el("h3", { text: "Ressurser" }),
-        el("p", { class: "muted", text: "Opprett, kvalitetssikre og publiser innhold som coacher kan dele med klienter." })
-      ]),
-      button("Ny ressurs", "plus", () => openResourceAdminEditor(), "ghost")
-    ]),
-    el("div", { class: "filter-row admin-filter-row" }, [search, statusFilter]),
-    tableSlot
-  ]));
+  slot.replaceChildren(section({
+    intro: "Opprett, kvalitetssikre og publiser innhold som coacher kan dele med klienter.",
+    children: [dsTools([search, statusFilter]), tableSlot]
+  }));
   renderTable();
 }
 
@@ -4288,18 +4287,6 @@ async function removeLeadershipCompetency(item) {
 
 function createCompetencyAction(data, item) {
   createAction(data, "", item.id, "", { title: `Nytt eksperiment for ${item.title || "kompetansen"}` });
-}
-
-function ownershipOrientationCard({ className = "", kicker, title, text, iconName = "compass", action = null }) {
-  return el("section", { class: `ownership-orientation ${className}`.trim() }, [
-    el("span", { class: "ownership-orientation-icon", "aria-hidden": "true" }, [icon(iconName)]),
-    el("div", { class: "ownership-orientation-copy" }, [
-      el("p", { class: "workspace-kicker", text: kicker }),
-      el("h3", { text: title }),
-      el("p", { text })
-    ]),
-    action ? el("div", { class: "ownership-orientation-action" }, [action]) : null
-  ].filter(Boolean));
 }
 
 function localIsoDate(date = new Date()) {

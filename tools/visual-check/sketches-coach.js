@@ -1,6 +1,6 @@
 // Skisser for steg 14 i docs/DESIGNSYSTEM_PLAN_DEL2.md: klientlisten, admin, ressursbiblioteket,
-// ressursredigering og «Del ressurs» bygget med byggeklossene i design-system.css. Nye byggeklosser
-// (nøkkeltall, filterrad og tabell) ligger i sketches.css til de flyttes inn i steg 15 og 16.
+// ressursredigering og «Del ressurs» bygget med byggeklossene i design-system.css. Nøkkeltall,
+// filterrad og tabell er i design-system.css fra steg 15. Resten ligger i sketches.css til steg 16.
 // Boot.js starter siden med fiktive data (page=clients|admin|resources), og deretter vises skissen.
 // Knappene gjør ingenting. Se docs/DESIGNSKISSER_STEG14.md.
 //

@@ -1154,6 +1154,43 @@
   .ds-facts dd { margin: 0; color: var(--ds-text); font: var(--ds-support); }
   .ds-facts + .ds-check { margin-top: var(--ds-space-24); padding-top: var(--ds-space-20); border-top: 1px solid var(--ds-line); color: var(--ds-ink); font: var(--ds-body); }
 
+  /* 22 · Coach-sidene: tittel i siden, nøkkeltall, filterrad og tabell */
+  .workspace:has(.ds-coach-page) > .topline { display: none; }
+  .ds-page-head--actions { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--ds-space-16) var(--ds-space-24); }
+  .ds-page-head--actions .ds-object-actions { display: flex; flex-wrap: wrap; gap: var(--ds-space-12); }
+
+  .ds-figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--ds-space-24); margin: 0; }
+  .ds-figure { display: grid; gap: 2px; margin: 0; }
+  .ds-figure-value { color: var(--ds-ink); font: var(--ds-title-section); }
+  .ds-figure-label { color: var(--ds-text); font: var(--ds-question); font-size: 15px; }
+  .ds-figure-hint { color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
+
+  .ds-tools { display: flex; flex-wrap: wrap; gap: var(--ds-space-12); margin: var(--ds-space-16) 0 var(--ds-space-8); }
+  .ds-tools .ds-search { flex: 1 1 280px; width: auto; max-width: none; }
+  .ds-tools .ds-select { flex: 0 1 220px; min-height: var(--ds-target); }
+
+  .ds-table { display: grid; margin: var(--ds-space-16) 0 0; }
+  .ds-tools + .ds-table { margin-top: var(--ds-space-8); }
+  .ds-table-head, .ds-table-row {
+    display: grid;
+    grid-template-columns: var(--ds-table-columns, minmax(0, 2fr) repeat(3, minmax(0, 1fr)) auto);
+    align-items: center;
+    gap: var(--ds-space-16);
+    padding: var(--ds-space-12) var(--ds-space-8);
+    border-bottom: 1px solid var(--ds-line);
+  }
+  .ds-table-head { padding-top: 0; color: var(--ds-muted); font: var(--ds-label); }
+  .ds-table-row { min-height: 56px; color: var(--ds-text); font: var(--ds-support); }
+  .ds-table-row.is-link { cursor: pointer; }
+  .ds-table-row.is-link:hover { background: var(--ds-wash); }
+  .ds-table-row.is-muted .ds-row-title { color: var(--ds-muted); }
+  .ds-table-cell { display: grid; gap: 2px; min-width: 0; }
+  .ds-table-cell > .ds-row-title, .ds-table-cell > .ds-row-meta { overflow: hidden; text-overflow: ellipsis; }
+  .ds-table-label { display: none; color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
+  .ds-table-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--ds-space-16); }
+  .ds-table-actions .ds-menu { margin: 0; }
+  .ds-table-text { display: -webkit-box; overflow: hidden; color: var(--ds-muted); font: var(--ds-label); font-weight: 400; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
   @media (max-width: 1239px) {
     .ds-sheet-body { padding: var(--ds-space-32) var(--ds-space-32) var(--ds-space-40); }
     .ds-appbar-inner {
@@ -1274,6 +1311,18 @@
     .ds-chooser-detail { padding: var(--ds-space-20); }
     .ds-chooser-detail .ds-back { display: inline-flex; }
     .ds-chooser-facts { grid-template-columns: 1fr; gap: var(--ds-space-20); }
+    .ds-page-head--actions .ds-object-actions { width: 100%; }
+    .ds-page-head--actions .ds-object-actions .ds-button { flex: 1 1 auto; }
+    .ds-figures { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: var(--ds-space-12); }
+    .ds-figure-hint { display: none; }
+    .ds-tools .ds-select { flex: 1 1 100%; }
+    .ds-table-head { display: none; }
+    .ds-table-row { position: relative; grid-template-columns: minmax(0, 1fr) auto; gap: var(--ds-space-8) var(--ds-space-16); padding: var(--ds-space-16) 0; }
+    .ds-table-cell:first-child { grid-column: 1 / -1; }
+    .ds-table-cell.is-extra, .ds-table-text { display: none; }
+    .ds-table-label { display: block; }
+    .ds-table-actions { position: absolute; top: var(--ds-space-8); right: 0; }
+    .ds-table-row:has(.ds-table-actions) > .ds-table-cell:first-child { padding-right: 150px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
