@@ -4441,20 +4441,23 @@ function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
     state.focusView = "experiments";
     renderCachedProgram("work");
   };
-  const group = ({ label, objectLabel, items, emptyText }) => el("section", { class: "ds-group" }, [
+  const group = ({ label, objectLabel, premise = "", items, emptyText }) => el("section", { class: "ds-group" }, [
     el("h3", { class: "ds-group-label" }, [
       el("span", { class: "ds-group-name", text: label }),
       el("span", { class: "ds-group-object", text: objectLabel })
     ]),
-    items.length
-      ? el("ul", { class: "ds-link-rows" }, items.map((item) => el("li", {}, [
-        el("button", { class: "ds-link-row", type: "button", onclick: item.onAction }, [
-          el("span", { class: "ds-link-row-title", text: item.title }),
-          item.status ? dsStatus(item.status, item.tone) : null,
-          icon("chevron-right")
-        ].filter(Boolean))
-      ])))
-      : el("p", { class: "ds-group-empty", text: emptyText })
+    el("div", { class: "ds-group-main" }, [
+      premise ? el("p", { class: "ds-group-premise", text: premise }) : null,
+      items.length
+        ? el("ul", { class: "ds-link-rows" }, items.map((item) => el("li", {}, [
+          el("button", { class: "ds-link-row", type: "button", onclick: item.onAction }, [
+            el("span", { class: "ds-link-row-title", text: item.title }),
+            item.status ? dsStatus(item.status, item.tone) : null,
+            icon("chevron-right")
+          ].filter(Boolean))
+        ])))
+        : el("p", { class: "ds-group-empty", text: emptyText })
+    ].filter(Boolean))
   ]);
 
   return el("section", { class: "ds-section", "aria-labelledby": "now-focus-overview-title" }, [
@@ -4465,6 +4468,7 @@ function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
       group({
         label: "Ytre prosjekt",
         objectLabel: "Fokusoppdrag",
+        premise: "Det som er viktigst å lykkes med i jobben nå – en konkret situasjon, leveranse eller utfordring.",
         emptyText: "Ikke valgt ennå",
         items: focusItems.map((item) => {
           const status = focusPlanStatus(item.area);
@@ -4479,6 +4483,9 @@ function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
       group({
         label: "Indre prosjekt",
         objectLabel: "Lederkompetanser",
+        premise: state.profile?.role === "client"
+          ? "Det du må utvikle hos deg selv for å lykkes bedre med det ytre prosjektet."
+          : "Det klienten må utvikle hos seg selv for å lykkes bedre med det ytre prosjektet.",
         emptyText: "Ikke valgt ennå",
         items: activeCompetencies.map((item) => ({
           title: item.title || "Lederkompetanse",

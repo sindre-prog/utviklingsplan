@@ -747,6 +747,8 @@
   .ds-group-label { display: grid; gap: 2px; align-content: start; margin: 0; padding-top: 10px; }
   .ds-group-name { color: var(--ds-ink); font: var(--ds-question); font-size: 15px; }
   .ds-group-object { color: var(--ds-muted); font: var(--ds-label); font-weight: 400; }
+  .ds-group-main { display: grid; align-content: start; min-width: 0; }
+  .ds-group-premise { margin: 0; padding-top: 10px; color: var(--ds-muted); font: var(--ds-support); }
   .ds-group-empty { margin: 0; padding-top: 10px; color: var(--ds-muted); font: var(--ds-support); }
   .ds-group-title { margin: var(--ds-space-24) 0 0; color: var(--ds-ink); font: var(--ds-label); }
   .ds-link-rows { display: grid; margin: 0; padding: 0; list-style: none; }
@@ -1420,6 +1422,7 @@
     .ds-progress > .ds-button { justify-self: start; }
     .ds-group { grid-template-columns: minmax(0, 1fr); gap: var(--ds-space-4); }
     .ds-group-label { padding-top: 0; }
+    .ds-group-premise { padding-top: 0; }
     .ds-group-empty { padding-top: 0; }
     .ds-appbar-inner {
       min-height: 60px;
