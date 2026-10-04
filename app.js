@@ -2231,8 +2231,8 @@ function parseResourceAdminPayload(values, currentResource = null, options = {})
   const valueText = (key) => String(values?.[key] ?? "").trim();
   const title = valueText("title");
   const slug = valueText("slug") || resourceSlug(title);
-  if (!title) throw new Error("Tittel må fylles ut.");
-  if (!slug) throw new Error("Slug må fylles ut.");
+  if (!title && validatePublished) throw new Error("Tittel må fylles ut.");
+  if (!slug && validatePublished) throw new Error("Slug må fylles ut.");
 
   const estimatedDuration = values.estimated_duration ? Number(values.estimated_duration) : null;
   if (estimatedDuration !== null && (!Number.isInteger(estimatedDuration) || estimatedDuration <= 0)) {
@@ -2636,6 +2636,7 @@ function openSendResourceDrawer(resource) {
     customSpec(["contextType", "contextId", "existingSharedResourceId"], createResourceContextPicker(resource, clients)),
     sectionSpec("Personlig melding", "Forklar kort hvorfor du sender ressursen. Denne teksten vises tydelig for klienten."),
     textareaSpec("coachNote", "Melding fra deg", resource.suggested_coach_note || "", {
+      rows: "4",
       placeholder: "Skriv kort hvorfor du sender ressursen, og hva klienten bør bruke den til."
     })
   ], async (values) => {
@@ -2681,14 +2682,16 @@ function createResourceContextPicker(resource, clients) {
   const contextId = el("input", { type: "hidden", name: "contextId", value: "" });
   const existingSharedResourceId = el("input", { type: "hidden", name: "existingSharedResourceId", value: "" });
   const picker = el("select", { class: "ds-select" });
-  const message = el("p", { class: "ds-form-help", text: "Velg en konkret plassering hvis det gjør ressursen lettere å forstå for klienten." });
+  const field = dsFormField("Hvor skal ressursen ligge?", picker, {
+    help: "Velg en konkret plassering hvis det gjør ressursen lettere å forstå for klienten."
+  });
+  const message = field.querySelector(".ds-form-help");
   const resendMessage = el("p", { class: "ds-form-help", text: "Det sendes også en e-post til klientens registrerte adresse." });
   const wrapper = el("div", {}, [
-    dsFormField("Hvor skal ressursen ligge?", picker),
+    field,
     contextType,
     contextId,
     existingSharedResourceId,
-    message,
     resendMessage
   ]);
 
