@@ -899,7 +899,7 @@
   .ds-content p { margin: 0; color: var(--ds-text); font: var(--ds-body); }
   .ds-content-heading { margin: var(--ds-space-8) 0 0; color: var(--ds-ink); font: var(--ds-question); }
   .ds-content-list { display: grid; gap: var(--ds-space-8); margin: 0; padding-left: 20px; color: var(--ds-text); font: var(--ds-body); }
-  .ds-resource-content { gap: var(--ds-space-24); }
+  .ds-resource-content { gap: var(--ds-space-32); }
   .ds-resource-content > .ds-button { justify-self: start; }
   .ds-resource-content :is(.resource-block, .resource-model-card) {
     margin: 0;
@@ -911,17 +911,23 @@
   }
   .ds-resource-content .resource-block { display: grid; gap: var(--ds-space-12); }
   .ds-resource-content .resource-block + .resource-block {
-    padding-top: var(--ds-space-24);
+    padding-top: var(--ds-space-32);
     border-top: 1px solid var(--ds-line);
+  }
+  .ds-resource-content .resource-block--intro + .resource-block--illustration {
+    padding-top: 0;
+    border-top: 0;
   }
   .ds-resource-content :is(.resource-block__heading, .resource-model-card h4, .ds-content-heading) {
     margin: 0;
     color: var(--ds-ink);
-    font: var(--ds-question);
+    font: var(--ds-title-section);
     letter-spacing: 0;
     text-transform: none;
   }
+  .ds-resource-content .resource-model-card h4 { font: var(--ds-question); }
   .ds-resource-content .resource-block__content { margin: 0; color: var(--ds-text); font: var(--ds-body); }
+  .ds-resource-content .resource-block--intro .resource-block__content { color: var(--ds-ink); }
   .ds-resource-content .resource-block__questions {
     display: grid;
     gap: var(--ds-space-12);
@@ -954,12 +960,18 @@
   .ds-resource-content .resource-model-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-space-16) var(--ds-space-24); }
   .ds-resource-content .resource-model-card { display: grid; gap: var(--ds-space-8); padding-top: var(--ds-space-16); border-top: 1px solid var(--ds-line); }
   .ds-resource-content .resource-model-card h4 { margin: 0; }
-  .ds-resource-content .resource-block--illustration { justify-items: start; }
+  .ds-resource-content .resource-block--illustration {
+    justify-items: stretch;
+    width: 100%;
+  }
   .ds-resource-content .resource-illustration-image {
     display: block;
     width: 100%;
     max-width: 100%;
     height: auto;
+    min-height: 220px;
+    aspect-ratio: 14 / 9;
+    object-fit: contain;
     border: 1px solid var(--ds-line);
     border-radius: var(--ds-radius);
     background: var(--ds-wash);

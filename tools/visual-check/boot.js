@@ -80,6 +80,11 @@ async function loadPortal() {
   const app = document.createElement("script");
   app.textContent = source.replace(/\ninit\(\);\s*$/, "\n");
   document.body.appendChild(app);
+
+  const started = Date.now();
+  while (!window.RaederResourceLibrary?.getResourceFileUrl && Date.now() - started < 5000) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
 }
 
 function mapCompetency(item) {
@@ -123,9 +128,18 @@ function programCompetency(competency, status, priority, fields = {}) {
 function visualResourceFileUrl(_sb, path) {
   const value = String(path || "");
   if (value.includes("control-circle") || value.endsWith(".svg")) {
-    return "tools/visual-check/media/kontrollsirkelen.svg";
+    return "/tools/visual-check/media/kontrollsirkelen.svg";
   }
   return value;
+}
+
+function applyVisualResourceLibrary(library = window.RaederResourceLibrary) {
+  if (!library) return null;
+  window.RaederResourceLibrary = {
+    ...library,
+    getResourceFileUrl: visualResourceFileUrl
+  };
+  return window.RaederResourceLibrary;
 }
 
 function daysFromNow(days) {
@@ -217,7 +231,7 @@ async function bootCoachPage(page, client, sharedResource) {
   const library = await ensureResourceLibrary();
   const resources = libraryResources(sharedResource).map((resource) => library.normalizeResourceProductFields(resource));
   window.RaederResourceLibrary = {
-    ...library,
+    ...applyVisualResourceLibrary(library),
     getPublishedResources: async () => resources.filter((resource) => resource.status === "published"),
     getAdminResources: async () => resources,
     getResourceFileUrl: visualResourceFileUrl
@@ -241,13 +255,7 @@ async function bootCoachPage(page, client, sharedResource) {
 async function boot() {
   await loadPortal();
   state.sb = offlineSupabase();
-  const library = await ensureResourceLibrary();
-  if (library) {
-    window.RaederResourceLibrary = {
-      ...library,
-      getResourceFileUrl: visualResourceFileUrl
-    };
-  }
+  applyVisualResourceLibrary(await ensureResourceLibrary());
 
   const competencies = (await fetch("content/leadership_competencies_v3.json").then((response) => response.json())).map(mapCompetency);
   const bySlug = (part) => competencies.find((item) => item.id.includes(part)) || competencies[0];
@@ -498,7 +506,9 @@ function openDialog(name, data) {
 }
 
 async function finishBoot() {
+  applyVisualResourceLibrary();
   await window.visualCheckAfterBoot?.(params);
+  applyVisualResourceLibrary();
   refreshIcons();
   if (typeof hydrateResourceMedia === "function") await hydrateResourceMedia(document.body);
   await Promise.all([...document.images].map((image) => (image.decode ? image.decode() : Promise.resolve()).catch(() => {})));

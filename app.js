@@ -2530,7 +2530,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=design-system-195")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=design-system-196")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;

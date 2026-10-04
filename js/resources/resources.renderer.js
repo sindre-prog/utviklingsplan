@@ -232,17 +232,28 @@ function normalizeCards(cards = []) {
     .slice(0, 4);
 }
 
+function normalizeResourceKey(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function fileMatchesIllustrationKey(file, key) {
+  const needle = normalizeResourceKey(key);
+  if (!needle) return false;
+  return [file?.key, file?.storage_path, file?.display_name]
+    .some((value) => normalizeResourceKey(value).includes(needle));
+}
+
 function findIllustrationFile(block, files = []) {
   if (!block) return null;
   const illustrationFiles = files.filter((file) => file.file_type === "illustration");
   const selectedFile = illustrationFiles.find((file) => (
-    file.file_type === "illustration" &&
-    (
-      (block.file_id && file.id === block.file_id) ||
-      (block.storage_path && file.storage_path === block.storage_path)
-    )
+    (block.file_id && file.id === block.file_id) ||
+    (block.storage_path && file.storage_path === block.storage_path)
   ));
   if (selectedFile) return selectedFile;
+
+  const keyMatch = illustrationFiles.find((file) => fileMatchesIllustrationKey(file, block.key));
+  if (keyMatch) return keyMatch;
 
   const hasExplicitFileReference = Boolean(block.file_id || block.storage_path);
   if (!hasExplicitFileReference && illustrationFiles.length === 1) {
