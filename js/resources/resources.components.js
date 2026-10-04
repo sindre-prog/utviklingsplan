@@ -1,4 +1,4 @@
-import { renderResourceContentBlocks } from "./resources.renderer.js?v=design-system-196";
+import { renderResourceContentBlocks } from "./resources.renderer.js?v=design-system-197";
 import { resourceIntroduction } from "./resources.model.js?v=polish-155";
 
 const TYPE_LABELS = Object.freeze({
