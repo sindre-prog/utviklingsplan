@@ -1079,18 +1079,51 @@ function resourceGuidanceGroup(title, items) {
   ]);
 }
 
+function resourcePrimaryPrintable(resource) {
+  return (resource?.files || [])
+    .filter((file) => file?.file_type === "printable")
+    .slice()
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0] || null;
+}
+
+function resourceExtraFiles(resource, excluded = []) {
+  const skip = new Set(excluded.flatMap((file) => [file?.id, file?.storage_path, file?.display_name].filter(Boolean)));
+  return (resource?.files || []).filter((file) => (
+    !["cover_image", "illustration"].includes(file.file_type)
+    && !skip.has(file.id)
+    && !skip.has(file.storage_path)
+    && !skip.has(file.display_name)
+  ));
+}
+
+function resourceFileActionLabel(file) {
+  if (file?.file_type === "illustration") return "Last ned illustrasjon";
+  if (file?.file_type === "printable") return "Last ned PDF";
+  if (file?.file_type === "attachment") return "Last ned vedlegg";
+  return "Åpne";
+}
+
 function resourceClientContent(resource) {
   const library = getResourceLibrary();
-  if (!library?.renderResourceContentBlocks) return el("div", { class: "ds-content ds-resource-content" });
-  return el("div", { class: "ds-content ds-resource-content" }, [
-    ...library.renderResourceContentBlocks(resource?.content_json || [], {
+  const printable = resourcePrimaryPrintable(resource);
+  const extraFiles = resourceExtraFiles(resource, [printable].filter(Boolean));
+  const blocks = library?.renderResourceContentBlocks
+    ? library.renderResourceContentBlocks(resource?.content_json || [], {
       createElement: el,
       createIcon: icon,
       resourceFiles: resource?.files || [],
       onOpenFile: openResourceFile
-    }),
+    })
+    : [];
+  return el("div", { class: "ds-content ds-resource-content" }, [
+    printable ? dsButton("Last ned PDF", { iconName: "download", onClick: () => openResourceFile(printable) }) : null,
+    ...blocks,
     resource?.next_step_prompt ? el("h4", { class: "ds-content-heading", text: "Neste steg" }) : null,
-    resource?.next_step_prompt ? el("p", { text: resource.next_step_prompt }) : null
+    resource?.next_step_prompt ? el("p", { text: resource.next_step_prompt }) : null,
+    extraFiles.length ? el("ul", { class: "ds-files" }, extraFiles.map((file) => el("li", {}, [
+      el("span", { text: file.display_name }),
+      dsButton(resourceFileActionLabel(file), { variant: "text", iconName: "download", onClick: () => openResourceFile(file) })
+    ]))) : null
   ]);
 }
 
@@ -2497,7 +2530,7 @@ async function ensureResourceLibrary() {
   if (loaded) return loaded;
 
   if (!state.resourceLibraryPromise) {
-    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=design-system-184")
+    state.resourceLibraryPromise = import("./js/resources/resources.api.js?v=design-system-196")
       .then((library) => {
         window.RaederResourceLibrary = library;
         return library;

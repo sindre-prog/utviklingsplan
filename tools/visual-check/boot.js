@@ -80,6 +80,11 @@ async function loadPortal() {
   const app = document.createElement("script");
   app.textContent = source.replace(/\ninit\(\);\s*$/, "\n");
   document.body.appendChild(app);
+
+  const started = Date.now();
+  while (!window.RaederResourceLibrary?.getResourceFileUrl && Date.now() - started < 5000) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
 }
 
 function mapCompetency(item) {
@@ -118,6 +123,23 @@ function programCompetency(competency, status, priority, fields = {}) {
     obstacles: "",
     ...fields
   };
+}
+
+function visualResourceFileUrl(_sb, path) {
+  const value = String(path || "");
+  if (value.includes("control-circle") || value.endsWith(".svg")) {
+    return "/tools/visual-check/media/kontrollsirkelen.svg";
+  }
+  return value;
+}
+
+function applyVisualResourceLibrary(library = window.RaederResourceLibrary) {
+  if (!library) return null;
+  window.RaederResourceLibrary = {
+    ...library,
+    getResourceFileUrl: visualResourceFileUrl
+  };
+  return window.RaederResourceLibrary;
 }
 
 function daysFromNow(days) {
@@ -209,9 +231,10 @@ async function bootCoachPage(page, client, sharedResource) {
   const library = await ensureResourceLibrary();
   const resources = libraryResources(sharedResource).map((resource) => library.normalizeResourceProductFields(resource));
   window.RaederResourceLibrary = {
-    ...library,
+    ...applyVisualResourceLibrary(library),
     getPublishedResources: async () => resources.filter((resource) => resource.status === "published"),
-    getAdminResources: async () => resources
+    getAdminResources: async () => resources,
+    getResourceFileUrl: visualResourceFileUrl
   };
   setScreen("app");
   renderShell();
@@ -232,7 +255,7 @@ async function bootCoachPage(page, client, sharedResource) {
 async function boot() {
   await loadPortal();
   state.sb = offlineSupabase();
-  await ensureResourceLibrary();
+  applyVisualResourceLibrary(await ensureResourceLibrary());
 
   const competencies = (await fetch("content/leadership_competencies_v3.json").then((response) => response.json())).map(mapCompetency);
   const bySlug = (part) => competencies.find((item) => item.id.includes(part)) || competencies[0];
@@ -302,12 +325,18 @@ async function boot() {
       client_intro: "Mange bruker store mengder mental energi på forhold de verken kan kontrollere eller påvirke. Denne modellen hjelper deg å tydeliggjøre hvor innsatsen din faktisk kan gjøre en forskjell.",
       content_json: [
         { type: "intro", content: "Kontrollsirkelen hjelper deg å skille mellom det du kan kontrollere, påvirke og ikke kontrollere." },
+        { type: "illustration", key: "control_circle", file_id: "f-ill" },
         { type: "text", heading: "Steg 1: Identifiser energityver", content: "Skriv ned tre ting som tar mye mental energi akkurat nå." },
         { type: "worksheet", fields: ["Situasjon 1", "Situasjon 2", "Situasjon 3"] },
+        { type: "text", heading: "Steg 2: Sorter situasjonene", content: "Marker hva du faktisk kan kontrollere, påvirke eller ikke kontrollere." },
+        { type: "worksheet", fields: ["Hva kan jeg kontrollere?", "Hva kan jeg påvirke?", "Hva må jeg akseptere?"] },
         { type: "reflection_questions", questions: ["Hvor bruker du mest energi i dag?", "Hva overrasker deg når du sorterer dette?", "Hva kan du gjøre konkret denne uken innenfor din påvirkningssirkel?"] }
       ],
       next_step_prompt: "Velg én konkret situasjon denne uken hvor du aktivt skal flytte oppmerksomhet fra bekymring til handling innenfor din påvirkningssirkel.",
-      files: []
+      files: [
+        { id: "f-ill", file_type: "illustration", storage_path: "resources/kontrollsirkelen/control-circle-diagram.svg", display_name: "Kontrollsirkelen", sort_order: 1 },
+        { id: "f-pdf", file_type: "printable", storage_path: "resources/kontrollsirkelen/kontrollsirkelen-printable.pdf", display_name: "Kontrollsirkelen som utskriftsvennlig PDF", sort_order: 2 }
+      ]
     }
   };
 
@@ -477,8 +506,12 @@ function openDialog(name, data) {
 }
 
 async function finishBoot() {
+  applyVisualResourceLibrary();
   await window.visualCheckAfterBoot?.(params);
+  applyVisualResourceLibrary();
   refreshIcons();
+  if (typeof hydrateResourceMedia === "function") await hydrateResourceMedia(document.body);
+  await Promise.all([...document.images].map((image) => (image.decode ? image.decode() : Promise.resolve()).catch(() => {})));
   if (document.fonts?.ready) await document.fonts.ready;
   document.body.dataset.ready = "1";
 }
