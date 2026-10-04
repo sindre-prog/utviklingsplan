@@ -4,7 +4,7 @@ Viser portalen med fiktive data, uten innlogging og uten kobling til databasen. 
 
 - `preview.html` leser `index.html` og `app.js` direkte, så settet følger alltid portalen slik den er. Supabase byttes ut med en frakoblet stub, slik at ingenting kan leses fra eller skrives til databasen.
 - `components.html` viser byggeklossene i `design-system.css`, laget med `ds`-funksjonene i `app.js`.
-- `sketches.html` viser skissene for steg 10 (dialogene, velgeren for lederkompetanser, innlogging og samtykke). Portalen startes som i `preview.html`, og deretter vises skissen fra `sketches.js`. Alle byggeklossene i skissene er nå i `design-system.css`. Se `docs/DESIGNSKISSER_STEG10.md`.
+- `sketches.html` viser skissene for steg 10 (dialogene, velgeren for lederkompetanser, innlogging og samtykke, i `sketches.js`) og steg 14 (coachens skjermer, i `sketches-coach.js`). Portalen startes som i `preview.html`, og deretter vises skissen. Byggeklossene som bare finnes i skissene for steg 14, ligger i `sketches.css`. Se `docs/DESIGNSKISSER_STEG10.md` og `docs/DESIGNSKISSER_STEG14.md`.
 
 ## Bruk
 
@@ -27,7 +27,8 @@ python3 -m http.server 8770
 | `mobilepreview` | Velgeren på mobil: viser én kompetanse i stedet for listen |
 | `dialog` | Åpner en dialog: `experiment-new`, `experiment-edit`, `experiment-review`, `confirm`, `confirm-remove`, `message`, eller med `role=coach`: `client-invite`, `client-edit`, `resource-edit` og `resource-send` |
 | `screen` | Viser en skjerm før portalen: `login`, `password`, `reconnect` eller `consent` |
-| `sketch` | Bare i `sketches.html`: navnet på skissen, se `sketches.js` |
+| `page` | Viser en coach-side med fiktive klienter, coacher og ressurser: `clients`, `clients-empty`, `resources` eller `admin` (med `role=admin`). Med `page=admin` åpner `dialog=resource-new` en ny ressurs |
+| `sketch` | Bare i `sketches.html`: navnet på skissen, se `sketches.js` og `sketches-coach.js`. Ressursbiblioteket tar også `guidance=1` («Før du deler» åpen) og `mobilepreview=1`, og ressursredigeringen `part=innhold` |
 
 Ta hele settet og sammenlign (krever `puppeteer-core` og Chrome):
 

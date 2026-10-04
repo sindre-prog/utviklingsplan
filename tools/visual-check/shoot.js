@@ -61,10 +61,16 @@ const scenes = [
   ["coach-akkurat-naa", "scene=now-complete&role=coach"],
   ["coach-forlopet", "scene=now-complete&pane=direction&role=coach"],
   ["coach-utviklingsfokus", "scene=workspace&pane=work&role=coach"],
+  ["coach-klienter", "page=clients&role=coach"],
+  ["coach-klienter-tom", "page=clients-empty&role=coach"],
+  ["coach-ressursbibliotek", "page=resources&role=coach"],
+  ["admin", "page=admin&role=admin"],
+  ["admin-ressursbibliotek", "page=resources&role=admin"],
+  ["dialog-ressurs-ny", "page=admin&role=admin&dialog=resource-new"],
   ["byggeklosser", "", "components.html"]
 ];
 
-// Skissene for steg 10 tas bare når filteret nevner dem, for eksempel "skisse-".
+// Skissene for steg 10 og 14 tas bare når filteret nevner dem, for eksempel "skisse-".
 const sketchScenes = [
   ["skisse-dialog-eksperiment-ny", "scene=rich&pane=work&sketch=eksperiment-ny"],
   ["skisse-dialog-eksperiment-rediger", "scene=rich&pane=work&sketch=eksperiment-rediger"],
@@ -78,7 +84,17 @@ const sketchScenes = [
   ["skisse-innlogging", "screen=login&sketch=innlogging"],
   ["skisse-nytt-passord", "screen=login&sketch=nytt-passord"],
   ["skisse-ny-tilkobling", "screen=login&sketch=ny-tilkobling"],
-  ["skisse-samtykke", "screen=consent&sketch=samtykke"]
+  ["skisse-samtykke", "screen=consent&sketch=samtykke"],
+  ["skisse-klienter", "page=clients&role=coach&sketch=klienter"],
+  ["skisse-klienter-tom", "page=clients-empty&role=coach&sketch=klienter-tom"],
+  ["skisse-admin", "page=admin&role=admin&sketch=admin"],
+  ["skisse-ressursbibliotek", "page=resources&role=coach&sketch=ressursbibliotek"],
+  ["skisse-ressursbibliotek-vurdering", "page=resources&role=coach&sketch=ressursbibliotek&guidance=1"],
+  ["skisse-ressursbibliotek-ressurs", "page=resources&role=coach&sketch=ressursbibliotek&mobilepreview=1"],
+  ["skisse-ressursbibliotek-admin", "page=resources&role=admin&sketch=ressursbibliotek"],
+  ["skisse-dialog-ressurs-rediger", "page=resources&role=admin&sketch=ressurs-rediger"],
+  ["skisse-dialog-ressurs-rediger-innhold", "page=resources&role=admin&sketch=ressurs-rediger&part=innhold"],
+  ["skisse-dialog-ressurs-del", "page=resources&role=coach&sketch=ressurs-del"]
 ].map(([name, query]) => [name, query, "sketches.html"]);
 if (filter && filter.source.includes("skisse")) scenes.push(...sketchScenes);
 
