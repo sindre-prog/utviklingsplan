@@ -2671,7 +2671,7 @@ function createResourceContextPicker(resource, clients) {
         options.push(option(
           "focus_area",
           area.id,
-          `Fokusoppdrag: ${area.title || "Uten tittel"}`,
+          `Fokusoppdrag: ${visibleFocusTitle(area) || "Uten tittel"}`,
           !area.id,
           findExistingSharedResourceForContext(data?.sharedResources, resource, "focus_area", area.id)?.id || ""
         ));
@@ -3618,7 +3618,7 @@ function dsExperimentRow(action, data, editable) {
     : "";
   const meta = [
     competency?.title && `Lederkompetanse: ${competency.title}`,
-    area?.title && `Fokusoppdrag: ${area.title}`,
+    visibleFocusTitle(area) && `Fokusoppdrag: ${visibleFocusTitle(area)}`,
     parsed.arena,
     dueDateLabel
   ].filter(Boolean).join(" · ");
@@ -3761,7 +3761,7 @@ function leadershipSelectedList(items, suggestions, detail, data, editable) {
       ...suggestions.map((item) => leadershipSuggestionRow(item, data, editable))
     ].filter(Boolean),
     foot: editable || (clientOwnsChoice && items.length >= 3) ? el("div", { class: "ds-list-foot-stack" }, [
-      editable ? dsButton(clientOwnsChoice ? "Legg til lederkompetanse" : "Foreslå lederkompetanse", { variant: "text", iconName: "plus", onClick: () => openCompetencyChooser(data) }) : null,
+      editable ? dsButton(clientOwnsChoice ? "Legg til lederkompetanse" : "Foreslå lederkompetanse", { iconName: "plus", onClick: () => openCompetencyChooser(data) }) : null,
       clientOwnsChoice && items.length >= 3 ? el("p", { class: "ds-list-note", text: ACTIVE_COMPETENCY_RECOMMENDATION }) : null
     ].filter(Boolean)) : null
   });
@@ -4476,7 +4476,7 @@ function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
         items: focusItems.map((item) => {
           const status = focusPlanStatus(item.area);
           return {
-            title: item.area.title || "Fokusoppdrag",
+            title: visibleFocusTitle(item.area) || "Fokusoppdrag",
             status: status.label,
             tone: status.ready ? "done" : "neutral",
             onAction: () => openNowFocusAssignment(item)
@@ -4659,9 +4659,8 @@ function focusWorkbench(items, data, editable) {
   if (!items.length) return dsSheet([focusEmptyState(editable)]);
   const selectedItemIndex = Math.max(0, Math.min(state.selectedFocusIndex || 0, items.length - 1));
   const selected = items[selectedItemIndex] || items[0] || null;
-  const showList = items.length > 1;
-  const detail = el("div", { class: "ds-detail-slot" }, [focusDetail(selected, data, editable, { showAdd: !showList })]);
-  return dsSheet([detail], { list: showList ? focusList(items, editable, data, detail) : null });
+  const detail = el("div", { class: "ds-detail-slot" }, [focusDetail(selected, data, editable)]);
+  return dsSheet([detail], { list: focusList(items, editable, data, detail) });
 }
 
 function relatedExperiments({ actions = [], data, editable = false, onCreate }) {
@@ -4757,12 +4756,12 @@ function focusList(items, editable, data, detail) {
     title: `Ytre prosjekter · ${items.length}`,
     label: "Ytre prosjekter",
     rows: items.map(({ area, index }, itemIndex) => dsRow({
-      title: area.title || "Fokusoppdrag uten tittel",
+      title: visibleFocusTitle(area) || "Fokusoppdrag uten tittel",
       meta: focusPlanStatus(area).label,
       selected: itemIndex === (state.selectedFocusIndex || 0),
       onClick: (event) => selectFocusCard(event.currentTarget, { area, index, itemIndex }, data, editable, detail)
     })),
-    foot: editable ? dsButton("Nytt fokusoppdrag", { variant: "text", iconName: "plus", onClick: () => addFocusArea() }) : null
+    foot: editable ? dsButton("Nytt fokusoppdrag", { iconName: "plus", onClick: () => addFocusArea() }) : null
   });
 }
 
@@ -4778,7 +4777,7 @@ function selectFocusCard(buttonNode, item, data, editable, detail) {
 }
 
 
-function focusDetail({ area, index }, data, editable, { showAdd = false } = {}) {
+function focusDetail({ area, index }, data, editable) {
   const actions = data.actions.filter((action) => action.development_area_id === area.id);
   const activeActions = actions.filter((action) => isExperimentActive(action.status));
   const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active");
@@ -4799,32 +4798,31 @@ function focusDetail({ area, index }, data, editable, { showAdd = false } = {}) 
     };
   }
   const titleKey = `focus:${index}:title`;
+  const title = visibleFocusTitle(area);
   const purpose = (data.program?.purpose || "").trim();
   return el("article", { class: "ds-detail" }, [
     el("header", { class: "ds-object-head" }, [
       el("div", {}, [
         el("p", { class: "ds-object-kicker", text: area.projectType === "outer" ? "Ytre prosjekt · Fokusoppdrag" : "Tidligere fokusområde" }),
         dsTitleEditor({
-          title: area.title || "Gi fokusoppdraget et navn",
-          empty: !area.title,
+          title: title || "Gi fokusoppdraget et navn",
+          empty: !title,
           editable,
           editKey: titleKey,
-          value: area.title || "",
+          value: title,
           placeholder: "Gi fokusoppdraget et kort navn.",
           onSave: async (nextValue) => saveFocusField(index, "title", nextValue)
         })
       ]),
       editable ? el("div", { class: "ds-object-actions" }, [
-        showAdd ? dsButton("Nytt fokusoppdrag", { variant: "text", iconName: "plus", className: "ds-hide-mobile", onClick: () => addFocusArea() }) : null,
         dsMenu([
-          showAdd ? { label: "Nytt fokusoppdrag", iconName: "plus", className: "ds-only-mobile", onClick: () => addFocusArea() } : null,
-          { label: area.title ? "Rediger tittel" : "Legg til tittel", iconName: "pencil", onClick: () => {
+          { label: title ? "Rediger tittel" : "Legg til tittel", iconName: "pencil", onClick: () => {
             state.inlineEditKey = titleKey;
             renderCachedProgram("work");
           } },
           { label: "Arkiver", iconName: "archive", danger: true, onClick: () => deleteFocusArea(index) }
         ], { label: "Flere valg" })
-      ].filter(Boolean)) : null
+      ]) : null
     ].filter(Boolean)),
     area.projectType === "outer" ? dsContext({
       label: "Forløpets mål",
@@ -4893,10 +4891,9 @@ function sessionsWorkspace(sessions, data) {
   }
   const selectedIndex = Math.max(0, Math.min(state.selectedSessionIndex || 0, sessions.length - 1));
   state.selectedSessionIndex = selectedIndex;
-  const showList = sessions.length > 1;
-  const detail = el("div", { class: "ds-detail-slot" }, [sessionDetail(sessions[selectedIndex], selectedIndex, editable, data, { showAdd: !showList })]);
+  const detail = el("div", { class: "ds-detail-slot" }, [sessionDetail(sessions[selectedIndex], selectedIndex, editable, data)]);
   return dsPage({ title: "Forbered og følg opp", className: "sessions-page" }, [
-    dsSheet([detail], { list: showList ? sessionList(sessions, editable, data, detail) : null }),
+    dsSheet([detail], { list: sessionList(sessions, editable, data, detail) }),
     sessionsEditor(sessions)
   ]);
 }
@@ -4914,7 +4911,7 @@ function sessionList(sessions, editable, data, detail) {
         onClick: (event) => selectSession(event.currentTarget, index, editable, data, detail)
       });
     }),
-    foot: editable ? dsButton("Opprett samtale", { variant: "text", iconName: "plus", onClick: () => addSession() }) : null
+    foot: editable ? dsButton("Opprett samtale", { iconName: "plus", onClick: () => addSession() }) : null
   });
 }
 
@@ -4933,7 +4930,7 @@ function sessionActions(session, data) {
   return session?.id ? (data?.actions || []).filter((action) => action.session_id === session.id) : [];
 }
 
-function sessionDetail(session, index, editable, data = null, { showAdd = false } = {}) {
+function sessionDetail(session, index, editable, data = null) {
   const linkedActions = sessionActions(session, data);
   const activeLinkedActions = linkedActions.filter((action) => isExperimentActive(action.status));
   const progress = sessionProgress(session, linkedActions);
@@ -4959,13 +4956,11 @@ function sessionDetail(session, index, editable, data = null, { showAdd = false 
         })
       ]),
       editable ? el("div", { class: "ds-object-actions" }, [
-        showAdd ? dsButton("Opprett samtale", { variant: "text", iconName: "plus", className: "ds-hide-mobile", onClick: () => addSession() }) : null,
         dsMenu([
-          showAdd ? { label: "Opprett samtale", iconName: "plus", className: "ds-only-mobile", onClick: () => addSession() } : null,
           { label: session.focus ? "Rediger tittel" : "Legg til tittel", iconName: "pencil", onClick: () => openSessionField(index, "focus") },
           { label: "Arkiver samtale", iconName: "archive", danger: true, onClick: () => deleteSession(index) }
         ], { label: "Flere valg" })
-      ].filter(Boolean)) : null
+      ]) : null
     ].filter(Boolean)),
     editable ? dsNext({
       label: "Anbefalt neste steg",
@@ -5232,7 +5227,7 @@ function areasEditor(areas) {
 }
 
 function addFocusArea() {
-  const next = [...getAreas().filter(hasAreaContent), { title: "Nytt fokusoppdrag", description: "", projectType: "outer", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" }];
+  const next = [...getAreas().filter(hasAreaContent), { title: "", description: "", projectType: "outer", movement: "", typicalSituations: "", progressSigns: "", nextPractice: "" }];
   setAreas(next);
   state.selectedFocusIndex = next.length - 1;
   state.inlineEditKey = `focus:${next.length - 1}:title`;
@@ -5304,7 +5299,7 @@ function sessionHiddenFields(session, index) {
 function addSession() {
   const sessions = getSessions();
   const nextIndex = sessions.length;
-  setSessions([...sessions, { date: new Date().toISOString().slice(0, 10), focus: "Ny samtale", goal: "", notes: "", actions: "", reflection: "" }]);
+  setSessions([...sessions, { date: new Date().toISOString().slice(0, 10), focus: "", goal: "", notes: "", actions: "", reflection: "" }]);
   state.selectedSessionIndex = nextIndex;
   state.inlineEditKey = `session:${nextIndex}:focus`;
   markDirty();
@@ -5625,7 +5620,7 @@ function reflectionMeta(reflection, data) {
     el("span", { class: "ds-note-date", text: [
       formatDate(reflection.created_at),
       competency ? `Lederkompetanse: ${competency.title || "Lederkompetanse"}` : "",
-      area ? `Fokusoppdrag: ${area.title || "Fokusoppdrag"}` : ""
+      area ? `Fokusoppdrag: ${visibleFocusTitle(area) || "Fokusoppdrag"}` : ""
     ].filter(Boolean).join(" · ") })
   ]);
 }
@@ -6138,7 +6133,7 @@ function areaRowsForSave(programId, areas) {
       next_practice: null,
       sort_order: area.index
     }))
-    .filter((row) => row.title || row.description || row.movement || row.typical_situations || row.progress_signs);
+    .filter((row) => row.title || row.description || row.movement || row.typical_situations || row.progress_signs || row.project_type === "outer");
 }
 
 function sessionRowsForSave(programId, sessions) {
@@ -6256,12 +6251,17 @@ function normalizeArea(area) {
 
 function hasAreaContent(area) {
   const item = normalizeArea(area);
-  return Boolean(item.title || item.description || item.movement || item.typicalSituations || item.progressSigns);
+  return Boolean(item.title || item.description || item.movement || item.typicalSituations || item.progressSigns || item.projectType === "outer");
 }
 
 function isPlaceholderFocusAssignment(area) {
   const item = normalizeArea(area);
-  return item.title.toLocaleLowerCase("nb-NO") === "nytt fokusoppdrag";
+  const title = item.title.toLocaleLowerCase("nb-NO");
+  return !title || title === "nytt fokusoppdrag";
+}
+
+function visibleFocusTitle(area) {
+  return isPlaceholderFocusAssignment(area) ? "" : normalizeArea(area).title;
 }
 
 function getSessions() {
