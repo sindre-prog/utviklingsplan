@@ -29,7 +29,7 @@ Når alle fire delene finnes, fjernes oppstartsseksjonen. Den ordinære oversikt
 - Indre prosjekt, for klienten: «Det du må utvikle hos deg selv for å lykkes bedre med det ytre prosjektet.»
 - Indre prosjekt, for coachen: «Det klienten må utvikle hos seg selv for å lykkes bedre med det ytre prosjektet.»
 
-Prøv i praksis har ingen slik setning. Setningene vises ikke mens oppstartsseksjonen fortsatt forklarer valgene.
+Prøv i praksis har ingen slik setning. Setningene vises ikke mens oppstartsseksjonen fortsatt forklarer valgene. De samme setningene står under fanene på Utviklingsfokus når ytre eller indre prosjekt er valgt.
 
 ## Roller
 

@@ -3655,8 +3655,10 @@ function focusHubWorkspace(data, plan, focusItems, editable) {
     "aria-labelledby": `focus-tab-${view}`,
     hidden: activeView !== view
   }, activeView === view ? [content()] : []);
+  const premise = activeView === "assignments" ? projectPremise("outer") : activeView === "competencies" ? projectPremise("inner") : "";
   return dsPage({ title: "Utviklingsfokus", intro: isEmpty ? focusHubIntroText() : "", className: "focus-hub" }, [
     focusViewTabs(activeView, data, focusItems),
+    premise ? el("p", { class: "ds-focus-premise", text: premise }) : null,
     panel("assignments", () => focusWorkbench(focusItems, data, editable)),
     panel("competencies", () => leadershipWorkbench(data, editable)),
     panel("experiments", () => experimentHubWorkspace(data, editable)),
@@ -4435,6 +4437,14 @@ function nowWorkspace(client, data, plan) {
   ]);
 }
 
+function projectPremise(kind) {
+  if (kind === "outer") return "Det som er viktigst å lykkes med i jobben nå – en konkret situasjon, leveranse eller utfordring.";
+  if (kind !== "inner") return "";
+  return state.profile?.role === "client"
+    ? "Det du må utvikle hos deg selv for å lykkes bedre med det ytre prosjektet."
+    : "Det klienten må utvikle hos seg selv for å lykkes bedre med det ytre prosjektet.";
+}
+
 function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
   const openExperiments = actions.filter((action) => isExperimentActive(action.status));
   const openExperimentsView = () => {
@@ -4468,7 +4478,7 @@ function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
       group({
         label: "Ytre prosjekt",
         objectLabel: "Fokusoppdrag",
-        premise: "Det som er viktigst å lykkes med i jobben nå – en konkret situasjon, leveranse eller utfordring.",
+        premise: projectPremise("outer"),
         emptyText: "Ikke valgt ennå",
         items: focusItems.map((item) => {
           const status = focusPlanStatus(item.area);
@@ -4483,9 +4493,7 @@ function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
       group({
         label: "Indre prosjekt",
         objectLabel: "Lederkompetanser",
-        premise: state.profile?.role === "client"
-          ? "Det du må utvikle hos deg selv for å lykkes bedre med det ytre prosjektet."
-          : "Det klienten må utvikle hos seg selv for å lykkes bedre med det ytre prosjektet.",
+        premise: projectPremise("inner"),
         emptyText: "Ikke valgt ennå",
         items: activeCompetencies.map((item) => ({
           title: item.title || "Lederkompetanse",

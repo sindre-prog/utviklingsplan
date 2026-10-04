@@ -465,6 +465,8 @@
   }
   .ds-step-title { color: var(--ds-ink); font: var(--ds-question); font-size: 15px; }
   .ds-step-hint { color: var(--ds-muted); }
+  .ds-steps:has(+ .ds-focus-premise) { margin-bottom: var(--ds-space-8); }
+  .ds-focus-premise { margin: 0 0 var(--ds-space-20); color: var(--ds-muted); font: var(--ds-support); }
 
   /* 7 · Objekttopp */
   .ds-object-head {
