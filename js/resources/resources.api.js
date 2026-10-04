@@ -2,7 +2,7 @@ export * from "./resources.constants.js?v=polish-108";
 export * from "./resources.model.js?v=polish-155";
 export * from "./resources.queries.js?v=polish-154";
 export * from "./resources.mutations.js?v=polish-114";
-export * from "./resources.renderer.js?v=design-system-196";
+export * from "./resources.renderer.js?v=design-system-197";
 export * from "./resources.components.js?v=design-system-184";
 export * from "./resources.seed.js?v=polish-108";
 
