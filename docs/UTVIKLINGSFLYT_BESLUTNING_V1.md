@@ -62,6 +62,9 @@ Databasen stopper i dag en fjerde aktiv lederkompetanse, og den krever prioritet
 - Neste steg peker til den første delen i modellen som mangler, og bare dit.
 - Neste steg sperrer ikke andre handlinger og skjuler ikke andre deler.
 - Neste steg ber ikke klienten fylle ut felter i den delen klienten allerede står i.
+- Korallfeltet brukes ikke til å gjenta neste tomme felt i et fokusoppdrag eller en samtale. Det vises der når neste del i modellen er et annet sted, som «Gå til indre prosjekt» fra et navngitt fokusoppdrag.
+- På Akkurat nå viser Forløpet om målet er satt. Er det satt, vises målet. Er det ikke satt, står det `Ikke avklart`. Brøken over de seks avklaringene står på Forløpet, ikke på Akkurat nå.
+- Et fokusoppdrag eller en samtale uten navn har status `Ikke ferdigstilt`. Har samtalen et navn, er statusen `Under arbeid` til den er fulgt opp.
 
 ## Statusord for eksperimenter
 

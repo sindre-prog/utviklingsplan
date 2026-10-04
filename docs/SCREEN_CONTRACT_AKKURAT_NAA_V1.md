@@ -15,7 +15,7 @@ Seksjonen `Sett grunnlaget for forløpet` vises når minst én av disse mangler:
 3. `Indre prosjekt · Lederkompetanser`
 4. `Prøv i praksis · Eksperiment`
 
-Hver rad viser beslutningsspørsmål, faktisk status eller et tydelig merket valg og en handling når rollen har tilgang. Valgte verdier vises i kopifeltet som `Valgt fokusoppdrag: ...` og `Valgte lederkompetanser: ...`; de skal ikke stå som løs tekst i en egen statuskolonne. Første uløste steg får tydeligst handling. Rekkefølgen er anbefalt, ikke låst: hver rad har egen handling, uavhengig av de andre radene. Se `UTVIKLINGSFLYT_BESLUTNING_V1.md`.
+Hver rad viser beslutningsspørsmål, faktisk status eller et tydelig merket valg og en handling når rollen har tilgang. Forløpet er avklart når `Hva vil du oppnå?` er fylt ut, og raden viser da målet. Uten mål står det `Ikke avklart`. Valgte verdier vises i kopifeltet som `Valgt fokusoppdrag: ...` og `Valgte lederkompetanser: ...`; de skal ikke stå som løs tekst i en egen statuskolonne. Første uløste steg får tydeligst handling. Rekkefølgen er anbefalt, ikke låst: hver rad har egen handling, uavhengig av de andre radene. Se `UTVIKLINGSFLYT_BESLUTNING_V1.md`.
 
 Et fokusoppdrag uten navn er ikke et reelt valg. Det vises som `Ikke ferdigstilt`, teller ikke som valgt og åpnes igjen når klienten fortsetter arbeidet. Eldre utkast med tittelen `Nytt fokusoppdrag` behandles på samme måte. Fokusoppdraget må få et faktisk navn før det inngår som valgt i oversikten.
 

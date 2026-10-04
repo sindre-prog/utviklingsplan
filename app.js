@@ -2875,8 +2875,7 @@ async function renderPlan(activePane = null) {
   }
   state.selectedClientId = client.id;
   const headerActions = [
-    state.profile.role !== "client" ? dsButton("Tilbake", { iconName: "arrow-left", onClick: () => navigate("clients") }) : null,
-    dsButton("Book coachingsamtale", { iconName: "calendar-plus", onClick: () => window.open("https://raederog.no/book-time", "_blank") })
+    state.profile.role !== "client" ? dsButton("Tilbake", { iconName: "arrow-left", onClick: () => navigate("clients") }) : null
   ].filter(Boolean);
   const isClientWorkspace = state.profile.role === "client";
   const clientFirstName = (client.name || "").trim().split(/\s+/)[0] || "";
@@ -3263,7 +3262,7 @@ function directionWorkspace(client, plan) {
     ["Rammer", "Hva må være avklart rundt arbeidet?", directionSpecs.slice(4)]
   ];
   return dsPage({
-    title: "Mål og rammer for utviklingsforløpet",
+    title: "Forløpet",
     intro: ready ? "" : "Avklar hvorfor forløpet er viktig, hva som skal bli annerledes, hvordan du vil merke fremgang og hvordan du og ledercoachen din skal samarbeide.",
     read: true
   }, [
@@ -3568,7 +3567,7 @@ function workWorkspace(client, data, plan) {
     .filter((item) => hasAreaContent(item.area));
   const editable = canEditProgram(client);
   if (!data.competenciesAvailable) {
-    return dsPage({ title: "Fra ambisjon til praksis", intro: focusItems.length ? "" : focusHubIntroText(), className: "focus-hub" }, [
+    return dsPage({ title: "Utviklingsfokus", intro: focusItems.length ? "" : focusHubIntroText(), className: "focus-hub" }, [
       focusWorkbench(focusItems, data, editable),
       areasEditor(plan.areas)
     ]);
@@ -3656,7 +3655,7 @@ function focusHubWorkspace(data, plan, focusItems, editable) {
     "aria-labelledby": `focus-tab-${view}`,
     hidden: activeView !== view
   }, activeView === view ? [content()] : []);
-  return dsPage({ title: "Fra ambisjon til praksis", intro: isEmpty ? focusHubIntroText() : "", className: "focus-hub" }, [
+  return dsPage({ title: "Utviklingsfokus", intro: isEmpty ? focusHubIntroText() : "", className: "focus-hub" }, [
     focusViewTabs(activeView, data, focusItems),
     panel("assignments", () => focusWorkbench(focusItems, data, editable)),
     panel("competencies", () => leadershipWorkbench(data, editable)),
@@ -4340,12 +4339,6 @@ function hasNowActionContent(action) {
   return Boolean((action?.title || "").trim() || nowActionSummary(action));
 }
 
-function nowDirectionSummary(plan) {
-  const specs = getDirectionSpecs(plan);
-  const completed = specs.filter(directionSpecHasValue).length;
-  return { completed, total: specs.length };
-}
-
 function nowActionItems({ data, plan }) {
   const activeActions = (data.actions || []).filter((action) => isExperimentActive(action.status));
   const datedAction = activeActions.find((action) => action.due_date && action.due_date <= localIsoDate() && hasNowActionContent(action));
@@ -4507,14 +4500,23 @@ function nowFocusOverview({ focusItems, activeCompetencies, actions }) {
   ]);
 }
 
+function modelGap(data) {
+  const plan = programToFormState(data);
+  if (!(plan.c_purpose || "").trim()) return "direction";
+  if (!nowFocusAssignments(plan).length) return "outer";
+  if (!activeLeadershipCompetencies(data).length) return "inner";
+  if (!(data.actions || []).some((action) => isExperimentActive(action.status))) return "experiment";
+  return "";
+}
+
 function nowSetupSection({ data, plan, editable }) {
-  const direction = nowDirectionSummary(plan);
   const outerFocus = nowFocusAssignments(plan)[0] || null;
   const draftOuterFocus = nowDraftFocusAssignment(plan);
   const activeCompetencies = activeLeadershipCompetencies(data);
   const primaryCompetency = activeCompetencies[0] || null;
   const openExperiments = (data.actions || []).filter((action) => isExperimentActive(action.status));
-  const directionComplete = Boolean((plan.c_purpose || "").trim());
+  const purpose = (plan.c_purpose || "").trim();
+  const directionComplete = Boolean(purpose);
   if (directionComplete && outerFocus && primaryCompetency && openExperiments.length) return null;
 
   const suggestions = (data.programCompetencies || []).filter((item) => item.status === "suggested");
@@ -4523,10 +4525,6 @@ function nowSetupSection({ data, plan, editable }) {
   if (!directionComplete) firstMissingKey = "direction";
   else if (!outerFocus) firstMissingKey = "outer";
   else if (!primaryCompetency) firstMissingKey = "inner";
-
-  let directionStatus = "Avklart";
-  if (direction.completed === 0) directionStatus = "Ikke avklart";
-  else if (!directionComplete || direction.completed < direction.total) directionStatus = `${direction.completed} av ${direction.total} avklaringer`;
 
   let innerStatus = activeCompetencies.map((item) => item.title || "Lederkompetanse").join(" · ") || "Valgt";
   if (!primaryCompetency && suggestions.length) innerStatus = clientOwnsChoice ? "Forslag fra coach" : "Forslag sendt til klienten";
@@ -4539,7 +4537,7 @@ function nowSetupSection({ data, plan, editable }) {
       label: "Mål og rammer",
       objectLabel: "",
       question: "Hva skal utviklingsløpet bidra til?",
-      value: directionStatus,
+      value: purpose ? contentPreviewText(purpose, 140) : "Ikke avklart",
       complete: directionComplete,
       action: editable ? { label: "Åpne forløpet", onAction: () => activateWorkspacePane("direction") } : null
     },
@@ -4756,8 +4754,8 @@ function focusList(items, editable, data, detail) {
     title: `Ytre prosjekter · ${items.length}`,
     label: "Ytre prosjekter",
     rows: items.map(({ area, index }, itemIndex) => dsRow({
-      title: visibleFocusTitle(area) || "Fokusoppdrag uten tittel",
-      meta: focusPlanStatus(area).label,
+      title: visibleFocusTitle(area) || "Gi fokusoppdraget et navn",
+      meta: focusObjectStatus(area).label,
       selected: itemIndex === (state.selectedFocusIndex || 0),
       onClick: (event) => selectFocusCard(event.currentTarget, { area, index, itemIndex }, data, editable, detail)
     })),
@@ -4779,24 +4777,7 @@ function selectFocusCard(buttonNode, item, data, editable, detail) {
 
 function focusDetail({ area, index }, data, editable) {
   const actions = data.actions.filter((action) => action.development_area_id === area.id);
-  const activeActions = actions.filter((action) => isExperimentActive(action.status));
-  const activeCompetencies = (data.programCompetencies || []).filter((item) => item.status === "active");
-  const planStatus = focusPlanStatus(area);
-  const needsInnerProject = area.projectType === "outer" && !activeCompetencies.length;
-  let nextStep = activeActions.length
-    ? { label: "Følg opp eksperimentet", helper: "Åpne eksperimentet og noter hva du observerte.", actionLabel: "Følg opp eksperiment", onAction: () => editAction(activeActions[0], data) }
-    : { label: "Planlegg første eksperiment", helper: "Gjør neste steg lite nok til å prøve i en faktisk arbeidssituasjon.", actionLabel: "Legg til eksperiment", onAction: () => createAction(data, area.id) };
-  if (needsInnerProject) {
-    nextStep = {
-      label: "Velg hva du trenger å utvikle",
-      helper: "Velg en lederkompetanse som kan styrke deg i dette ytre prosjektet.",
-      actionLabel: "Gå til indre prosjekt",
-      onAction: () => {
-        state.focusView = "competencies";
-        renderCachedProgram("work");
-      }
-    };
-  }
+  const planStatus = focusObjectStatus(area);
   const titleKey = `focus:${index}:title`;
   const title = visibleFocusTitle(area);
   const purpose = (data.program?.purpose || "").trim();
@@ -4829,11 +4810,14 @@ function focusDetail({ area, index }, data, editable) {
       text: purpose || "Hva skal utviklingsløpet bidra til?",
       action: dsButton("Åpne forløpet", { variant: "text", onClick: () => activateWorkspacePane("direction") })
     }) : null,
-    editable ? dsNext({
+    editable && area.projectType === "outer" && modelGap(data) === "inner" ? dsNext({
       label: "Anbefalt neste steg",
-      title: nextStep.label,
-      text: nextStep.helper,
-      action: dsButton(nextStep.actionLabel, { variant: "primary", onClick: nextStep.onAction })
+      title: "Velg hva du trenger å utvikle",
+      text: "Velg en lederkompetanse som kan styrke deg i dette ytre prosjektet.",
+      action: dsButton("Gå til indre prosjekt", { variant: "primary", onClick: () => {
+        state.focusView = "competencies";
+        renderCachedProgram("work");
+      } })
     }) : null,
     dsPlanSection({
       title: "Arbeidsplan for fokusoppdraget",
@@ -4857,12 +4841,17 @@ function focusPlanStatus(area) {
   return { key: "not-started", label: "Ikke påbegynt", ready: false };
 }
 
+function focusObjectStatus(area) {
+  if (!visibleFocusTitle(area)) return { key: "not-started", label: "Ikke ferdigstilt", ready: false };
+  return focusPlanStatus(area);
+}
+
 function focusPlanStep(area, index, number, eyebrow, label, value, emptyText, fieldKey, editable) {
   return dsAutoQuestion({
     number, eyebrow, label, value, emptyText, editable,
     onChange: (nextValue, qa) => {
       const next = changeFocusField(index, fieldKey, nextValue);
-      setDsSectionStatus(qa, focusPlanStatus(next));
+      setDsSectionStatus(qa, focusObjectStatus(next));
     },
     onCommit: commitPlanChanges
   });
@@ -4881,10 +4870,18 @@ function focusEmptyState(editable) {
   ].filter(Boolean));
 }
 
+function bookCoachingButton() {
+  return dsButton("Book coachingsamtale", {
+    iconName: "calendar-plus",
+    onClick: () => window.open("https://raederog.no/book-time", "_blank")
+  });
+}
+
 function sessionsWorkspace(sessions, data) {
   const editable = canEditProgram(getCurrentClient());
+  const page = { title: "Samtaler", actions: [bookCoachingButton()], className: "sessions-page" };
   if (!sessions.length) {
-    return dsPage({ title: "Forbered og følg opp", intro: "Samle det viktigste før, under og etter samtalene.", className: "sessions-page" }, [
+    return dsPage({ ...page, intro: "Samle det viktigste før, under og etter samtalene." }, [
       sessionEmptyState(editable),
       sessionsEditor(sessions)
     ]);
@@ -4892,7 +4889,7 @@ function sessionsWorkspace(sessions, data) {
   const selectedIndex = Math.max(0, Math.min(state.selectedSessionIndex || 0, sessions.length - 1));
   state.selectedSessionIndex = selectedIndex;
   const detail = el("div", { class: "ds-detail-slot" }, [sessionDetail(sessions[selectedIndex], selectedIndex, editable, data)]);
-  return dsPage({ title: "Forbered og følg opp", className: "sessions-page" }, [
+  return dsPage(page, [
     dsSheet([detail], { list: sessionList(sessions, editable, data, detail) }),
     sessionsEditor(sessions)
   ]);
@@ -4905,8 +4902,8 @@ function sessionList(sessions, editable, data, detail) {
     rows: sessions.map((session, index) => {
       const progress = sessionProgress(session, sessionActions(session, data));
       return dsRow({
-        title: session.focus || "Samtale uten tittel",
-        meta: [session.date ? formatDate(session.date) : `Samtale ${index + 1}`, sessionPlanStatus(progress).label].join(" · "),
+        title: session.focus || "Gi samtalen en tittel",
+        meta: [session.date ? formatDate(session.date) : `Samtale ${index + 1}`, sessionObjectStatus(session, progress).label].join(" · "),
         selected: index === state.selectedSessionIndex,
         onClick: (event) => selectSession(event.currentTarget, index, editable, data, detail)
       });
@@ -4932,14 +4929,7 @@ function sessionActions(session, data) {
 
 function sessionDetail(session, index, editable, data = null) {
   const linkedActions = sessionActions(session, data);
-  const activeLinkedActions = linkedActions.filter((action) => isExperimentActive(action.status));
   const progress = sessionProgress(session, linkedActions);
-  const nextField = sessionNextField(session);
-  const next = nextField
-    ? { label: nextField.label, helper: nextField.helper, actionLabel: nextField.actionLabel, onAction: () => openSessionField(index, nextField.key) }
-    : !activeLinkedActions.length
-      ? { label: "Gjør neste steg om til et lite eksperiment", helper: "Knytt handlingen til en situasjon og bestem hva du vil se etter.", actionLabel: "Legg til eksperiment", onAction: () => createActionFromSessionNextStep(index, session.actions || "") }
-      : { label: "Følg opp eksperimentet", helper: "Åpne eksperimentet og noter hva du observerte.", actionLabel: "Følg opp eksperiment", onAction: () => editAction(activeLinkedActions[0], data) };
   return el("article", { class: "ds-detail" }, [
     el("header", { class: "ds-object-head" }, [
       el("div", {}, [
@@ -4962,16 +4952,10 @@ function sessionDetail(session, index, editable, data = null) {
         ], { label: "Flere valg" })
       ]) : null
     ].filter(Boolean)),
-    editable ? dsNext({
-      label: "Anbefalt neste steg",
-      title: next.label,
-      text: next.helper,
-      action: dsButton(next.actionLabel, { variant: "primary", onClick: next.onAction })
-    }) : null,
     dsPlanSection({
       title: "Samtaleplan",
       description: "Avklar hva samtalen skal hjelpe med. Etterpå samler du det som ble tydelig og det du vil prøve.",
-      status: sessionPlanStatus(progress),
+      status: sessionObjectStatus(session, progress),
       steps: [
         sessionPlanStep(session, index, 1, "Før samtalen", "Hva skal samtalen hjelpe med?", "Hva håper dere å forstå, avklare eller komme videre på?", "goal", editable, linkedActions),
         sessionPlanStep(session, index, 2, "Etter samtalen", "Hva ble tydelig?", "Noter det viktigste mens det er ferskt.", "notes", editable, linkedActions),
@@ -4989,20 +4973,10 @@ function sessionProgress(session = {}, linkedActions = []) {
   return { completed, percent: Math.round((completed / 5) * 100) };
 }
 
-function sessionPlanStatus(progress = {}) {
+function sessionObjectStatus(session = {}, progress = {}) {
+  if (!(session.focus || "").trim()) return { key: "not-started", label: "Ikke ferdigstilt", ready: false };
   if (Number(progress.completed) >= 5) return { key: "ready", label: "Samtalen er fulgt opp", ready: true };
-  if (Number(progress.completed) > 0) return { key: "working", label: "Under arbeid", ready: false };
-  return { key: "not-started", label: "Ikke påbegynt", ready: false };
-}
-
-function sessionNextField(session = {}) {
-  return [
-    { key: "focus", value: session.focus, label: "Gi samtalen en tydelig tittel", helper: "En kort tittel gjør samtalen lett å finne igjen.", actionLabel: "Skriv tittel" },
-    { key: "goal", value: session.goal, label: "Avklar hva samtalen skal hjelpe med", helper: "Hva bør være tydeligere når samtalen er ferdig?", actionLabel: "Beskriv formålet" },
-    { key: "notes", value: session.notes, label: "Noter det som ble tydelig", helper: "Hva la du særlig merke til i samtalen?", actionLabel: "Skriv notat" },
-    { key: "actions", value: session.actions, label: "Velg hva du vil prøve eller følge opp", helper: "Hva skal skje i praksis?", actionLabel: "Beskriv neste handling" },
-    { key: "reflection", value: session.reflection, label: "Noter det du vil huske", helper: "Hva bør du vende tilbake til i neste samtale?", actionLabel: "Skriv det du vil huske" }
-  ].find((item) => !(item.value || "").trim()) || null;
+  return { key: "working", label: "Under arbeid", ready: false };
 }
 
 function openSessionField(index, fieldKey) {
@@ -5017,27 +4991,15 @@ function openSessionField(index, fieldKey) {
 }
 
 function sessionPlanStep(session, index, number, eyebrow, label, emptyText, fieldKey, editable, linkedActions) {
-  const value = session[fieldKey] || "";
-  let experimentAction = null;
-  if (fieldKey === "actions" && editable) {
-    experimentAction = dsButton("Gjør til eksperiment", {
-      variant: "text",
-      iconName: "flask-conical",
-      onClick: () => createActionFromSessionNextStep(index, getSessions()[index]?.actions || "")
-    });
-  }
   const qa = dsAutoQuestion({
-    number, eyebrow, label, value, emptyText, editable,
+    number, eyebrow, label, value: session[fieldKey] || "", emptyText, editable,
     onChange: (nextValue, node) => {
       const next = changeSessionField(index, fieldKey, nextValue);
-      setDsSectionStatus(node, sessionPlanStatus(sessionProgress(next, linkedActions)));
-      if (experimentAction) experimentAction.parentElement.hidden = !nextValue.trim();
+      setDsSectionStatus(node, sessionObjectStatus(next, sessionProgress(next, linkedActions)));
     },
-    onCommit: commitPlanChanges,
-    foot: [experimentAction]
+    onCommit: commitPlanChanges
   });
   $(".ds-qa-field", qa)?.setAttribute("id", `session-field-${fieldKey}`);
-  if (experimentAction) experimentAction.parentElement.hidden = !value.trim();
   return qa;
 }
 
@@ -5352,7 +5314,7 @@ function reflectionsWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
   const reflections = canWriteReflection ? data.reflections : data.reflections.filter((item) => item.visibility !== "private");
   if (!canWriteReflection) {
-    return dsPage({ title: "Det klienten har valgt å dele", intro: "Her vises bare refleksjoner klienten aktivt har delt i coachingforløpet.", className: "reflections-page" }, [
+    return dsPage({ title: "Refleksjon", intro: "Her vises bare refleksjoner klienten aktivt har delt i coachingforløpet.", className: "reflections-page" }, [
       dsSheet([dsSection({ title: reflections.length ? `Delte refleksjoner · ${reflections.length}` : "Delte refleksjoner", headingLevel: 2 }, [
         reflections.length
           ? reflectionNotes(reflections, data)
@@ -5361,7 +5323,7 @@ function reflectionsWorkspace(data) {
     ]);
   }
   return dsPage({
-    title: "Refleksjoner underveis",
+    title: "Refleksjon",
     intro: reflections.length ? "" : "Ta vare på observasjoner og læring. Du bestemmer hva du deler.",
     className: "reflections-page"
   }, [
@@ -5421,7 +5383,7 @@ function coachResourcesWorkspace(data) {
   const canWriteReflection = state.profile.role === "client";
   const hasResources = Boolean((data.sharedResources || []).length);
   return dsPage({
-    title: canWriteReflection ? "Dine ressurser" : "Det som er delt i forløpet",
+    title: "Ressurser",
     intro: canWriteReflection
       ? (hasResources ? "" : "Her finner du ressursene coachen har valgt ut for deg.")
       : "Se hva klienten har fått, hvorfor det ble sendt og hvordan ressursene blir brukt.",
@@ -5779,7 +5741,7 @@ function createActionFromSessionNextStep(sessionIndex, nextStepText) {
     .filter((item) => item.status === "active")
     .sort((a, b) => Number(a.priority || 99) - Number(b.priority || 99))[0];
   createAction(data, "", primaryCompetency?.id || "", nextStepText, {
-    title: "Gjør til eksperiment",
+    title: "Legg til eksperiment",
     kicker: "Fra samtalen",
     sessionId: session.id || null,
     returnPane: "sessions"
