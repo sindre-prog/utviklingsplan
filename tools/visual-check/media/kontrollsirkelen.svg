@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 360" role="img" aria-label="Kontrollsirkelen">
+  <rect width="560" height="360" fill="#f7f5f2"/>
+  <circle cx="280" cy="180" r="150" fill="#fff" stroke="#171517" stroke-width="1.5"/>
+  <circle cx="280" cy="180" r="96" fill="#f7f5f2" stroke="#171517" stroke-width="1.5"/>
+  <circle cx="280" cy="180" r="46" fill="#fff" stroke="#171517" stroke-width="1.5"/>
+  <text x="280" y="186" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#171517">Kontroll</text>
+  <text x="280" y="92" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#171517">Påvirkning</text>
+  <text x="280" y="42" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#171517">Bekymring</text>
+</svg>

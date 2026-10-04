@@ -268,7 +268,9 @@
 
   function resourceContent(resource) {
     const library = window.RaederResourceLibrary;
+    const printable = (resource.files || []).find((file) => file.file_type === "printable");
     return el("div", { class: "ds-content ds-resource-content" }, [
+      printable ? dsButton("Last ned PDF", { iconName: "download", onClick: noop }) : null,
       ...library.renderResourceContentBlocks(resource.content_json || [], { createElement: el, createIcon: icon, resourceFiles: resource.files || [] }),
       resource.next_step_prompt ? el("h4", { class: "ds-content-heading", text: "Neste steg" }) : null,
       resource.next_step_prompt ? el("p", { text: resource.next_step_prompt }) : null
