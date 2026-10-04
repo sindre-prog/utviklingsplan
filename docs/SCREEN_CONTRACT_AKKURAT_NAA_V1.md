@@ -23,7 +23,13 @@ Et fokusoppdrag uten navn er ikke et reelt valg. Det vises som `Ikke ferdigstilt
 
 Farge uttrykker bare tilstand: korall markerer anbefalt neste steg, grønt markerer avklart, nøytral behandling markerer tilgjengelig og grå behandling markerer ikke tilgjengelig ennå. Dekorative fargemarkører skal ikke brukes til å forklare hierarkiet.
 
-Når alle fire delene finnes, fjernes oppstartsseksjonen. Den ordinære oversikten og statusstripen vises da som før.
+Når alle fire delene finnes, fjernes oppstartsseksjonen. Den ordinære oversikten og statusstripen vises da. Under overskriftene i oversikten står premisset fast:
+
+- Ytre prosjekt: «Det som er viktigst å lykkes med i jobben nå – en konkret situasjon, leveranse eller utfordring.»
+- Indre prosjekt, for klienten: «Det du må utvikle hos deg selv for å lykkes bedre med det ytre prosjektet.»
+- Indre prosjekt, for coachen: «Det klienten må utvikle hos seg selv for å lykkes bedre med det ytre prosjektet.»
+
+Prøv i praksis har ingen slik setning. Setningene vises ikke mens oppstartsseksjonen fortsatt forklarer valgene.
 
 ## Roller
 
@@ -52,5 +58,5 @@ Samtaler, ressurser, refleksjoner og andre samtalerelevante elementer kan fortsa
 - Ytre og indre prosjekt har en tydelig, felles tilhørighet til Utviklingsfokus.
 - Forløpet og Utviklingsfokus har samme toppnivå i teksthierarkiet.
 - Klienten eier aktivering av lederkompetansen.
-- Seksjonen forsvinner når grunnlaget er komplett.
+- Seksjonen forsvinner når grunnlaget er komplett. Oversikten beholder da setningen under ytre prosjekt og setningen under indre prosjekt.
 - Desktop og mobil har ingen overlapping eller horisontal rulling.
