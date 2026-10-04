@@ -1170,7 +1170,8 @@
   .ds-tools .ds-select { flex: 0 1 220px; min-height: var(--ds-target); }
 
   .ds-table { display: grid; margin: var(--ds-space-16) 0 0; }
-  .ds-tools + .ds-table { margin-top: var(--ds-space-8); }
+  .ds-tools + .ds-table,
+  .ds-tools + div > .ds-table:first-child { margin-top: var(--ds-space-8); }
   .ds-table-head, .ds-table-row {
     display: grid;
     grid-template-columns: var(--ds-table-columns, minmax(0, 2fr) repeat(3, minmax(0, 1fr)) auto);
