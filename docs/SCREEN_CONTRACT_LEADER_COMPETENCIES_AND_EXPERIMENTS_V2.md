@@ -38,9 +38,9 @@ Beslutningsspørsmålene er:
 
 ## Aktiv kompetansemodell
 
-- Tre aktive lederkompetanser er en anbefaling, ikke en grense. Til migreringen som fjerner grensen er godkjent og kjørt, stopper databasen en fjerde.
+- Tre aktive lederkompetanser er en anbefaling, ikke en grense. Databasen stopper ikke en fjerde (`20261002120000`, bekreftet i produksjon 4. oktober 2026).
 - Én kompetanse er `Prioritert nå` (`priority = 1`).
-- Andre aktive kompetanser vises som `Aktiv` (`priority = 2/3`), ikke som støttekompetanser.
+- Andre aktive kompetanser vises som `Aktiv` (`priority` 2 eller høyere), ikke som støttekompetanser. Hver prioritet brukes bare én gang.
 - En coach kan opprette `Foreslått av coach` (`status = suggested`, `priority = 0`).
 - Forslaget blir ikke aktivt før klienten velger det.
 - Kompetansespor arkiveres; eksperiment- og læringshistorikk slettes ikke når sporet tas ut av aktiv plan.
@@ -66,7 +66,7 @@ Mobil:
 
 ## Kompetansearbeidsflate
 
-Masterlisten viser aktive lederkompetanser. Én rad kan merkes `Prioritert nå`; øvrige rader merkes `Aktiv`. Til migreringen som fjerner grensen er kjørt: når klienten har færre enn tre aktive, avsluttes listen med `Legg til lederkompetanse`; ved tre aktive viser listehodet `3 av 3 aktive`, og listen viser `Arkiver en aktiv lederkompetanse for å gjøre plass.` Etter migreringen avsluttes listen alltid med `Legg til lederkompetanse`, listehodet viser antall aktive, og teksten om anbefalingen skrives av produkteier. Coachen får handlingen `Foreslå lederkompetanse`, ikke en handling som antyder at coachen kan endre klientens prioritering. Planstatus uttrykkes med ord, aldri prosent.
+Masterlisten viser aktive lederkompetanser. Én rad kan merkes `Prioritert nå`; øvrige rader merkes `Aktiv`. Listen avsluttes alltid med `Legg til lederkompetanse`, og listehodet viser antall aktive. Når klienten har tre eller flere aktive, vises teksten «Tre lederkompetanser samtidig er ofte nok til å holde fokus og prøve dem i praksis. Du kan likevel legge til flere.» Coachen får handlingen `Foreslå lederkompetanse`, ikke en handling som antyder at coachen kan endre klientens prioritering. Planstatus uttrykkes med ord, aldri prosent.
 
 Listen heter `Lederkompetanser`. Coachens forslag vises som rader i samme liste, merket `Foreslått av coach`, med `Aktiver forslag` og `Skjul`. Arkivering er en tekstknapp, `Arkiver`. Detaljflaten har ingen egen `Anbefalt neste steg`-boks; planstatusen er beskrivelse. Praksisdelen heter `Prøv i praksis · Eksperiment`.
 

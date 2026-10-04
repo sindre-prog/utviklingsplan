@@ -1,6 +1,6 @@
 # Beslutningsnotat: utviklingsflyten V1
 
-Status: godkjent av produkteier 2. oktober 2026. Migreringen som fjerner grensen på tre aktive krever egen godkjenning før den kjøres.
+Status: godkjent av produkteier 2. oktober 2026. Begge databaseendringene er kjørt i produksjon 4. oktober 2026: grensen på tre aktive lederkompetanser er fjernet (`20261002120000`, allerede registrert ved kontroll), og et ytre fokusoppdrag lagres selv om tittelen er tom (`20261004103000`).
 
 ## Hensikt
 
@@ -53,7 +53,7 @@ Alle øvrige felter er støtte for klientens tenkning, ikke vilkår for neste de
 - Arkivering bevarer eksperimenter og læringshistorikk.
 - Planstatusen (`Ikke påbegynt`, `Under arbeid`, `Klar til å prøves`) beholdes som beskrivelse. Den styrer ikke neste steg.
 
-Databasen stopper i dag en fjerde aktiv lederkompetanse, og den krever prioritet 1–3. Å fjerne grensen krever en databasemigrering. Migreringen godkjennes og kjøres separat. Til den er kjørt, gjelder dagens grense i portalen.
+Databasen stopper ikke lenger en fjerde aktiv lederkompetanse. En aktiv kompetanse bruker prioritet 1 eller høyere, og hver prioritet brukes bare én gang. Klienten eier fortsatt aktivering og prioritering.
 
 ## Anbefalt neste steg
 
@@ -65,6 +65,7 @@ Databasen stopper i dag en fjerde aktiv lederkompetanse, og den krever prioritet
 - Korallfeltet brukes ikke til å gjenta neste tomme felt i et fokusoppdrag eller en samtale. Det vises der når neste del i modellen er et annet sted, som «Gå til indre prosjekt» fra et navngitt fokusoppdrag.
 - På Akkurat nå viser Forløpet om målet er satt. Er det satt, vises målet. Er det ikke satt, står det `Ikke avklart`. Brøken over de seks avklaringene står på Forløpet, ikke på Akkurat nå.
 - Et fokusoppdrag eller en samtale uten navn har status `Ikke ferdigstilt`. Har samtalen et navn, er statusen `Under arbeid` til den er fulgt opp.
+- Et ytre fokusoppdrag lagres selv om tittelen fortsatt er tom. Eldre utkast med tittelen `Nytt fokusoppdrag` teller fortsatt ikke som valgt.
 
 ## Statusord for eksperimenter
 
@@ -96,7 +97,7 @@ Ved godkjenning endres, i en egen commit:
 - `SCREEN_CONTRACT_LEADER_COMPETENCIES_AND_EXPERIMENTS_V2.md`: siste punkt under `Skjermlogikk` endres tilsvarende.
 - `SCREEN_CONTRACT_AKKURAT_NAA_V1.md`: «indre prosjekt blir handlingsbart når et ytre prosjekt finnes» og akseptkriteriet «Indre prosjekt forklarer avhengigheten til ytre prosjekt» erstattes med grunnregelen.
 - `SCREEN_CONTRACT_LEADER_COMPETENCIES_CONTENT_AND_CONVERSATIONS_V3.md`: `Hovedfokus` og `Støttende kompetanse` markeres som erstattet av `Prioritert nå` og `Aktiv`.
-- `SCREEN_CONTRACT_LEADER_COMPETENCIES_AND_EXPERIMENTS_V2.md`: «inntil tre aktive» og `3 av 3 aktive` endres til anbefaling når migreringen er godkjent.
+- `SCREEN_CONTRACT_LEADER_COMPETENCIES_AND_EXPERIMENTS_V2.md`: «inntil tre aktive» og `3 av 3 aktive` er endret til anbefaling. Migreringen er kjørt.
 - `IMPLEMENTATION_GUARDRAILS.md` og `IMPLEMENTATION_PLAN.md`: statusordlisten for eksperimenter oppdateres.
 
 ## Modulen for lederkompetanser
@@ -154,7 +155,7 @@ Gjennomgått i biblioteket (velgeren) og arbeidsflaten, desktop og mobil, klient
 
 - Visuell opprydding (typografi, farger, tomme tilstander, mobilfaner) tas som egen pakke etter at flyten er godkjent.
 - Ingen endring i tilgangsregler, innholdet i de 52 lederkompetansene eller Forløpets seks avklaringer.
-- Eneste databaseendring er migreringen som fjerner grensen på tre aktive. Den godkjennes separat.
+- Databaseendringene i dette notatet er kjørt: grensen på tre aktive er fjernet, og et ytre fokusoppdrag lagres uten tittel. Ingen videre databaseendring hører til notatet.
 
 ## Avklart
 
