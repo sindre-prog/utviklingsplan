@@ -2477,8 +2477,9 @@ async function renderResources() {
 
   state.resourceCache = resources;
   if (!state.selectedResourceSlug || !resources.some((resource) => resource.slug === state.selectedResourceSlug)) {
+    const hadSelection = Boolean(state.selectedResourceSlug);
     state.selectedResourceSlug = resources[0]?.slug || null;
-    state.resourceLibraryDetail = false;
+    if (hadSelection) state.resourceLibraryDetail = false;
   }
 
   const search = dsSearch("Søk etter tema eller ressurs", { onInput: () => render() });
